@@ -1,9 +1,12 @@
 """Root Typer application. Feature commands are registered here as they are built."""
 
+import io
+import sys
 from typing import Annotated
 
 import typer
 
+from prohori.cli.parse import parse_command
 from prohori.version import __version__
 
 app = typer.Typer(
@@ -42,6 +45,13 @@ def version_command() -> None:
     typer.echo(f"prohori {__version__}")
 
 
+app.command("parse")(parse_command)
+
+
 def main() -> None:
     """Console-script entry point."""
+    # Log content can contain characters the console encoding cannot show; never crash on them.
+    for stream in (sys.stdout, sys.stderr):
+        if isinstance(stream, io.TextIOWrapper):
+            stream.reconfigure(errors="backslashreplace")
     app()
