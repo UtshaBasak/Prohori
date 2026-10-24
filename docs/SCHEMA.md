@@ -134,10 +134,10 @@ One ordered scale is shared by events, alerts and incidents: `low` < `medium` < 
 ```python
 from prohori.schema import FIELD_PATHS, get_field, is_valid_path
 
-get_field(event, "event.action")   # "auth.signin.failure"
-get_field(event, "source.ip")      # "203.0.113.7" (string)
-get_field(event, "extra.port")     # value from the extra map, or None
-is_valid_path("http.status")       # True
+get_field(event, "event.action")  # "auth.signin.failure"
+get_field(event, "source.ip")  # "203.0.113.7" (string)
+get_field(event, "extra.port")  # value from the extra map, or None
+is_valid_path("http.status")  # True
 ```
 
 `get_field` returns JSON scalars: enums as their string value, IP addresses as strings and
@@ -149,8 +149,8 @@ open-ended `extra.<key>`.
 ```python
 from prohori.schema import Event, from_json, read_jsonl, to_json, write_jsonl
 
-text = to_json(event)                 # one JSON document
-same = from_json(Event, text)         # validated model, equal to `event`
+text = to_json(event)  # one JSON document
+same = from_json(Event, text)  # validated model, equal to `event`
 
 with open("events.jsonl", "w", encoding="utf-8", newline="\n") as out:
     write_jsonl(events, out)
