@@ -90,3 +90,6 @@ RawText = Annotated[str, _truncator(MAX_RAW_LENGTH)]
 
 #: Values allowed in free-form ``extra`` and enrichment mappings.
 JsonScalar = str | int | float | bool | None
+
+#: A ``JsonScalar`` whose strings are truncated like :data:`Text` (used for untrusted maps).
+BoundedScalar = Text | int | float | bool | None

@@ -9,7 +9,7 @@ from pydantic import BaseModel, Field, model_validator
 from prohori.schema.alert import Alert, AttackTag
 from prohori.schema.types import (
     MODEL_CONFIG,
-    JsonScalar,
+    BoundedScalar,
     Severity,
     ShortText,
     Text,
@@ -52,7 +52,7 @@ class EnrichmentResult(BaseModel):
 
     provider: Annotated[str, Field(min_length=1, max_length=64)]
     retrieved_at: UtcDatetime
-    data: dict[ShortText, JsonScalar] = {}
+    data: dict[ShortText, BoundedScalar] = {}
     note: Text | None = None
 
 

@@ -8,8 +8,8 @@ from prohori.schema.ids import event_id
 from prohori.schema.types import (
     MAX_EXTRA_KEYS,
     MODEL_CONFIG,
+    BoundedScalar,
     EventCategory,
-    JsonScalar,
     Outcome,
     RawText,
     Severity,
@@ -88,7 +88,7 @@ class Event(BaseModel):
     host: ShortText | None = None
     request_id: ShortText | None = None
     raw: RawText
-    extra: Annotated[dict[ShortText, JsonScalar], Field(max_length=MAX_EXTRA_KEYS)] = {}
+    extra: Annotated[dict[ShortText, BoundedScalar], Field(max_length=MAX_EXTRA_KEYS)] = {}
 
     @model_validator(mode="after")
     def _fill_id(self) -> Self:
