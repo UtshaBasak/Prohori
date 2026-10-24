@@ -13,12 +13,12 @@ Two syslog header formats are supported:
 import re
 from collections.abc import Iterator
 from datetime import UTC, datetime, timedelta, tzinfo
-from ipaddress import IPv4Address, IPv6Address, ip_address
 from pathlib import Path
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from prohori.parsers.base import LineParser, ParseError, ParseStats
 from prohori.parsers.registry import register
+from prohori.parsers.util import normalise_ip
 from prohori.schema import Event, EventCategory, EventInfo, Outcome, event_id
 
 _MONTHS = {
@@ -123,16 +123,6 @@ def _resolve_timezone(value: str | tzinfo) -> tzinfo:
     except (ZoneInfoNotFoundError, ValueError) as exc:
         msg = f"unknown timezone {value!r}"
         raise ValueError(msg) from exc
-
-
-def _normalise_ip(text: str) -> IPv4Address | IPv6Address | None:
-    try:
-        address = ip_address(text)
-    except ValueError:
-        return None
-    if isinstance(address, IPv6Address) and address.ipv4_mapped is not None:
-        return address.ipv4_mapped
-    return address
 
 
 @register
@@ -291,7 +281,7 @@ class _EventBuilder:
             fields["pid"] = int(self.pid)
         ip = None
         if addr is not None:
-            ip = _normalise_ip(addr)
+            ip = normalise_ip(addr)
             if ip is None:  # sshd with UseDNS logs host names instead of addresses
                 fields["source_host"] = addr
         fields.update(extra or {})

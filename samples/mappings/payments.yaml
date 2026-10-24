@@ -1,0 +1,20 @@
+# Field mapping for samples/logs/payments.jsonl (generic_json parser).
+log_source: payments-api
+timestamp:
+  field: ts
+  format: "%Y-%m-%d %H:%M:%S"
+  timezone: Asia/Dhaka
+fields:
+  event.action: kind
+  event.outcome: result
+  source.ip: client.addr
+  user.name: actor
+constants:
+  event.category: authentication
+values:
+  event.outcome:
+    ok: success
+    denied: failure
+extra:
+  source_port: client.port
+  merchant: merchant.id
