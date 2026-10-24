@@ -9,6 +9,22 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- `prohori parse FILE|-`: parse and normalise logs with format detection, table or JSON Lines
+  output, a parse summary with error examples, and exit codes (`0` ok, `1` every line failed,
+  `2` usage error).
+- `access_log` parser for nginx and Apache combined/common log formats, with custom patterns
+  and query strings kept in `extra.query`.
+- `app_json` parser for application security events in JSON Lines.
+- `generic_json` parser driven by a validated YAML field-mapping file.
+- Sample access, application and generic JSON logs, and a sample mapping file.
+- `pyyaml` and `rich` as core dependencies.
+
+### Changed
+
+- String values in `Event.extra` and enrichment data are truncated to 1,024 characters.
+- Parse error reasons name the invalid schema field.
+- The fuzz harness covers every parser.
+
 - Parser framework (`prohori.parsers`): bounded binary line reading, sanitising of control,
   ANSI and invisible characters, per-run statistics with error examples, and a parser registry.
 - `auth_log` parser for Linux `auth.log` / `secure`: sshd logins, invalid users, too many

@@ -6,9 +6,48 @@ Parsers turn raw log lines into [common-schema events](SCHEMA.md). They live in
 | Parser | Registry name | Input | Status |
 |--------|---------------|-------|--------|
 | Linux `auth.log` / `secure` | `auth_log` | sshd, sudo and PAM lines from syslog | Available |
-| nginx / Apache access logs | - | Combined log format | Planned |
-| App security events | - | JSON Lines | Planned |
-| Generic JSON Lines | - | JSON Lines with a field-mapping file | Planned |
+| nginx / Apache access logs | `access_log` | Combined or common log format, or a custom pattern | Available |
+| App security events | `app_json` | JSON Lines in the documented application format | Available |
+| Generic JSON Lines | `generic_json` | Any JSON Lines, with a YAML field-mapping file | Available |
+
+## Command line
+
+```bash
+prohori parse samples/logs/auth.log                 # format detected, table output
+prohori parse samples/logs/access.log --format json # one event per line (JSON Lines)
+cat samples/logs/auth.log | prohori parse - --year 2026
+prohori parse samples/logs/payments.jsonl --parser generic_json \
+    --mapping samples/mappings/payments.yaml
+```
+
+| Option | Applies to | Meaning |
+|--------|------------|---------|
+| `--parser`, `-p` | all | `auto` (default) or a parser name |
+| `--format`, `-f` | all | `table` (summary and the first `--limit` events) or `json` (events on standard output as JSON Lines, summary as JSON on standard error) |
+| `--year` | `auth_log` | Year of the first line (default: from the file date) |
+| `--timezone` | `auth_log` | IANA timezone for timestamps without an offset (default `UTC`) |
+| `--pattern` | `access_log` | Custom regular expression |
+| `--keep-query` | `access_log` | Keep the query string in `http.path` |
+| `--mapping` | `generic_json` | YAML field-mapping file |
+| `--limit` | `table` | Events to show (default 20; counts always cover the whole input) |
+
+Exit codes: `0` success, `1` no events and at least one malformed line (every line failed),
+`2` invalid usage or input (unknown parser, missing file, undetectable format, bad options).
+
+Table output never interprets log content as formatting: cell text is rendered literally.
+
+### Format detection
+
+With `--parser auto`, up to 20 non-blank lines are classified and the most common format wins
+(ties go to the first in this order):
+
+1. `app_json`: a JSON object with a `time` string and an `event` object containing `action`.
+2. `generic_json`: any other JSON object. This needs a mapping file, so detection stops with a
+   message asking for `--parser generic_json --mapping FILE`.
+3. `auth_log`: a syslog line (RFC 3164 or RFC 3339 timestamp, host, program).
+4. `access_log`: a combined or common log format line.
+
+Detection is a convenience. Use `--parser` in scripts.
 
 ## Framework guarantees
 
@@ -120,10 +159,98 @@ for event in parser.parse_file(Path("samples/logs/auth.log"), stats=stats):
 print(stats.as_dict())
 ```
 
+## `access_log`
+
+Every line becomes a `web.request` event in category `web`; the outcome is `failure` for
+status 400 and above, `success` otherwise.
+
+| Source | Field |
+|--------|-------|
+| Remote address | `source.ip` (or `extra.source_host` if it is not an address) |
+| Authenticated user (`-` means none) | `user.name` |
+| `[24/Oct/2026:13:50:12 +0600]` | `timestamp` (converted to UTC; month names are parsed independently of the locale) |
+| Request line `GET /path?query HTTP/1.1` | `http.method`, `http.path`, `extra.query`, `extra.protocol` |
+| Status, bytes (`-` means none) | `http.status`, `http.bytes` |
+| Referer, user agent | `extra.referer`, `user_agent` |
+
+- **Query strings** are removed from `http.path` and kept in `extra.query`, so paths group cleanly
+  while injection rules can still inspect the query. `--keep-query` keeps them in the path.
+- **Unparseable request lines** (for example a TLS handshake sent to a plain-HTTP port) leave
+  method and path empty and keep the request text in `extra.request`.
+- **Escapes** written by nginx (`\x22`) and Apache (`\"`) are decoded in the request, referer
+  and user agent.
+- **Custom formats:** pass a regular expression with named groups `ip`, `time`, `status`, and
+  either `request` or `method` and `path`; `user`, `bytes`, `referer`, `agent`, `host` and
+  `protocol` are optional.
+- Fields after the user agent (for example `$http_x_forwarded_for` or timings) are ignored by
+  the default pattern.
+
+## `app_json`
+
+Parses application security events, one JSON object per line:
+
+```json
+{"time": "2026-10-24T13:50:12.345Z", "log_type": "security",
+ "event": {"action": "auth.signin.failure", "category": "authentication",
+           "outcome": "failure", "severity": "low", "reason": "bad_password"},
+ "request_id": "9f3c0a", "source": {"ip": "203.0.113.7"}, "user_agent": "Mozilla/5.0",
+ "client": "web", "http": {"method": "POST", "route": "/api/auth/signin"},
+ "user": {"id": "665f1c", "email_hash": "3a91d0"}}
+```
+
+- `time` must be ISO 8601 **with** a timezone (`Z` or an offset).
+- Records with a `log_type` other than `security` are skipped; records without `log_type` are
+  accepted.
+- `http.route` (or `http.path`) becomes `http.path`.
+- If `event.category` is missing or not a schema category, it is derived from the action prefix:
+
+| Prefix | Category |
+|--------|----------|
+| `auth.` | `authentication` |
+| `session.` | `session` |
+| `account.` | `account` |
+| `authz.` | `authorization` |
+| `ratelimit.`, `turnstile.`, `upload.` | `abuse` |
+| `admin.` | `admin` |
+
+- Invalid JSON, non-object records, deeply nested input, missing `time` or `event.action`, and
+  values that do not fit the schema are counted as errors.
+
+## `generic_json`
+
+Maps any JSON Lines layout onto the schema with a YAML file (loaded with `yaml.safe_load`,
+at most 64 KiB):
+
+```yaml
+log_source: payments-api
+timestamp:
+  field: ts                     # dotted path in each record
+  format: "%Y-%m-%d %H:%M:%S"   # iso8601 (default), epoch, epoch_ms or a strptime pattern
+  timezone: Asia/Dhaka          # used when the timestamp has no offset
+fields:                         # schema field: dotted path in the record
+  event.action: kind
+  event.outcome: result
+  source.ip: client.addr
+  user.name: actor
+constants:                      # schema field: fixed value
+  event.category: authentication
+values:                         # optional value translation per schema field
+  event.outcome: {ok: success, denied: failure}
+extra:                          # extra key: dotted path in the record (scalars only)
+  merchant: merchant.id
+```
+
+- `event.action` and `event.category` must come from `fields` or `constants`.
+- Targets must be schema fields; `id`, `timestamp`, `log_source` and `raw` are set by the parser.
+- Mapped values must still satisfy the schema (for example `event.action` must be a dotted
+  lower-case name); use `values` to translate.
+- The mapping file is validated when the parser is created, so mistakes fail before any input is
+  read.
+
 ## Testing and fuzzing
 
 Parser tests cover every supported message, malformed and oversized lines, invalid UTF-8, CRLF
 files, IPv6, New Year rollover and username injection. Hypothesis property tests check that
 arbitrary text never raises and that the statistics always add up. An
-[Atheris](https://github.com/google/atheris) harness in `fuzz/` runs coverage-guided fuzzing in
-CI (Linux only).
+[Atheris](https://github.com/google/atheris) harness in `fuzz/` runs coverage-guided fuzzing of
+every parser in CI (Linux only).

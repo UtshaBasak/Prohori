@@ -34,8 +34,21 @@ reports, with honest machine-learning evaluation and a streaming data pipeline.*
 
 *Prohori* is Bengali for "guard".
 
-> **Status: pre-alpha.** The project skeleton is in place; features are being built
-> incrementally. Nothing below the "Planned features" heading works yet.
+> **Status: pre-alpha.** Log parsing works today (`prohori parse`); detection, enrichment,
+> incidents and reports are being built incrementally. See the [CHANGELOG](CHANGELOG.md).
+
+## Try it
+
+```bash
+git clone https://github.com/UtshaBasak/Prohori.git && cd Prohori
+uv sync
+uv run prohori parse samples/logs/auth.log
+uv run prohori parse samples/logs/access.log --format json
+```
+
+`prohori parse` normalises Linux `auth.log`, nginx/Apache access logs, application security
+events (JSON Lines) and any JSON Lines layout via a mapping file. See
+[docs/PARSERS.md](docs/PARSERS.md).
 
 ## Planned features
 
