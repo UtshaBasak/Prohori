@@ -171,3 +171,37 @@ timestamps carry neither a year nor a timezone, and identical lines can occur wi
 - **`tzdata`** is a Windows-only dependency, because Windows has no system IANA timezone database.
 
 **Consequences.** Archived logs need an explicit `year`. Ids change if a file is renamed.
+
+---
+
+## ADR-0008: Parser set, format detection and the `parse` command
+
+- **Date:** 2026-10-25
+- **Status:** Accepted
+
+**Context.** The first release needs web-server, application and arbitrary JSON logs in
+addition to `auth.log`, plus a command that shows what was parsed and what failed.
+
+**Decision.**
+- **Query strings go to `extra.query`**, not `http.path`, by default. Paths then group cleanly
+  for scanning rules, while injection rules can still inspect the query. `--keep-query` restores
+  the full target.
+- **Application events derive a missing category from the action prefix**, so producers can
+  omit it, while unknown prefixes remain errors rather than guesses.
+- **Arbitrary JSON uses an explicit YAML mapping** validated by a Pydantic model before any input
+  is read. There is no guessing of field meanings.
+- **Format detection votes over the first 20 non-blank lines** and never selects `generic_json`
+  automatically, because that would need a mapping. Detection is documented as a convenience;
+  scripts should pass `--parser`.
+- **Exit codes:** `0` success, `1` when no events were produced and at least one line was
+  malformed, `2` for usage and input errors (Typer's own usage code). Partial failures exit `0`
+  and are visible in the summary.
+- **JSON output** writes events to standard output (JSON Lines) and the summary to standard error,
+  so output can be piped into other tools.
+- **Terminal output never interprets log content:** table cells are literal text, so log lines
+  cannot inject Rich markup.
+- **`extra` string values are truncated** (1,024 characters) like other untrusted text, because
+  parsers copy log fields such as query strings into it.
+
+**Consequences.** Detection may need `--parser` for mixed or unusual files. The `extra` value
+type changed from plain scalars to bounded scalars (no effect on valid data).

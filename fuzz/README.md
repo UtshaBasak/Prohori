@@ -6,7 +6,7 @@ every push and pull request; the Hypothesis property tests in `tests/` cover the
 every platform.
 
 ```bash
-uv run --with atheris python fuzz/fuzz_auth_log.py -max_total_time=60
+uv run --with atheris python fuzz/fuzz_parsers.py -max_total_time=60
 ```
 
 Seed inputs can be passed as a corpus directory, for example `samples/logs/`.

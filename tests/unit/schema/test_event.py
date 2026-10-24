@@ -183,3 +183,9 @@ class TestJsonRoundTrip:
         restored = Event.model_validate_json(event.model_dump_json())
         assert restored == event
         assert restored.id == event.id
+
+
+def test_extra_string_values_truncated() -> None:
+    event = make(extra={"query": "q" * 5000, "count": 3})
+    assert event.extra["query"] == "q" * MAX_TEXT_LENGTH
+    assert event.extra["count"] == 3

@@ -53,8 +53,8 @@ smaller and is not ECS-compatible.
 | Fields | Maximum characters |
 |--------|--------------------|
 | `raw` | 8,192 |
-| `user_agent`, `http.path`, free-text descriptions | 1,024 |
-| `user.*`, `client`, `host`, `request_id`, `event.reason`, `extra` keys and string values | 256 |
+| `user_agent`, `http.path`, `extra` string values, free-text descriptions | 1,024 |
+| `user.*`, `client`, `host`, `request_id`, `event.reason`, `extra` keys | 256 |
 
 ### Example
 

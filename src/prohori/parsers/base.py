@@ -11,6 +11,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import IO, Any
 
+from pydantic import ValidationError
+
 from prohori.schema import Event
 
 #: Longest line (in characters after decoding) a parser will look at. Longer lines are counted
@@ -199,5 +201,9 @@ class LineParser(ABC):
 
 
 def _short_reason(exc: ValueError) -> str:
+    if isinstance(exc, ValidationError) and exc.errors():
+        first = exc.errors()[0]
+        location = ".".join(str(part) for part in first["loc"]) or "record"
+        return f"invalid {location}: {first['msg']}"[:200]
     message = str(exc).splitlines()[0] if str(exc) else type(exc).__name__
     return message[:200]
