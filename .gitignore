@@ -1,0 +1,65 @@
+# --- Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+*.egg
+
+# --- Virtual environments
+.venv/
+venv/
+env/
+
+# --- Tooling caches and reports
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.hypothesis/
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+.tox/
+.nox/
+
+# --- Secrets and local configuration
+.env
+.env.*
+!.env.example
+*.local.toml
+*.local.yaml
+prohori.local.*
+
+# --- Datasets, models and generated artefacts (never committed)
+data/*
+!data/README.md
+results/checkpoints/
+models/
+*.joblib
+*.pkl
+*.pickle
+*.onnx
+*.parquet
+*.mmdb
+*.sqlite
+*.sqlite3
+*.db
+
+# --- Notebooks
+.ipynb_checkpoints/
+
+# --- Pipeline runtime state
+pipeline/.volumes/
+pipeline/dbt/target/
+pipeline/dbt/logs/
+pipeline/dbt/dbt_packages/
+pipeline/airflow/logs/
+
+# --- Editors and OS
+.vscode/
+.idea/
+*.swp
+.DS_Store
+Thumbs.db

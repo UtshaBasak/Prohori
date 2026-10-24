@@ -1,0 +1,162 @@
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
+[project]
+name = "prohori"
+dynamic = ["version"]
+description = "A laptop-sized mini-SOC: from raw logs to detections, enriched incidents and analyst-ready reports."
+readme = "README.md"
+requires-python = ">=3.11"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [{ name = "Utsha Basak" }]
+keywords = [
+    "security",
+    "soc",
+    "siem",
+    "detection-engineering",
+    "log-analysis",
+    "incident-response",
+    "threat-detection",
+]
+classifiers = [
+    "Development Status :: 2 - Pre-Alpha",
+    "Environment :: Console",
+    "Intended Audience :: Information Technology",
+    "Intended Audience :: System Administrators",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Topic :: Security",
+    "Topic :: System :: Logging",
+    "Topic :: System :: Monitoring",
+    "Typing :: Typed",
+]
+dependencies = [
+    "typer>=0.15",
+]
+
+[project.optional-dependencies]
+# Heavy dependencies live behind extras so the base install stays small.
+# Each extra is populated by the roadmap step that first needs it.
+ml = []
+pipeline = []
+llm = []
+all = ["prohori[ml,pipeline,llm]"]
+
+[project.urls]
+Homepage = "https://github.com/UtshaBasak/Prohori"
+Repository = "https://github.com/UtshaBasak/Prohori"
+Issues = "https://github.com/UtshaBasak/Prohori/issues"
+Changelog = "https://github.com/UtshaBasak/Prohori/blob/main/CHANGELOG.md"
+
+[project.scripts]
+prohori = "prohori.cli:main"
+
+[dependency-groups]
+dev = [
+    "hypothesis>=6.100",
+    "mypy>=1.15",
+    "pre-commit>=4.0",
+    "pytest>=8.3",
+    "pytest-cov>=6.0",
+    "ruff>=0.11",
+]
+
+# --------------------------------------------------------------------------- build
+
+[tool.hatch.version]
+path = "src/prohori/version.py"
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "/src",
+    "/tests",
+    "/CHANGELOG.md",
+    "/LICENSE",
+    "/README.md",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/prohori"]
+
+# --------------------------------------------------------------------------- ruff
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = [
+    "E", "W",   # pycodestyle
+    "F",        # pyflakes
+    "I",        # isort
+    "B",        # flake8-bugbear
+    "UP",       # pyupgrade
+    "S",        # flake8-bandit (security)
+    "SIM",      # flake8-simplify
+    "C4",       # flake8-comprehensions
+    "PTH",      # prefer pathlib
+    "RUF",      # ruff-specific
+    "N",        # pep8-naming
+    "ANN",      # annotations
+    "PT",       # pytest style
+    "DTZ",      # timezone-aware datetimes
+    "T20",      # no stray print()
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S101", "ANN"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["prohori"]
+
+[tool.ruff.format]
+line-ending = "lf"
+
+# --------------------------------------------------------------------------- mypy
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+warn_unreachable = true
+files = ["src", "tests"]
+
+# --------------------------------------------------------------------------- pytest
+
+[tool.pytest.ini_options]
+minversion = "8.0"
+testpaths = ["tests"]
+addopts = [
+    "-ra",
+    "--strict-markers",
+    "--strict-config",
+    "--import-mode=importlib",
+]
+markers = [
+    "slow: long-running tests, deselect with -m 'not slow'",
+    "integration: end-to-end tests across several components",
+]
+filterwarnings = ["error"]
+
+# --------------------------------------------------------------------------- coverage
+
+[tool.coverage.run]
+source = ["prohori"]
+branch = true
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = true
+fail_under = 85
+exclude_also = [
+    "if TYPE_CHECKING:",
+    "if __name__ == .__main__.:",
+    "raise NotImplementedError",
+]
