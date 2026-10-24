@@ -65,10 +65,10 @@ jobs:
           python-version: "3.13"
           enable-cache: true
       - run: uv sync
-      - name: Fuzz the auth.log parser
+      - name: Fuzz the parsers
         run: |
-          mkdir -p corpus && cp samples/logs/auth*.log corpus/
-          uv run --with atheris python fuzz/fuzz_auth_log.py -max_total_time=60 corpus
+          mkdir -p corpus && cp samples/logs/* corpus/
+          uv run --with atheris python fuzz/fuzz_parsers.py -max_total_time=60 corpus
 
   build:
     name: Build distributions
