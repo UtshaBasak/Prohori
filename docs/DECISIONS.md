@@ -106,3 +106,35 @@ built, tested and reviewed in one session.
 
 **Consequences.** More, smaller steps; release points are unchanged (v0.1.0 after the batch core,
 v0.2.0 after ML, v0.3.0 after the pipeline, v1.0.0 after final polish).
+
+---
+
+## ADR-0006: Shape and invariants of the common schema
+
+- **Date:** 2026-10-25
+- **Status:** Accepted
+
+**Context.** Every component consumes the event schema, and all of its content comes from
+untrusted logs. Rules refer to fields by dotted names such as `event.action`.
+
+**Decision.**
+- **Nested models with a dotted-path accessor.** Events are nested Pydantic models that mirror
+  the JSON shape (`event`, `source`, `user`, `http`); `prohori.schema.get_field(event, "event.action")`
+  and `FIELD_PATHS` give flat dotted access for rules and features. One mapping, derived from the
+  models, so the two cannot drift apart.
+- **Naive datetimes are rejected**, aware ones converted to UTC. Guessing a timezone silently would
+  corrupt time windows; parsers own that decision.
+- **Untrusted text is truncated, not rejected**, at fixed limits (raw line 8,192 characters,
+  free text 1,024, short identifiers 256). Rejecting would let an attacker hide events by sending
+  oversized values. Structural fields (action names, IP addresses, HTTP status) are validated
+  strictly.
+- **Models are frozen and forbid unknown fields**, so events cannot be altered after parsing and
+  typos in field names fail loudly.
+- **Deterministic ids** (`evt-`/`alr-` + truncated SHA-256 of content) enable idempotent pipeline
+  writes and reproducible reports. Same-second duplicate lines are separated by a parser-supplied
+  discriminator.
+- **One severity scale** (`low` < `medium` < `high` < `critical`) for events, alerts and incidents;
+  sources use the first three.
+
+**Consequences.** Parsers must construct timezone-aware timestamps and choose discriminators for
+duplicate lines. Changes to field names are breaking and require updating `docs/SCHEMA.md`.

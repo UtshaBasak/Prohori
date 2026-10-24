@@ -9,6 +9,10 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- Common schema (`prohori.schema`): immutable `Event`, `Alert` and `Incident` models with UTC-only
+  timestamps, IPv4/IPv6 validation, truncation of untrusted text, deterministic ids, dotted-path
+  field access and JSON / JSON Lines helpers. Documented in `docs/SCHEMA.md`.
+- `pydantic` as a core dependency.
 - Project skeleton: `src/` layout package with typed, importable subpackages.
 - `prohori` command-line entry point with `--version` and `version`.
 - Tooling: uv, Ruff, mypy (strict), pytest with coverage, pre-commit with secret scanning.
