@@ -1,9 +1,33 @@
 # Prohori (প্রহরী)
 
+<!-- Build and security -->
 [![CI](https://github.com/UtshaBasak/Prohori/actions/workflows/ci.yml/badge.svg)](https://github.com/UtshaBasak/Prohori/actions/workflows/ci.yml)
 [![CodeQL](https://github.com/UtshaBasak/Prohori/actions/workflows/codeql.yml/badge.svg)](https://github.com/UtshaBasak/Prohori/actions/workflows/codeql.yml)
-[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-![Python](https://img.shields.io/badge/python-3.11%20%7C%203.12%20%7C%203.13%20%7C%203.14-blue)
+[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/UtshaBasak/Prohori/badge)](https://scorecard.dev/viewer/?uri=github.com/UtshaBasak/Prohori)
+[![Secret scanning: gitleaks](https://img.shields.io/badge/secrets-gitleaks-blue?logo=git)](https://github.com/gitleaks/gitleaks)
+[![Dependabot](https://img.shields.io/badge/dependabot-enabled-025E8C?logo=dependabot)](https://github.com/UtshaBasak/Prohori/blob/main/.github/dependabot.yml)
+
+<!-- Package -->
+![Status: pre-alpha](https://img.shields.io/badge/status-pre--alpha-orange)
+![Python](https://img.shields.io/badge/python-3.11%20%7C%203.12%20%7C%203.13%20%7C%203.14-3776AB?logo=python&logoColor=white)
+![Platforms](https://img.shields.io/badge/platform-Linux%20%7C%20Windows%20%7C%20macOS-lightgrey)
+[![License: MIT](https://img.shields.io/github/license/UtshaBasak/Prohori)](LICENSE)
+
+<!-- Tooling and conventions -->
+[![uv](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/uv/main/assets/badge/v0.json)](https://github.com/astral-sh/uv)
+[![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
+[![Checked with mypy](https://img.shields.io/badge/mypy-strict-2A6DB2)](https://mypy-lang.org/)
+[![pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit)](https://github.com/pre-commit/pre-commit)
+[![Conventional Commits](https://img.shields.io/badge/conventional%20commits-1.0.0-FE5196?logo=conventionalcommits&logoColor=white)](https://www.conventionalcommits.org/)
+[![Contributor Covenant](https://img.shields.io/badge/contributor%20covenant-2.1-4baaaa)](CODE_OF_CONDUCT.md)
+
+<!-- Repository -->
+[![Last commit](https://img.shields.io/github/last-commit/UtshaBasak/Prohori)](https://github.com/UtshaBasak/Prohori/commits/main)
+[![Commit activity](https://img.shields.io/github/commit-activity/m/UtshaBasak/Prohori)](https://github.com/UtshaBasak/Prohori/graphs/commit-activity)
+[![Open issues](https://img.shields.io/github/issues/UtshaBasak/Prohori)](https://github.com/UtshaBasak/Prohori/issues)
+[![Pull requests](https://img.shields.io/github/issues-pr/UtshaBasak/Prohori)](https://github.com/UtshaBasak/Prohori/pulls)
+[![Wiki](https://img.shields.io/badge/docs-wiki-blue?logo=github)](https://github.com/UtshaBasak/Prohori/wiki)
+[![PRs welcome](https://img.shields.io/badge/PRs-welcome-brightgreen)](CONTRIBUTING.md)
 
 **A laptop-sized mini-SOC: from raw logs to detections, enriched incidents and analyst-ready
 reports, with honest machine-learning evaluation and a streaming data pipeline.**
@@ -46,7 +70,8 @@ uv run mypy                    # strict type check
 uv run pytest --cov            # tests with coverage
 ```
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for conventions and [docs/](docs/) for design documents.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for conventions, [docs/](docs/) for design documents and the
+[project wiki](https://github.com/UtshaBasak/Prohori/wiki) for guides.
 
 ## Security
 

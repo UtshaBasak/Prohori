@@ -14,3 +14,4 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Tooling: uv, Ruff, mypy (strict), pytest with coverage, pre-commit with secret scanning.
 - Continuous integration on Linux and Windows for Python 3.11 to 3.14, CodeQL and Dependabot.
 - Contributor, security and code-of-conduct documents.
+- OpenSSF Scorecard workflow, README status badges and a project wiki.
