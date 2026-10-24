@@ -1,0 +1,4 @@
+2026-10-24T19:50:02.123456+06:00 web02 sshd[3120]: Invalid user oracle from 198.51.100.77 port 41000
+2026-10-24T19:50:04.000001+06:00 web02 sshd[3120]: Failed password for invalid user oracle from 198.51.100.77 port 41000 ssh2
+2026-10-24T13:50:06Z web02 sshd[3121]: Failed password for root from ::ffff:198.51.100.77 port 41002 ssh2
+2026-10-24T19:51:00.5+06:00 web02 sshd[3130]: Accepted publickey for ops from 2001:db8:1::5 port 52000 ssh2: RSA SHA256:CCCCexampleexampleexampleexampleexampleexam

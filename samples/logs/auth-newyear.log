@@ -1,0 +1,4 @@
+Dec 31 23:58:40 bastion sshd[901]: Failed password for root from 203.0.113.50 port 40000 ssh2
+Dec 31 23:59:59 bastion sshd[901]: Failed password for root from 203.0.113.50 port 40000 ssh2
+Jan  1 00:00:01 bastion sshd[901]: Failed password for root from 203.0.113.50 port 40000 ssh2
+Jan  1 00:00:03 bastion sshd[901]: Accepted password for root from 203.0.113.50 port 40000 ssh2

@@ -138,3 +138,36 @@ untrusted logs. Rules refer to fields by dotted names such as `event.action`.
 
 **Consequences.** Parsers must construct timezone-aware timestamps and choose discriminators for
 duplicate lines. Changes to field names are breaking and require updating `docs/SCHEMA.md`.
+
+---
+
+## ADR-0007: Parser framework and syslog time handling
+
+- **Date:** 2026-10-25
+- **Status:** Accepted
+
+**Context.** Parsers read untrusted, sometimes huge or corrupt files. Traditional syslog
+timestamps carry neither a year nor a timezone, and identical lines can occur within one second.
+
+**Decision.**
+- **Lines are read in binary with a hard length limit** (16,384 characters). Oversized lines are
+  errors and are skipped in chunks, so neither memory nor regular-expression work depends on the
+  input. Input is decoded as UTF-8 with replacement.
+- **Three outcomes per line:** event, skipped (well-formed but irrelevant) or error (malformed),
+  plus blank. Only errors indicate a problem with the input, so they are reported separately.
+- **Sanitising** removes control characters, ANSI escapes and invisible formatting characters
+  (bidirectional overrides, zero-width characters) that could disguise text in reports.
+- **Default timezone is UTC**, not the machine's local zone: logs are usually analysed on a
+  different machine from the one that wrote them, and a silent local-time guess would be wrong in
+  a way that is hard to notice. Users pass `timezone` for RFC 3164 logs.
+- **Year inference:** an explicit `year` is the year of the first line; otherwise the first line
+  is placed no later than one day after the file's modification time. A month drop of six or more
+  is a New Year rollover.
+- **Event ids include `<input name>:<line number>`** so duplicates stay distinct and re-parsing is
+  deterministic.
+- **Fuzzing:** Hypothesis property tests run on every platform; an Atheris harness adds
+  coverage-guided fuzzing in a Linux CI job. Atheris is not a project dependency because it has no
+  Windows wheels.
+- **`tzdata`** is a Windows-only dependency, because Windows has no system IANA timezone database.
+
+**Consequences.** Archived logs need an explicit `year`. Ids change if a file is renamed.
