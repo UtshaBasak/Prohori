@@ -16,10 +16,13 @@ MAPPING = ROOT / "samples" / "mappings" / "payments.yaml"
 
 runner = CliRunner(env={"COLUMNS": "200", "NO_COLOR": "1"})
 
+# Typer's error panels may still be coloured when CI forces colour output.
+_ANSI = re.compile(r"\x1b\[[0-9;]*m")
+
 
 def run(*args: str, stdin: bytes | None = None) -> tuple[int, str, str]:
     result = runner.invoke(app, ["parse", *args], input=stdin)
-    return result.exit_code, result.stdout, result.stderr
+    return result.exit_code, _ANSI.sub("", result.stdout), _ANSI.sub("", result.stderr)
 
 
 @pytest.mark.parametrize(
