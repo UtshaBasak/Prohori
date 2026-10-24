@@ -55,6 +55,21 @@ jobs:
       - name: CLI smoke test
         run: uv run prohori --version
 
+  fuzz:
+    name: Fuzz parsers (Atheris)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
+        with:
+          python-version: "3.13"
+          enable-cache: true
+      - run: uv sync
+      - name: Fuzz the auth.log parser
+        run: |
+          mkdir -p corpus && cp samples/logs/auth*.log corpus/
+          uv run --with atheris python fuzz/fuzz_auth_log.py -max_total_time=60 corpus
+
   build:
     name: Build distributions
     runs-on: ubuntu-latest
