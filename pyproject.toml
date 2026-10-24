@@ -38,6 +38,7 @@ classifiers = [
     "Typing :: Typed",
 ]
 dependencies = [
+    "pydantic>=2.10",
     "typer>=0.15",
 ]
 
@@ -126,6 +127,7 @@ line-ending = "lf"
 python_version = "3.11"
 strict = true
 warn_unreachable = true
+plugins = ["pydantic.mypy"]
 files = ["src", "tests"]
 
 # --------------------------------------------------------------------------- pytest
@@ -133,6 +135,7 @@ files = ["src", "tests"]
 [tool.pytest.ini_options]
 minversion = "8.0"
 testpaths = ["tests"]
+pythonpath = ["."]
 addopts = [
     "-ra",
     "--strict-markers",
@@ -160,3 +163,7 @@ exclude_also = [
     "if __name__ == .__main__.:",
     "raise NotImplementedError",
 ]
+
+[tool.pydantic-mypy]
+init_forbid_extra = true
+warn_required_dynamic_aliases = true
