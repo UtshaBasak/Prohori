@@ -1,0 +1,8 @@
+id: BAD-COND-001
+title: Rule whose condition names a missing selection
+status: test
+severity: low
+detection:
+  selection:
+    event.action: auth.signin.failure
+  condition: selection and not fliter

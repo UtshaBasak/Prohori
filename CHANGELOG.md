@@ -9,6 +9,15 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- Detection rule format (`prohori.rules`): YAML rules with selections, field modifiers
+  (`contains`, `startswith`, `endswith`, `re`, `cidr`, `gt`/`gte`/`lt`/`lte`, `exists`, `all`,
+  `cased`), wildcards, a boolean `condition` language, and `aggregate` / `sequence` blocks that are
+  validated now and evaluated by the upcoming stateful engine. Documented in `docs/RULES.md`.
+- Safe rule loading: size, depth and node limits, safe YAML only, no anchors or aliases, and every
+  error reported with file, line and path.
+- Rule regular expressions run on RE2 (`google-re2`), so matching time is linear in the input and
+  no pattern can hang a run.
+- `prohori rules list` and `prohori rules validate`.
 - `prohori parse FILE|-`: parse and normalise logs with format detection, table or JSON Lines
   output, a parse summary with error examples, and exit codes (`0` ok, `1` every line failed,
   `2` usage error).

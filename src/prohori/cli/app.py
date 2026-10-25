@@ -7,6 +7,7 @@ from typing import Annotated
 import typer
 
 from prohori.cli.parse import parse_command
+from prohori.cli.rules import rules_app
 from prohori.version import __version__
 
 app = typer.Typer(
@@ -46,6 +47,7 @@ def version_command() -> None:
 
 
 app.command("parse")(parse_command)
+app.add_typer(rules_app)
 
 
 def main() -> None:

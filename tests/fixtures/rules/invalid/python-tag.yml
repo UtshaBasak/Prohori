@@ -1,0 +1,5 @@
+id: BAD-YAML-001
+title: Rule with an unsafe YAML tag
+status: test
+severity: low
+detection: !!python/object/apply:os.system ["echo pwned"]

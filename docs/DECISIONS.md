@@ -205,3 +205,46 @@ addition to `auth.log`, plus a command that shows what was parsed and what faile
 
 **Consequences.** Detection may need `--parser` for mixed or unusual files. The `extra` value
 type changed from plain scalars to bounded scalars (no effect on valid data).
+
+---
+
+## ADR-0009: Rule format, matching semantics and regex safety
+
+- **Date:** 2026-10-25
+- **Status:** Accepted
+
+**Context.** Rules must be readable, safe to load from untrusted files, and evaluated against
+attacker-controlled log fields without risk of hangs.
+
+**Decision.**
+- **Sigma-inspired, not Sigma-compatible.** Selections, `|modifiers` and a boolean condition follow
+  Sigma conventions (including case-insensitive string matching and `1 of x*`), plus Prohori's own
+  `aggregate` and `sequence` blocks. `aggregate` and `sequence` appear in the condition only as
+  top-level `and` terms, so the stateless filter and the stateful part are always separable.
+  Their block schema is validated now; the stateful engine (next step) may refine it.
+- **No `eval`.** Conditions use a recursive-descent parser with length and depth limits.
+- **Wildcards without regular expressions.** `*` and `?` use a two-pointer matcher
+  (O(pattern x text)); translating them to `.*` would backtrack polynomially on long values.
+- **Rule regexes run on RE2, not `re`.** A first version used a static check over `re._parser`
+  output to reject backtracking patterns. Measurements showed that this was not enough: patterns it
+  accepted (`.*.*x`, `\w*\w*\w*x`) ran for more than five minutes on one 8 KiB field with
+  `re.search`. RE2 (`google-re2`, imported as `re2`) matches in linear time by construction; the
+  same hostile patterns take about 0.1 ms. It rejects backreferences, look-around, atomic groups
+  and possessive quantifiers at compile time. Patterns are additionally capped at 256 characters
+  and 1 MiB of compiled program. This adds one compiled dependency (BSD-licensed) to the core
+  install; wheels exist for Windows, Linux and macOS on Python 3.11-3.14. Its import name `re2`
+  collides with other PyPI projects, so the dependency is pinned by distribution name.
+- **Backslash escapes follow Sigma:** `\*`, `\?` and `\\` are escapes; every other backslash is
+  literal, so Windows paths (`C:\Windows\System32`) work as written.
+- **Errors carry lines.** The loader composes the YAML node tree, maps every document path to its
+  line, and maps both Pydantic errors and compiler errors back to it.
+- **YAML anchors and aliases are rejected.** Safe loading still expands alias graphs; validation
+  and serialisation would walk the expanded document.
+- **Unused selections are errors**, because they are almost always typos.
+- **Validation lives in `rules/compiler.py` and `rules/loader.py`** rather than a separate
+  `validator.py` (as first planned): compiling is validating, so one pass produces both.
+- **Test fixtures are split into `valid/` and `invalid/`** so the upcoming `rules test` command can
+  run against valid rules only.
+
+**Consequences.** Regex authors cannot use look-around or backreferences, and `\w`/`\d`/`\s`
+are ASCII-only. A literal backslash before a wildcard must be written `\\*`.

@@ -8,4 +8,5 @@ class ExitCode(IntEnum):
 
     OK = 0
     NO_EVENTS = 1
+    INVALID_RULES = 1  # alias: the same code, named for the rules commands
     USAGE = 2

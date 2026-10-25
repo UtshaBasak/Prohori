@@ -1,0 +1,11 @@
+id: BAD-YAML-002
+title: Rule using YAML aliases
+status: test
+severity: low
+a: &a ["x", "x", "x", "x", "x", "x", "x", "x", "x"]
+b: &b [*a, *a, *a, *a, *a, *a, *a, *a, *a]
+c: &c [*b, *b, *b, *b, *b, *b, *b, *b, *b]
+detection:
+  selection:
+    event.action: [*c]
+  condition: selection
