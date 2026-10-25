@@ -1,0 +1,109 @@
+{
+  "_comment": "Synthetic enrichment data for documentation addresses (RFC 5737, RFC 3849). Not real; used by --offline, tests and demos.",
+  "retrieved_at": "2026-10-01T00:00:00Z",
+  "addresses": {
+    "203.0.113.7": {
+      "country": "NL",
+      "city": "Amsterdam",
+      "asn": 64501,
+      "as_org": "Example Hosting B.V. (fictional)",
+      "network": "203.0.113.0/24",
+      "abuse_score": 97,
+      "reports": 412,
+      "malicious": 9,
+      "suspicious": 2,
+      "is_tor": false,
+      "usage_type": "Data Center/Web Hosting/Transit"
+    },
+    "198.51.100.23": {
+      "country": "US",
+      "city": "Ashburn",
+      "asn": 64502,
+      "as_org": "Example Scanning Services (fictional)",
+      "network": "198.51.100.0/24",
+      "abuse_score": 100,
+      "reports": 1840,
+      "malicious": 12,
+      "suspicious": 1,
+      "is_tor": false,
+      "usage_type": "Data Center/Web Hosting/Transit"
+    },
+    "198.51.100.9": {
+      "country": "DE",
+      "city": "Frankfurt am Main",
+      "asn": 64503,
+      "as_org": "Example Cloud GmbH (fictional)",
+      "network": "198.51.100.0/24",
+      "abuse_score": 35,
+      "reports": 6,
+      "malicious": 1,
+      "suspicious": 0,
+      "is_tor": true,
+      "usage_type": "Data Center/Web Hosting/Transit"
+    },
+    "198.51.100.40": {
+      "country": "BD",
+      "city": "Dhaka",
+      "asn": 64504,
+      "as_org": "Example Mobile Ltd. (fictional)",
+      "network": "198.51.100.0/24",
+      "abuse_score": 0,
+      "reports": 0,
+      "malicious": 0,
+      "suspicious": 0,
+      "is_tor": false,
+      "usage_type": "Mobile ISP"
+    },
+    "192.0.2.10": {
+      "country": "BD",
+      "city": "Dhaka",
+      "asn": 64505,
+      "as_org": "Example Broadband (fictional)",
+      "network": "192.0.2.0/24",
+      "abuse_score": 0,
+      "reports": 0,
+      "malicious": 0,
+      "suspicious": 0,
+      "is_tor": false,
+      "usage_type": "Fixed Line ISP"
+    },
+    "192.0.2.50": {
+      "country": "CN",
+      "city": "Shenzhen",
+      "asn": 64506,
+      "as_org": "Example Datacenter Co. (fictional)",
+      "network": "192.0.2.0/24",
+      "abuse_score": 88,
+      "reports": 251,
+      "malicious": 6,
+      "suspicious": 1,
+      "is_tor": false,
+      "usage_type": "Data Center/Web Hosting/Transit"
+    },
+    "192.0.2.77": {
+      "country": "BD",
+      "city": "Chattogram",
+      "asn": 64505,
+      "as_org": "Example Broadband (fictional)",
+      "network": "192.0.2.0/24",
+      "abuse_score": 12,
+      "reports": 2,
+      "malicious": 0,
+      "suspicious": 0,
+      "is_tor": false,
+      "usage_type": "Fixed Line ISP"
+    },
+    "2001:db8:abcd::17": {
+      "country": "RU",
+      "asn": 64507,
+      "as_org": "Example VPS Provider (fictional)",
+      "network": "2001:db8:abcd::/48",
+      "abuse_score": 74,
+      "reports": 58,
+      "malicious": 4,
+      "suspicious": 2,
+      "is_tor": false,
+      "usage_type": "Data Center/Web Hosting/Transit"
+    }
+  }
+}
