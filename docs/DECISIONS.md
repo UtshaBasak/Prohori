@@ -205,3 +205,41 @@ addition to `auth.log`, plus a command that shows what was parsed and what faile
 
 **Consequences.** Detection may need `--parser` for mixed or unusual files. The `extra` value
 type changed from plain scalars to bounded scalars (no effect on valid data).
+
+---
+
+## ADR-0009: Rule format, matching semantics and regex safety
+
+- **Date:** 2026-10-25
+- **Status:** Accepted
+
+**Context.** Rules must be readable, safe to load from untrusted files, and evaluated against
+attacker-controlled log fields without risk of hangs.
+
+**Decision.**
+- **Sigma-inspired, not Sigma-compatible.** Selections, `|modifiers` and a boolean condition follow
+  Sigma conventions (including case-insensitive string matching and `1 of x*`), plus Prohori's own
+  `aggregate` and `sequence` blocks. `aggregate` and `sequence` appear in the condition only as
+  top-level `and` terms, so the stateless filter and the stateful part are always separable.
+  Their block schema is validated now; the stateful engine (next step) may refine it.
+- **No `eval`.** Conditions use a recursive-descent parser with length and depth limits.
+- **Wildcards without regular expressions.** `*` and `?` use a two-pointer matcher
+  (O(pattern x text)); translating them to `.*` would backtrack polynomially on long values.
+- **Regex safety is a static check.** Python's `re` has no timeout. Patterns are parsed with
+  `re._parser` (private but stable on 3.11-3.14; the public `sre_parse` alias is deprecated) and
+  nested unbounded repeats, alternation inside repeats, backreferences, look-around, large repeat
+  counts and many unbounded repeats are rejected. There is **no runtime timeout**; combined with
+  bounded field lengths this keeps matching polynomial and small. A runtime backstop
+  (`regex` with `timeout=` or RE2) can be added later if needed.
+- **Errors carry lines.** The loader composes the YAML node tree, maps every document path to its
+  line, and maps both Pydantic errors and compiler errors back to it.
+- **YAML anchors and aliases are rejected.** Safe loading still expands alias graphs; validation
+  and serialisation would walk the expanded document.
+- **Unused selections are errors**, because they are almost always typos.
+- **Validation lives in `rules/compiler.py` and `rules/loader.py`** rather than a separate
+  `validator.py` (as first planned): compiling is validating, so one pass produces both.
+- **Test fixtures are split into `valid/` and `invalid/`** so the upcoming `rules test` command can
+  run against valid rules only.
+
+**Consequences.** Regex authors must avoid look-around and backreferences. Private `re._parser`
+usage is covered by the CI matrix and must be rechecked on new Python versions.
