@@ -1,13 +1,20 @@
 """Tests for the rule test harness (``<rule>.tests.yml`` fixtures)."""
 
 import shutil
+from datetime import UTC, datetime
 from pathlib import Path
 
 import pytest
 
 from prohori.rules import load_rules
 from prohori.rules.loader import discover
-from prohori.rules.testing import fixture_file_for, parse_offset, run_rule_tests
+from prohori.rules.testing import (
+    Case,
+    _log_events,
+    fixture_file_for,
+    parse_offset,
+    run_rule_tests,
+)
 
 VALID = Path(__file__).resolve().parents[2] / "fixtures" / "rules" / "valid"
 
@@ -209,3 +216,18 @@ def test_fixture_file_for(tmp_path: Path) -> None:
 @pytest.mark.parametrize(("text", "seconds"), [("0s", 0), ("20s", 20), ("5m", 300), ("1d", 86400)])
 def test_parse_offset(text: str, seconds: int) -> None:
     assert parse_offset(text).total_seconds() == seconds
+
+
+def test_auth_log_cases_default_year_to_start() -> None:
+    case = Case.model_validate(
+        {
+            "name": "no year option",
+            "expect": {"alerts": 0},
+            "log": {
+                "parser": "auth_log",
+                "lines": ["Oct 24 13:50:01 h sshd[1]: Invalid user a from 192.0.2.1 port 1"],
+            },
+        }
+    )
+    (event,) = _log_events(case, 0, datetime(2020, 3, 1, tzinfo=UTC))
+    assert event.timestamp.year == 2020

@@ -22,8 +22,9 @@ Every rule ``<name>.yml`` must have a fixture file ``<name>.tests.yml`` next to 
 
 Event specs place events on a timeline: ``at`` sets an absolute time, otherwise ``after``
 (default ``1s``) advances from the previous event; ``repeat`` (default 1) emits copies ``every``
-(default ``1s``) apart. Each fixture needs at least one positive case (``alerts`` >= 1) and one
-negative case (``alerts: 0``).
+(default ``1s``) apart. ``auth_log`` cases without a ``year`` option use the year of ``start``.
+Each fixture needs at least one positive case (``alerts`` >= 1) and one negative case
+(``alerts: 0``).
 """
 
 import json
@@ -217,11 +218,15 @@ def build_events(spec: RuleTestFile, case: Case, case_index: int) -> Iterator[Ev
             )
 
 
-def _log_events(case: Case, case_index: int) -> list[Event]:
+def _log_events(case: Case, case_index: int, start: datetime) -> list[Event]:
     if case.log is None:  # pragma: no cover - guarded by the caller
         return []
+    options = dict(case.log.options)
+    if case.log.parser == "auth_log" and "year" not in options and "reference_time" not in options:
+        # Syslog lines carry no year; never let a fixture depend on today's date.
+        options["year"] = start.year
     try:
-        parser = get_parser(case.log.parser, **case.log.options)
+        parser = get_parser(case.log.parser, **options)
     except (KeyError, TypeError, ValueError) as exc:
         msg = f"case {case.name!r}: cannot create parser: {exc}"
         raise ValueError(msg) from None
@@ -255,7 +260,7 @@ def run_cases(rule: CompiledRule, spec: RuleTestFile) -> list[CaseResult]:
     for index, case in enumerate(spec.cases):
         try:
             events = (
-                _log_events(case, index)
+                _log_events(case, index, spec.start)
                 if case.log is not None
                 else list(build_events(spec, case, index))
             )
