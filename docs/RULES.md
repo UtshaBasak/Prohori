@@ -216,7 +216,8 @@ events, holding only bounded state.
 | Order | Events are evaluated in one total order: by timestamp, ties broken by event id. A reorder buffer holds events until the newest timestamp seen (the *watermark*) is more than `lateness` past them |
 | Out-of-order events | An event that arrives with a timestamp of at least `watermark - lateness` is never late, so any arrival order within that bound produces identical alerts |
 | Late events | An event that would sort before one already evaluated is dropped and counted (`late_events`) |
-| Future timestamps | With a reference time ("now"), events more than one day after it are dropped and counted (`future_events`), so one bogus timestamp cannot make every later event late. The engine never reads the clock itself |
+| Held events | Events at the newest timestamp (or within `lateness` of it) wait until a later event arrives or the input ends (`flush()`). With `lateness` 0 this only delays ties |
+| Future timestamps | With a reference time ("now"), events more than one day after it are dropped and counted (`future_events`). Without one, a bogus future timestamp still lets in-order events through, but it disables out-of-order tolerance for the rest of the input. The engine never reads the clock itself |
 | Sliding windows | An event is inside the window at time `t` when `t - event time < window`; an event exactly `window` old is outside |
 | Tumbling windows | Aligned to the Unix epoch in UTC (a `1m` window runs from :00 to :59) |
 | Re-alerting | When a threshold or sequence fires, that group's state is cleared; the next alert needs the threshold to be reached again by later events. Stateless rules alert once per matching event |
@@ -268,6 +269,8 @@ cases:
   advances from the previous event. `repeat` (default 1) emits copies `every` (default `1s`) apart.
 - **Events** use the dotted schema fields; `raw` is generated if not given.
 - **Log cases** run raw lines through a parser; any line that fails to parse fails the case.
+  `auth_log` cases without a `year` option use the year of `start`, so results never depend on
+  today's date.
 - **Expectations:** `alerts` is the exact number of alerts; each mapping in `entities` must be
   contained in some alert's entities.
 - Fixture files are loaded with the same safety limits as rules, and `rules list` / `validate`

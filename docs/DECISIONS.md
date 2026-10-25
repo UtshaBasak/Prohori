@@ -268,7 +268,10 @@ duplicate timestamps and sometimes with bogus times.
 - **Late events are dropped and counted**, never silently lost.
 - **Future timestamps** beyond `reference_time + 1 day` are dropped and counted. The reference time
   is injected (the engine never reads the clock), keeping tests deterministic; archived logs can
-  omit it.
+  omit it. Without it, a bogus future timestamp still lets in-order events through but disables
+  out-of-order tolerance for the rest of the input.
+- **Fixtures never depend on today's date:** `auth_log` log cases default `year` to the fixture's
+  `start`.
 - **Windows:** sliding windows exclude an event exactly `window` old; tumbling windows align to the
   Unix epoch.
 - **Re-alerting:** a group's state is cleared when it fires, so one burst gives one alert and a
