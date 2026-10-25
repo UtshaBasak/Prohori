@@ -44,11 +44,14 @@ git clone https://github.com/UtshaBasak/Prohori.git && cd Prohori
 uv sync
 uv run prohori parse samples/logs/auth.log
 uv run prohori parse samples/logs/access.log --format json
+uv run prohori rules list
+uv run prohori rules test
 ```
 
 `prohori parse` normalises Linux `auth.log`, nginx/Apache access logs, application security
 events (JSON Lines) and any JSON Lines layout via a mapping file. See
-[docs/PARSERS.md](docs/PARSERS.md).
+[docs/PARSERS.md](docs/PARSERS.md). `prohori rules list` shows the built-in detection rules and
+`prohori rules test` runs them against their fixtures; see [docs/RULES.md](docs/RULES.md).
 
 ## Planned features
 

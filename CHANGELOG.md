@@ -9,6 +9,10 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- Built-in rules PRH-AUTH-001 to 004, PRH-SESS-001, PRH-ACCT-001 and PRH-AUTHZ-001, each with
+  fixtures (including real log lines through the parsers) and a runbook in `prohori/runbooks/`.
+- ATT&CK tags verified against Enterprise ATT&CK v20.0 (`prohori.rules.attack`), with
+  `scripts/verify_attack.py` to re-check the list against the official STIX data.
 - Stateful rule engine (`prohori.rules.engine`): single-pass evaluation of stateless rules,
   `aggregate` thresholds (count, distinct, ratio; sliding and tumbling windows) and `sequence`
   rules, with a reorder buffer for out-of-order events, protection against bogus future

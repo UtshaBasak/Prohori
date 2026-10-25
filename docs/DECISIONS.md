@@ -290,3 +290,29 @@ duplicate timestamps and sometimes with bogus times.
 
 **Consequences.** Rules evaluated without lateness treat equal timestamps as simultaneous and
 order them by event id. Alerts list at most 100 event ids.
+
+---
+
+## ADR-0011: Packaged runbooks and a pinned, verified ATT&CK list
+
+- **Date:** 2026-10-26
+- **Status:** Accepted
+
+**Context.** Built-in rules link runbooks that incident building and reports will show, so the
+runbooks must be available in an installed package, not only in a source checkout. ATT&CK ids and
+tactics change between releases (v20 has Stealth and Defense Impairment in place of Defense
+Evasion), so unverified tags would silently go stale.
+
+**Decision.**
+- Runbooks live in `src/prohori/runbooks/` and ship in the wheel. A built-in rule's
+  `response: runbooks/<name>.md` resolves against the `prohori` package. Every runbook uses the
+  same sections so later steps can extract recommended actions mechanically.
+- The ATT&CK tactics and techniques that rules may use are checked into
+  `prohori.rules.attack`, pinned to Enterprise ATT&CK v20.0 with the STIX bundle URL and SHA-256.
+  Tests check rules against this list offline; `scripts/verify_attack.py` re-checks the list
+  against the official bundle by hand. The test suite never needs network access.
+- Built-in rule fixtures live next to the rules and must include at least one case with real log
+  lines through a parser, so field mapping mistakes surface in tests.
+
+**Consequences.** Moving to a new ATT&CK release means updating the pin and running the script.
+Custom rules may use any well-formed ATT&CK tag; only built-in rules are held to the verified list.
