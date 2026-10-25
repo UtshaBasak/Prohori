@@ -90,7 +90,7 @@ Field names are the dotted schema names from [SCHEMA.md](SCHEMA.md) (`event.acti
 | Strings compare **case-insensitively** | `GET` matches `get` |
 | `\|cased` makes the comparison case-sensitive | `http.path\|cased: /Admin` |
 | `*` matches any run of characters and `?` one character in plain values | `/phpmyadmin*` |
-| `\*`, `\?` and `\\` match literal `*`, `?` and `\` | `'a\*b'` |
+| `\*`, `\?` and `\\` match literal `*`, `?` and `\`; any other backslash is literal | `'C:\Windows\System32'`; `'C:\Users\\*'` (backslash, then a wildcard) |
 | A YAML number equals a numeric field or a numeric string with the same value | `http.status: 404` matches `404` and `"404"` |
 | `true` / `false` match booleans (and the strings `true` / `false`) | `extra.flag: true` |
 | `null` matches a **missing** field | `user.name: null` |
@@ -106,7 +106,7 @@ flags `all` and `cased`.
 | *(none)* | Equality, with wildcards for strings |
 | `contains` | Substring |
 | `startswith` / `endswith` | Prefix / suffix |
-| `re` | Regular-expression **search** (case-insensitive unless `cased`); see restrictions below |
+| `re` | Regular-expression **search** with RE2 (linear time; case-insensitive unless `cased`); see below |
 | `cidr` | IP address inside a network, for example `203.0.113.0/24` or `2001:db8::/32` |
 | `gt`, `gte`, `lt`, `lte` | Numeric comparison; non-numeric field values never match |
 | `exists` | `true`: the field is set; `false`: it is missing |
@@ -115,29 +115,32 @@ flags `all` and `cased`.
 
 Limits: at most 512 values per key and 1,024 characters per value.
 
-### Regular-expression restrictions
+### Regular expressions (`re`)
 
-Python's `re` module has no timeout, so a pattern that backtracks catastrophically on a hostile
-log line could hang a run. `|re` patterns are therefore checked when the rule is validated, and
-these are rejected:
+`|re` patterns are compiled with [RE2](https://github.com/google/re2) (the `google-re2`
+package), not Python's `re` module. RE2 never backtracks: matching time is **linear in the length
+of the field by construction**, so no pattern can hang a run, even on hostile 8 KiB log lines.
+Patterns are searched (they may match anywhere in the value) and are case-insensitive unless
+`|cased` is used.
 
-| Rejected | Example | Why |
-|----------|---------|-----|
-| A repeat inside an unbounded repeat | `(a+)+`, `(\w+\s?)+$` | Exponential backtracking |
-| Alternation inside a repeat | `(a\|ab)*c`, `(GET\|POST){2}` | Exponential backtracking |
-| Backreferences and conditional groups | `(a)\1` | Not regular; exponential |
-| Look-ahead and look-behind | `(?=admin)`, `(?<!x)` | Hidden backtracking |
-| Repeat counts above 100 | `a{1000}` | Huge state |
-| Nested bounded repeats above 1,000 combinations | `(a{1,50}){50}` | Huge state |
-| More than 6 unbounded repeats, or more than 2 unbounded `.` repeats | `.*.*.*x` | Polynomial blow-up |
-| Patterns longer than 256 characters | | |
+What RE2 does not support, and rejects when the rule is validated:
+
+| Not supported | Example |
+|---------------|---------|
+| Backreferences | `(a)\1` |
+| Look-ahead and look-behind | `(?=admin)`, `(?<!x)` |
+| Atomic groups and possessive quantifiers | `(?>a+)`, `a++` |
+| Repeat counts above 1,000 | `a{1001}` |
+| Patterns longer than 256 characters | |
+
+Differences from Python's `re` worth knowing:
+
+- `\w`, `\d` and `\s` match ASCII characters only; use `\pL` (letters) or `\pN` (digits) for Unicode.
+- `$` matches only at the end of the value. Event fields contain no newlines, so this rarely matters.
 
 Accepted examples: `\.env$`, `union\s+select`, `(\d{1,3}\.){3}\d{1,3}`, `^/(wp-login\.php|phpmyadmin)`.
-Prefer `contains`, `startswith`, `endswith` or wildcards where they suffice: they are always
-linear time.
-
-This is a **static** check. There is no runtime timeout; together with the bounded length of every
-event field (8,192 characters at most) it keeps matching time small and polynomial.
+Prefer `contains`, `startswith`, `endswith` or wildcards where they suffice; they are simpler to
+read.
 
 ## Condition
 

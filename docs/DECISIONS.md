@@ -225,12 +225,17 @@ attacker-controlled log fields without risk of hangs.
 - **No `eval`.** Conditions use a recursive-descent parser with length and depth limits.
 - **Wildcards without regular expressions.** `*` and `?` use a two-pointer matcher
   (O(pattern x text)); translating them to `.*` would backtrack polynomially on long values.
-- **Regex safety is a static check.** Python's `re` has no timeout. Patterns are parsed with
-  `re._parser` (private but stable on 3.11-3.14; the public `sre_parse` alias is deprecated) and
-  nested unbounded repeats, alternation inside repeats, backreferences, look-around, large repeat
-  counts and many unbounded repeats are rejected. There is **no runtime timeout**; combined with
-  bounded field lengths this keeps matching polynomial and small. A runtime backstop
-  (`regex` with `timeout=` or RE2) can be added later if needed.
+- **Rule regexes run on RE2, not `re`.** A first version used a static check over `re._parser`
+  output to reject backtracking patterns. Measurements showed that this was not enough: patterns it
+  accepted (`.*.*x`, `\w*\w*\w*x`) ran for more than five minutes on one 8 KiB field with
+  `re.search`. RE2 (`google-re2`, imported as `re2`) matches in linear time by construction; the
+  same hostile patterns take about 0.1 ms. It rejects backreferences, look-around, atomic groups
+  and possessive quantifiers at compile time. Patterns are additionally capped at 256 characters
+  and 1 MiB of compiled program. This adds one compiled dependency (BSD-licensed) to the core
+  install; wheels exist for Windows, Linux and macOS on Python 3.11-3.14. Its import name `re2`
+  collides with other PyPI projects, so the dependency is pinned by distribution name.
+- **Backslash escapes follow Sigma:** `\*`, `\?` and `\\` are escapes; every other backslash is
+  literal, so Windows paths (`C:\Windows\System32`) work as written.
 - **Errors carry lines.** The loader composes the YAML node tree, maps every document path to its
   line, and maps both Pydantic errors and compiler errors back to it.
 - **YAML anchors and aliases are rejected.** Safe loading still expands alias graphs; validation
@@ -241,5 +246,5 @@ attacker-controlled log fields without risk of hangs.
 - **Test fixtures are split into `valid/` and `invalid/`** so the upcoming `rules test` command can
   run against valid rules only.
 
-**Consequences.** Regex authors must avoid look-around and backreferences. Private `re._parser`
-usage is covered by the CI matrix and must be rechecked on new Python versions.
+**Consequences.** Regex authors cannot use look-around or backreferences, and `\w`/`\d`/`\s`
+are ASCII-only. A literal backslash before a wildcard must be written `\\*`.
