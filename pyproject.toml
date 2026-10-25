@@ -44,15 +44,17 @@ dependencies = [
     "tzdata>=2024.1; sys_platform == 'win32'",
     "typer>=0.15",
     "google-re2>=1.1",
+    "httpx>=0.28",
 ]
 
 [project.optional-dependencies]
 # Heavy dependencies live behind extras so the base install stays small.
 # Each extra is populated by the roadmap step that first needs it.
+geoip = ["geoip2>=5.0"]  # local GeoLite2 databases
 ml = []
 pipeline = []
 llm = []
-all = ["prohori[ml,pipeline,llm]"]
+all = ["prohori[geoip,ml,pipeline,llm]"]
 
 [project.urls]
 Homepage = "https://github.com/UtshaBasak/Prohori"
@@ -72,6 +74,8 @@ dev = [
     "pytest-cov>=6.0",
     "types-pyyaml>=6.0",
     "ruff>=0.11",
+    "respx>=0.22",
+    "geoip2>=5.0",
 ]
 
 # --------------------------------------------------------------------------- build
