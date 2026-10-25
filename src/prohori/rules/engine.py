@@ -82,6 +82,7 @@ def _build_alert(
     total: int,
     entities: dict[str, str],
     explanation: str,
+    first_seen: datetime | None = None,
 ) -> Alert:
     kept = list(seen)[-MAX_ALERT_EVENT_IDS:]
     meta = rule.meta
@@ -93,7 +94,7 @@ def _build_alert(
         score=_SCORES[meta.severity],
         event_ids=tuple(s.event_id for s in kept),
         entities=entities,
-        first_seen=seen[0].timestamp,
+        first_seen=first_seen or seen[0].timestamp,
         last_seen=seen[-1].timestamp,
         attack=meta.attack_tags,
         explanation=explanation
@@ -138,7 +139,7 @@ class _StatelessEvaluator(_Evaluator):
 
 
 class _AggregateGroup:
-    __slots__ = ("bucket", "distinct", "last_seen", "ratio_hits", "seen")
+    __slots__ = ("bucket", "distinct", "first_ts", "last_seen", "ratio_hits", "seen")
 
     def __init__(self) -> None:
         self.seen: deque[_Seen] = deque()
@@ -146,6 +147,8 @@ class _AggregateGroup:
         self.ratio_hits: deque[bool] = deque()
         self.bucket: int | None = None
         self.last_seen: datetime = _EPOCH
+        # Earliest counted event, kept separately because evidence ids may be trimmed.
+        self.first_ts: datetime | None = None
 
     def size(self) -> int:
         return len(self.seen) + len(self.distinct)
@@ -189,6 +192,7 @@ class _AggregateEvaluator(_Evaluator):
             bucket = (now - _EPOCH) // window
             if group.bucket != bucket:
                 group.bucket = bucket
+                group.first_ts = None
                 group.seen.clear()
                 group.distinct.clear()
                 group.ratio_hits.clear()
@@ -202,6 +206,8 @@ class _AggregateEvaluator(_Evaluator):
             if now - last < window:
                 break
             del group.distinct[value]
+        if group.first_ts is not None and now - group.first_ts >= window:
+            group.first_ts = None  # left the window; fall back to the oldest evidence kept
 
     def process(self, event: Event) -> list[Alert]:
         now = event.timestamp
@@ -215,6 +221,8 @@ class _AggregateEvaluator(_Evaluator):
         group = self._group(key, now)
         self._slide(group, now)
         group.seen.append(_Seen(now, event.id))
+        if group.first_ts is None:
+            group.first_ts = group.seen[0].timestamp
         spec = self.spec
         fired = False
         detail = ""
@@ -259,6 +267,7 @@ class _AggregateEvaluator(_Evaluator):
             len(group.seen),
             dict(zip(spec.group_by, key, strict=True)),
             explanation,
+            first_seen=group.first_ts,
         )
         del self.groups[key]  # re-alert only after the threshold is reached again
         return [alert]

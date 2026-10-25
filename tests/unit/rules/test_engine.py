@@ -424,6 +424,7 @@ class TestMoreEdges:
         events = [ev(i, user__name="alice", n=i) for i in range(300)] + [ev(400, user__name="bob")]
         (alert,) = run([distinct], events)[0]
         assert len(alert.event_ids) <= MAX_ALERT_EVENT_IDS
+        assert alert.first_seen == T0  # the real first event, not the oldest kept id
 
     def test_sequence_first_step_slides_within_one_entity(self) -> None:
         events = [ev(0), ev(300), ev(650), ev(660), ev(670, action="auth.signin.success")]
@@ -442,3 +443,23 @@ class TestMoreEdges:
     def test_stats_as_dict(self) -> None:
         _, engine = run([count_rule()], [ev(0)])
         assert engine.stats.as_dict()["events_evaluated"] == 1
+
+
+def test_future_timestamp_without_reference_time_disables_only_reordering() -> None:
+    bogus = Event.model_validate(
+        {
+            "timestamp": datetime(2099, 1, 1, tzinfo=UTC),
+            "log_source": "test",
+            "event": {"action": "auth.signin.success", "category": "authentication"},
+            "source": {"ip": "198.51.100.1"},
+            "raw": "bogus",
+        }
+    )
+    engine = RuleEngine([count_rule()], lateness=timedelta(seconds=30))
+    alerts = [*engine.process(ev(0)), *engine.process(bogus)]
+    for event in [ev(1), ev(2), ev(3)]:  # in order: still evaluated and still alert
+        alerts += engine.process(event)
+    alerts += engine.process(ev(2.5, n=9))  # out of order: now dropped as late
+    alerts += engine.flush()
+    assert len(alerts) == 1
+    assert engine.stats.late_events == 1
