@@ -364,3 +364,11 @@ class TestFixtures:
     def test_builtin_dir_exists(self) -> None:
         assert builtin_rules_dir().is_dir()
         assert all(r.ok for r in load_rules([builtin_rules_dir()]))
+
+
+def test_extremely_deep_yaml_is_reported_not_raised(tmp_path: Path) -> None:
+    path = tmp_path / "deep.yml"
+    path.write_text("a: " + "[" * 2000 + "]" * 2000 + "\n", encoding="utf-8")
+    report = load_rule(path)
+    assert not report.ok
+    assert "nested deeper" in report.errors[0].message

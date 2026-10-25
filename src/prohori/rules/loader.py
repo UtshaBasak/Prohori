@@ -83,6 +83,8 @@ def load_yaml(text: str) -> tuple[object, dict[DocPath, int]]:
         raise RuleLoadError(f"invalid YAML: {problem}", line) from None
     except yaml.YAMLError as exc:
         raise RuleLoadError(f"invalid YAML: {exc}") from None
+    except RecursionError:  # PyYAML's composer recurses before our own depth check runs
+        raise RuleLoadError(f"nested deeper than {MAX_DEPTH} levels") from None
     finally:
         loader.dispose()
     return data, lines

@@ -25,7 +25,9 @@ def test_validate_mixed_directory_fails() -> None:
     assert "5 valid, 9 invalid" in out
     assert re.search(r"INVALID\s+\S*unsafe-regex\.yml", out)
     assert re.search(
-        r"unsafe-regex\.yml:7: detection\.selection\.http\.path\|re: unsafe regex", out
+        r"unsafe-regex\.yml:7: detection\.selection\.http\.path\|re: invalid regular expression: "
+        r"backreferences are not supported",
+        out,
     )
 
 
@@ -100,3 +102,17 @@ def test_rule_text_is_not_rendered_as_markup(tmp_path: Path) -> None:
     code, out, _ = run("list", str(tmp_path))
     assert code == ExitCode.OK
     assert "[bold red]Injected[/bold red]" in out
+
+
+def test_validate_strips_control_characters(tmp_path: Path) -> None:
+    rule = (FIXTURES / "valid" / "brute-force.yml").read_text(encoding="utf-8")
+    rule = rule.replace(
+        "    event.action: [auth.signin.failure, ssh.login.failure]",
+        r'    "event.action\e]0;pwned\a": x',
+    )
+    (tmp_path / "rule.yml").write_text(rule, encoding="utf-8")
+    code, out, _ = run("validate", str(tmp_path))
+    assert code == ExitCode.INVALID_RULES
+    assert "\x1b" not in out
+    assert "\x07" not in out
+    assert "unknown field" in out

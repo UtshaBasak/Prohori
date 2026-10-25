@@ -11,6 +11,7 @@ from rich.text import Text
 
 from prohori.cli.exit_codes import ExitCode
 from prohori.cli.parse import OutputFormat
+from prohori.parsers import sanitize
 from prohori.rules import RuleReport, builtin_rules_dir, load_rules
 
 rules_app = typer.Typer(
@@ -118,10 +119,12 @@ def validate_command(
         typer.echo(json.dumps(rows, indent=2))
     else:
         # Plain lines (no Rich): one error per line, never wrapped, safe to grep.
+        # Rule files are untrusted: strip control characters before they reach the terminal.
         for report in reports:
-            typer.echo(f"{'OK' if report.ok else 'INVALID':<8} {report.file}")
+            file = sanitize(str(report.file))
+            typer.echo(f"{'OK' if report.ok else 'INVALID':<8} {file}")
             for error in report.errors:
-                typer.echo(f"  {error.format(str(report.file))}")
+                typer.echo(f"  {sanitize(error.format(file))}")
         summary = f"{len(reports) - len(invalid)} valid, {len(invalid)} invalid"
         typer.echo(summary if reports else "No rule files found.")
     if invalid:
