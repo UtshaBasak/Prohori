@@ -1,0 +1,22 @@
+id: PRH-WEB-001
+title: Web scanning from one IP
+status: stable
+severity: medium
+description: >-
+  Requests from one source IP that ended in 403 or 404 for at least 10 distinct paths within
+  5 minutes: a crawler or scanner looking for hidden content.
+author: Prohori
+tags: [attack.reconnaissance, attack.t1595.003]
+logsource: {category: web}
+detection:
+  not_found:
+    http.status: [403, 404]
+  aggregate:
+    group_by: [source.ip]
+    window: 5m
+    distinct: {field: http.path, gte: 10}
+  condition: not_found and aggregate
+falsepositives:
+  - Search-engine crawlers following stale links
+  - A broken page that references many missing assets
+response: runbooks/web-scanning.md

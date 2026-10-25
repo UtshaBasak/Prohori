@@ -1,0 +1,61 @@
+rule: PRH-WEB-004
+start: 2026-10-24T13:41:00Z
+defaults:
+  log_source: nginx
+  event.category: web
+  event.action: web.request
+  source.ip: 198.51.100.23
+  http.method: GET
+  http.status: 404
+cases:
+  - name: three distinct sensitive paths alert
+    expect: {alerts: 1, entities: [{source.ip: 198.51.100.23}]}
+    events:
+      - {http.path: /.env}
+      - {http.path: /wp-login.php}
+      - {http.path: /phpmyadmin/}
+
+  - name: probes count whatever the response
+    expect: {alerts: 1}
+    events:
+      - {http.path: /.git/config, http.status: 200}
+      - {http.path: /.env, http.status: 403}
+      - {http.path: /server-status, http.status: 200}
+
+  - name: URL-encoded probes are decoded
+    expect: {alerts: 1}
+    events:
+      - {http.path: /%2eenv}
+      - {http.path: /%2Egit/HEAD}
+      - {http.path: /wp-login%2ephp}
+
+  - name: one sensitive path requested repeatedly does not alert
+    expect: {alerts: 0}
+    events:
+      - {http.path: /.env, repeat: 10}
+
+  - name: ordinary paths are not counted
+    expect: {alerts: 0}
+    events:
+      - {http.path: /environment}
+      - {http.path: /blog/git-tips}
+      - {http.path: /about}
+      - {http.path: /.env}
+      - {http.path: /wp-login.php}
+
+  - name: probes spread over more than ten minutes do not alert
+    expect: {alerts: 0}
+    events:
+      - {http.path: /.env}
+      - {http.path: /wp-login.php, after: 6m}
+      - {http.path: /phpmyadmin/, after: 6m}
+
+  - name: zgrab probes through the access_log parser
+    expect: {alerts: 1, entities: [{source.ip: 198.51.100.23}]}
+    log:
+      parser: access_log
+      lines:
+        - '198.51.100.23 - - [24/Oct/2026:13:41:00 +0000] "GET /.env HTTP/1.1" 404 153 "-" "Mozilla/5.0 zgrab/0.x"'
+        - '198.51.100.23 - - [24/Oct/2026:13:41:00 +0000] "GET /wp-login.php HTTP/1.1" 404 153 "-" "Mozilla/5.0 zgrab/0.x"'
+        - '198.51.100.23 - - [24/Oct/2026:13:41:01 +0000] "GET /phpmyadmin/ HTTP/1.1" 404 153 "-" "Mozilla/5.0 zgrab/0.x"'
+        - '198.51.100.23 - - [24/Oct/2026:13:41:01 +0000] "GET /.git/config HTTP/1.1" 403 146 "-" "Mozilla/5.0 zgrab/0.x"'

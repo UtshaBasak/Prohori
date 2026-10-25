@@ -1,0 +1,43 @@
+id: PRH-WEB-003
+title: Scanner or empty user agent at a high request rate
+status: stable
+severity: medium
+description: >-
+  At least 30 requests within 1 minute from one source IP whose user agent names a known scanning
+  tool (sqlmap, Nikto, Nuclei, ...) or is empty. Real browsers send a user agent and rarely reach
+  this rate; a tool that fakes a browser user agent is not caught by this rule.
+author: Prohori
+tags: [attack.reconnaissance, attack.t1595.002]
+logsource: {category: web}
+detection:
+  scanner:
+    user_agent|contains:
+      - sqlmap
+      - nikto
+      - nuclei
+      - nmap
+      - masscan
+      - zgrab
+      - wpscan
+      - dirbuster
+      - gobuster
+      - feroxbuster
+      - ffuf
+      - wfuzz
+      - acunetix
+      - netsparker
+      - nessus
+      - openvas
+      - whatweb
+      - hydra
+  empty:
+    user_agent: null
+  aggregate:
+    group_by: [source.ip]
+    window: 1m
+    count_gte: 30
+  condition: (scanner or empty) and aggregate
+falsepositives:
+  - Health checks or scripts that send no user agent, such as an internal monitor
+  - Vulnerability scans the site's own team runs on purpose
+response: runbooks/scanner-user-agents.md

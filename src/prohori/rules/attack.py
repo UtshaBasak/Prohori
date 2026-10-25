@@ -59,12 +59,15 @@ TECHNIQUES: dict[str, Technique] = {
     "attack.t1110.001": Technique("Password Guessing", ("attack.credential_access",)),
     "attack.t1110.003": Technique("Password Spraying", ("attack.credential_access",)),
     "attack.t1110.004": Technique("Credential Stuffing", ("attack.credential_access",)),
+    "attack.t1190": Technique("Exploit Public-Facing Application", ("attack.initial_access",)),
+    "attack.t1499.002": Technique("Service Exhaustion Flood", ("attack.impact",)),
     "attack.t1528": Technique("Steal Application Access Token", ("attack.credential_access",)),
     "attack.t1550.001": Technique("Application Access Token", ("attack.lateral_movement",)),
     "attack.t1556.006": Technique(
         "Multi-Factor Authentication",
         ("attack.defense_impairment", "attack.persistence", "attack.credential_access"),
     ),
+    "attack.t1595.002": Technique("Vulnerability Scanning", ("attack.reconnaissance",)),
     "attack.t1595.003": Technique("Wordlist Scanning", ("attack.reconnaissance",)),
 }
 

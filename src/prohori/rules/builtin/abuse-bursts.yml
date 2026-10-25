@@ -1,0 +1,23 @@
+id: PRH-ABUSE-001
+title: Rate-limit bursts or bot-check failures from one IP
+status: stable
+severity: medium
+description: >-
+  At least 20 rate-limit rejections or failed bot checks (Turnstile) from one source IP within
+  5 minutes: automated traffic such as scraping, credential stuffing or a request flood.
+author: Prohori
+tags: [attack.impact, attack.t1499.002]
+logsource: {category: abuse}
+detection:
+  selection:
+    event.action: [ratelimit.exceeded, turnstile.failed]
+  aggregate:
+    group_by: [source.ip]
+    window: 5m
+    count_gte: 20
+  condition: selection and aggregate
+falsepositives:
+  - A busy shared NAT or proxy, such as a mobile carrier gateway
+  - A misbehaving client release retrying too fast
+  - Monitoring or load tests run by the site's own team
+response: runbooks/abuse-bursts.md

@@ -1,0 +1,17 @@
+id: PRH-ADMIN-001
+title: Admin role granted
+status: stable
+severity: high
+description: >-
+  An account was given an admin role. Attackers who reach an admin session often grant admin
+  rights to an account they control, so every grant should be confirmed.
+author: Prohori
+tags: [attack.persistence, attack.privilege_escalation, attack.t1098]
+logsource: {category: admin}
+detection:
+  selection:
+    event.action: admin.role.granted
+  condition: selection
+falsepositives:
+  - Planned onboarding of a new administrator
+response: runbooks/admin-role-granted.md

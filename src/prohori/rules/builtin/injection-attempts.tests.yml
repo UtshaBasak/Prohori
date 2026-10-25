@@ -1,0 +1,58 @@
+rule: PRH-WEB-002
+start: 2026-10-24T13:42:00Z
+defaults:
+  log_source: nginx
+  event.category: web
+  event.action: web.request
+  source.ip: 203.0.113.7
+  http.method: GET
+  http.status: 400
+cases:
+  - name: three injection attempts in the query string alert
+    expect: {alerts: 1, entities: [{source.ip: 203.0.113.7}]}
+    events:
+      - {http.path: /api/books, extra.query: "id=1%27%20OR%20%271%27=%271"}
+      - {http.path: /download, extra.query: "file=../../../../etc/passwd"}
+      - {http.path: /search, extra.query: "q=%3Cscript%3Ealert(1)%3C/script%3E"}
+
+  - name: injection markers in the path count too
+    expect: {alerts: 1}
+    events:
+      - {http.path: "/static/..%2f..%2f..%2fetc/passwd"}
+      - {http.path: "/products/1%20UNION%20SELECT%20password%20FROM%20users"}
+      - {http.path: "/page/%3Csvg%20onload=alert(1)%3E"}
+
+  - name: double-encoded payloads are decoded
+    expect: {alerts: 1}
+    events:
+      - {http.path: /search, extra.query: "q=%253Cscript%253E", repeat: 3}
+
+  - name: two attempts do not alert
+    expect: {alerts: 0}
+    events:
+      - {http.path: /api/books, extra.query: "id=1' or '1'='1", repeat: 2}
+
+  - name: ordinary queries do not alert
+    expect: {alerts: 0}
+    events:
+      - {http.path: /search, extra.query: "q=union+square+books"}
+      - {http.path: /search, extra.query: "q=select+fiction"}
+      - {http.path: /books/sleeping-beauty, http.status: 200}
+      - {http.path: /docs/index.html, extra.query: "page=2&q=o%27reilly", http.status: 200}
+      - {http.path: /api/books, extra.query: "sort=title&order=asc", http.status: 200}
+
+  - name: attempts spread over more than ten minutes do not alert
+    expect: {alerts: 0}
+    events:
+      - {http.path: /api/books, extra.query: "id=1' or '1'='1"}
+      - {http.path: /api/books, extra.query: "id=1' or '1'='1", after: 6m}
+      - {http.path: /api/books, extra.query: "id=1' or '1'='1", after: 6m}
+
+  - name: sqlmap requests through the access_log parser
+    expect: {alerts: 1, entities: [{source.ip: 203.0.113.7}]}
+    log:
+      parser: access_log
+      lines:
+        - '203.0.113.7 - - [24/Oct/2026:13:42:10 +0000] "GET /api/books?id=1%27%20OR%20%271%27=%271 HTTP/1.1" 400 88 "-" "sqlmap/1.8#stable (https://sqlmap.org)"'
+        - '203.0.113.7 - - [24/Oct/2026:13:42:11 +0000] "GET /download?file=../../../../etc/passwd HTTP/1.1" 400 88 "-" "sqlmap/1.8#stable (https://sqlmap.org)"'
+        - '203.0.113.7 - - [24/Oct/2026:13:42:12 +0000] "GET /search?q=%3Cscript%3Ealert(1)%3C/script%3E HTTP/1.1" 400 88 "-" "sqlmap/1.8#stable (https://sqlmap.org)"'

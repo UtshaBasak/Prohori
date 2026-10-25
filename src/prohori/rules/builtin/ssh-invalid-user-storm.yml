@@ -1,0 +1,28 @@
+id: PRH-SSH-001
+title: SSH invalid-user storm or repeated authentication-limit disconnects
+status: stable
+severity: high
+description: >-
+  At least 5 SSH connection attempts for nonexistent users, or disconnects for exceeding the
+  authentication-attempt limit (MaxAuthTries), from one source IP within 10 minutes: a scripted
+  attack guessing usernames and passwords.
+author: Prohori
+tags: [attack.credential_access, attack.t1110, attack.t1110.001]
+logsource: {log_source: sshd}
+detection:
+  invalid_user:
+    event.action: ssh.invalid_user
+  # sshd logs two lines when a connection hits MaxAuthTries ("error: maximum authentication
+  # attempts exceeded" and the disconnect); count only the disconnect so each connection counts once.
+  auth_limit:
+    event.action: ssh.auth.too_many_failures
+    raw|contains: too many authentication failures
+  aggregate:
+    group_by: [source.ip]
+    window: 10m
+    count_gte: 5
+  condition: (invalid_user or auth_limit) and aggregate
+falsepositives:
+  - An automation tool configured with a wrong username
+  - A user whose SSH agent offers many keys and hits MaxAuthTries on every connection
+response: runbooks/ssh-invalid-user-storm.md
