@@ -9,15 +9,41 @@ prohori rules validate path/to/rules/   # every problem with file and line; exit
 prohori rules list path/to/rules/       # valid rules with severity, status and ATT&CK tags
 prohori rules list                      # the built-in rules
 prohori rules test path/to/rules/       # run each rule against its fixtures
+prohori detect samples/logs/auth.log    # run the rules over a log file
 ```
 
 Both commands accept files and directories (searched recursively for `*.yml` and `*.yaml`) and
 `--format json`. Exit codes: `0` all valid, `1` at least one invalid rule, `2` invalid usage.
 
 > **Status.** Rules are loaded, validated, compiled and evaluated (stateless, `aggregate` and
-> `sequence`), and every rule can be tested against fixtures with `prohori rules test`. Seven
-> built-in rules ship today; the second batch and `prohori detect` (rules over log files from the
-> command line) arrive next.
+> `sequence`), tested against fixtures with `prohori rules test`, and run over log files with
+> `prohori detect`. Fourteen built-in rules ship today.
+
+## Running rules: `prohori detect`
+
+`prohori detect FILE` parses a log file (or `-` for standard input) and runs the rules over it.
+
+```bash
+prohori detect samples/logs/auth.log                  # built-in rules, alerts as a table
+prohori detect access.log --format json > alerts.jsonl  # one alert per line, summary on stderr
+prohori detect app.jsonl --rules my-rules/            # built-in rules plus your own
+prohori detect app.jsonl --rules my-rules/ --no-builtin
+```
+
+| Option | Meaning |
+|--------|---------|
+| `--rules PATH` | Extra rule file or directory, run together with the built-in rules (repeatable) |
+| `--no-builtin` | Run only the rules given with `--rules` |
+| `--format table\|json` | Table of alerts and a summary, or JSON Lines alerts on stdout with a JSON summary on stderr |
+| `--lateness 5m` | How far out of order events may arrive and still count (default `5m`; `0` for none). Later events are dropped and counted as late |
+| `--exit-zero` | Exit 0 even when alerts are found |
+| `--parser`, `--year`, `--timezone`, `--mapping`, `--pattern`, `--keep-query` | As for `prohori parse` |
+
+Exit codes: `0` no alerts, `3` alerts found, `1` every non-blank line failed to parse or a rule
+file is invalid (nothing is run with a partial rule set), `2` invalid usage or input.
+
+Events dated more than one day after the current time are dropped and counted as future events,
+so one bogus timestamp cannot stall detection for the rest of the file.
 
 ## Built-in rules
 
@@ -33,6 +59,13 @@ verified ATT&CK tags.
 | PRH-SESS-001 | high | Refresh-token reuse (probable stolen token) | every `session.refresh.reuse_detected` event |
 | PRH-ACCT-001 | high | Sensitive account change shortly after sign-in | sign-in success, then a password, payout number or two-step change, same `user.id`, within 30 min |
 | PRH-AUTHZ-001 | medium | Authorisation denials across many resources | `authz.denied` for >= 5 distinct `http.path` per `source.ip` in 10 min |
+| PRH-ABUSE-001 | medium | Rate-limit bursts or bot-check failures | >= 20 `ratelimit.exceeded` / `turnstile.failed` per `source.ip` in 5 min |
+| PRH-ADMIN-001 | high | Admin role granted | every `admin.role.granted` event |
+| PRH-WEB-001 | medium | Web scanning | 403/404 responses for >= 10 distinct `http.path` per `source.ip` in 5 min |
+| PRH-WEB-002 | medium | Injection patterns in request paths | >= 3 requests per `source.ip` in 10 min whose URL-decoded path or query contains SQL injection, traversal or XSS markers |
+| PRH-WEB-003 | medium | Scanner or empty user agent at a high rate | >= 30 requests per `source.ip` in 1 min with a scanning-tool or empty user agent |
+| PRH-WEB-004 | medium | Probes for sensitive files and admin tools | >= 3 distinct sensitive paths (`/.env`, `/.git/`, `/wp-login.php`, ...) per `source.ip` in 10 min |
+| PRH-SSH-001 | high | SSH invalid-user storm | >= 5 invalid-user attempts or MaxAuthTries disconnects per `source.ip` in 10 min |
 
 Known limits, also stated in each rule's description:
 
@@ -44,6 +77,14 @@ Known limits, also stated in each rule's description:
   analyst compares the sign-in IP and client with the account's usual ones.
 - **PRH-AUTHZ-001** counts distinct paths. The app logs `http.route`; if that is a route template
   (`/api/orders/:id`), probing many ids of one route counts once.
+- **PRH-WEB-002** inspects only the request line (path and query string), not bodies or headers.
+  Its markers are basic signatures: obfuscated payloads are missed, and harmless URLs that contain
+  the same text (a search for "union select") can match. It needs three matching requests, so a
+  single manual attempt does not alert.
+- **PRH-WEB-003** relies on the user agent; a scanner that sends a browser user agent is caught
+  only by PRH-WEB-001, PRH-WEB-002 or PRH-WEB-004.
+- **PRH-ADMIN-001** fires for every grant; admin actions at unusual hours are not detected yet
+  (rules cannot match on the time of day; planned).
 
 ### ATT&CK mapping
 
@@ -65,16 +106,19 @@ uv run python scripts/verify_attack.py
 
 | Technique | Name | Used by |
 |-----------|------|---------|
-| T1110 | Brute Force | AUTH-001, AUTH-003, AUTH-004 |
-| T1110.001 | Password Guessing | AUTH-001 |
+| T1110 | Brute Force | AUTH-001, AUTH-003, AUTH-004, SSH-001 |
+| T1110.001 | Password Guessing | AUTH-001, SSH-001 |
 | T1110.003 | Password Spraying | AUTH-002 |
 | T1110.004 | Credential Stuffing | AUTH-002 |
 | T1078 | Valid Accounts | AUTH-003 |
 | T1528 | Steal Application Access Token | SESS-001 |
 | T1550.001 | Application Access Token | SESS-001 |
-| T1098 | Account Manipulation | ACCT-001 |
+| T1098 | Account Manipulation | ACCT-001, ADMIN-001 |
 | T1556.006 | Modify Authentication Process: Multi-Factor Authentication | ACCT-001 |
-| T1595.003 | Active Scanning: Wordlist Scanning | AUTHZ-001 (closest fit for probing many resources) |
+| T1595.003 | Active Scanning: Wordlist Scanning | AUTHZ-001 (closest fit for probing many resources), WEB-001, WEB-004 |
+| T1595.002 | Active Scanning: Vulnerability Scanning | WEB-003 |
+| T1190 | Exploit Public-Facing Application | WEB-002 |
+| T1499.002 | Endpoint Denial of Service: Service Exhaustion Flood | ABUSE-001 |
 
 ### Runbooks
 
@@ -166,7 +210,7 @@ Field names are the dotted schema names from [SCHEMA.md](SCHEMA.md) (`event.acti
 ### Modifiers
 
 Append modifiers to the field name with `|`. Use at most one operator, optionally with the
-flags `all` and `cased`.
+flags `all`, `cased` and `urldecode`.
 
 | Modifier | Meaning |
 |----------|---------|
@@ -179,6 +223,7 @@ flags `all` and `cased`.
 | `exists` | `true`: the field is set; `false`: it is missing |
 | `all` (flag) | Every listed value must match (needs at least two values) |
 | `cased` (flag) | Case-sensitive comparison |
+| `urldecode` (flag) | Percent-decode the value first (`%27` becomes `'`, `+` a space), repeatedly for double encoding (at most three rounds). Only with equality, `contains`, `startswith`, `endswith` and `re` |
 
 Limits: at most 512 values per key and 1,024 characters per value.
 

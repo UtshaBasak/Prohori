@@ -9,6 +9,12 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- `prohori detect FILE|-`: parse a log file and run the built-in rules plus any `--rules PATH`,
+  with table or JSON Lines output, out-of-order tolerance (`--lateness`) and exit code 3 when
+  alerts are found (`--exit-zero` to disable).
+- Built-in rules PRH-ABUSE-001, PRH-ADMIN-001, PRH-WEB-001 to 004 and PRH-SSH-001, with fixtures
+  and runbooks (14 built-in rules in total).
+- `urldecode` rule modifier: percent-decode a field before matching.
 - Built-in rules PRH-AUTH-001 to 004, PRH-SESS-001, PRH-ACCT-001 and PRH-AUTHZ-001, each with
   fixtures (including real log lines through the parsers) and a runbook in `prohori/runbooks/`.
 - ATT&CK tags verified against Enterprise ATT&CK v20.0 (`prohori.rules.attack`), with
@@ -63,3 +69,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Continuous integration on Linux and Windows for Python 3.11 to 3.14, CodeQL and Dependabot.
 - Contributor, security and code-of-conduct documents.
 - OpenSSF Scorecard workflow, README status badges and a project wiki.
+
+### Changed
+
+- `samples/logs/auth.log` now includes the attacker reconnecting after the first MaxAuthTries
+  disconnect, so the sample shows a full brute-force alert.
