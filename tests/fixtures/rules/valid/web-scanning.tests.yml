@@ -1,0 +1,38 @@
+rule: TST-WEB-001
+defaults:
+  log_source: nginx
+  event.category: web
+  event.action: web.request
+  source.ip: 198.51.100.23
+cases:
+  - name: probes for sensitive paths alert once per request
+    expect: {alerts: 3, entities: [{source.ip: 198.51.100.23}]}
+    events:
+      - {http.path: /.env, http.status: 404}
+      - {http.path: /phpmyadmin/index.php, http.status: 404}
+      - {http.path: /app/.git/config, http.status: 403}
+
+  - name: backup file extensions match the regex
+    expect: {alerts: 1}
+    events:
+      - {http.path: /db.SQL, http.status: 404}
+
+  - name: normal pages do not alert
+    expect: {alerts: 0}
+    events:
+      - {http.path: /, http.status: 200}
+      - {http.path: /books/42, http.status: 200}
+
+  - name: internal scanners are excluded
+    expect: {alerts: 0}
+    events:
+      - {http.path: /.env, source.ip: 10.1.2.3}
+
+  - name: real access log lines through the parser
+    expect: {alerts: 2}
+    log:
+      parser: access_log
+      lines:
+        - '198.51.100.23 - - [24/Oct/2026:13:41:00 +0000] "GET /.env HTTP/1.1" 404 153 "-" "zgrab"'
+        - '198.51.100.23 - - [24/Oct/2026:13:41:00 +0000] "GET /wp-login.php HTTP/1.1" 404 153 "-" "zgrab"'
+        - '192.0.2.10 - - [24/Oct/2026:13:41:05 +0000] "GET / HTTP/1.1" 200 5123 "-" "Mozilla/5.0"'

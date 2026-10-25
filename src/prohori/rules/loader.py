@@ -22,6 +22,7 @@ MAX_RULE_BYTES = 128 * 1024
 MAX_NODES = 10_000
 MAX_DEPTH = 32
 RULE_SUFFIXES = (".yml", ".yaml")
+TEST_SUFFIXES = (".tests.yml", ".tests.yaml")
 
 
 class RuleLoadError(ValueError):
@@ -114,7 +115,7 @@ def _index(
             _index(item, (*path, index), lines, seen, depth + 1)
 
 
-def _line_for(path: DocPath, lines: dict[DocPath, int]) -> int | None:
+def line_for(path: DocPath, lines: dict[DocPath, int]) -> int | None:
     for end in range(len(path), -1, -1):
         line = lines.get(tuple(str(p) if isinstance(p, str) else p for p in path[:end]))
         if line is not None:
@@ -122,7 +123,7 @@ def _line_for(path: DocPath, lines: dict[DocPath, int]) -> int | None:
     return None
 
 
-def _format_path(path: DocPath) -> str:
+def format_path(path: DocPath) -> str:
     parts: list[str] = []
     for part in path:
         if isinstance(part, int):
@@ -132,41 +133,57 @@ def _format_path(path: DocPath) -> str:
     return "".join(parts)
 
 
-def load_rule(file: Path) -> RuleReport:
-    """Read, validate and compile one rule file."""
+def read_yaml_file(file: Path) -> tuple[object, dict[DocPath, int]]:
+    """Read one YAML file with the rule-file limits; return its data and a path-to-line map.
+
+    Raises:
+        RuleLoadError: if the file cannot be read, is too large, not UTF-8 or not safe YAML.
+    """
     try:
         data = file.read_bytes()
     except OSError as exc:
-        return RuleReport(file, None, [LocatedError(None, "", f"cannot read file: {exc.strerror}")])
+        raise RuleLoadError(f"cannot read file: {exc.strerror}") from None
     if len(data) > MAX_RULE_BYTES:
-        return RuleReport(
-            file, None, [LocatedError(None, "", f"file larger than {MAX_RULE_BYTES} bytes")]
-        )
+        raise RuleLoadError(f"file larger than {MAX_RULE_BYTES} bytes")
     try:
         text = data.decode("utf-8")
-        document, lines = load_yaml(text)
     except UnicodeDecodeError:
-        return RuleReport(file, None, [LocatedError(None, "", "file is not valid UTF-8")])
+        raise RuleLoadError("file is not valid UTF-8") from None
+    return load_yaml(text)
+
+
+def load_rule(file: Path) -> RuleReport:
+    """Read, validate and compile one rule file."""
+    try:
+        document, lines = read_yaml_file(file)
     except RuleLoadError as exc:
         return RuleReport(file, None, [LocatedError(exc.line, "", str(exc))])
     result = compile_rule(document, source=str(file))
-    errors = [_locate(error, lines) for error in result.errors]
+    errors = [locate(error, lines) for error in result.errors]
     return RuleReport(file, result.rule, errors)
 
 
-def _locate(error: RuleError, lines: dict[DocPath, int]) -> LocatedError:
-    return LocatedError(_line_for(error.path, lines), _format_path(error.path), error.message)
+def locate(error: RuleError, lines: dict[DocPath, int]) -> LocatedError:
+    return LocatedError(line_for(error.path, lines), format_path(error.path), error.message)
+
+
+def is_test_file(path: Path) -> bool:
+    """Whether ``path`` is a rule test fixture (``<rule>.tests.yml``) rather than a rule."""
+    return path.name.lower().endswith(TEST_SUFFIXES)
 
 
 def discover(paths: list[Path]) -> Iterator[Path]:
     """Yield rule files: the given files, and ``*.yml`` / ``*.yaml`` under given directories.
 
-    Directories are walked recursively in sorted order so output is deterministic.
+    Directories are walked recursively in sorted order so output is deterministic. Test fixture
+    files (``*.tests.yml`` / ``*.tests.yaml``) are skipped.
     """
     for path in paths:
         if path.is_dir():
             yield from sorted(
-                p for p in path.rglob("*") if p.is_file() and p.suffix.lower() in RULE_SUFFIXES
+                p
+                for p in path.rglob("*")
+                if p.is_file() and p.suffix.lower() in RULE_SUFFIXES and not is_test_file(p)
             )
         else:
             yield path
