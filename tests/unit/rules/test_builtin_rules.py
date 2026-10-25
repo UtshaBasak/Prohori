@@ -27,6 +27,13 @@ EXPECTED_IDS = {
     "PRH-SESS-001",
     "PRH-ACCT-001",
     "PRH-AUTHZ-001",
+    "PRH-ABUSE-001",
+    "PRH-ADMIN-001",
+    "PRH-WEB-001",
+    "PRH-WEB-002",
+    "PRH-WEB-003",
+    "PRH-WEB-004",
+    "PRH-SSH-001",
 }
 
 REPORTS = load_rules([builtin_rules_dir()])

@@ -1,0 +1,41 @@
+id: PRH-WEB-004
+title: Probes for sensitive files and admin tools
+status: stable
+severity: medium
+description: >-
+  Requests from one source IP for at least 3 distinct well-known sensitive paths within
+  10 minutes, such as /.env, /.git/, /wp-login.php or /phpmyadmin, whatever the response. Scanners
+  try these on every site; a 200 response to one of them needs immediate attention.
+author: Prohori
+tags: [attack.reconnaissance, attack.t1595.003]
+logsource: {category: web}
+detection:
+  probe:
+    http.path|urldecode|contains:
+      - /.env
+      - /.git/
+      - /.svn/
+      - /.aws/
+      - /.ds_store
+      - /wp-login.php
+      - /wp-admin
+      - /xmlrpc.php
+      - /phpmyadmin
+      - /pma/
+      - /adminer
+      - /server-status
+      - /actuator
+      - /config.json
+      - /backup.zip
+      - /backup.sql
+      - /web.config
+      - /id_rsa
+  aggregate:
+    group_by: [source.ip]
+    window: 10m
+    distinct: {field: http.path, gte: 3}
+  condition: probe and aggregate
+falsepositives:
+  - The site's own security scanner
+  - Sites that really run WordPress or phpMyAdmin, where admins visit these paths
+response: runbooks/sensitive-file-probes.md

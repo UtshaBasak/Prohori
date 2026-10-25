@@ -28,7 +28,7 @@ def run(*args: str, stdin: bytes | None = None) -> tuple[int, str, str]:
 @pytest.mark.parametrize(
     ("file", "parser", "events"),
     [
-        ("auth.log", "auth_log", 28),
+        ("auth.log", "auth_log", 32),
         ("access.log", "access_log", 14),
         ("app-security.jsonl", "app_json", 10),
     ],
@@ -42,7 +42,7 @@ def test_auto_detect_table(file: str, parser: str, events: int) -> None:
 
 
 @pytest.mark.parametrize(
-    ("file", "events"), [("auth.log", 28), ("access.log", 14), ("app-security.jsonl", 10)]
+    ("file", "events"), [("auth.log", 32), ("access.log", 14), ("app-security.jsonl", 10)]
 )
 def test_json_output(file: str, events: int) -> None:
     code, out, err = run(str(SAMPLES / file), "--format", "json")
@@ -61,7 +61,7 @@ def test_stdin() -> None:
     code, out, err = run("-", "--format", "json", "--year", "2026", stdin=data)
     assert code == ExitCode.OK
     assert json.loads(err)["input"] == "<stdin>"
-    assert len(out.splitlines()) == 28
+    assert len(out.splitlines()) == 32
 
 
 def test_stdin_crlf() -> None:

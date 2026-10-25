@@ -316,3 +316,40 @@ Evasion), so unverified tags would silently go stale.
 
 **Consequences.** Moving to a new ATT&CK release means updating the pin and running the script.
 Custom rules may use any well-formed ATT&CK tag; only built-in rules are held to the verified list.
+
+---
+
+## ADR-0012: `prohori detect` behaviour and the second rule batch
+
+- **Date:** 2026-10-26
+- **Status:** Accepted
+
+**Context.** `detect` is the first command that turns logs into alerts, so its exit codes, rule
+selection and handling of untrusted input set the pattern for `triage` and the streaming
+consumers. The second rule batch needed decisions where the plan's wording did not fit the data.
+
+**Decision.**
+- **Exit codes:** `0` no alerts, `3` alerts found, `1` unparseable input or an invalid rule file,
+  `2` usage. Alerts get their own code so scripts can tell "found something" from "failed";
+  `--exit-zero` turns it off for pipelines that only want the output.
+- **Rule selection:** built-in rules always run unless `--no-builtin`; `--rules` adds rule files.
+  Any invalid rule stops the run before parsing: a partial rule set would silently miss
+  detections.
+- **Time handling:** default `--lateness` of 5 minutes, and the current time as the reference for
+  dropping events dated more than a day in the future. Both counters are shown when non-zero.
+- **`urldecode` modifier** instead of decoding in the parser: the stored path and query stay
+  exactly as logged (evidence), while rules can still match encoded payloads, including double
+  encoding (bounded to three rounds).
+- **PRH-WEB-004 (sensitive-file probes) split from PRH-WEB-001:** volume of 404s and a handful of
+  `/.env`-style probes are different signals with different thresholds; one rule could not express
+  both. The built-in set grows from the planned 13 to 14 rules.
+- **Thresholded web rules:** injection and probe rules need several requests from one IP, so a
+  scanner produces one alert per burst rather than one per request; single attempts are left to
+  incident context.
+- **SSH-001 counts each MaxAuthTries connection once** by matching only the disconnect line, since
+  sshd logs two lines per such connection.
+- **Admin actions at unusual hours deferred:** rules have no time-of-day matching yet, and the
+  right hours depend on the deployment's timezone. PRH-ADMIN-001 covers role grants only.
+
+**Consequences.** Golden files pin the JSON alert output for the sample logs; intended changes
+regenerate them with `PROHORI_UPDATE_GOLDEN=1`.

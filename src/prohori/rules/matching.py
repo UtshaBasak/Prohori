@@ -9,7 +9,8 @@ mappings. Matching rules (see ``docs/RULES.md``):
 * ``*`` and ``?`` in plain values are wildcards; ``\\*``, ``\\?`` and ``\\\\`` match a literal
   ``*``, ``?`` and ``\\``, and any other backslash is literal (``C:\\Windows``);
 * a YAML number equals a numeric field or a numeric string with the same value;
-* ``null`` matches a missing (unset) field.
+* ``null`` matches a missing (unset) field;
+* ``|urldecode`` percent-decodes the field value (repeatedly, for double encoding) before matching.
 """
 
 import ipaddress
@@ -17,6 +18,7 @@ import math
 import re
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
+from urllib.parse import unquote_plus
 
 from prohori.rules.regex_safety import UnsafeRegexError, compile_regex
 from prohori.schema import Event, JsonScalar, get_field, is_valid_path
@@ -26,7 +28,11 @@ OPERATORS = frozenset(
     {"contains", "startswith", "endswith", "re", "cidr", "gt", "gte", "lt", "lte", "exists"}
 )
 #: Flag modifiers that combine with an operator.
-FLAGS = frozenset({"all", "cased"})
+FLAGS = frozenset({"all", "cased", "urldecode"})
+#: Operators that compare text, the only ones ``urldecode`` combines with.
+TEXT_OPERATORS = frozenset({None, "contains", "startswith", "endswith", "re"})
+#: Decoding rounds for ``urldecode``: enough for double and triple encoding.
+URLDECODE_ROUNDS = 3
 MAX_VALUES = 512
 MAX_VALUE_LENGTH = 1024
 
@@ -51,9 +57,12 @@ class FieldMatcher:
     field: str
     predicates: tuple[Predicate, ...]
     require_all: bool
+    urldecode: bool = False
 
     def matches(self, event: Event) -> bool:
         value = get_field(event, self.field)
+        if self.urldecode and isinstance(value, str):
+            value = url_decode(value)
         if self.require_all:
             return all(predicate(value) for predicate in self.predicates)
         return any(predicate(value) for predicate in self.predicates)
@@ -83,6 +92,16 @@ def _text(value: JsonScalar, cased: bool) -> str | None:
     else:
         text = str(value)
     return text if cased else text.casefold()
+
+
+def url_decode(text: str) -> str:
+    """Percent-decode ``text`` (``+`` as a space) until it stops changing, at most 3 rounds."""
+    for _ in range(URLDECODE_ROUNDS):
+        decoded = unquote_plus(text)
+        if decoded == text:
+            break
+        text = decoded
+    return text
 
 
 def _number(value: JsonScalar) -> float | None:
@@ -273,6 +292,10 @@ def compile_field(
     operator = operators[0] if operators else None
     cased = "cased" in modifiers
     require_all = "all" in modifiers
+    urldecode = "urldecode" in modifiers
+    if urldecode and operator not in TEXT_OPERATORS:
+        errors.append(RuleError(path, f"'urldecode' cannot be combined with '{operator}'"))
+        return None
     values: Sequence[object] = raw if isinstance(raw, list) else [raw]
     if not values:
         errors.append(RuleError(path, "empty list of values"))
@@ -295,7 +318,7 @@ def compile_field(
             predicates.append(predicate)
     if len(errors) > before:
         return None
-    return FieldMatcher(field, tuple(predicates), require_all)
+    return FieldMatcher(field, tuple(predicates), require_all, urldecode)
 
 
 def compile_selection(

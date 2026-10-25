@@ -1,0 +1,61 @@
+id: PRH-WEB-002
+title: Injection patterns in request paths
+status: stable
+severity: medium
+description: >-
+  At least 3 requests from one source IP within 10 minutes whose path or query string, after
+  URL decoding, contains common SQL injection, path traversal or cross-site scripting markers.
+  Only the request line is inspected (not bodies or headers), and the patterns are basic
+  signatures: obfuscated payloads are missed and unusual but harmless URLs can match.
+author: Prohori
+tags: [attack.initial_access, attack.t1190]
+logsource: {category: web}
+detection:
+  injection:
+    - http.path|urldecode|contains:
+        - "' or '"
+        - "' or 1=1"
+        - '" or "'
+        - "union select"
+        - "union all select"
+        - "information_schema"
+        - "sleep("
+        - "benchmark("
+        - "waitfor delay"
+        - "../"
+        - "..\\"
+        - "/etc/passwd"
+        - "c:\\windows"
+        - "<script"
+        - "javascript:"
+        - "onerror="
+        - "onload="
+        - "<svg"
+    - extra.query|urldecode|contains:
+        - "' or '"
+        - "' or 1=1"
+        - '" or "'
+        - "union select"
+        - "union all select"
+        - "information_schema"
+        - "sleep("
+        - "benchmark("
+        - "waitfor delay"
+        - "../"
+        - "..\\"
+        - "/etc/passwd"
+        - "c:\\windows"
+        - "<script"
+        - "javascript:"
+        - "onerror="
+        - "onload="
+        - "<svg"
+  aggregate:
+    group_by: [source.ip]
+    window: 10m
+    count_gte: 3
+  condition: injection and aggregate
+falsepositives:
+  - Search queries or content that legitimately contain these words, such as a blog post about SQL
+  - Security testing by the site's own team
+response: runbooks/injection-attempts.md

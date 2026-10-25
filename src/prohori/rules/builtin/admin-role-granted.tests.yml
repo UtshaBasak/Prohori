@@ -1,0 +1,30 @@
+rule: PRH-ADMIN-001
+start: 2026-10-24T14:00:00Z
+defaults:
+  log_source: app-security
+  event.category: admin
+  event.outcome: success
+cases:
+  - name: an admin role grant alerts
+    expect: {alerts: 1, entities: [{source.ip: 192.0.2.10, user.id: u-0001}]}
+    events:
+      - {event.action: admin.role.granted, source.ip: 192.0.2.10, user.id: u-0001}
+
+  - name: each grant alerts on its own
+    expect: {alerts: 2}
+    events:
+      - {event.action: admin.role.granted, user.id: u-0001, repeat: 2}
+
+  - name: other admin actions do not alert
+    expect: {alerts: 0}
+    events:
+      - {event.action: admin.user.deactivated, user.id: u-0001}
+      - {event.action: admin.payout.recorded, user.id: u-0001}
+      - {event.action: admin.message.sent, user.id: u-0001}
+
+  - name: grant through the app_json parser
+    expect: {alerts: 1, entities: [{user.id: u-0001}]}
+    log:
+      parser: app_json
+      lines:
+        - '{"time": "2026-10-24T14:01:00Z", "event": {"action": "admin.role.granted", "category": "admin", "outcome": "success", "severity": "high"}, "source": {"ip": "192.0.2.10"}, "client": "web", "http": {"method": "POST", "route": "/api/admin/roles"}, "user": {"id": "u-0001"}}'

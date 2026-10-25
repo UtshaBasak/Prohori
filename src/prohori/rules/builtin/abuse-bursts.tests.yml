@@ -1,0 +1,65 @@
+rule: PRH-ABUSE-001
+start: 2026-10-24T13:50:00Z
+defaults:
+  log_source: app-security
+  event.category: abuse
+  event.outcome: failure
+  source.ip: 192.0.2.77
+cases:
+  - name: twenty rate-limit rejections in five minutes alert
+    expect: {alerts: 1, entities: [{source.ip: 192.0.2.77}]}
+    events:
+      - {event.action: ratelimit.exceeded, repeat: 20, every: 10s}
+
+  - name: bot-check failures and rate limits count together
+    expect: {alerts: 1}
+    events:
+      - {event.action: turnstile.failed, repeat: 10, every: 5s}
+      - {event.action: ratelimit.exceeded, repeat: 10, every: 5s}
+
+  - name: nineteen rejections do not alert
+    expect: {alerts: 0}
+    events:
+      - {event.action: ratelimit.exceeded, repeat: 19, every: 10s}
+
+  - name: rejections spread over more than five minutes do not alert
+    expect: {alerts: 0}
+    events:
+      - {event.action: ratelimit.exceeded, repeat: 20, every: 20s}
+
+  - name: rejections from different IPs are counted separately
+    expect: {alerts: 0}
+    events:
+      - {event.action: ratelimit.exceeded, repeat: 10}
+      - {event.action: ratelimit.exceeded, source.ip: 198.51.100.9, repeat: 10}
+
+  - name: other abuse events are not counted
+    expect: {alerts: 0}
+    events:
+      - {event.action: upload.url_rejected, repeat: 25}
+
+  - name: rate limits through the app_json parser
+    expect: {alerts: 1, entities: [{source.ip: 192.0.2.77}]}
+    log:
+      parser: app_json
+      lines:
+        - '{"time": "2026-10-24T13:57:00Z", "event": {"action": "ratelimit.exceeded"}, "source": {"ip": "192.0.2.77"}, "http": {"method": "GET", "route": "/api/books"}}'
+        - '{"time": "2026-10-24T13:57:01Z", "event": {"action": "ratelimit.exceeded"}, "source": {"ip": "192.0.2.77"}, "http": {"method": "GET", "route": "/api/books"}}'
+        - '{"time": "2026-10-24T13:57:02Z", "event": {"action": "ratelimit.exceeded"}, "source": {"ip": "192.0.2.77"}, "http": {"method": "GET", "route": "/api/books"}}'
+        - '{"time": "2026-10-24T13:57:03Z", "event": {"action": "ratelimit.exceeded"}, "source": {"ip": "192.0.2.77"}, "http": {"method": "GET", "route": "/api/books"}}'
+        - '{"time": "2026-10-24T13:57:04Z", "event": {"action": "ratelimit.exceeded"}, "source": {"ip": "192.0.2.77"}, "http": {"method": "GET", "route": "/api/books"}}'
+        - '{"time": "2026-10-24T13:57:05Z", "event": {"action": "ratelimit.exceeded"}, "source": {"ip": "192.0.2.77"}, "http": {"method": "GET", "route": "/api/books"}}'
+        - '{"time": "2026-10-24T13:57:06Z", "event": {"action": "ratelimit.exceeded"}, "source": {"ip": "192.0.2.77"}, "http": {"method": "GET", "route": "/api/books"}}'
+        - '{"time": "2026-10-24T13:57:07Z", "event": {"action": "ratelimit.exceeded"}, "source": {"ip": "192.0.2.77"}, "http": {"method": "GET", "route": "/api/books"}}'
+        - '{"time": "2026-10-24T13:57:08Z", "event": {"action": "ratelimit.exceeded"}, "source": {"ip": "192.0.2.77"}, "http": {"method": "GET", "route": "/api/books"}}'
+        - '{"time": "2026-10-24T13:57:09Z", "event": {"action": "ratelimit.exceeded"}, "source": {"ip": "192.0.2.77"}, "http": {"method": "GET", "route": "/api/books"}}'
+        - '{"time": "2026-10-24T13:57:10Z", "event": {"action": "turnstile.failed"}, "source": {"ip": "192.0.2.77"}, "http": {"method": "POST", "route": "/api/auth/signin"}}'
+        - '{"time": "2026-10-24T13:57:11Z", "event": {"action": "turnstile.failed"}, "source": {"ip": "192.0.2.77"}, "http": {"method": "POST", "route": "/api/auth/signin"}}'
+        - '{"time": "2026-10-24T13:57:12Z", "event": {"action": "turnstile.failed"}, "source": {"ip": "192.0.2.77"}, "http": {"method": "POST", "route": "/api/auth/signin"}}'
+        - '{"time": "2026-10-24T13:57:13Z", "event": {"action": "turnstile.failed"}, "source": {"ip": "192.0.2.77"}, "http": {"method": "POST", "route": "/api/auth/signin"}}'
+        - '{"time": "2026-10-24T13:57:14Z", "event": {"action": "turnstile.failed"}, "source": {"ip": "192.0.2.77"}, "http": {"method": "POST", "route": "/api/auth/signin"}}'
+        - '{"time": "2026-10-24T13:57:15Z", "event": {"action": "turnstile.failed"}, "source": {"ip": "192.0.2.77"}, "http": {"method": "POST", "route": "/api/auth/signin"}}'
+        - '{"time": "2026-10-24T13:57:16Z", "event": {"action": "turnstile.failed"}, "source": {"ip": "192.0.2.77"}, "http": {"method": "POST", "route": "/api/auth/signin"}}'
+        - '{"time": "2026-10-24T13:57:17Z", "event": {"action": "turnstile.failed"}, "source": {"ip": "192.0.2.77"}, "http": {"method": "POST", "route": "/api/auth/signin"}}'
+        - '{"time": "2026-10-24T13:57:18Z", "event": {"action": "turnstile.failed"}, "source": {"ip": "192.0.2.77"}, "http": {"method": "POST", "route": "/api/auth/signin"}}'
+        - '{"time": "2026-10-24T13:57:19Z", "event": {"action": "turnstile.failed"}, "source": {"ip": "192.0.2.77"}, "http": {"method": "POST", "route": "/api/auth/signin"}}'

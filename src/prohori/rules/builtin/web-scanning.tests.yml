@@ -1,0 +1,85 @@
+rule: PRH-WEB-001
+start: 2026-10-24T13:41:00Z
+defaults:
+  log_source: nginx
+  event.category: web
+  event.action: web.request
+  source.ip: 198.51.100.23
+  http.method: GET
+  http.status: 404
+cases:
+  - name: ten distinct missing paths alert
+    expect: {alerts: 1, entities: [{source.ip: 198.51.100.23}]}
+    events:
+      - {http.path: /admin}
+      - {http.path: /backup}
+      - {http.path: /old}
+      - {http.path: /test}
+      - {http.path: /dev}
+      - {http.path: /api/v0}
+      - {http.path: /private, http.status: 403}
+      - {http.path: /tmp}
+      - {http.path: /uploads/}
+      - {http.path: /cgi-bin/}
+
+  - name: one missing path requested repeatedly does not alert
+    expect: {alerts: 0}
+    events:
+      - {http.path: /favicon.ico, repeat: 30}
+
+  - name: nine distinct missing paths do not alert
+    expect: {alerts: 0}
+    events:
+      - {http.path: /a1}
+      - {http.path: /a2}
+      - {http.path: /a3}
+      - {http.path: /a4}
+      - {http.path: /a5}
+      - {http.path: /a6}
+      - {http.path: /a7}
+      - {http.path: /a8}
+      - {http.path: /a9}
+
+  - name: successful and redirected requests are not counted
+    expect: {alerts: 0}
+    events:
+      - {http.path: /p1, http.status: 200}
+      - {http.path: /p2, http.status: 200}
+      - {http.path: /p3, http.status: 301}
+      - {http.path: /p4, http.status: 200}
+      - {http.path: /p5, http.status: 200}
+      - {http.path: /p6, http.status: 200}
+      - {http.path: /p7, http.status: 200}
+      - {http.path: /p8, http.status: 200}
+      - {http.path: /p9, http.status: 200}
+      - {http.path: /p10, http.status: 200}
+
+  - name: missing paths spread over more than five minutes do not alert
+    expect: {alerts: 0}
+    events:
+      - {http.path: /b1}
+      - {http.path: /b2, after: 40s}
+      - {http.path: /b3, after: 40s}
+      - {http.path: /b4, after: 40s}
+      - {http.path: /b5, after: 40s}
+      - {http.path: /b6, after: 40s}
+      - {http.path: /b7, after: 40s}
+      - {http.path: /b8, after: 40s}
+      - {http.path: /b9, after: 40s}
+      - {http.path: /b10, after: 40s}
+
+  - name: scanner requests through the access_log parser
+    expect: {alerts: 1, entities: [{source.ip: 198.51.100.23}]}
+    log:
+      parser: access_log
+      lines:
+        - '198.51.100.23 - - [24/Oct/2026:13:41:00 +0000] "GET /admin HTTP/1.1" 404 153 "-" "Mozilla/5.0"'
+        - '198.51.100.23 - - [24/Oct/2026:13:41:01 +0000] "GET /backup HTTP/1.1" 404 153 "-" "Mozilla/5.0"'
+        - '198.51.100.23 - - [24/Oct/2026:13:41:02 +0000] "GET /old HTTP/1.1" 404 153 "-" "Mozilla/5.0"'
+        - '198.51.100.23 - - [24/Oct/2026:13:41:03 +0000] "GET /test HTTP/1.1" 404 153 "-" "Mozilla/5.0"'
+        - '198.51.100.23 - - [24/Oct/2026:13:41:04 +0000] "GET /dev HTTP/1.1" 404 153 "-" "Mozilla/5.0"'
+        - '198.51.100.23 - - [24/Oct/2026:13:41:05 +0000] "GET /staging HTTP/1.1" 404 153 "-" "Mozilla/5.0"'
+        - '198.51.100.23 - - [24/Oct/2026:13:41:06 +0000] "GET /private HTTP/1.1" 403 146 "-" "Mozilla/5.0"'
+        - '198.51.100.23 - - [24/Oct/2026:13:41:07 +0000] "GET /tmp HTTP/1.1" 404 153 "-" "Mozilla/5.0"'
+        - '198.51.100.23 - - [24/Oct/2026:13:41:08 +0000] "GET /uploads/ HTTP/1.1" 403 146 "-" "Mozilla/5.0"'
+        - '198.51.100.23 - - [24/Oct/2026:13:41:09 +0000] "GET /cgi-bin/ HTTP/1.1" 404 153 "-" "Mozilla/5.0"'

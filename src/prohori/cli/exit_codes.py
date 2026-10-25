@@ -10,3 +10,4 @@ class ExitCode(IntEnum):
     NO_EVENTS = 1
     INVALID_RULES = 1  # alias: the same code, named for the rules commands
     USAGE = 2
+    ALERTS_FOUND = 3

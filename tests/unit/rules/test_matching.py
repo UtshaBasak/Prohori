@@ -9,7 +9,13 @@ from hypothesis import given
 from hypothesis import strategies as st
 
 from prohori.rules import wildcard_match
-from prohori.rules.matching import RuleError, Selection, compile_selection, has_wildcards
+from prohori.rules.matching import (
+    RuleError,
+    Selection,
+    compile_selection,
+    has_wildcards,
+    url_decode,
+)
 from prohori.schema import Event
 
 
@@ -103,6 +109,34 @@ EVENT = event()
 )
 def test_matching(raw: object, expected: bool) -> None:
     assert compile_ok(raw).matches(EVENT) is expected
+
+
+@pytest.mark.parametrize(
+    ("raw", "value", "expected"),
+    [
+        ({"extra.query|urldecode|contains": "' or '"}, "id=1%27%20OR%20%271%27=%271", True),
+        ({"extra.query|contains": "' or '"}, "id=1%27%20OR%20%271%27=%271", False),
+        ({"extra.query|urldecode|contains": "<script"}, "q=%253Cscript%253E", True),
+        ({"extra.query|urldecode|contains": "a b"}, "q=a+b", True),
+        ({"extra.query|urldecode|re": r"\.\./"}, "f=%2e%2e%2fetc", True),
+        ({"extra.query|urldecode": "q=100%"}, "q=100%", True),
+        ({"extra.query|urldecode|cased|startswith": "Q="}, "q%3Dx", False),
+        ({"extra.attempts|urldecode": 7}, "x", True),
+    ],
+)
+def test_urldecode(raw: dict[str, object], value: str, expected: bool) -> None:
+    assert compile_ok(raw).matches(event(extra={"query": value, "attempts": 7})) is expected
+
+
+@pytest.mark.parametrize("operator", ["cidr", "gt", "exists"])
+def test_urldecode_needs_a_text_operator(operator: str) -> None:
+    value: object = True if operator == "exists" else ("10.0.0.0/8" if operator == "cidr" else 1)
+    errors = compile_errors({f"extra.query|{operator}|urldecode": value})
+    assert "urldecode" in errors[0].message
+
+
+def test_url_decode_stops_after_three_rounds() -> None:
+    assert url_decode("%25252541") == "%41"
 
 
 def test_cidr_ignores_non_ip_values() -> None:

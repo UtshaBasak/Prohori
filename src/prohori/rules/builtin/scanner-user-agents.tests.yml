@@ -1,0 +1,79 @@
+rule: PRH-WEB-003
+start: 2026-10-24T13:42:00Z
+defaults:
+  log_source: nginx
+  event.category: web
+  event.action: web.request
+  source.ip: 203.0.113.7
+  http.method: GET
+  http.path: /api/books
+  http.status: 200
+cases:
+  - name: thirty sqlmap requests in a minute alert
+    expect: {alerts: 1, entities: [{source.ip: 203.0.113.7}]}
+    events:
+      - {user_agent: "sqlmap/1.8#stable (https://sqlmap.org)", repeat: 30, every: 1s}
+
+  - name: thirty requests without a user agent alert
+    expect: {alerts: 1}
+    events:
+      - {repeat: 30, every: 1s}
+
+  - name: a slow scanner does not alert
+    expect: {alerts: 0}
+    events:
+      - {user_agent: "Mozilla/5.0 (compatible; Nuclei)", repeat: 30, every: 3s}
+
+  - name: twenty-nine requests do not alert
+    expect: {alerts: 0}
+    events:
+      - {user_agent: "Nikto/2.5.0", repeat: 29, every: 1s}
+
+  - name: fast browser traffic does not alert
+    expect: {alerts: 0}
+    events:
+      - user_agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/128.0"
+        repeat: 60
+        every: 1s
+
+  - name: scanners from different IPs are counted separately
+    expect: {alerts: 0}
+    events:
+      - {user_agent: "gobuster/3.6", repeat: 15}
+      - {user_agent: "gobuster/3.6", source.ip: 198.51.100.9, repeat: 15}
+
+  - name: empty user agents through the access_log parser
+    expect: {alerts: 1, entities: [{source.ip: 198.51.100.23}]}
+    log:
+      parser: access_log
+      lines:
+        - '198.51.100.23 - - [24/Oct/2026:13:41:00 +0000] "GET /p0 HTTP/1.1" 404 153 "-" "-"'
+        - '198.51.100.23 - - [24/Oct/2026:13:41:01 +0000] "GET /p1 HTTP/1.1" 404 153 "-" "-"'
+        - '198.51.100.23 - - [24/Oct/2026:13:41:02 +0000] "GET /p2 HTTP/1.1" 404 153 "-" "-"'
+        - '198.51.100.23 - - [24/Oct/2026:13:41:03 +0000] "GET /p3 HTTP/1.1" 404 153 "-" "-"'
+        - '198.51.100.23 - - [24/Oct/2026:13:41:04 +0000] "GET /p4 HTTP/1.1" 404 153 "-" "-"'
+        - '198.51.100.23 - - [24/Oct/2026:13:41:05 +0000] "GET /p5 HTTP/1.1" 404 153 "-" "-"'
+        - '198.51.100.23 - - [24/Oct/2026:13:41:06 +0000] "GET /p6 HTTP/1.1" 404 153 "-" "-"'
+        - '198.51.100.23 - - [24/Oct/2026:13:41:07 +0000] "GET /p7 HTTP/1.1" 404 153 "-" "-"'
+        - '198.51.100.23 - - [24/Oct/2026:13:41:08 +0000] "GET /p8 HTTP/1.1" 404 153 "-" "-"'
+        - '198.51.100.23 - - [24/Oct/2026:13:41:09 +0000] "GET /p9 HTTP/1.1" 404 153 "-" "-"'
+        - '198.51.100.23 - - [24/Oct/2026:13:41:10 +0000] "GET /p10 HTTP/1.1" 404 153 "-" "-"'
+        - '198.51.100.23 - - [24/Oct/2026:13:41:11 +0000] "GET /p11 HTTP/1.1" 404 153 "-" "-"'
+        - '198.51.100.23 - - [24/Oct/2026:13:41:12 +0000] "GET /p12 HTTP/1.1" 404 153 "-" "-"'
+        - '198.51.100.23 - - [24/Oct/2026:13:41:13 +0000] "GET /p13 HTTP/1.1" 404 153 "-" "-"'
+        - '198.51.100.23 - - [24/Oct/2026:13:41:14 +0000] "GET /p14 HTTP/1.1" 404 153 "-" "-"'
+        - '198.51.100.23 - - [24/Oct/2026:13:41:15 +0000] "GET /p15 HTTP/1.1" 404 153 "-" "-"'
+        - '198.51.100.23 - - [24/Oct/2026:13:41:16 +0000] "GET /p16 HTTP/1.1" 404 153 "-" "-"'
+        - '198.51.100.23 - - [24/Oct/2026:13:41:17 +0000] "GET /p17 HTTP/1.1" 404 153 "-" "-"'
+        - '198.51.100.23 - - [24/Oct/2026:13:41:18 +0000] "GET /p18 HTTP/1.1" 404 153 "-" "-"'
+        - '198.51.100.23 - - [24/Oct/2026:13:41:19 +0000] "GET /p19 HTTP/1.1" 404 153 "-" "-"'
+        - '198.51.100.23 - - [24/Oct/2026:13:41:20 +0000] "GET /p20 HTTP/1.1" 404 153 "-" "-"'
+        - '198.51.100.23 - - [24/Oct/2026:13:41:21 +0000] "GET /p21 HTTP/1.1" 404 153 "-" "-"'
+        - '198.51.100.23 - - [24/Oct/2026:13:41:22 +0000] "GET /p22 HTTP/1.1" 404 153 "-" "-"'
+        - '198.51.100.23 - - [24/Oct/2026:13:41:23 +0000] "GET /p23 HTTP/1.1" 404 153 "-" "-"'
+        - '198.51.100.23 - - [24/Oct/2026:13:41:24 +0000] "GET /p24 HTTP/1.1" 404 153 "-" "-"'
+        - '198.51.100.23 - - [24/Oct/2026:13:41:25 +0000] "GET /p25 HTTP/1.1" 404 153 "-" "-"'
+        - '198.51.100.23 - - [24/Oct/2026:13:41:26 +0000] "GET /p26 HTTP/1.1" 404 153 "-" "-"'
+        - '198.51.100.23 - - [24/Oct/2026:13:41:27 +0000] "GET /p27 HTTP/1.1" 404 153 "-" "-"'
+        - '198.51.100.23 - - [24/Oct/2026:13:41:28 +0000] "GET /p28 HTTP/1.1" 404 153 "-" "-"'
+        - '198.51.100.23 - - [24/Oct/2026:13:41:29 +0000] "GET /p29 HTTP/1.1" 404 153 "-" "-"'

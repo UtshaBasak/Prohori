@@ -13,6 +13,10 @@ Oct 24 13:50:17 web01 sshd[2125]: Failed password for root from 203.0.113.7 port
 Oct 24 13:50:19 web01 sshd[2125]: Failed password for root from 203.0.113.7 port 51240 ssh2
 Oct 24 13:50:19 web01 sshd[2125]: error: maximum authentication attempts exceeded for root from 203.0.113.7 port 51240 ssh2 [preauth]
 Oct 24 13:50:19 web01 sshd[2125]: Disconnecting authenticating user root 203.0.113.7 port 51240: Too many authentication failures [preauth]
+Oct 24 13:50:22 web01 sshd[2131]: Failed password for root from 203.0.113.7 port 51262 ssh2
+Oct 24 13:50:24 web01 sshd[2131]: Failed password for root from 203.0.113.7 port 51262 ssh2
+Oct 24 13:50:26 web01 sshd[2131]: Failed password for root from 203.0.113.7 port 51262 ssh2
+Oct 24 13:50:28 web01 sshd[2131]: Failed password for root from 203.0.113.7 port 51262 ssh2
 Oct 24 13:51:30 web01 sshd[2140]: Failed publickey for deploy from 2001:db8::42 port 60022 ssh2: ED25519 SHA256:AAAAexampleexampleexampleexampleexampleexam
 Oct 24 13:51:33 web01 sshd[2140]: Accepted publickey for deploy from 2001:db8::42 port 60022 ssh2: ED25519 SHA256:BBBBexampleexampleexampleexampleexampleexam
 Oct 24 13:51:33 web01 sshd[2140]: pam_unix(sshd:session): session opened for user deploy(uid=1001) by (uid=0)

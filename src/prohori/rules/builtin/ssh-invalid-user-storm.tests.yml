@@ -1,0 +1,62 @@
+rule: PRH-SSH-001
+start: 2026-10-24T13:50:00Z
+defaults:
+  log_source: sshd
+  event.category: authentication
+  event.outcome: failure
+  source.ip: 203.0.113.7
+cases:
+  - name: five invalid users in ten minutes alert
+    expect: {alerts: 1, entities: [{source.ip: 203.0.113.7}]}
+    events:
+      - {event.action: ssh.invalid_user, user.name: admin, after: 1m}
+      - {event.action: ssh.invalid_user, user.name: oracle, after: 1m}
+      - {event.action: ssh.invalid_user, user.name: test, after: 1m}
+      - {event.action: ssh.invalid_user, user.name: ubuntu, after: 1m}
+      - {event.action: ssh.invalid_user, user.name: git, after: 1m}
+
+  - name: four invalid users do not alert
+    expect: {alerts: 0}
+    events:
+      - {event.action: ssh.invalid_user, user.name: admin, repeat: 4}
+
+  - name: invalid users spread over more than ten minutes do not alert
+    expect: {alerts: 0}
+    events:
+      - {event.action: ssh.invalid_user, user.name: admin, repeat: 5, every: 3m}
+
+  - name: ordinary failed passwords are not counted
+    expect: {alerts: 0}
+    events:
+      - {event.action: ssh.login.failure, user.name: root, repeat: 20}
+
+  - name: invalid users from different IPs are counted separately
+    expect: {alerts: 0}
+    events:
+      - {event.action: ssh.invalid_user, user.name: admin, repeat: 3}
+      - {event.action: ssh.invalid_user, user.name: admin, source.ip: 198.51.100.9, repeat: 3}
+
+  - name: invalid users and MaxAuthTries disconnects through the auth_log parser
+    expect: {alerts: 1, entities: [{source.ip: 192.0.2.50}]}
+    log:
+      parser: auth_log
+      lines:
+        - "Oct 24 13:50:01 web01 sshd[300]: Invalid user admin from 192.0.2.50 port 40000"
+        - "Oct 24 13:50:03 web01 sshd[301]: Invalid user oracle from 192.0.2.50 port 40001"
+        - "Oct 24 13:50:05 web01 sshd[302]: Invalid user test from 192.0.2.50 port 40002"
+        - "Oct 24 13:50:09 web01 sshd[303]: error: maximum authentication attempts exceeded for root from 192.0.2.50 port 40003 ssh2 [preauth]"
+        - "Oct 24 13:50:09 web01 sshd[303]: Disconnecting authenticating user root 192.0.2.50 port 40003: Too many authentication failures [preauth]"
+        - "Oct 24 13:50:15 web01 sshd[304]: error: maximum authentication attempts exceeded for root from 192.0.2.50 port 40004 ssh2 [preauth]"
+        - "Oct 24 13:50:15 web01 sshd[304]: Disconnecting authenticating user root 192.0.2.50 port 40004: Too many authentication failures [preauth]"
+
+  - name: each MaxAuthTries connection counts once
+    expect: {alerts: 0}
+    log:
+      parser: auth_log
+      lines:
+        - "Oct 24 13:50:01 web01 sshd[300]: Invalid user admin from 192.0.2.50 port 40000"
+        - "Oct 24 13:50:03 web01 sshd[301]: Invalid user oracle from 192.0.2.50 port 40001"
+        - "Oct 24 13:50:09 web01 sshd[303]: error: maximum authentication attempts exceeded for root from 192.0.2.50 port 40003 ssh2 [preauth]"
+        - "Oct 24 13:50:09 web01 sshd[303]: Disconnecting authenticating user root 192.0.2.50 port 40003: Too many authentication failures [preauth]"
+        - "Oct 24 13:50:15 web01 sshd[304]: error: maximum authentication attempts exceeded for root from 192.0.2.50 port 40004 ssh2 [preauth]"
+        - "Oct 24 13:50:15 web01 sshd[304]: Disconnecting authenticating user root 192.0.2.50 port 40004: Too many authentication failures [preauth]"

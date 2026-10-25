@@ -34,8 +34,8 @@ reports, with honest machine-learning evaluation and a streaming data pipeline.*
 
 *Prohori* is Bengali for "guard".
 
-> **Status: pre-alpha.** Log parsing works today (`prohori parse`); detection, enrichment,
-> incidents and reports are being built incrementally. See the [CHANGELOG](CHANGELOG.md).
+> **Status: pre-alpha.** Log parsing (`prohori parse`) and rule-based detection
+> (`prohori detect`) work today; enrichment, incidents and reports are being built incrementally. See the [CHANGELOG](CHANGELOG.md).
 
 ## Try it
 
@@ -44,14 +44,16 @@ git clone https://github.com/UtshaBasak/Prohori.git && cd Prohori
 uv sync
 uv run prohori parse samples/logs/auth.log
 uv run prohori parse samples/logs/access.log --format json
+uv run prohori detect samples/logs/auth.log
 uv run prohori rules list
 uv run prohori rules test
 ```
 
 `prohori parse` normalises Linux `auth.log`, nginx/Apache access logs, application security
 events (JSON Lines) and any JSON Lines layout via a mapping file. See
-[docs/PARSERS.md](docs/PARSERS.md). `prohori rules list` shows the built-in detection rules and
-`prohori rules test` runs them against their fixtures; see [docs/RULES.md](docs/RULES.md).
+[docs/PARSERS.md](docs/PARSERS.md). `prohori detect` runs the 14 built-in detection rules (and your own) over a
+log file; `prohori rules list` shows them and `prohori rules test` runs them against their
+fixtures. See [docs/RULES.md](docs/RULES.md).
 
 ## Planned features
 
