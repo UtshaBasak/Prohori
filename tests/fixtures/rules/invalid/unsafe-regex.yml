@@ -1,8 +1,8 @@
 id: BAD-RE-001
-title: Rule with a catastrophic regex
+title: Rule with a regex that cannot run in linear time
 status: test
 severity: low
 detection:
   selection:
-    http.path|re: '(a+)+$'
+    http.path|re: '(admin)\1'
   condition: selection

@@ -1,158 +1,77 @@
-"""Static safety checks for regular expressions in detection rules.
+"""Regular expressions for detection rules, evaluated with RE2 in linear time.
 
-Python's ``re`` module has no timeout, so a rule regex that backtracks catastrophically on a hostile
-log line would hang the whole run. Patterns are therefore checked when a rule is validated, and
-unsafe constructs are rejected:
+Rule patterns run against attacker-controlled log fields. Python's ``re`` module backtracks and
+has no timeout, so a pattern such as ``.*.*x`` or ``(a+)+$`` can take minutes on one 8 KiB field.
+Rules therefore use `RE2 <https://github.com/google/re2>`_ (the ``google-re2`` package, imported
+as ``re2``), whose matching time is linear in the input length by construction.
 
-* patterns longer than :data:`MAX_PATTERN_LENGTH`;
-* backreferences and look-around assertions;
-* repeat counts above :data:`MAX_REPEAT_COUNT`;
-* an unbounded repeat (``*``, ``+``, ``{n,}``) around anything that itself repeats, such as
-  ``(a+)+`` or ``(\\w+\\s?)+``;
-* alternation inside any repeat, such as ``(a|ab)*``;
-* bounded repeats nested so deeply that the combined count exceeds :data:`MAX_NESTED_PRODUCT`;
-* more than :data:`MAX_UNBOUNDED_REPEATS` unbounded repeats in total, or more than
-  :data:`MAX_UNBOUNDED_ANY` unbounded repeats of ``.`` (``.*.*.*x`` is cubic in the input length).
-
-Together with the bounded length of every event field this keeps matching time polynomial and
-small. It is a static check only: there is no runtime timeout.
+RE2 rejects constructs that cannot run in linear time (backreferences, look-around, atomic groups,
+possessive quantifiers) at compile time, and caps repetition counts and program size. On top of
+that, patterns are limited to :data:`MAX_PATTERN_LENGTH` characters.
 """
 
-import re
-from collections.abc import Iterable
-
-# ``re._parser`` is private but stable across the supported Python versions (3.11-3.14);
-# the public ``sre_parse`` alias is deprecated and emits a warning on import.
-from re import _constants as sre_constants  # type: ignore[attr-defined]
-from re import _parser as sre_parser  # type: ignore[attr-defined]
+from collections.abc import Callable
 from typing import Any
 
-MAX_PATTERN_LENGTH = 256
-MAX_REPEAT_COUNT = 100
-MAX_NESTED_PRODUCT = 1_000
-MAX_UNBOUNDED_REPEATS = 6
-MAX_UNBOUNDED_ANY = 2
+import re2
 
-_MAXREPEAT = sre_constants.MAXREPEAT
-_REPEATS = {sre_constants.MAX_REPEAT, sre_constants.MIN_REPEAT, sre_constants.POSSESSIVE_REPEAT}
-_FORBIDDEN = {
-    sre_constants.GROUPREF: "backreferences are not allowed",
-    sre_constants.GROUPREF_EXISTS: "conditional backreferences are not allowed",
-    sre_constants.ASSERT: "look-around assertions are not allowed",
-    sre_constants.ASSERT_NOT: "look-around assertions are not allowed",
-}
+MAX_PATTERN_LENGTH = 256
+
+#: Upper bound for the compiled program, in bytes (RE2's own default is 8 MiB).
+MAX_PROGRAM_MEMORY = 1 << 20
+
+_FRIENDLY = (
+    ("invalid escape sequence: \\1", "backreferences are not supported"),
+    ("invalid escape sequence: \\2", "backreferences are not supported"),
+    ("invalid perl operator: (?=", "look-ahead is not supported"),
+    ("invalid perl operator: (?!", "look-ahead is not supported"),
+    ("invalid perl operator: (?<", "look-behind is not supported"),
+    ("invalid perl operator: (?>", "atomic groups are not supported"),
+    ("bad repetition operator: ++", "possessive quantifiers are not supported"),
+    ("bad repetition operator: *+", "possessive quantifiers are not supported"),
+    ("bad repetition operator: ?+", "possessive quantifiers are not supported"),
+)
 
 
 class UnsafeRegexError(ValueError):
-    """Raised for a regular expression that is invalid or could backtrack catastrophically."""
+    """Raised for a pattern that is too long or that RE2 cannot compile."""
 
 
-class _Counts:
-    def __init__(self) -> None:
-        self.unbounded = 0
-        self.unbounded_any = 0
-
-
-def check_regex(pattern: str) -> None:
-    """Raise :class:`UnsafeRegexError` if ``pattern`` is invalid or unsafe; return otherwise."""
+def _compile(pattern: str, cased: bool) -> Any:  # noqa: ANN401 - re2 ships no type hints
     if len(pattern) > MAX_PATTERN_LENGTH:
         msg = f"pattern longer than {MAX_PATTERN_LENGTH} characters"
         raise UnsafeRegexError(msg)
+    options = re2.Options()
+    options.case_sensitive = cased
+    options.log_errors = False
+    options.max_mem = MAX_PROGRAM_MEMORY
     try:
-        re.compile(pattern)
-        parsed = sre_parser.parse(pattern)
-    except (re.error, OverflowError, RecursionError) as exc:
-        msg = f"invalid regular expression: {exc}"
+        return re2.compile(pattern, options)
+    except re2.error as exc:
+        detail = exc.args[0] if exc.args else exc
+        text = detail.decode("utf-8", "replace") if isinstance(detail, bytes) else str(detail)
+        for raw, friendly in _FRIENDLY:
+            if text.startswith(raw):
+                text = friendly
+                break
+        msg = f"invalid regular expression: {text}"
         raise UnsafeRegexError(msg) from None
-    counts = _Counts()
-    _walk(list(parsed), counts, product=1, inside_unbounded=False, inside_repeat=False)
-    if counts.unbounded > MAX_UNBOUNDED_REPEATS:
-        msg = f"more than {MAX_UNBOUNDED_REPEATS} unbounded repeats"
-        raise UnsafeRegexError(msg)
-    if counts.unbounded_any > MAX_UNBOUNDED_ANY:
-        msg = f"more than {MAX_UNBOUNDED_ANY} unbounded repeats of '.'"
-        raise UnsafeRegexError(msg)
 
 
-def _walk(
-    items: list[tuple[Any, Any]],
-    counts: _Counts,
-    *,
-    product: int,
-    inside_unbounded: bool,
-    inside_repeat: bool,
-) -> None:
-    for op, arg in items:
-        if op in _FORBIDDEN:
-            raise UnsafeRegexError(_FORBIDDEN[op])
-        if op in _REPEATS:
-            low, high, body = arg
-            _check_repeat(low, high, body, counts, product, inside_unbounded, inside_repeat)
-        elif op == sre_constants.BRANCH:
-            if inside_repeat:
-                msg = "alternation inside a repeat (for example '(a|ab)*') is not allowed"
-                raise UnsafeRegexError(msg)
-            for branch in arg[1]:
-                _walk(
-                    list(branch),
-                    counts,
-                    product=product,
-                    inside_unbounded=inside_unbounded,
-                    inside_repeat=inside_repeat,
-                )
-        elif op == sre_constants.SUBPATTERN:
-            body = arg[-1]
-            _walk(
-                list(body),
-                counts,
-                product=product,
-                inside_unbounded=inside_unbounded,
-                inside_repeat=inside_repeat,
-            )
-        elif op == sre_constants.ATOMIC_GROUP:
-            _walk(
-                list(arg),
-                counts,
-                product=product,
-                inside_unbounded=inside_unbounded,
-                inside_repeat=inside_repeat,
-            )
+def check_regex(pattern: str) -> None:
+    """Raise :class:`UnsafeRegexError` if ``pattern`` cannot be used in a rule."""
+    _compile(pattern, cased=True)
 
 
-def _check_repeat(
-    low: int,
-    high: int,
-    body: Iterable[tuple[Any, Any]],
-    counts: _Counts,
-    product: int,
-    inside_unbounded: bool,
-    inside_repeat: bool,
-) -> None:
-    unbounded = high == _MAXREPEAT
-    if (not unbounded and high > MAX_REPEAT_COUNT) or low > MAX_REPEAT_COUNT:
-        msg = f"repeat counts above {MAX_REPEAT_COUNT} are not allowed"
-        raise UnsafeRegexError(msg)
-    repeats = unbounded or high > 1
-    if repeats and inside_unbounded:
-        msg = "a repeat inside an unbounded repeat (for example '(a+)+') is not allowed"
-        raise UnsafeRegexError(msg)
-    if unbounded:
-        counts.unbounded += 1
-        if _is_any(body):
-            counts.unbounded_any += 1
-    new_product = product * (high if not unbounded else 1)
-    if new_product > MAX_NESTED_PRODUCT:
-        msg = f"nested repeats allow more than {MAX_NESTED_PRODUCT} combinations"
-        raise UnsafeRegexError(msg)
-    _walk(
-        list(body),
-        counts,
-        product=new_product,
-        inside_unbounded=inside_unbounded or unbounded,
-        inside_repeat=inside_repeat or repeats,
-    )
+def compile_regex(pattern: str, *, cased: bool) -> Callable[[str], bool]:
+    """Compile ``pattern`` and return a predicate that searches a string in linear time.
 
+    Raises:
+        UnsafeRegexError: if the pattern is too long or RE2 cannot compile it.
+    """
+    regex = _compile(pattern, cased)
 
-def _is_any(body: Iterable[tuple[Any, Any]]) -> bool:
-    items = list(body)
-    return len(items) == 1 and items[0][0] == sre_constants.ANY
+    def search(text: str) -> bool:
+        return regex.search(text) is not None
+
+    return search

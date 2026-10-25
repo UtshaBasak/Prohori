@@ -43,6 +43,7 @@ dependencies = [
     "rich>=13.0",
     "tzdata>=2024.1; sys_platform == 'win32'",
     "typer>=0.15",
+    "google-re2>=1.1",
 ]
 
 [project.optional-dependencies]
@@ -167,6 +168,11 @@ exclude_also = [
     "if __name__ == .__main__.:",
     "raise NotImplementedError",
 ]
+
+[[tool.mypy.overrides]]
+# google-re2 ships no type hints; it is used only in prohori.rules.regex_safety.
+module = ["re2"]
+ignore_missing_imports = true
 
 [tool.pydantic-mypy]
 init_forbid_extra = true

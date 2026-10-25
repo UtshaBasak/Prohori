@@ -134,7 +134,7 @@ def test_bool_values() -> None:
         ({"http.status|gte": "lots"}, "needs a number"),
         ({"source.ip|cidr": "300.1.1.0/24"}, "invalid CIDR"),
         ({"http.path|re": 5}, "string pattern"),
-        ({"http.path|re": "(a+)+"}, "unsafe regex"),
+        ({"http.path|re": "(?=a)b"}, "look-ahead is not supported"),
         ({"http.path|exists": "yes"}, "true or false"),
         ({"http.path|contains": None}, "null cannot"),
         ({"http.path": "x" * 1025}, "longer than"),
@@ -187,3 +187,29 @@ class TestWildcard:
         assert has_wildcards("a\\\\*")
         assert not has_wildcards("a\\*")
         assert not has_wildcards("plain")
+
+
+@pytest.mark.parametrize(
+    ("expected", "value", "matches"),
+    [
+        # a backslash before anything other than *, ? or \ is literal (Sigma semantics)
+        (r"C:\Windows\System32", r"c:\windows\system32", True),
+        (r"C:\Windows\System32", "C:WindowsSystem32", False),
+        (r"..\..\\", "..\\..\\", True),
+        (r"\Wx", r"\wx", True),
+        # "\*" is an escaped star, so a backslash followed by a wildcard is written "\\*"
+        (r"C:\Users\*\AppData", r"C:\Users\bob\AppData", False),
+        (r"C:\Users\\*\AppData", r"C:\Users\bob\AppData", True),
+        (r"C:\Users\x*\AppData", r"C:\Users\xbob\AppData", True),
+        (r"C:\Users\x*\AppData", "C:Usersxbob AppData", False),
+        # escaped wildcards and escaped backslashes
+        (r"100\*", "100*", True),
+        (r"100\*", "1000", False),
+        (r"a\\*", r"a\anything", True),
+        (r"what\?", "what?", True),
+        (r"what\?", "whatx", False),
+    ],
+)
+def test_backslash_semantics(expected: str, value: str, matches: bool) -> None:
+    selection = compile_ok({"extra.path": expected})
+    assert selection.matches(event(extra={"path": value})) is matches

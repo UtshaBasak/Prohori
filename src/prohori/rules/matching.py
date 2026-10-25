@@ -6,7 +6,8 @@ mappings. Matching rules (see ``docs/RULES.md``):
 * keys within one mapping must **all** match; a list of mappings matches if **any** mapping does;
 * a list of values matches if **any** value matches (``|all`` requires every value to match);
 * string comparison is case-insensitive unless the ``|cased`` modifier is used;
-* ``*`` and ``?`` in plain values are wildcards (``\\*``, ``\\?`` and ``\\\\`` escape them);
+* ``*`` and ``?`` in plain values are wildcards; ``\\*``, ``\\?`` and ``\\\\`` match a literal
+  ``*``, ``?`` and ``\\``, and any other backslash is literal (``C:\\Windows``);
 * a YAML number equals a numeric field or a numeric string with the same value;
 * ``null`` matches a missing (unset) field.
 """
@@ -17,7 +18,7 @@ import re
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 
-from prohori.rules.regex_safety import UnsafeRegexError, check_regex
+from prohori.rules.regex_safety import UnsafeRegexError, compile_regex
 from prohori.schema import Event, JsonScalar, get_field, is_valid_path
 
 #: Operator modifiers; at most one per key.
@@ -99,8 +100,9 @@ def _number(value: JsonScalar) -> float | None:
 def wildcard_match(pattern: str, text: str) -> bool:
     """Match ``text`` against a glob with ``*`` and ``?`` in O(len(pattern) * len(text)) time.
 
-    ``\\`` escapes the next character. Uses the classic two-pointer algorithm, never regular
-    expressions, so hostile input cannot cause catastrophic backtracking.
+    ``\\`` escapes a following ``*``, ``?`` or ``\\``; other backslashes are literal. Uses the
+    classic two-pointer algorithm, never regular expressions, so hostile input cannot cause
+    catastrophic backtracking.
     """
     tokens = _glob_tokens(pattern)
     t = p = 0
@@ -138,6 +140,8 @@ class _Wildcard:
 
 
 _STAR = _Wildcard("*")
+#: Characters a backslash escapes; any other backslash is literal (as in Sigma).
+_ESCAPABLE = frozenset("*?\\")
 _ANY_CHAR = _Wildcard("?")
 
 
@@ -146,7 +150,7 @@ def _glob_tokens(pattern: str) -> list[str | _Wildcard]:
     i = 0
     while i < len(pattern):
         char = pattern[i]
-        if char == "\\" and i + 1 < len(pattern):
+        if char == "\\" and i + 1 < len(pattern) and pattern[i + 1] in _ESCAPABLE:
             tokens.append(pattern[i + 1])
             i += 2
             continue
@@ -164,7 +168,7 @@ def has_wildcards(value: str) -> bool:
 
 
 def _unescape(value: str) -> str:
-    return re.sub(r"\\(.)", r"\1", value)
+    return re.sub(r"\\([*?\\])", r"\1", value)
 
 
 # ---------------------------------------------------------------- compilation
@@ -205,14 +209,11 @@ def _predicate(
             errors.append(RuleError(path, "'re' needs a string pattern"))
             return None
         try:
-            check_regex(expected)
+            search = compile_regex(expected, cased=cased)
         except UnsafeRegexError as exc:
-            errors.append(RuleError(path, f"unsafe regex: {exc}"))
+            errors.append(RuleError(path, str(exc)))
             return None
-        regex = re.compile(expected, 0 if cased else re.IGNORECASE)
-        return lambda value: (
-            (text := _text(value, cased=True)) is not None and bool(regex.search(text))
-        )
+        return lambda value: (text := _text(value, cased=True)) is not None and search(text)
     needle = _text(expected, cased) or ""
     if operator == "contains":
         return lambda value: (text := _text(value, cased)) is not None and needle in text
