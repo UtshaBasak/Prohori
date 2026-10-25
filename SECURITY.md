@@ -21,6 +21,8 @@ In-scope issues include, for example:
 - Code execution, path traversal or resource exhaustion triggered by crafted logs, rules or datasets.
 - Injection into generated reports (HTML, Markdown, CSV).
 - Leakage of API keys or other secrets into output, logs or caches.
+- Private, reserved or documentation IP addresses being sent to external enrichment services
+  (they must never leave the machine; see `docs/ENRICHMENT.md`).
 - Prompt injection that makes the optional LLM analyst misreport an incident.
 
 A full threat model will be published in `docs/THREAT_MODEL.md`.

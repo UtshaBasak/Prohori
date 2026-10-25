@@ -353,3 +353,36 @@ consumers. The second rule batch needed decisions where the plan's wording did n
 
 **Consequences.** Golden files pin the JSON alert output for the sample logs; intended changes
 regenerate them with `PROHORI_UPDATE_GOLDEN=1`.
+
+---
+
+## ADR-0013: Enrichment design
+
+- **Date:** 2026-10-26
+- **Status:** Accepted
+
+**Context.** Enrichment sends data to third parties, depends on free tiers with strict limits and
+terms, and must keep working offline for tests and demos.
+
+**Decision.**
+- **Explicit deny list** of non-public ranges instead of `ipaddress.is_global`, whose results
+  changed across Python patch releases; embedded IPv4 (mapped, 6to4, NAT64) and zone ids are
+  handled. The check applies only to external providers; local ones answer for any address.
+- **Shared result keys** (`country`, `asn`, `abuse_score`, `malicious`, ...) so incident scoring
+  does not depend on which provider answered.
+- **Offline mode** = no network: bundled synthetic fixture (documentation addresses only, fixed
+  retrieval time), local GeoLite2 and cached answers. The fixture's addresses can never be in the
+  real cache, so fake and real data cannot mix.
+- **SQLite cache** of successes and "no data" answers only; failures are never cached. Daily
+  budgets live in the same file so they hold across runs; cache hits do not spend them.
+- **Bounded behaviour:** at most 3 attempts, `Retry-After` honoured up to 60 s, a provider that
+  asks for longer, runs out of quota or budget, or rejects its key is skipped for the rest of the
+  run. A token bucket keeps VirusTotal within 4 requests per minute.
+- **HTTP safety:** endpoints fixed in code (a stray `.env` cannot redirect keys), keys only in
+  headers, no redirects, 1 MiB response cap, explicit timeouts, provider text sanitised and
+  truncated.
+- **GeoLite2 behind an extra** and never bundled or downloaded, per its licence; tests use a fake
+  reader. Settings come from the environment over `.env`, reading only known variables.
+
+**Consequences.** Online results depend on free-tier limits; large investigations need paid
+plans or GeoLite2 only. Tests block real sockets and DNS for the whole enrichment suite.

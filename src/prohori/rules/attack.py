@@ -3,6 +3,9 @@
 Every entry was checked against the official Enterprise ATT&CK STIX bundle named below (id, name,
 tactics, and neither revoked nor deprecated). ``scripts/verify_attack.py`` repeats the check; it
 needs network access and is run by hand, never by the test suite.
+
+© 2026 The MITRE Corporation. This work is reproduced and distributed with the permission of The
+MITRE Corporation.
 """
 
 from typing import NamedTuple

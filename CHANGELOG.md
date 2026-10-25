@@ -9,6 +9,12 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- IP enrichment (`prohori.enrich`) and `prohori enrich IP... [--offline]`: providers for local
+  MaxMind GeoLite2 databases (`prohori[geoip]` extra), AbuseIPDB and VirusTotal, a bundled
+  synthetic fixture for offline runs, a SQLite cache with TTLs, daily budgets, a token bucket,
+  bounded retries and timeouts. Private, reserved and documentation addresses are never sent to
+  external services. Documented in `docs/ENRICHMENT.md`; third-party terms in `docs/LICENSES.md`.
+- `httpx` is now a core dependency.
 - `prohori detect FILE|-`: parse a log file and run the built-in rules plus any `--rules PATH`,
   with table or JSON Lines output, out-of-order tolerance (`--lateness`) and exit code 3 when
   alerts are found (`--exit-zero` to disable).

@@ -34,8 +34,9 @@ reports, with honest machine-learning evaluation and a streaming data pipeline.*
 
 *Prohori* is Bengali for "guard".
 
-> **Status: pre-alpha.** Log parsing (`prohori parse`) and rule-based detection
-> (`prohori detect`) work today; enrichment, incidents and reports are being built incrementally. See the [CHANGELOG](CHANGELOG.md).
+> **Status: pre-alpha.** Log parsing (`prohori parse`), rule-based detection (`prohori detect`)
+> and IP enrichment (`prohori enrich`) work today; incidents and reports are being built
+> incrementally. See the [CHANGELOG](CHANGELOG.md).
 
 ## Try it
 
@@ -45,6 +46,7 @@ uv sync
 uv run prohori parse samples/logs/auth.log
 uv run prohori parse samples/logs/access.log --format json
 uv run prohori detect samples/logs/auth.log
+uv run prohori enrich 203.0.113.7 --offline
 uv run prohori rules list
 uv run prohori rules test
 ```
@@ -53,7 +55,9 @@ uv run prohori rules test
 events (JSON Lines) and any JSON Lines layout via a mapping file. See
 [docs/PARSERS.md](docs/PARSERS.md). `prohori detect` runs the 14 built-in detection rules (and your own) over a
 log file; `prohori rules list` shows them and `prohori rules test` runs them against their
-fixtures. See [docs/RULES.md](docs/RULES.md).
+fixtures. See [docs/RULES.md](docs/RULES.md). `prohori enrich` looks up IP addresses with
+GeoLite2, AbuseIPDB and VirusTotal (all optional, cached and rate limited) or, offline, with
+bundled demo data; see [docs/ENRICHMENT.md](docs/ENRICHMENT.md).
 
 ## Planned features
 
