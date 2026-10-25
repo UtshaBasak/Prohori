@@ -1,0 +1,17 @@
+id: TST-AUTH-001
+title: Brute-force sign-in attempts from one IP
+status: test
+severity: high
+description: Many failed sign-ins from a single source IP in a short window.
+tags: [attack.credential_access, attack.t1110]
+logsource: {category: authentication}
+detection:
+  selection:
+    event.action: [auth.signin.failure, ssh.login.failure]
+  aggregate:
+    group_by: [source.ip]
+    window: 5m
+    count_gte: 10
+  condition: selection and aggregate
+falsepositives: [Users behind a shared NAT, password-manager misconfiguration]
+response: runbooks/brute-force.md

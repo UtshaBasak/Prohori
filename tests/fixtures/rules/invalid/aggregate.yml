@@ -1,0 +1,13 @@
+id: BAD-AGG-001
+title: Aggregate with two thresholds and a bad window
+status: test
+severity: low
+detection:
+  selection:
+    event.action: auth.signin.failure
+  aggregate:
+    group_by: [source.ipp]
+    window: 30days
+    count_gte: 5
+    distinct: {field: user.name, gte: 3}
+  condition: selection and aggregate

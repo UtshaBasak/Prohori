@@ -1,0 +1,16 @@
+id: TST-WEB-002
+title: High share of client errors from one IP
+status: experimental
+severity: low
+detection:
+  request:
+    event.action: web.request
+  client_error:
+    http.status|gte: 400
+    http.status|lt: 500
+  aggregate:
+    group_by: [source.ip]
+    window: 1m
+    mode: tumbling
+    ratio: {selection: client_error, gte: 0.8, min_count: 20}
+  condition: request and aggregate

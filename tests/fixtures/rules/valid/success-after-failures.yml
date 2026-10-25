@@ -1,0 +1,17 @@
+id: TST-AUTH-003
+title: Successful sign-in after many failures
+status: test
+severity: critical
+tags: [attack.credential_access, attack.initial_access, attack.t1110, attack.t1078]
+detection:
+  failure:
+    event.action: [ssh.login.failure, auth.signin.failure]
+  success:
+    event.action: [ssh.login.success, auth.signin.success]
+  sequence:
+    by: [source.ip]
+    within: 15m
+    steps:
+      - {selection: failure, count_gte: 5}
+      - {selection: success}
+  condition: sequence

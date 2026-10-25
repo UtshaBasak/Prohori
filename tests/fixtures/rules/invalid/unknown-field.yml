@@ -1,0 +1,8 @@
+id: BAD-FIELD-001
+title: Rule with an unknown field
+status: test
+severity: low
+detection:
+  selection:
+    event.actoin: auth.signin.failure
+  condition: selection

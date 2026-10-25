@@ -1,0 +1,10 @@
+id: BAD-COND-002
+title: Rule with an unused selection
+status: test
+severity: low
+detection:
+  selection:
+    event.action: auth.signin.failure
+  filter:
+    source.ip|cidr: 10.0.0.0/8
+  condition: selection

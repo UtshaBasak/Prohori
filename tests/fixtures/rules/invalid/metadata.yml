@@ -1,0 +1,10 @@
+id: lowercase-id
+title: Rule with invalid metadata
+status: production
+severity: urgent
+tags: [attack.T1110, Not-A-Tag]
+response: ../../etc/passwd.md
+detection:
+  selection:
+    event.action: auth.signin.failure
+  condition: selection

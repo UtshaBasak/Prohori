@@ -1,0 +1,12 @@
+id: BAD-MOD-001
+title: Rule with invalid modifiers and values
+status: test
+severity: low
+detection:
+  selection:
+    http.path|contains|startswith: /admin
+    http.status|gte: many
+    source.ip|cidr: 999.0.0.0/8
+    user.name|shout: ALICE
+    http.method: []
+  condition: selection

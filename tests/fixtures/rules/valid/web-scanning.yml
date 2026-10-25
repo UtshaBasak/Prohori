@@ -1,0 +1,20 @@
+id: TST-WEB-001
+title: Probe for sensitive web paths
+status: test
+severity: medium
+tags: [attack.reconnaissance, attack.t1595.003]
+logsource: {category: web}
+detection:
+  probe_paths:
+    http.path:
+      - /.env
+      - /wp-login.php
+      - /phpmyadmin*
+      - "*/.git/*"
+  probe_regex:
+    http.path|re: '\.(bak|old|sql)$'
+  internal:
+    source.ip|cidr: [10.0.0.0/8, 192.168.0.0/16]
+  condition: 1 of probe_* and not internal
+references:
+  - https://owasp.org/www-project-web-security-testing-guide/
