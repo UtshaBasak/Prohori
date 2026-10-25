@@ -1,0 +1,54 @@
+rule: PRH-ACCT-001
+start: 2026-10-24T13:50:00Z
+defaults:
+  log_source: app-security
+  user.id: u-1002
+cases:
+  - name: payout number changed soon after sign-in alerts
+    expect: {alerts: 1, entities: [{user.id: u-1002}]}
+    events:
+      - {event.action: auth.signin.success, event.category: authentication}
+      - {event.action: account.bkash.changed, event.category: account, after: 1m}
+
+  - name: two-step verification disabled soon after sign-in alerts
+    expect: {alerts: 1}
+    events:
+      - {event.action: auth.signin.success, event.category: authentication}
+      - {event.action: account.2fa.disabled, event.category: account, after: 10m}
+
+  - name: password changed soon after sign-in alerts
+    expect: {alerts: 1}
+    events:
+      - {event.action: auth.signin.success, event.category: authentication}
+      - {event.action: account.password.changed, event.category: account, after: 29m}
+
+  - name: a change more than thirty minutes after sign-in does not alert
+    expect: {alerts: 0}
+    events:
+      - {event.action: auth.signin.success, event.category: authentication}
+      - {event.action: account.bkash.changed, event.category: account, after: 31m}
+
+  - name: a change without a sign-in does not alert
+    expect: {alerts: 0}
+    events:
+      - {event.action: account.password.changed, event.category: account}
+
+  - name: a sign-in to another account does not count
+    expect: {alerts: 0}
+    events:
+      - {event.action: auth.signin.success, event.category: authentication, user.id: u-9999}
+      - {event.action: account.bkash.changed, event.category: account}
+
+  - name: non-sensitive changes do not alert
+    expect: {alerts: 0}
+    events:
+      - {event.action: auth.signin.success, event.category: authentication}
+      - {event.action: account.data_exported, event.category: account}
+
+  - name: sign-in then payout change through the app_json parser
+    expect: {alerts: 1, entities: [{user.id: u-1002}]}
+    log:
+      parser: app_json
+      lines:
+        - '{"time": "2026-10-24T13:52:14Z", "event": {"action": "auth.signin.success", "category": "authentication", "outcome": "success"}, "source": {"ip": "198.51.100.40"}, "client": "android/10203", "user": {"id": "u-1002"}}'
+        - '{"time": "2026-10-24T13:53:00Z", "event": {"action": "account.bkash.changed", "category": "account", "outcome": "success"}, "source": {"ip": "198.51.100.40"}, "client": "android/10203", "user": {"id": "u-1002"}}'

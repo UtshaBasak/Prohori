@@ -87,10 +87,11 @@ def test_list_reports_invalid_rules() -> None:
     assert "9 invalid rule file(s)" in err
 
 
-def test_list_empty_builtin_directory() -> None:
+def test_list_default_builtin_directory() -> None:
     code, out, _ = run("list")
     assert code == ExitCode.OK
-    assert "No valid rules found" in out
+    assert "PRH-AUTH-001" in out
+    assert "PRH-AUTHZ-001" in out
 
 
 def test_rule_text_is_not_rendered_as_markup(tmp_path: Path) -> None:
@@ -142,10 +143,10 @@ def test_rules_test_json() -> None:
     assert rows[0]["cases"][0]["alerts"] >= 1
 
 
-def test_rules_test_default_builtin_directory_is_empty() -> None:
+def test_rules_test_default_builtin_directory() -> None:
     code, out, _ = run("test")
     assert code == ExitCode.OK
-    assert "No rule files found." in out
+    assert "0 failed" in out
 
 
 def test_rules_test_missing_path() -> None:

@@ -1,0 +1,46 @@
+rule: PRH-AUTH-004
+start: 2026-10-24T13:50:00Z
+defaults:
+  log_source: app-security
+  event.category: authentication
+  event.outcome: failure
+  event.action: auth.lockout
+cases:
+  - name: three accounts locked from different IPs alert
+    expect: {alerts: 1, entities: [{log_source: app-security}]}
+    events:
+      - {user.id: u-1, source.ip: 203.0.113.7, after: 2m}
+      - {user.id: u-2, source.ip: 198.51.100.9, after: 2m}
+      - {user.id: u-3, source.ip: 192.0.2.77, after: 2m}
+
+  - name: one account locked repeatedly does not alert
+    expect: {alerts: 0}
+    events:
+      - {user.id: u-1, repeat: 5, every: 1m}
+
+  - name: two accounts do not alert
+    expect: {alerts: 0}
+    events:
+      - {user.id: u-1}
+      - {user.id: u-2, repeat: 3}
+
+  - name: lockouts spread over more than fifteen minutes do not alert
+    expect: {alerts: 0}
+    events:
+      - {user.id: u-1}
+      - {user.id: u-2, after: 8m}
+      - {user.id: u-3, after: 8m}
+
+  - name: lockouts without an account id are not counted
+    expect: {alerts: 0}
+    events:
+      - {source.ip: 203.0.113.7, repeat: 5}
+
+  - name: app lockouts through the app_json parser
+    expect: {alerts: 1, entities: [{log_source: app-security}]}
+    log:
+      parser: app_json
+      lines:
+        - '{"time": "2026-10-24T13:50:09Z", "event": {"action": "auth.lockout", "reason": "locked"}, "source": {"ip": "203.0.113.7"}, "user": {"id": "u-1001"}}'
+        - '{"time": "2026-10-24T13:53:40Z", "event": {"action": "auth.lockout", "reason": "locked"}, "source": {"ip": "198.51.100.9"}, "user": {"id": "u-1002"}}'
+        - '{"time": "2026-10-24T13:58:02Z", "event": {"action": "auth.lockout", "reason": "locked"}, "source": {"ip": "192.0.2.77"}, "user": {"id": "u-1003"}}'

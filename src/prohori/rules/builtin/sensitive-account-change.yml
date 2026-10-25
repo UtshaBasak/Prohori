@@ -1,0 +1,33 @@
+id: PRH-ACCT-001
+title: Sensitive account change shortly after sign-in
+status: stable
+severity: high
+description: >-
+  A password change, payout number (bKash) change or two-step verification disable within
+  30 minutes of a successful sign-in to the same account. Account takeovers usually do this
+  first. The rule does not know which IPs or clients are new for the account, so it also fires
+  for normal changes; review the sign-in IP and client in the alert.
+author: Prohori
+tags:
+  - attack.persistence
+  - attack.privilege_escalation
+  - attack.defense_impairment
+  - attack.credential_access
+  - attack.t1098
+  - attack.t1556.006
+detection:
+  signin:
+    event.action: auth.signin.success
+  change:
+    event.action: [account.password.changed, account.bkash.changed, account.2fa.disabled]
+  sequence:
+    by: [user.id]
+    within: 30m
+    steps:
+      - {selection: signin}
+      - {selection: change}
+  condition: sequence
+falsepositives:
+  - The account owner changing their own settings after signing in
+  - Support staff helping a user recover an account
+response: runbooks/sensitive-account-change.md

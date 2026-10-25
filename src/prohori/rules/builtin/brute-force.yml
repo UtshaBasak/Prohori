@@ -1,0 +1,21 @@
+id: PRH-AUTH-001
+title: Brute-force sign-in attempts from one IP
+status: stable
+severity: high
+description: >-
+  At least 10 failed sign-ins (web app or SSH) from a single source IP within 5 minutes.
+author: Prohori
+tags: [attack.credential_access, attack.t1110, attack.t1110.001]
+logsource: {category: authentication}
+detection:
+  selection:
+    event.action: [auth.signin.failure, ssh.login.failure]
+  aggregate:
+    group_by: [source.ip]
+    window: 5m
+    count_gte: 10
+  condition: selection and aggregate
+falsepositives:
+  - Many users behind one shared NAT or proxy address
+  - A script or password manager retrying a stale password
+response: runbooks/brute-force.md

@@ -1,0 +1,31 @@
+rule: PRH-SESS-001
+start: 2026-10-24T13:50:00Z
+defaults:
+  log_source: app-security
+  event.category: session
+cases:
+  - name: refresh-token reuse alerts
+    expect: {alerts: 1, entities: [{source.ip: "2001:db8:abcd::17", user.id: u-1003}]}
+    events:
+      - event.action: session.refresh.reuse_detected
+        event.outcome: failure
+        source.ip: "2001:db8:abcd::17"
+        user.id: u-1003
+
+  - name: each reuse alerts on its own
+    expect: {alerts: 2}
+    events:
+      - {event.action: session.refresh.reuse_detected, user.id: u-1003, repeat: 2}
+
+  - name: other session events do not alert
+    expect: {alerts: 0}
+    events:
+      - {event.action: session.logout_others, user.id: u-1003}
+      - {event.action: session.refresh, user.id: u-1003, repeat: 3}
+
+  - name: reuse through the app_json parser
+    expect: {alerts: 1, entities: [{user.id: u-1003}]}
+    log:
+      parser: app_json
+      lines:
+        - '{"time": "2026-10-24T13:55:41Z", "event": {"action": "session.refresh.reuse_detected", "category": "session", "outcome": "failure"}, "source": {"ip": "2001:db8:abcd::17"}, "client": "web", "http": {"method": "POST", "route": "/api/auth/refresh"}, "user": {"id": "u-1003"}}'

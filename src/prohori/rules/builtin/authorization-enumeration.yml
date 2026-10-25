@@ -1,0 +1,24 @@
+id: PRH-AUTHZ-001
+title: Authorisation denials across many resources
+status: stable
+severity: medium
+description: >-
+  Authorisation denials for at least 5 distinct paths from one source IP within 10 minutes:
+  someone probing for resources they may not access, such as other users' records or admin
+  routes. If the app logs route templates (/api/orders/:id) instead of paths, probing many ids
+  of one route counts once.
+author: Prohori
+tags: [attack.reconnaissance, attack.t1595.003]
+logsource: {category: authorization}
+detection:
+  denied:
+    event.action: authz.denied
+  aggregate:
+    group_by: [source.ip]
+    window: 10m
+    distinct: {field: http.path, gte: 5}
+  condition: denied and aggregate
+falsepositives:
+  - A client release that calls endpoints the user's role no longer allows
+  - Security testing or crawling by the site's own team
+response: runbooks/authorization-enumeration.md

@@ -15,8 +15,74 @@ Both commands accept files and directories (searched recursively for `*.yml` and
 `--format json`. Exit codes: `0` all valid, `1` at least one invalid rule, `2` invalid usage.
 
 > **Status.** Rules are loaded, validated, compiled and evaluated (stateless, `aggregate` and
-> `sequence`), and every rule can be tested against fixtures with `prohori rules test`.
-> Running rules over log files from the command line (`prohori detect`) arrives next.
+> `sequence`), and every rule can be tested against fixtures with `prohori rules test`. Seven
+> built-in rules ship today; the second batch and `prohori detect` (rules over log files from the
+> command line) arrive next.
+
+## Built-in rules
+
+Run `prohori rules list` for the current set. Each rule ships with a fixture file, a runbook and
+verified ATT&CK tags.
+
+| Id | Severity | Detects | Logic |
+|----|----------|---------|-------|
+| PRH-AUTH-001 | high | Brute-force sign-ins from one IP | >= 10 app or SSH sign-in failures per `source.ip` in 5 min (sliding) |
+| PRH-AUTH-002 | high | Password spraying or credential stuffing | app sign-in failures for >= 5 distinct `user.email_hash` per `source.ip` in 10 min |
+| PRH-AUTH-003 | critical | Successful sign-in after many failures | >= 5 failures then a success, same `source.ip`, within 15 min |
+| PRH-AUTH-004 | high | Account lockouts across many accounts | `auth.lockout` for >= 3 distinct `user.id` per `log_source` in 15 min |
+| PRH-SESS-001 | high | Refresh-token reuse (probable stolen token) | every `session.refresh.reuse_detected` event |
+| PRH-ACCT-001 | high | Sensitive account change shortly after sign-in | sign-in success, then a password, payout number or two-step change, same `user.id`, within 30 min |
+| PRH-AUTHZ-001 | medium | Authorisation denials across many resources | `authz.denied` for >= 5 distinct `http.path` per `source.ip` in 10 min |
+
+Known limits, also stated in each rule's description:
+
+- **PRH-AUTH-002** counts accounts by `user.email_hash`, which the app security log provides.
+  Failures without one (unknown-user attempts the app logs without a hash) and SSH logs are not
+  counted; their volume still triggers PRH-AUTH-001.
+- **PRH-ACCT-001** cannot tell whether the sign-in came from a new IP or client: rules keep no
+  per-account history. It fires for every sensitive change within 30 minutes of a sign-in, so the
+  analyst compares the sign-in IP and client with the account's usual ones.
+- **PRH-AUTHZ-001** counts distinct paths. The app logs `http.route`; if that is a route template
+  (`/api/orders/:id`), probing many ids of one route counts once.
+
+### ATT&CK mapping
+
+Tags are verified against **MITRE ATT&CK Enterprise v20.0**, using the official STIX bundle:
+
+- URL: `https://raw.githubusercontent.com/mitre-attack/attack-stix-data/master/enterprise-attack/enterprise-attack-20.0.json`
+- SHA-256: `81113ba98afa2928f3dcff62022539f7ce30c315c32e14422f11ff95ce534352`
+
+The verified tactics and techniques, with names and tactics, are listed in
+`src/prohori/rules/attack.py`. A test fails if a built-in rule uses a tag outside that list, has
+no technique or tactic, or pairs a technique with tactics it does not belong to. ATT&CK v20
+has the **Stealth** and **Defense Impairment** tactics in place of Defense Evasion, so
+`attack.defense_evasion` is not used. To re-check the list, or after moving to a new ATT&CK
+release, run (downloads about 50 MB):
+
+```bash
+uv run python scripts/verify_attack.py
+```
+
+| Technique | Name | Used by |
+|-----------|------|---------|
+| T1110 | Brute Force | AUTH-001, AUTH-003, AUTH-004 |
+| T1110.001 | Password Guessing | AUTH-001 |
+| T1110.003 | Password Spraying | AUTH-002 |
+| T1110.004 | Credential Stuffing | AUTH-002 |
+| T1078 | Valid Accounts | AUTH-003 |
+| T1528 | Steal Application Access Token | SESS-001 |
+| T1550.001 | Application Access Token | SESS-001 |
+| T1098 | Account Manipulation | ACCT-001 |
+| T1556.006 | Modify Authentication Process: Multi-Factor Authentication | ACCT-001 |
+| T1595.003 | Active Scanning: Wordlist Scanning | AUTHZ-001 (closest fit for probing many resources) |
+
+### Runbooks
+
+A rule's `response` key names its runbook. Built-in runbooks are packaged in
+`src/prohori/runbooks/` and `response: runbooks/<name>.md` is resolved against the `prohori`
+package, so they are available after `pip install`. Every runbook has the same sections, in this
+order: *What it means*, *Triage*, *Recommended actions* (a bullet list), *False positives* and
+*ATT&CK*.
 
 ## Example
 
