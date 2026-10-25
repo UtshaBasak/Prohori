@@ -1,10 +1,11 @@
-"""YAML detection rules: format, safe loading, validation and stateless matching."""
+"""YAML detection rules: format, safe loading, validation, matching and evaluation."""
 
 from importlib.resources import files
 from pathlib import Path
 
 from prohori.rules.compiler import CompiledRule, CompileResult, compile_rule
 from prohori.rules.condition import ConditionError, parse_condition
+from prohori.rules.engine import EngineStats, RuleEngine
 from prohori.rules.loader import LocatedError, RuleLoadError, RuleReport, load_rule, load_rules
 from prohori.rules.matching import RuleError, wildcard_match
 from prohori.rules.model import AggregateSpec, RuleMeta, SequenceSpec, parse_duration
@@ -21,7 +22,9 @@ __all__ = [
     "CompileResult",
     "CompiledRule",
     "ConditionError",
+    "EngineStats",
     "LocatedError",
+    "RuleEngine",
     "RuleError",
     "RuleLoadError",
     "RuleMeta",
