@@ -4,6 +4,7 @@ import contextlib
 import json
 import sys
 from collections.abc import Iterator
+from dataclasses import dataclass
 from datetime import UTC, datetime
 from enum import StrEnum
 from itertools import chain, islice
@@ -80,46 +81,56 @@ def build_parser(
         raise typer.BadParameter(str(exc)) from exc
 
 
-def parse_command(
-    file: Annotated[
-        str, typer.Argument(metavar="FILE", help="Log file to parse, or '-' for standard input.")
-    ],
-    parser_name: Annotated[
-        str,
-        typer.Option(
-            "--parser",
-            "-p",
-            help="Parser to use: auto, " + ", ".join(available()) + ".",
-            show_default=True,
-        ),
-    ] = "auto",
-    output: Annotated[
-        OutputFormat,
-        typer.Option("--format", "-f", help="table: summary and sample rows; json: JSON Lines."),
-    ] = OutputFormat.TABLE,
-    year: Annotated[
-        int | None,
-        typer.Option(help="auth_log: year of the first line (default: from the file date)."),
-    ] = None,
-    timezone: Annotated[
-        str, typer.Option(help="auth_log: IANA timezone for timestamps without an offset.")
-    ] = "UTC",
-    mapping: Annotated[
-        Path | None, typer.Option(help="generic_json: YAML field-mapping file.")
-    ] = None,
-    pattern: Annotated[
-        str | None, typer.Option(help="access_log: custom regular expression for the line.")
-    ] = None,
-    keep_query: Annotated[
-        bool, typer.Option(help="access_log: keep the query string in http.path.")
-    ] = False,
-    limit: Annotated[
-        int, typer.Option(min=0, help="table: number of events to show (0 for none).")
-    ] = 20,
-) -> None:
-    """Parse and normalise a log file; print events and a summary of counts and parse errors.
+@dataclass
+class ParsedInput:
+    """Events being parsed from one input, with the parser chosen and running counts."""
 
-    Exit codes: 0 success, 1 every non-blank line failed to parse, 2 invalid usage or input.
+    events: Iterator[Event]
+    parser: str
+    name: str
+    stats: ParseStats
+
+
+ParserOption = Annotated[
+    str,
+    typer.Option(
+        "--parser",
+        "-p",
+        help="Parser to use: auto, " + ", ".join(available()) + ".",
+        show_default=True,
+    ),
+]
+YearOption = Annotated[
+    int | None,
+    typer.Option(help="auth_log: year of the first line (default: from the file date)."),
+]
+TimezoneOption = Annotated[
+    str, typer.Option(help="auth_log: IANA timezone for timestamps without an offset.")
+]
+MappingOption = Annotated[Path | None, typer.Option(help="generic_json: YAML field-mapping file.")]
+PatternOption = Annotated[
+    str | None, typer.Option(help="access_log: custom regular expression for the line.")
+]
+KeepQueryOption = Annotated[
+    bool, typer.Option(help="access_log: keep the query string in http.path.")
+]
+
+
+@contextlib.contextmanager
+def parsed_events(
+    file: str,
+    parser_name: str,
+    *,
+    year: int | None,
+    timezone: str,
+    mapping: Path | None,
+    pattern: str | None,
+    keep_query: bool,
+) -> Iterator[ParsedInput]:
+    """Open ``file`` (``-`` for stdin), choose or detect the parser and yield the parsed input.
+
+    Raises:
+        typer.BadParameter: for a missing file, an unknown or undetectable format, or bad options.
     """
     if year is not None and parser_name not in {"auth_log", "auto"}:
         raise typer.BadParameter("--year applies to the auth_log parser only")
@@ -155,13 +166,46 @@ def parse_command(
             keep_query=keep_query,
         )
         stats = ParseStats()
-        events = parser.parse(lines, source=name, stats=stats)
+        yield ParsedInput(parser.parse(lines, source=name, stats=stats), parser_name, name, stats)
+
+
+def parse_command(
+    file: Annotated[
+        str, typer.Argument(metavar="FILE", help="Log file to parse, or '-' for standard input.")
+    ],
+    parser_name: ParserOption = "auto",
+    output: Annotated[
+        OutputFormat,
+        typer.Option("--format", "-f", help="table: summary and sample rows; json: JSON Lines."),
+    ] = OutputFormat.TABLE,
+    year: YearOption = None,
+    timezone: TimezoneOption = "UTC",
+    mapping: MappingOption = None,
+    pattern: PatternOption = None,
+    keep_query: KeepQueryOption = False,
+    limit: Annotated[
+        int, typer.Option(min=0, help="table: number of events to show (0 for none).")
+    ] = 20,
+) -> None:
+    """Parse and normalise a log file; print events and a summary of counts and parse errors.
+
+    Exit codes: 0 success, 1 every non-blank line failed to parse, 2 invalid usage or input.
+    """
+    with parsed_events(
+        file,
+        parser_name,
+        year=year,
+        timezone=timezone,
+        mapping=mapping,
+        pattern=pattern,
+        keep_query=keep_query,
+    ) as parsed:
         if output is OutputFormat.JSON:
-            _write_json(events)
-            _summary_json(parser_name, name, stats)
+            _write_json(parsed.events)
+            _summary_json(parsed.parser, parsed.name, parsed.stats)
         else:
-            _write_table(events, parser_name, name, stats, limit)
-    if stats.events == 0 and stats.errors > 0:
+            _write_table(parsed.events, parsed.parser, parsed.name, parsed.stats, limit)
+    if parsed.stats.events == 0 and parsed.stats.errors > 0:
         raise typer.Exit(ExitCode.NO_EVENTS)
 
 
