@@ -116,3 +116,39 @@ def test_validate_strips_control_characters(tmp_path: Path) -> None:
     assert "\x1b" not in out
     assert "\x07" not in out
     assert "unknown field" in out
+
+
+def test_rules_test_valid_fixtures_pass() -> None:
+    code, out, _ = run("test", str(FIXTURES / "valid"))
+    assert code == ExitCode.OK
+    assert "5 passed, 0 failed" in out
+    assert "PASS  TST-AUTH-001" in out
+
+
+def test_rules_test_fails_without_fixtures(tmp_path: Path) -> None:
+    rule = (FIXTURES / "valid" / "brute-force.yml").read_text(encoding="utf-8")
+    (tmp_path / "rule.yml").write_text(rule, encoding="utf-8")
+    code, out, _ = run("test", str(tmp_path))
+    assert code == ExitCode.INVALID_RULES
+    assert "no test fixtures" in out
+
+
+def test_rules_test_json() -> None:
+    code, out, _ = run("test", str(FIXTURES / "valid"), "--format", "json")
+    assert code == ExitCode.OK
+    rows = json.loads(out)
+    assert len(rows) == 5
+    assert all(r["passed"] for r in rows)
+    assert rows[0]["cases"][0]["alerts"] >= 1
+
+
+def test_rules_test_default_builtin_directory_is_empty() -> None:
+    code, out, _ = run("test")
+    assert code == ExitCode.OK
+    assert "No rule files found." in out
+
+
+def test_rules_test_missing_path() -> None:
+    code, _, err = run("test", "nowhere")
+    assert code == ExitCode.USAGE
+    assert "not found" in err

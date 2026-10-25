@@ -13,10 +13,11 @@ from prohori.cli.exit_codes import ExitCode
 from prohori.cli.parse import OutputFormat
 from prohori.parsers import sanitize
 from prohori.rules import RuleReport, builtin_rules_dir, load_rules
+from prohori.rules.testing import run_rule_tests
 
 rules_app = typer.Typer(
     name="rules",
-    help="List and validate detection rules.",
+    help="List, validate and test detection rules.",
     no_args_is_help=True,
     add_completion=False,
 )
@@ -128,4 +129,52 @@ def validate_command(
         summary = f"{len(reports) - len(invalid)} valid, {len(invalid)} invalid"
         typer.echo(summary if reports else "No rule files found.")
     if invalid:
+        raise typer.Exit(ExitCode.INVALID_RULES)
+
+
+@rules_app.command("test")
+def run_tests_command(
+    paths: PathsArgument = None, output: FormatOption = OutputFormat.TABLE
+) -> None:
+    """Run every rule against its positive and negative fixtures (<rule>.tests.yml).
+
+    Exit codes: 0 all rules passed, 1 a rule failed or has no fixtures, 2 invalid usage.
+    """
+    targets = paths or [builtin_rules_dir()]
+    missing = [str(p) for p in targets if not p.exists()]
+    if missing:
+        raise typer.BadParameter(f"not found: {', '.join(missing)}", param_hint="PATH")
+    reports = run_rule_tests(targets)
+    failed = [r for r in reports if not r.passed]
+    if output is OutputFormat.JSON:
+        rows = [
+            {
+                "rule_file": str(r.rule_file),
+                "rule_id": r.rule_id,
+                "test_file": str(r.test_file) if r.test_file else None,
+                "passed": r.passed,
+                "errors": r.errors,
+                "cases": [
+                    {"name": c.name, "passed": c.passed, "alerts": c.alerts, "message": c.message}
+                    for c in r.cases
+                ],
+            }
+            for r in reports
+        ]
+        typer.echo(json.dumps(rows, indent=2))
+    else:
+        for report in reports:
+            label = report.rule_id or report.rule_file.name
+            typer.echo(
+                sanitize(f"{'PASS' if report.passed else 'FAIL':<5} {label}  ({report.rule_file})")
+            )
+            for error in report.errors:
+                typer.echo(f"  ! {sanitize(error)}")
+            for case in report.cases:
+                status = "ok  " if case.passed else "FAIL"
+                detail = f" - {case.message}" if case.message else ""
+                typer.echo(sanitize(f"  {status} {case.name} ({case.alerts} alert(s)){detail}"))
+        summary = f"{len(reports) - len(failed)} passed, {len(failed)} failed"
+        typer.echo(summary if reports else "No rule files found.")
+    if failed:
         raise typer.Exit(ExitCode.INVALID_RULES)

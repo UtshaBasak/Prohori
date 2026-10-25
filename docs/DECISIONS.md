@@ -248,3 +248,45 @@ attacker-controlled log fields without risk of hangs.
 
 **Consequences.** Regex authors cannot use look-around or backreferences, and `\w`/`\d`/`\s`
 are ASCII-only. A literal backslash before a wildcard must be written `\\*`.
+
+---
+
+## ADR-0010: Rule evaluation semantics and the rule test harness
+
+- **Date:** 2026-10-26
+- **Status:** Accepted
+
+**Context.** Thresholds and sequences need precise, deterministic semantics: later steps (built-in
+rules, incidents, the streaming pipeline) depend on them, and logs arrive out of order, with
+duplicate timestamps and sometimes with bogus times.
+
+**Decision.**
+- **One total order** (timestamp, then event id) enforced by a reorder buffer with configurable
+  `lateness`; events are released only once strictly older than `watermark - lateness`, so ties at
+  the watermark are never split. Any arrival order within the bound gives identical alerts
+  (property-tested).
+- **Late events are dropped and counted**, never silently lost.
+- **Future timestamps** beyond `reference_time + 1 day` are dropped and counted. The reference time
+  is injected (the engine never reads the clock), keeping tests deterministic; archived logs can
+  omit it. Without it, a bogus future timestamp still lets in-order events through but disables
+  out-of-order tolerance for the rest of the input.
+- **Fixtures never depend on today's date:** `auth_log` log cases default `year` to the fixture's
+  `start`.
+- **Windows:** sliding windows exclude an event exactly `window` old; tumbling windows align to the
+  Unix epoch.
+- **Re-alerting:** a group's state is cleared when it fires, so one burst gives one alert and a
+  continuing attack gives one alert per further threshold's worth of events, rather than one alert
+  per event.
+- **Sequences:** a sliding first step, a deadline of `start + within` for later steps, restart on
+  expiry, and the current step winning when an event matches several.
+- **Bounded state:** caps on the reorder buffer, groups per rule and events per ratio group, with
+  counters for every eviction or drop.
+- **Process-one-event-at-a-time API** with an idempotent `flush()`, so the streaming consumers can
+  reuse the engine unchanged.
+- **Rule fixtures** live next to each rule as `<rule>.tests.yml` (skipped by rule discovery), are
+  loaded with the same safety limits, and must contain positive and negative cases. Cases can use a
+  compact event timeline or real log lines through a parser, so the parsers are exercised too.
+- **Alert scores follow severity** for now; incident scoring adds context later.
+
+**Consequences.** Rules evaluated without lateness treat equal timestamps as simultaneous and
+order them by event id. Alerts list at most 100 event ids.

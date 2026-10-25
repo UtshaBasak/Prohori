@@ -1,0 +1,36 @@
+rule: TST-AUTH-003
+start: 2026-10-24T13:50:00Z
+defaults:
+  log_source: app-security
+  event.category: authentication
+  source.ip: 203.0.113.7
+cases:
+  - name: five failures then a success alert
+    expect: {alerts: 1, entities: [{source.ip: 203.0.113.7}]}
+    events:
+      - {event.action: auth.signin.failure, repeat: 5, every: 30s}
+      - {event.action: auth.signin.success, after: 1m}
+
+  - name: extra failures before the success still alert once
+    expect: {alerts: 1}
+    events:
+      - {event.action: auth.signin.failure, repeat: 8, every: 10s}
+      - {event.action: auth.signin.success}
+
+  - name: a success without enough failures does not alert
+    expect: {alerts: 0}
+    events:
+      - {event.action: auth.signin.failure, repeat: 4}
+      - {event.action: auth.signin.success}
+
+  - name: a success after the fifteen-minute limit does not alert
+    expect: {alerts: 0}
+    events:
+      - {event.action: auth.signin.failure, repeat: 5, every: 30s}
+      - {event.action: auth.signin.success, after: 15m}
+
+  - name: a success from another IP does not alert
+    expect: {alerts: 0}
+    events:
+      - {event.action: auth.signin.failure, repeat: 5}
+      - {event.action: auth.signin.success, source.ip: 198.51.100.9}

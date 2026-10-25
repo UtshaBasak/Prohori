@@ -9,6 +9,12 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- Stateful rule engine (`prohori.rules.engine`): single-pass evaluation of stateless rules,
+  `aggregate` thresholds (count, distinct, ratio; sliding and tumbling windows) and `sequence`
+  rules, with a reorder buffer for out-of-order events, protection against bogus future
+  timestamps, and bounded state with eviction counters.
+- Rule test harness and `prohori rules test`: each rule runs against its `<rule>.tests.yml`
+  fixtures (generated event timelines or real log lines through a parser).
 - Detection rule format (`prohori.rules`): YAML rules with selections, field modifiers
   (`contains`, `startswith`, `endswith`, `re`, `cidr`, `gt`/`gte`/`lt`/`lte`, `exists`, `all`,
   `cased`), wildcards, a boolean `condition` language, and `aggregate` / `sequence` blocks that are

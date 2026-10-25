@@ -8,14 +8,15 @@ It is **not** Sigma-compatible.
 prohori rules validate path/to/rules/   # every problem with file and line; exit 1 if any invalid
 prohori rules list path/to/rules/       # valid rules with severity, status and ATT&CK tags
 prohori rules list                      # the built-in rules
+prohori rules test path/to/rules/       # run each rule against its fixtures
 ```
 
 Both commands accept files and directories (searched recursively for `*.yml` and `*.yaml`) and
 `--format json`. Exit codes: `0` all valid, `1` at least one invalid rule, `2` invalid usage.
 
-> **Status.** Rules are loaded, validated and compiled, and stateless matching works.
-> Evaluating `aggregate` and `sequence` blocks over time (the stateful engine) and
-> `prohori rules test` arrive in the next release step; their block format may still change.
+> **Status.** Rules are loaded, validated, compiled and evaluated (stateless, `aggregate` and
+> `sequence`), and every rule can be tested against fixtures with `prohori rules test`.
+> Running rules over log files from the command line (`prohori detect`) arrives next.
 
 ## Example
 
@@ -205,6 +206,76 @@ detection:
 A sequence rule's condition must be exactly `sequence`. A rule uses either `aggregate` or
 `sequence`, not both.
 
+## Evaluation semantics
+
+The engine (`prohori.rules.engine.RuleEngine`) evaluates every rule in a single pass over the
+events, holding only bounded state.
+
+| Topic | Behaviour |
+|-------|-----------|
+| Order | Events are evaluated in one total order: by timestamp, ties broken by event id. A reorder buffer holds events until the newest timestamp seen (the *watermark*) is more than `lateness` past them |
+| Out-of-order events | An event that arrives with a timestamp of at least `watermark - lateness` is never late, so any arrival order within that bound produces identical alerts |
+| Late events | An event that would sort before one already evaluated is dropped and counted (`late_events`) |
+| Held events | Events at the newest timestamp (or within `lateness` of it) wait until a later event arrives or the input ends (`flush()`). With `lateness` 0 this only delays ties |
+| Future timestamps | With a reference time ("now"), events more than one day after it are dropped and counted (`future_events`). Without one, a bogus future timestamp still lets in-order events through, but it disables out-of-order tolerance for the rest of the input. The engine never reads the clock itself |
+| Sliding windows | An event is inside the window at time `t` when `t - event time < window`; an event exactly `window` old is outside |
+| Tumbling windows | Aligned to the Unix epoch in UTC (a `1m` window runs from :00 to :59) |
+| Re-alerting | When a threshold or sequence fires, that group's state is cleared; the next alert needs the threshold to be reached again by later events. Stateless rules alert once per matching event |
+| Missing group fields | An event without a value for every `group_by` / `by` field is skipped for that rule and counted (`ungrouped_events`) |
+| Sequences | Step 1 keeps its matches within `within` of the newest one; when it reaches its count, the sequence starts at the oldest of them. Later steps must complete before `start + within`; an event at or after that moment restarts the sequence with that event. After step 1 completes, more step-1 events are ignored. An event matching several steps counts for the current step |
+
+Alerts carry the rule's id, title, severity, ATT&CK tags and an explanation. Their entities are
+the `group_by` / `by` values, or for stateless rules whichever of `source.ip`, `user.name`,
+`user.id`, `host` and `request_id` the event has. An alert lists at most the 100 most recent event
+ids; the explanation gives the full count. Scores follow severity (low 25, medium 50, high 75,
+critical 100) until incident scoring adds context.
+
+Bounded state: the reorder buffer holds at most 100,000 events (overflows are released early and
+counted); each stateful rule tracks at most 50,000 groups (the least recently seen are evicted and
+counted); expired groups are removed as time advances; ratio thresholds keep at most 10,000 events
+per group.
+
+## Rule tests
+
+Every rule `<name>.yml` needs a fixture file `<name>.tests.yml` next to it, with at least one
+positive case (`alerts` >= 1) and one negative case (`alerts: 0`). `prohori rules test` fails for a
+rule without fixtures, a fixture for a different rule id, or any case whose result differs.
+
+```yaml
+rule: PRH-AUTH-001
+start: 2026-10-24T13:50:00Z         # first event time (default 2026-01-01T00:00:00Z)
+defaults:                           # merged into every event (dotted schema fields)
+  log_source: app-security
+  event.category: authentication
+cases:
+  - name: ten failures within five minutes alert once
+    expect: {alerts: 1, entities: [{source.ip: 203.0.113.7}]}
+    events:
+      - {event.action: auth.signin.failure, source.ip: 203.0.113.7, repeat: 10, every: 20s}
+  - name: nine failures do not alert
+    expect: {alerts: 0}
+    events:
+      - {event.action: auth.signin.failure, source.ip: 203.0.113.7, repeat: 9, every: 20s}
+  - name: real log lines through a parser
+    expect: {alerts: 0}
+    log:
+      parser: auth_log
+      options: {year: 2026}
+      lines:
+        - "Oct 24 13:50:02 web01 sshd[1]: Failed password for root from 203.0.113.7 port 1 ssh2"
+```
+
+- **Timeline:** `at` sets an absolute time (with a timezone); otherwise `after` (default `1s`)
+  advances from the previous event. `repeat` (default 1) emits copies `every` (default `1s`) apart.
+- **Events** use the dotted schema fields; `raw` is generated if not given.
+- **Log cases** run raw lines through a parser; any line that fails to parse fails the case.
+  `auth_log` cases without a `year` option use the year of `start`, so results never depend on
+  today's date.
+- **Expectations:** `alerts` is the exact number of alerts; each mapping in `entities` must be
+  contained in some alert's entities.
+- Fixture files are loaded with the same safety limits as rules, and `rules list` / `validate`
+  ignore them.
+
 ## File safety
 
 Rule files are untrusted input:
@@ -231,3 +302,4 @@ INVALID  rules/web.yml
 4. Add a `filter` selection for known benign sources and use `and not filter`.
 5. List `falsepositives` and link a `response` runbook.
 6. Run `prohori rules validate` until it reports no errors.
+7. Write `<name>.tests.yml` with positive and negative cases and run `prohori rules test`.

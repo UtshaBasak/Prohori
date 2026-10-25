@@ -1,0 +1,30 @@
+rule: TST-WEB-002
+start: 2026-10-24T13:50:00Z
+defaults:
+  log_source: nginx
+  event.category: web
+  event.action: web.request
+  source.ip: 198.51.100.23
+cases:
+  - name: mostly 4xx responses within one minute alert
+    expect: {alerts: 1, entities: [{source.ip: 198.51.100.23}]}
+    events:
+      - {http.status: 404, repeat: 18, every: 1s}
+      - {http.status: 200, repeat: 2, every: 1s}
+
+  - name: below the minimum number of requests does not alert
+    expect: {alerts: 0}
+    events:
+      - {http.status: 404, repeat: 19, every: 1s}
+
+  - name: a normal mix of responses does not alert
+    expect: {alerts: 0}
+    events:
+      - {http.status: 200, repeat: 15, every: 1s}
+      - {http.status: 404, repeat: 15, every: 1s}
+
+  - name: requests split across two tumbling minutes do not alert
+    expect: {alerts: 0}
+    events:
+      - {at: "2026-10-24T13:50:50Z", http.status: 404, repeat: 10, every: 1s}
+      - {http.status: 404, repeat: 10, every: 1s}

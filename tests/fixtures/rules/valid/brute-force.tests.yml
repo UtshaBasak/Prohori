@@ -1,0 +1,49 @@
+rule: TST-AUTH-001
+start: 2026-10-24T13:50:00Z
+defaults:
+  log_source: app-security
+  event.category: authentication
+  event.outcome: failure
+cases:
+  - name: ten failures within five minutes alert once
+    expect: {alerts: 1, entities: [{source.ip: 203.0.113.7}]}
+    events:
+      - {event.action: auth.signin.failure, source.ip: 203.0.113.7, repeat: 10, every: 20s}
+
+  - name: twenty failures alert twice (state resets after an alert)
+    expect: {alerts: 2}
+    events:
+      - {event.action: auth.signin.failure, source.ip: 203.0.113.7, repeat: 20, every: 5s}
+
+  - name: nine failures do not alert
+    expect: {alerts: 0}
+    events:
+      - {event.action: auth.signin.failure, source.ip: 203.0.113.7, repeat: 9, every: 20s}
+
+  - name: ten failures spread over more than five minutes do not alert
+    expect: {alerts: 0}
+    events:
+      - {event.action: auth.signin.failure, source.ip: 203.0.113.7, repeat: 10, every: 40s}
+
+  - name: failures from different IPs are counted separately
+    expect: {alerts: 0}
+    events:
+      - {event.action: auth.signin.failure, source.ip: 203.0.113.7, repeat: 5, every: 10s}
+      - {event.action: auth.signin.failure, source.ip: 198.51.100.9, repeat: 5, every: 10s}
+
+  - name: ssh failures from the auth.log parser count too
+    expect: {alerts: 1, entities: [{source.ip: 192.0.2.50}]}
+    log:
+      parser: auth_log
+      options: {year: 2026}
+      lines:
+        - "Oct 24 13:50:01 web01 sshd[9]: Failed password for root from 192.0.2.50 port 40000 ssh2"
+        - "Oct 24 13:50:03 web01 sshd[9]: Failed password for root from 192.0.2.50 port 40000 ssh2"
+        - "Oct 24 13:50:05 web01 sshd[9]: Failed password for root from 192.0.2.50 port 40000 ssh2"
+        - "Oct 24 13:50:07 web01 sshd[9]: Failed password for root from 192.0.2.50 port 40000 ssh2"
+        - "Oct 24 13:50:09 web01 sshd[9]: Failed password for root from 192.0.2.50 port 40000 ssh2"
+        - "Oct 24 13:50:11 web01 sshd[9]: Failed password for root from 192.0.2.50 port 40000 ssh2"
+        - "Oct 24 13:50:13 web01 sshd[9]: Failed password for root from 192.0.2.50 port 40000 ssh2"
+        - "Oct 24 13:50:15 web01 sshd[9]: Failed password for root from 192.0.2.50 port 40000 ssh2"
+        - "Oct 24 13:50:17 web01 sshd[9]: Failed password for root from 192.0.2.50 port 40000 ssh2"
+        - "Oct 24 13:50:19 web01 sshd[9]: Failed password for root from 192.0.2.50 port 40000 ssh2"
