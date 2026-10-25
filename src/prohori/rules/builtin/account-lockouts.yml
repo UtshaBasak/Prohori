@@ -1,0 +1,22 @@
+id: PRH-AUTH-004
+title: Account lockouts across many accounts
+status: stable
+severity: high
+description: >-
+  At least 3 distinct accounts (by user.id) locked out within 15 minutes in one log source,
+  whatever the source IPs: a distributed brute-force or spraying campaign.
+author: Prohori
+tags: [attack.credential_access, attack.t1110]
+logsource: {category: authentication}
+detection:
+  lockout:
+    event.action: auth.lockout
+  aggregate:
+    group_by: [log_source]
+    window: 15m
+    distinct: {field: user.id, gte: 3}
+  condition: lockout and aggregate
+falsepositives:
+  - A password policy change or forced reset that makes many users fail at once
+  - A broken client release sending wrong credentials
+response: runbooks/account-lockouts.md

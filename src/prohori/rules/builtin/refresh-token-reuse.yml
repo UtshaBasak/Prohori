@@ -1,0 +1,18 @@
+id: PRH-SESS-001
+title: Refresh-token reuse detected
+status: stable
+severity: high
+description: >-
+  The app saw a refresh token that had already been used. With rotating refresh tokens this
+  usually means a copy of the token was stolen and replayed.
+author: Prohori
+tags: [attack.credential_access, attack.lateral_movement, attack.t1528, attack.t1550.001]
+logsource: {category: session}
+detection:
+  selection:
+    event.action: session.refresh.reuse_detected
+  condition: selection
+falsepositives:
+  - A client that retries a refresh request after a network timeout
+  - Two tabs or app instances refreshing the same session at once
+response: runbooks/refresh-token-reuse.md

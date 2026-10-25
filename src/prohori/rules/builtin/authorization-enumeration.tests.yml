@@ -1,0 +1,59 @@
+rule: PRH-AUTHZ-001
+start: 2026-10-24T13:50:00Z
+defaults:
+  log_source: app-security
+  event.category: authorization
+  event.outcome: failure
+  event.action: authz.denied
+  source.ip: 192.0.2.77
+cases:
+  - name: denials for five distinct paths alert
+    expect: {alerts: 1, entities: [{source.ip: 192.0.2.77}]}
+    events:
+      - {http.path: /api/orders/101}
+      - {http.path: /api/orders/102}
+      - {http.path: /api/orders/103}
+      - {http.path: /api/admin/users}
+      - {http.path: /api/admin/payouts}
+
+  - name: repeated denials for one path do not alert
+    expect: {alerts: 0}
+    events:
+      - {http.path: /api/admin/users, repeat: 20}
+
+  - name: four distinct paths do not alert
+    expect: {alerts: 0}
+    events:
+      - {http.path: /api/orders/101}
+      - {http.path: /api/orders/102}
+      - {http.path: /api/orders/103}
+      - {http.path: /api/admin/users, repeat: 3}
+
+  - name: paths spread over more than ten minutes do not alert
+    expect: {alerts: 0}
+    events:
+      - {http.path: /api/orders/101}
+      - {http.path: /api/orders/102, after: 3m}
+      - {http.path: /api/orders/103, after: 3m}
+      - {http.path: /api/orders/104, after: 3m}
+      - {http.path: /api/orders/105, after: 3m}
+
+  - name: denials from different IPs are counted separately
+    expect: {alerts: 0}
+    events:
+      - {http.path: /api/orders/101}
+      - {http.path: /api/orders/102}
+      - {http.path: /api/orders/103, source.ip: 198.51.100.9}
+      - {http.path: /api/orders/104, source.ip: 198.51.100.9}
+      - {http.path: /api/orders/105, source.ip: 198.51.100.9}
+
+  - name: denials through the app_json parser (http.route becomes http.path)
+    expect: {alerts: 1, entities: [{source.ip: 192.0.2.77}]}
+    log:
+      parser: app_json
+      lines:
+        - '{"time": "2026-10-24T13:56:10Z", "event": {"action": "authz.denied"}, "source": {"ip": "192.0.2.77"}, "http": {"method": "GET", "route": "/api/admin/users"}, "user": {"id": "u-1004"}}'
+        - '{"time": "2026-10-24T13:56:12Z", "event": {"action": "authz.denied"}, "source": {"ip": "192.0.2.77"}, "http": {"method": "GET", "route": "/api/admin/payouts"}, "user": {"id": "u-1004"}}'
+        - '{"time": "2026-10-24T13:56:14Z", "event": {"action": "authz.denied"}, "source": {"ip": "192.0.2.77"}, "http": {"method": "GET", "route": "/api/admin/messages"}, "user": {"id": "u-1004"}}'
+        - '{"time": "2026-10-24T13:56:16Z", "event": {"action": "authz.denied"}, "source": {"ip": "192.0.2.77"}, "http": {"method": "GET", "route": "/api/orders/7781"}, "user": {"id": "u-1004"}}'
+        - '{"time": "2026-10-24T13:56:18Z", "event": {"action": "authz.denied"}, "source": {"ip": "192.0.2.77"}, "http": {"method": "GET", "route": "/api/orders/7782"}, "user": {"id": "u-1004"}}'

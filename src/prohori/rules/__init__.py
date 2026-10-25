@@ -17,6 +17,11 @@ def builtin_rules_dir() -> Path:
     return Path(str(files("prohori.rules") / "builtin"))
 
 
+def builtin_runbook_path(response: str) -> Path:
+    """Return where a built-in rule's ``response`` runbook (``runbooks/<name>.md``) is packaged."""
+    return Path(str(files("prohori"))) / response
+
+
 __all__ = [
     "AggregateSpec",
     "CompileResult",
@@ -32,6 +37,7 @@ __all__ = [
     "SequenceSpec",
     "UnsafeRegexError",
     "builtin_rules_dir",
+    "builtin_runbook_path",
     "check_regex",
     "compile_rule",
     "load_rule",

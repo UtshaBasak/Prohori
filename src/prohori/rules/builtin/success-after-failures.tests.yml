@@ -1,0 +1,60 @@
+rule: PRH-AUTH-003
+start: 2026-10-24T13:50:00Z
+defaults:
+  log_source: app-security
+  event.category: authentication
+  source.ip: 203.0.113.7
+cases:
+  - name: five failures then a success alert
+    expect: {alerts: 1, entities: [{source.ip: 203.0.113.7}]}
+    events:
+      - {event.action: auth.signin.failure, event.outcome: failure, repeat: 5, every: 30s}
+      - {event.action: auth.signin.success, event.outcome: success, after: 1m}
+
+  - name: four failures then a success do not alert
+    expect: {alerts: 0}
+    events:
+      - {event.action: auth.signin.failure, event.outcome: failure, repeat: 4}
+      - {event.action: auth.signin.success, event.outcome: success}
+
+  - name: a success before the failures does not alert
+    expect: {alerts: 0}
+    events:
+      - {event.action: auth.signin.success, event.outcome: success}
+      - {event.action: auth.signin.failure, event.outcome: failure, repeat: 5}
+
+  - name: a success more than fifteen minutes after the failures does not alert
+    expect: {alerts: 0}
+    events:
+      - {event.action: auth.signin.failure, event.outcome: failure, repeat: 5}
+      - {event.action: auth.signin.success, event.outcome: success, after: 16m}
+
+  - name: a success from another IP does not alert
+    expect: {alerts: 0}
+    events:
+      - {event.action: auth.signin.failure, event.outcome: failure, repeat: 5}
+      - {event.action: auth.signin.success, event.outcome: success, source.ip: 198.51.100.9}
+
+  - name: sshd failures then an accepted password through the auth_log parser
+    expect: {alerts: 1, entities: [{source.ip: 192.0.2.50}]}
+    log:
+      parser: auth_log
+      lines:
+        - "Oct 24 13:50:01 web01 sshd[9]: Failed password for deploy from 192.0.2.50 port 40000 ssh2"
+        - "Oct 24 13:50:04 web01 sshd[9]: Failed password for deploy from 192.0.2.50 port 40001 ssh2"
+        - "Oct 24 13:50:07 web01 sshd[9]: Failed password for deploy from 192.0.2.50 port 40002 ssh2"
+        - "Oct 24 13:50:10 web01 sshd[9]: Failed password for deploy from 192.0.2.50 port 40003 ssh2"
+        - "Oct 24 13:50:13 web01 sshd[9]: Failed password for deploy from 192.0.2.50 port 40004 ssh2"
+        - "Oct 24 13:50:16 web01 sshd[9]: Accepted password for deploy from 192.0.2.50 port 40005 ssh2"
+
+  - name: app failures then a success through the app_json parser
+    expect: {alerts: 1, entities: [{source.ip: 203.0.113.7}]}
+    log:
+      parser: app_json
+      lines:
+        - '{"time": "2026-10-24T13:50:01Z", "event": {"action": "auth.signin.failure"}, "source": {"ip": "203.0.113.7"}, "user": {"id": "u-1"}}'
+        - '{"time": "2026-10-24T13:50:02Z", "event": {"action": "auth.signin.failure"}, "source": {"ip": "203.0.113.7"}, "user": {"id": "u-1"}}'
+        - '{"time": "2026-10-24T13:50:03Z", "event": {"action": "auth.signin.failure"}, "source": {"ip": "203.0.113.7"}, "user": {"id": "u-1"}}'
+        - '{"time": "2026-10-24T13:50:04Z", "event": {"action": "auth.signin.failure"}, "source": {"ip": "203.0.113.7"}, "user": {"id": "u-1"}}'
+        - '{"time": "2026-10-24T13:50:05Z", "event": {"action": "auth.signin.failure"}, "source": {"ip": "203.0.113.7"}, "user": {"id": "u-1"}}'
+        - '{"time": "2026-10-24T13:50:09Z", "event": {"action": "auth.signin.success"}, "source": {"ip": "203.0.113.7"}, "user": {"id": "u-1"}}'

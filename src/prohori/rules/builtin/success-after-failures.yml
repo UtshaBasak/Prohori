@@ -1,0 +1,26 @@
+id: PRH-AUTH-003
+title: Successful sign-in after many failures from one IP
+status: stable
+severity: critical
+description: >-
+  At least 5 failed sign-ins followed by a successful one from the same source IP within
+  15 minutes: the attacker probably found a valid password.
+author: Prohori
+tags: [attack.credential_access, attack.initial_access, attack.t1110, attack.t1078]
+logsource: {category: authentication}
+detection:
+  failure:
+    event.action: [auth.signin.failure, ssh.login.failure]
+  success:
+    event.action: [auth.signin.success, ssh.login.success]
+  sequence:
+    by: [source.ip]
+    within: 15m
+    steps:
+      - {selection: failure, count_gte: 5}
+      - {selection: success}
+  condition: sequence
+falsepositives:
+  - A legitimate user who forgot their password and finally entered it correctly
+  - Several users behind one shared NAT, some failing and one succeeding
+response: runbooks/success-after-failures.md
