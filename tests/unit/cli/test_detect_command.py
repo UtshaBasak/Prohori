@@ -30,15 +30,16 @@ def run(*args: str, stdin: bytes | None = None) -> tuple[int, str, str]:
 
 
 @pytest.mark.parametrize(
-    ("sample", "golden"),
+    ("sample", "golden", "extra"),
     [
-        ("auth.log", "auth-log.jsonl"),
-        ("access.log", "access-log.jsonl"),
-        ("app-security.jsonl", "app-security.jsonl"),
+        # auth.log has no year; pin it so the output never depends on the file's modification time
+        ("auth.log", "auth-log.jsonl", ["--year", "2026"]),
+        ("access.log", "access-log.jsonl", []),
+        ("app-security.jsonl", "app-security.jsonl", []),
     ],
 )
-def test_json_output_matches_golden_file(sample: str, golden: str) -> None:
-    code, out, _ = run(str(SAMPLES / sample), "--format", "json")
+def test_json_output_matches_golden_file(sample: str, golden: str, extra: list[str]) -> None:
+    code, out, _ = run(str(SAMPLES / sample), "--format", "json", *extra)
     assert code == ExitCode.ALERTS_FOUND
     path = GOLDEN / golden
     if UPDATE_GOLDEN:
