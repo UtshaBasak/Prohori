@@ -38,9 +38,10 @@ _NOT_PUBLIC_V6 = tuple(
         "::/128",  # unspecified
         "::1/128",  # loopback
         "100::/64",  # discard-only
-        "2001::/32",  # Teredo and other IETF protocol assignments
+        "2001::/23",  # IETF protocol assignments: Teredo, benchmarking, ORCHID, ...
         "2001:db8::/32",  # documentation
         "3fff::/20",  # documentation (RFC 9637)
+        "64:ff9b:1::/48",  # local-use NAT64 (RFC 8215)
         "fc00::/7",  # unique local
         "fe80::/10",  # link-local
         "ff00::/8",  # multicast
@@ -71,6 +72,17 @@ def embedded_ipv4(address: IPv6Address) -> IPv4Address | None:
     if address in _SIX_TO_FOUR:
         return IPv4Address((int(address) >> 80) & 0xFFFFFFFF)
     return None
+
+
+def canonical(address: IPAddress) -> IPAddress:
+    """Return the plain IPv4 form of an IPv4-mapped IPv6 address; other addresses unchanged.
+
+    Providers and the cache only ever see this form, so one address has one cache entry (the
+    text form of mapped addresses differs between Python versions).
+    """
+    if isinstance(address, IPv6Address) and address.ipv4_mapped is not None:
+        return address.ipv4_mapped
+    return address
 
 
 def is_public(address: IPAddress) -> bool:

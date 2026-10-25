@@ -41,10 +41,11 @@ knowing the source:
 ## Privacy: what leaves the machine
 
 - **Private, reserved and documentation addresses are never sent to external services.** The
-  blocked ranges are listed explicitly in `src/prohori/enrich/addresses.py` (RFC 1918, carrier-grade
-  NAT, loopback, link-local, multicast, benchmarking, the RFC 5737 / RFC 3849 / RFC 9637
-  documentation ranges and others), including IPv6 addresses that embed one of them
-  (IPv4-mapped, 6to4, NAT64) and IPv6 addresses with a zone id.
+  blocked ranges are listed explicitly in `src/prohori/enrich/addresses.py` (RFC 1918,
+  carrier-grade NAT, loopback, link-local, multicast, benchmarking, the IETF special-purpose
+  block `2001::/23`, the RFC 5737 / RFC 3849 / RFC 9637 documentation ranges and others),
+  including IPv6 addresses that embed one of them (IPv4-mapped, 6to4, NAT64) and IPv6 addresses
+  with a zone id. IPv4-mapped addresses are looked up and cached in their plain IPv4 form.
 - Local providers (the offline fixture and GeoLite2) answer for any address.
 - Querying an address tells the provider you are interested in it. **VirusTotal adds queried
   indicators to its dataset**, visible to its other users; do not enrich addresses that would

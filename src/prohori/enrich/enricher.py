@@ -16,7 +16,7 @@ from typing import Self
 from pydantic import BaseModel, ConfigDict
 
 from prohori.enrich.abuseipdb import AbuseIPDBProvider
-from prohori.enrich.addresses import IPAddress, is_public, parse_ip
+from prohori.enrich.addresses import IPAddress, canonical, is_public, parse_ip
 from prohori.enrich.cache import Clock, EnrichmentCache, utc_now
 from prohori.enrich.config import EnrichSettings
 from prohori.enrich.geolite import GeoLiteProvider
@@ -90,7 +90,7 @@ class Enricher:
         Raises:
             ValueError: if ``value`` is not a valid IP address.
         """
-        address = parse_ip(value) if isinstance(value, str) else value
+        address = canonical(parse_ip(value) if isinstance(value, str) else value)
         public = is_public(address)
         results: list[EnrichmentResult] = []
         cached: list[str] = []

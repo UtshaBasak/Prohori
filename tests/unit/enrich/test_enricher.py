@@ -132,6 +132,16 @@ def test_cache_expiry_triggers_a_new_lookup(tmp_path: Path) -> None:
     assert provider.calls == ["8.8.8.8", "8.8.8.8"]
 
 
+def test_mapped_addresses_share_the_ipv4_cache_entry(tmp_path: Path) -> None:
+    provider = ScriptedProvider({"a": 1})
+    enricher = Enricher([provider], EnrichmentCache(tmp_path / "c.sqlite3"))
+    assert enricher.enrich_ip("8.8.8.8").indicator.value == "8.8.8.8"
+    mapped = enricher.enrich_ip("::ffff:8.8.8.8")
+    assert mapped.indicator.value == "8.8.8.8"
+    assert mapped.cached == ("scripted",)
+    assert provider.calls == ["8.8.8.8"]
+
+
 def test_no_data_answers_are_cached(tmp_path: Path) -> None:
     provider = ScriptedProvider(None)
     enricher = Enricher([provider], EnrichmentCache(tmp_path / "c.sqlite3"))

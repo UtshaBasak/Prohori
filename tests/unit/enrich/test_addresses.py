@@ -4,7 +4,7 @@ from ipaddress import IPv4Address, IPv6Address, ip_address
 
 import pytest
 
-from prohori.enrich.addresses import embedded_ipv4, is_public, parse_ip
+from prohori.enrich.addresses import canonical, embedded_ipv4, is_public, parse_ip
 
 
 @pytest.mark.parametrize(
@@ -36,6 +36,10 @@ from prohori.enrich.addresses import embedded_ipv4, is_public, parse_ip
         "::1",
         "100::1",
         "2001::1",
+        "2001:2::1",  # benchmarking
+        "2001:20::1",  # ORCHIDv2
+        "2001:1ff:ffff::1",
+        "64:ff9b:1::1",  # local-use NAT64
         "2001:db8::1",
         "2001:db8:abcd::17",
         "3fff::1",
@@ -72,6 +76,7 @@ def test_not_public(address: str) -> None:
         "203.0.114.1",
         "223.255.255.255",
         "2606:4700:4700::1111",
+        "2001:200::1",  # first block after 2001::/23
         "2a00:1450:4001::200e",
         "::ffff:8.8.8.8",
         "64:ff9b::8.8.8.8",
@@ -84,6 +89,12 @@ def test_public(address: str) -> None:
 
 def test_scoped_ipv6_is_never_public() -> None:
     assert not is_public(IPv6Address("2606:4700::1%eth0"))
+
+
+def test_canonical_form() -> None:
+    assert canonical(IPv6Address("::ffff:8.8.8.8")) == IPv4Address("8.8.8.8")
+    assert canonical(IPv6Address("2606:4700::1")) == IPv6Address("2606:4700::1")
+    assert canonical(IPv4Address("8.8.8.8")) == IPv4Address("8.8.8.8")
 
 
 def test_embedded_ipv4() -> None:
