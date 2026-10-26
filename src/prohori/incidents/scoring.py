@@ -6,6 +6,7 @@ the score and a report can explain it line by line. ``docs/INCIDENTS.md`` has th
 
 from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
+from datetime import datetime
 
 from prohori.incidents.events import USER_FIELDS, EventSummary
 from prohori.incidents.novelty import (
@@ -118,14 +119,17 @@ def success_after_failure(rule_ids: Iterable[str], events: Sequence[EventSummary
     """Whether a sign-in succeeded after a failure from the same IP or for the same account."""
     if set(rule_ids) & SUCCESS_AFTER_FAILURE_RULES:
         return True
-    failures = [e for e in events if e.action in SIGNIN_FAILURE_ACTIONS]
+    # One pass for the earliest failure per IP and per account, then one per success: linear in
+    # the number of events, which come from untrusted logs.
+    first_by_ip: dict[str, datetime] = {}
+    first_by_account: dict[str, datetime] = {}
+    for failure in (e for e in events if e.action in SIGNIN_FAILURE_ACTIONS):
+        for key, table in ((failure.source_ip, first_by_ip), (failure.account, first_by_account)):
+            if key is not None and (key not in table or failure.timestamp < table[key]):
+                table[key] = failure.timestamp
     for success in (e for e in events if e.action in SIGNIN_SUCCESS_ACTIONS):
-        for failure in failures:
-            if failure.timestamp >= success.timestamp:
-                continue
-            same_ip = success.source_ip is not None and failure.source_ip == success.source_ip
-            same_account = success.account is not None and failure.account == success.account
-            if same_ip or same_account:
+        for key, table in ((success.source_ip, first_by_ip), (success.account, first_by_account)):
+            if key is not None and key in table and table[key] < success.timestamp:
                 return True
     return False
 

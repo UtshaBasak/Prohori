@@ -51,6 +51,11 @@ def test_success_after_failure_from_events() -> None:
     early_success = _summary(at(-1), "auth.signin.success", user_id="u-2", ip="192.0.2.1")
     assert not success_after_failure([], [early_success, failure])
     assert success_after_failure(["PRH-AUTH-003"], [])
+    same_ip = _summary(at(2), "ssh.login.success", user_name="root")
+    ssh_failure = _summary(at(0), "ssh.login.failure", user_name="admin")
+    assert success_after_failure([], [same_ip, ssh_failure])  # same IP, other account
+    simultaneous = _summary(at(0), "auth.signin.success", user_id="u-1")
+    assert not success_after_failure([], [failure, simultaneous])  # not strictly after
 
 
 def test_sensitive_actions_from_events_or_rules() -> None:

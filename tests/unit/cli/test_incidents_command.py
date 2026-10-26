@@ -2,6 +2,7 @@
 
 import json
 import os
+import socket
 from pathlib import Path
 
 import pytest
@@ -10,7 +11,7 @@ from typer.testing import CliRunner
 from prohori.cli import app
 from prohori.cli.exit_codes import ExitCode
 from prohori.schema import Incident
-from tests.unit.enrich.conftest import isolated_settings, no_network
+from tests.unit.enrich.conftest import NetworkAccessError, isolated_settings, no_network
 
 __all__ = ["isolated_settings", "no_network"]  # autouse: no network, no real cache or keys
 
@@ -141,3 +142,9 @@ def test_log_text_is_not_rendered_as_markup(tmp_path: Path) -> None:
     result = runner.invoke(app, ["incidents", str(path)])
     assert result.exit_code == ExitCode.ALERTS_FOUND
     assert "[red]evil[/red]" in result.stdout
+
+
+def test_suite_is_isolated_from_the_network_and_the_real_cache(tmp_path: Path) -> None:
+    assert Path(os.environ["PROHORI_CACHE_PATH"]).is_relative_to(tmp_path)
+    with pytest.raises(NetworkAccessError):
+        socket.create_connection(("example.com", 443))
