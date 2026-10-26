@@ -7,6 +7,7 @@ the files after an intended change.
 
 import os
 import re
+import sys
 from pathlib import Path
 
 import pytest
@@ -21,7 +22,10 @@ ROOT = Path(__file__).resolve().parents[3]
 SAMPLES = ROOT / "samples" / "logs"
 GOLDEN = ROOT / "tests" / "golden" / "cli"
 UPDATE_GOLDEN = os.environ.get("PROHORI_UPDATE_GOLDEN") == "1"
-runner = CliRunner(env={"COLUMNS": "100", "NO_COLOR": "1", "TERM": "dumb"})
+#: Rich subtracts one column on Windows consoles without VT support (as under the test runner),
+#: so ask for one more there: the output is 99 columns wide everywhere.
+COLUMNS = "100" if sys.platform == "win32" else "99"
+runner = CliRunner(env={"COLUMNS": COLUMNS, "NO_COLOR": "1", "TERM": "dumb"})
 
 _HORIZONTAL = re.compile(r"[─━┄┅┈┉╌╍═]")
 _VERTICAL = re.compile(r"[│┃┆┇┊┋╎╏║]")
