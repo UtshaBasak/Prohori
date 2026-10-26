@@ -8,7 +8,7 @@ from tests.unit.incidents.factories import alert, at, event
 
 from prohori.enrich import Enricher, EnrichSettings, build_enricher
 from prohori.incidents import EventContext, IncidentBuilder, IncidentSettings, build_incidents
-from prohori.parsers import AppJsonParser, iter_text_lines
+from prohori.parsers import AppJsonParser, AuthLogParser, iter_text_lines
 from prohori.rules import CompiledRule, RuleEngine, builtin_rules_dir, load_rules
 from prohori.rules.attack import ATTACK_VERSION
 from prohori.schema import Alert, Confidence, Incident, IndicatorType, Severity, incident_id
@@ -66,7 +66,14 @@ def test_account_takeover_becomes_one_critical_incident(rules: list[CompiledRule
     )  # from the most severe rule (PRH-AUTH-003) first
     assert len(set(incident.recommended_actions)) == len(incident.recommended_actions)
     assert incident.id == incident_id(a.id for a in incident.alerts)
-    assert incident.title.endswith("and 2 related alerts")
+    assert incident.title.endswith("and 3 related alerts")
+    # The payout change after the 2FA change raises its own PRH-ACCT-001 alert (step 11 fix).
+    assert [a.detector_id for a in incident.alerts].count("PRH-ACCT-001") == 2
+    assert incident.last_seen.isoformat() == "2026-10-24T21:13:10+00:00"
+    assert any("account.bkash.changed" in e.description for e in incident.timeline)
+    # A web-only incident gets no SSH-only actions, but keeps web-only ones.
+    assert not any(a.startswith("For SSH,") for a in incident.recommended_actions)
+    assert any(a.startswith("For the web app,") for a in incident.recommended_actions)
 
 
 def test_takeover_timeline_and_indicators(rules: list[CompiledRule]) -> None:
@@ -74,7 +81,7 @@ def test_takeover_timeline_and_indicators(rules: list[CompiledRule]) -> None:
     times = [e.timestamp for e in incident.timeline]
     assert times == sorted(times)
     alert_entries = [e for e in incident.timeline if e.alert_id]
-    assert len(alert_entries) == 3
+    assert len(alert_entries) == 4
     assert any("account.2fa.disabled (success)" in e.description for e in incident.timeline)
     ip = incident.indicators[0]
     assert (ip.type, ip.value) == (IndicatorType.IP, "203.0.113.7")
@@ -234,3 +241,23 @@ def test_incidents_are_sorted_by_time() -> None:
     late = alert("R-A", start=at(100), entities={"source.ip": "192.0.2.1"})
     early = alert("R-B", start=at(0), entities={"source.ip": "192.0.2.2"})
     assert [i.alerts[0].detector_id for i in build_incidents([late, early])] == ["R-B", "R-A"]
+
+
+def test_ssh_incidents_keep_ssh_actions_and_drop_web_ones(rules: list[CompiledRule]) -> None:
+    lines = (ROOT / "samples" / "logs" / "auth.log").read_text(encoding="utf-8").splitlines()
+    context = EventContext()
+    events = AuthLogParser(year=2026).parse(iter_text_lines(lines), source="auth.log")
+    engine = RuleEngine(rules, reference_time=datetime(2026, 10, 27, tzinfo=UTC))
+    alerts = list(engine.run(context.observe(events)))
+    (incident,) = build_incidents(alerts, rules, context=context)
+    assert any(a.startswith("For SSH,") for a in incident.recommended_actions)
+    assert not any(a.startswith("For the web app,") for a in incident.recommended_actions)
+
+
+def test_without_events_every_action_is_kept(rules: list[CompiledRule]) -> None:
+    (incident,) = build_incidents(
+        [alert("PRH-AUTH-001", entities={"source.ip": "192.0.2.1"})], rules
+    )
+    actions = incident.recommended_actions
+    assert any(a.startswith("For SSH,") for a in actions)
+    assert any(a.startswith("For the web app,") for a in actions)

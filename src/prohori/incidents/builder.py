@@ -149,7 +149,7 @@ class IncidentBuilder:
             indicators=self._indicators(ips, reports, events),
             attack=mapping.tags,
             attack_version=mapping.version if mapping.tags else None,
-            recommended_actions=self._actions(alerts),
+            recommended_actions=self._actions(alerts, events),
             confidence=_confidence(alerts, events, score),
             limitations=_unique(limitations)[: self.settings.max_limitations],
         )
@@ -258,12 +258,13 @@ class IncidentBuilder:
         )
         return tuple(indicators)
 
-    def _actions(self, alerts: Sequence[Alert]) -> tuple[str, ...]:
+    def _actions(self, alerts: Sequence[Alert], events: Sequence[EventSummary]) -> tuple[str, ...]:
         ordered = sorted(alerts, key=lambda a: (-a.severity.rank, a.first_seen, a.id))
         actions = (
             action
             for rule_id in _unique(a.detector_id for a in ordered)
             for action in self.guidance.get(rule_id, RuleGuidance(rule_id)).actions
+            if _applies(action, events)
         )
         return tuple(_unique(actions)[: self.settings.max_actions])
 
@@ -342,6 +343,26 @@ def build_incidents(
 
 def _unique(items: Iterable[T]) -> list[T]:
     return list(dict.fromkeys(items))
+
+
+#: Runbook bullets that start with these prefixes apply only to SSH or only to the web app.
+SSH_ONLY_PREFIX = "For SSH,"
+APP_ONLY_PREFIX = "For the web app,"
+
+
+def _is_ssh(event: EventSummary) -> bool:
+    return event.action.startswith("ssh.") or event.log_source == "sshd"
+
+
+def _applies(action: str, events: Sequence[EventSummary]) -> bool:
+    """Drop SSH-only actions from web incidents and web-only ones from SSH incidents."""
+    if not events:  # without the events, keep everything
+        return True
+    if action.startswith(SSH_ONLY_PREFIX):
+        return any(_is_ssh(e) for e in events)
+    if action.startswith(APP_ONLY_PREFIX):
+        return any(not _is_ssh(e) for e in events)
+    return True
 
 
 def _has_provider(report: EnrichmentReport, provider: str) -> bool:
