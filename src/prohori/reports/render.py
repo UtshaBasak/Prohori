@@ -23,7 +23,7 @@ from datetime import datetime
 from enum import StrEnum
 from typing import Any
 
-from jinja2 import Environment, PackageLoader, StrictUndefined
+from jinja2 import Environment, PackageLoader, StrictUndefined, select_autoescape
 
 from prohori.incidents.attack import map_attack
 from prohori.parsers import sanitize
@@ -261,7 +261,8 @@ def _md_finalize(value: object) -> str:
 def _environment(*, html: bool) -> Environment:
     env = Environment(
         loader=PackageLoader("prohori.reports", "templates"),
-        autoescape=html,  # noqa: S701 - Markdown is escaped by finalize instead
+        # HTML templates are autoescaped; Markdown is escaped by ``finalize`` instead.
+        autoescape=select_autoescape(enabled_extensions=("html.j2",), default=False),
         undefined=StrictUndefined,
         trim_blocks=True,
         lstrip_blocks=True,

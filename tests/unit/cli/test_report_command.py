@@ -2,6 +2,7 @@
 
 import hashlib
 import json
+import re
 from pathlib import Path
 
 import pytest
@@ -15,6 +16,14 @@ ROOT = Path(__file__).resolve().parents[3]
 (SAMPLE,) = (ROOT / "samples" / "incidents").glob("INC-*.json")
 GOLDEN_JSONL = ROOT / "tests" / "golden" / "incidents" / "app-security.jsonl"
 runner = CliRunner(env={"COLUMNS": "200", "NO_COLOR": "1"})
+_ANSI = re.compile(r"\x1b\[[0-9;]*m")
+
+
+def _plain(output: str) -> str:
+    """Usage errors are drawn in a box that may wrap and colour the text; compare words only."""
+    text = _ANSI.sub("", output)
+    text = re.sub(r"[\u2500-\u257f|+]", " ", text)  # box-drawing characters and ASCII borders
+    return " ".join(text.split())
 
 
 @pytest.mark.parametrize(
@@ -51,14 +60,14 @@ def test_output_file_is_utf8(tmp_path: Path) -> None:
 def test_json_lines_need_an_incident_choice() -> None:
     result = runner.invoke(app, ["report", str(GOLDEN_JSONL)])
     assert result.exit_code == ExitCode.USAGE
-    assert "has 3 incidents; choose one with --incident" in result.output
+    assert "has 3 incidents; choose one with --incident" in _plain(result.output)
     first = json.loads(GOLDEN_JSONL.read_text(encoding="utf-8").splitlines()[1])["id"]
     chosen = runner.invoke(app, ["report", str(GOLDEN_JSONL), "--incident", first, "-f", "json"])
     assert chosen.exit_code == 0, chosen.output
     assert json.loads(chosen.stdout)["incident"]["id"] == first
     missing = runner.invoke(app, ["report", str(GOLDEN_JSONL), "--incident", "INC-nope"])
     assert missing.exit_code == ExitCode.USAGE
-    assert "no incident 'INC-nope'" in missing.output
+    assert "no incident 'INC-nope'" in _plain(missing.output)
 
 
 def test_single_line_and_array_and_stdin(tmp_path: Path) -> None:
@@ -89,17 +98,17 @@ def test_invalid_input(tmp_path: Path, content: str, message: str) -> None:
     path.write_text(content, encoding="utf-8")
     result = runner.invoke(app, ["report", str(path)])
     assert result.exit_code == ExitCode.USAGE
-    assert message in result.output
+    assert message in _plain(result.output)
 
 
 def test_missing_and_oversized_files(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     missing = runner.invoke(app, ["report", str(tmp_path / "none.json")])
     assert missing.exit_code == ExitCode.USAGE
-    assert "file not found" in missing.output
+    assert "file not found" in _plain(missing.output)
     monkeypatch.setattr(report_module, "MAX_INPUT_BYTES", 100)
     big = runner.invoke(app, ["report", str(SAMPLE)])
     assert big.exit_code == ExitCode.USAGE
-    assert "larger than" in big.output
+    assert "larger than" in _plain(big.output)
 
 
 def test_redact_and_redact_ips() -> None:

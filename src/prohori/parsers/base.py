@@ -100,7 +100,8 @@ def sanitize(text: str) -> str:
 class LineSource(Protocol):
     """Anything with a binary ``readline``, such as an open file or ``sys.stdin.buffer``."""
 
-    def readline(self, size: int = -1, /) -> bytes: ...
+    def readline(self, size: int = -1, /) -> bytes:
+        """Read one line of at most ``size`` bytes (all of it when negative)."""
 
 
 def read_lines(stream: LineSource, max_length: int = MAX_LINE_LENGTH) -> Iterator[RawLine]:
