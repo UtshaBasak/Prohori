@@ -94,7 +94,8 @@ def main(argv: list[str] | None = None) -> int:
     for path, text in expected.items():
         path.write_text(text, encoding="utf-8", newline="\n")
     IMAGE.parent.mkdir(parents=True, exist_ok=True)
-    IMAGE.write_text(demo_image(), encoding="utf-8", newline="\n")
+    svg = "\n".join(line.rstrip() for line in demo_image().splitlines()) + "\n"
+    IMAGE.write_text(svg, encoding="utf-8", newline="\n")
     print(f"updated {EXAMPLES} and {IMAGE}")
     return 0
 
