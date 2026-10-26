@@ -17,8 +17,8 @@ from prohori.reports import (
     Redactor,
     ReportFormat,
     ReportSource,
-    build_view,
     find_leaks,
+    incident_strings,
     render,
 )
 from prohori.schema import Incident
@@ -73,12 +73,10 @@ def report_command(
         redacted = redactor.redact(incident)
         note = RedactionNote(users=True, ips=redact_ips, replaced=len(redactor.replaced))
         text = render(redacted, output_format, source=source, redaction=note)
-        # Check everything the report shows from the data (not the template's own words, such
-        # as the CSS ":root" that would match an account named "root").
-        shown = json.dumps(
-            build_view(redacted, source=source, redaction=note), default=str, ensure_ascii=False
-        )
-        leaks = find_leaks(redacted.model_dump_json() + "\n" + shown, redactor.replaced)
+        # Every value a report shows comes from these strings. Checking them, rather than the
+        # rendered output, avoids matching Prohori's own words (JSON keys, the CSS ":root",
+        # "from" in the summary) against an attacker-chosen account name such as "root".
+        leaks = find_leaks("\n".join(incident_strings(redacted)), redactor.replaced)
         if leaks:
             typer.echo(
                 f"error: {len(leaks)} value(s) could not be redacted; no report was written",

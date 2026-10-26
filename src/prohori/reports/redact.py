@@ -170,6 +170,11 @@ def _strings(value: Json, key: str | None = None) -> Iterator[str]:
             yield from _strings(v, k)
 
 
+def incident_strings(incident: Incident) -> list[str]:
+    """Every data string that redaction rewrites: values only, no keys, ids or enum values."""
+    return list(_strings(incident.model_dump(mode="json")))
+
+
 def find_leaks(text: str, originals: Iterable[str]) -> list[str]:
     """Return the original values that still occur in ``text`` as whole tokens.
 

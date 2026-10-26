@@ -8,7 +8,7 @@ from pathlib import Path
 import pytest
 
 from prohori.enrich import EnrichSettings, build_enricher
-from prohori.incidents import EventContext, build_incidents
+from prohori.incidents import EventContext, IncidentSettings, build_incidents
 from prohori.parsers import detect_format, get_parser, iter_text_lines
 from prohori.reports import Redactor, ReportFormat, find_leaks, render
 from prohori.reports.redact import is_pseudonym
@@ -160,3 +160,20 @@ def test_find_leaks() -> None:
 
 def test_sample_directory_has_one_incident() -> None:
     assert len(list(Path(ROOT / "samples" / "incidents").glob("INC-*.json"))) == 1
+
+
+def test_account_named_only_in_novelty_text_is_redacted() -> None:
+    """A success cut from a long timeline is still named in limitations; it must be redacted."""
+    before = [event(at(0, seconds=n), "ssh.login.failure", user_name=f"guess{n}") for n in range(6)]
+    success = event(at(1), "ssh.login.success", user_name="deploy")
+    after = [event(at(2, seconds=n), "ssh.login.failure", user_name=f"late{n}") for n in range(6)]
+    events = [*before, success, *after]
+    incident = build_incidents(
+        [alert("PRH-AUTH-003", events, entities={"source.ip": "203.0.113.7"})],
+        context=_context(*events),
+        settings=IncidentSettings(max_timeline_events=2),
+    )[0]
+    assert "deploy" not in {t.account for t in incident.timeline}
+    assert any("deploy" in x for x in incident.limitations)  # named by the novelty check
+    redacted = Redactor(KEY).redact(incident)
+    assert "deploy" not in redacted.model_dump_json()

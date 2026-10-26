@@ -143,7 +143,7 @@ class IncidentBuilder:
             score_breakdown=score.components,
             first_seen=min(a.first_seen for a in alerts),
             last_seen=max(a.last_seen for a in alerts),
-            entities=self._entities(group),
+            entities=self._entities(group, events),
             alerts=alerts,
             timeline=self._timeline(alerts, events),
             indicators=self._indicators(ips, reports, events),
@@ -179,7 +179,9 @@ class IncidentBuilder:
                 results.setdefault((result.account, result.ip, result.client), result)
         return list(results.values())
 
-    def _entities(self, group: AlertGroup) -> dict[str, tuple[str, ...]]:
+    def _entities(
+        self, group: AlertGroup, events: Sequence[EventSummary]
+    ) -> dict[str, tuple[str, ...]]:
         values: dict[str, set[str]] = {}
         for alert in group.alerts:
             for field, value in alert.entities.items():
@@ -187,7 +189,20 @@ class IncidentBuilder:
         for field, value in group.keys:
             values.setdefault(field, set()).add(value)
         limit = self.settings.max_entity_values
-        return {f: tuple(sorted(v))[:limit] for f, v in sorted(values.items())}
+        capped = {f: set(sorted(v)[:limit]) for f, v in values.items()}
+        # Accounts and addresses of successful sign-ins are named in score reasons and
+        # limitations (novelty), so they are always listed: redaction collects values from here.
+        for event in events:
+            if event.action in SIGNIN_SUCCESS_ACTIONS:
+                pairs: tuple[tuple[str, str | None], ...] = (
+                    ("user.id", event.user_id),
+                    ("user.name", event.user_name),
+                    ("source.ip", event.source_ip),
+                )
+                for field, found in pairs:
+                    if found is not None:
+                        capped.setdefault(field, set()).add(found)
+        return {f: tuple(sorted(v)) for f, v in sorted(capped.items())}
 
     def _timeline(
         self, alerts: Sequence[Alert], events: Sequence[EventSummary]

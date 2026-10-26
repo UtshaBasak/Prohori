@@ -126,3 +126,14 @@ def test_a_leaking_redaction_writes_nothing(
     assert result.exit_code == ExitCode.REDACTION_FAILED
     assert "could not be redacted; no report was written" in result.stderr
     assert not out.exists()
+
+
+@pytest.mark.parametrize("name", ["from", "a", "open", "name", "data", "root", "offline"])
+def test_redaction_works_for_account_names_that_are_common_words(tmp_path: Path, name: str) -> None:
+    incident = json.loads(SAMPLE.read_text(encoding="utf-8"))
+    incident["entities"]["user.name"] = [name]
+    path = tmp_path / "words.json"
+    path.write_text(json.dumps(incident), encoding="utf-8")
+    for fmt in ("md", "html", "json", "csv"):
+        result = runner.invoke(app, ["report", str(path), "--redact", "-f", fmt])
+        assert result.exit_code == 0, (name, fmt, result.output)
