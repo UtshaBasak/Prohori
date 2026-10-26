@@ -1,6 +1,7 @@
 """``prohori parse``: parse and normalise a log file, print events and a parse summary."""
 
 import contextlib
+import hashlib
 import json
 import sys
 from collections.abc import Iterator
@@ -81,6 +82,25 @@ def build_parser(
         raise typer.BadParameter(str(exc)) from exc
 
 
+class HashingReader:
+    """A binary stream wrapper that hashes every byte read through ``readline``."""
+
+    def __init__(self, stream: IO[bytes]) -> None:
+        self._stream = stream
+        self._hash = hashlib.sha256()
+        self.bytes = 0
+
+    def readline(self, size: int = -1) -> bytes:
+        chunk = self._stream.readline(size)
+        self._hash.update(chunk)
+        self.bytes += len(chunk)
+        return chunk
+
+    def hexdigest(self) -> str:
+        """SHA-256 of what has been read so far (the whole input once parsing has finished)."""
+        return self._hash.hexdigest()
+
+
 @dataclass
 class ParsedInput:
     """Events being parsed from one input, with the parser chosen and running counts."""
@@ -89,6 +109,7 @@ class ParsedInput:
     parser: str
     name: str
     stats: ParseStats
+    reader: HashingReader | None = None
 
 
 ParserOption = Annotated[
@@ -135,7 +156,8 @@ def parsed_events(
     if year is not None and parser_name not in {"auth_log", "auto"}:
         raise typer.BadParameter("--year applies to the auth_log parser only")
     with open_input(file) as (stream, name, mtime):
-        lines: Iterator[RawLine] = read_lines(stream)
+        reader = HashingReader(stream)
+        lines: Iterator[RawLine] = read_lines(reader)
         if parser_name == "auto":
             head = list(islice(lines, _DETECT_BUFFER))
             detected = detect_format(head)
@@ -166,7 +188,8 @@ def parsed_events(
             keep_query=keep_query,
         )
         stats = ParseStats()
-        yield ParsedInput(parser.parse(lines, source=name, stats=stats), parser_name, name, stats)
+        events = parser.parse(lines, source=name, stats=stats)
+        yield ParsedInput(events, parser_name, name, stats, reader)
 
 
 def parse_command(

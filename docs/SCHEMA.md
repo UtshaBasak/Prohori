@@ -113,16 +113,22 @@ must keep such lines apart (for example two identical failures within one second
 | `first_seen`, `last_seen` | datetime (UTC) | `last_seen` must not precede `first_seen` |
 | `entities` | map of str to list of str | For example `{"source.ip": ["203.0.113.7"], "user.name": ["alice"]}` |
 | `alerts` | list of `Alert` | At least one |
-| `timeline` | list of `{timestamp, description, event_id?, alert_id?}` | |
+| `timeline` | list of `{timestamp, description, event_id?, alert_id?, account?, source_ip?}` | `account` and `source_ip` are structured copies of what the description mentions, so reports can redact them |
 | `indicators` | list of `{type, value, enrichment[]}` | `type`: `ip`, `domain`, `url`, `hash`, `user`, `user_agent` |
 | `attack` | list of str | ATT&CK tags as for alerts |
 | `attack_version` | str, optional | ATT&CK release the tags were checked against, such as `20.0` |
 | `recommended_actions` | list of str | From runbooks |
 | `confidence` | enum | `low`, `medium` (default), `high` |
 | `limitations` | list of str | For example `single log source`, `enrichment offline` |
+| `provenance` | `Provenance`, optional | How the incident was produced (below) |
 
 Each enrichment entry is `{provider, retrieved_at, data, note?}`, where `data` maps strings to
 scalars.
+
+`Provenance` is `{tool, tool_version, inputs[], rules[], enrichment}`: each input is
+`{name, sha256, bytes, events, parser}`, each rule that fired is `{id, title, sha256?}` (the hash
+of the rule file), and `enrichment` is `none`, `offline` or `online`. `prohori incidents` fills it
+in; reports show it in their appendix.
 
 ## Severity
 

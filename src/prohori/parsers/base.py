@@ -9,7 +9,7 @@ from abc import ABC, abstractmethod
 from collections.abc import Iterable, Iterator
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import IO, Any
+from typing import Any, Protocol
 
 from pydantic import ValidationError
 
@@ -97,7 +97,14 @@ def sanitize(text: str) -> str:
     return text.replace("\t", " ")
 
 
-def read_lines(stream: IO[bytes], max_length: int = MAX_LINE_LENGTH) -> Iterator[RawLine]:
+class LineSource(Protocol):
+    """Anything with a binary ``readline``, such as an open file or ``sys.stdin.buffer``."""
+
+    def readline(self, size: int = -1, /) -> bytes:
+        """Read one line of at most ``size`` bytes (all of it when negative)."""
+
+
+def read_lines(stream: LineSource, max_length: int = MAX_LINE_LENGTH) -> Iterator[RawLine]:
     """Yield decoded lines from a binary stream with bounded memory.
 
     Lines are split on ``\\n`` (so ``\\r\\n`` files work), decoded as UTF-8 with invalid bytes

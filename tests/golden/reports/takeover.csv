@@ -1,0 +1,16 @@
+timestamp,kind,description,event_id,alert_id,account,source_ip
+2026-10-24T21:10:00Z,event,"[app-security] auth.signin.failure (failure), account u-2001, from 203.0.113.7, POST /api/auth/signin, client web",evt-98e13f6d307f2e3be16558ed,,u-2001,203.0.113.7
+2026-10-24T21:10:03Z,event,"[app-security] auth.signin.failure (failure), account u-2001, from 203.0.113.7, POST /api/auth/signin, client web",evt-ef2ea440d254bf4a8d4680f6,,u-2001,203.0.113.7
+2026-10-24T21:10:06Z,event,"[app-security] auth.signin.failure (failure), account u-2001, from 203.0.113.7, POST /api/auth/signin, client web",evt-1ee56267cc7a1b10b9494687,,u-2001,203.0.113.7
+2026-10-24T21:10:09Z,event,"[app-security] auth.signin.failure (failure), account u-2001, from 203.0.113.7, POST /api/auth/signin, client web",evt-bbc30d1e50633effa8d81596,,u-2001,203.0.113.7
+2026-10-24T21:10:12Z,event,"[app-security] auth.signin.failure (failure), account u-2001, from 203.0.113.7, POST /api/auth/signin, client web",evt-c17a57243deeaf70a93c331e,,u-2001,203.0.113.7
+2026-10-24T21:10:15Z,event,"[app-security] auth.signin.failure (failure), account u-2001, from 203.0.113.7, POST /api/auth/signin, client web",evt-e324aaa8ec2561e6cd038ca7,,u-2001,203.0.113.7
+2026-10-24T21:10:18Z,event,"[app-security] auth.signin.failure (failure), account u-2001, from 203.0.113.7, POST /api/auth/signin, client web",evt-ada9bb363aaf4af58d44c821,,u-2001,203.0.113.7
+2026-10-24T21:10:21Z,event,"[app-security] auth.signin.failure (failure), account u-2001, from 203.0.113.7, POST /api/auth/signin, client web",evt-c480d3039cfb186a6c233449,,u-2001,203.0.113.7
+2026-10-24T21:10:24Z,event,"[app-security] auth.signin.failure (failure), account u-2001, from 203.0.113.7, POST /api/auth/signin, client web",evt-3b80f435be26e14e36c3ac89,,u-2001,203.0.113.7
+2026-10-24T21:10:27Z,event,"[app-security] auth.signin.failure (failure), account u-2001, from 203.0.113.7, POST /api/auth/signin, client web",evt-b1604296ea5f5716a233d047,,u-2001,203.0.113.7
+2026-10-24T21:10:27Z,alert,Alert PRH-AUTH-001 (high): Brute-force sign-in attempts from one IP,,alr-c0790ef87d77eb35d5aec68e,,
+2026-10-24T21:11:05Z,event,"[app-security] auth.signin.success (success), account u-2001, from 203.0.113.7, POST /api/auth/signin, client web",evt-d921c9a6c26404450a3b9d46,,u-2001,203.0.113.7
+2026-10-24T21:11:05Z,alert,Alert PRH-AUTH-003 (critical): Successful sign-in after many failures from one IP,,alr-2700f3f4c20ba179ef87851e,,
+2026-10-24T21:12:30Z,event,"[app-security] account.2fa.disabled (success), account u-2001, from 203.0.113.7, DELETE /api/account/2fa, client web",evt-b4a805719a3e5812131f275e,,u-2001,203.0.113.7
+2026-10-24T21:12:30Z,alert,Alert PRH-ACCT-001 (high): Sensitive account change shortly after sign-in,,alr-ff99ad16d4da5391307b168d,,

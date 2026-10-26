@@ -1,0 +1,364 @@
+{
+  "id": "INC-f124f17a36e60980",
+  "title": "Successful sign-in after many failures from one IP and 2 related alerts",
+  "status": "open",
+  "severity": "critical",
+  "score": 100.0,
+  "score_breakdown": [
+    {
+      "reason": "Most severe alert: PRH-AUTH-003 (critical)",
+      "points": 50.0
+    },
+    {
+      "reason": "2 more rules fired: PRH-ACCT-001, PRH-AUTH-001",
+      "points": 20.0
+    },
+    {
+      "reason": "A sign-in succeeded after failed attempts",
+      "points": 20.0
+    },
+    {
+      "reason": "Sensitive account or admin change: account.2fa.disabled",
+      "points": 15.0
+    },
+    {
+      "reason": "Reputation of 203.0.113.7: abuse confidence 97; 9 vendors flag it as malicious (from bundled demo data)",
+      "points": 20.0
+    },
+    {
+      "reason": "Sign-in to u-2001 from 203.0.113.7, an IP not seen for this account before (1 earlier IP)",
+      "points": 10.0
+    },
+    {
+      "reason": "Sign-in to u-2001 with client web, not seen for this account before",
+      "points": 5.0
+    },
+    {
+      "reason": "Capped at 100",
+      "points": -40.0
+    }
+  ],
+  "first_seen": "2026-10-24T21:10:00Z",
+  "last_seen": "2026-10-24T21:12:30Z",
+  "entities": {
+    "source.ip": [
+      "203.0.113.7"
+    ],
+    "user.email_hash": [
+      "0cc175b9c0f1b6a831c399e269772661"
+    ],
+    "user.id": [
+      "u-2001"
+    ]
+  },
+  "alerts": [
+    {
+      "id": "alr-2700f3f4c20ba179ef87851e",
+      "detector_id": "PRH-AUTH-003",
+      "detector_kind": "rule",
+      "title": "Successful sign-in after many failures from one IP",
+      "severity": "critical",
+      "score": 100.0,
+      "event_ids": [
+        "evt-98e13f6d307f2e3be16558ed",
+        "evt-ef2ea440d254bf4a8d4680f6",
+        "evt-1ee56267cc7a1b10b9494687",
+        "evt-bbc30d1e50633effa8d81596",
+        "evt-c17a57243deeaf70a93c331e",
+        "evt-d921c9a6c26404450a3b9d46"
+      ],
+      "entities": {
+        "source.ip": "203.0.113.7"
+      },
+      "first_seen": "2026-10-24T21:10:00Z",
+      "last_seen": "2026-10-24T21:11:05Z",
+      "attack": [
+        "attack.credential_access",
+        "attack.initial_access",
+        "attack.t1110",
+        "attack.t1078"
+      ],
+      "explanation": "5 x failure then 1 x success for source.ip=203.0.113.7 within 15m"
+    },
+    {
+      "id": "alr-c0790ef87d77eb35d5aec68e",
+      "detector_id": "PRH-AUTH-001",
+      "detector_kind": "rule",
+      "title": "Brute-force sign-in attempts from one IP",
+      "severity": "high",
+      "score": 75.0,
+      "event_ids": [
+        "evt-98e13f6d307f2e3be16558ed",
+        "evt-ef2ea440d254bf4a8d4680f6",
+        "evt-1ee56267cc7a1b10b9494687",
+        "evt-bbc30d1e50633effa8d81596",
+        "evt-c17a57243deeaf70a93c331e",
+        "evt-e324aaa8ec2561e6cd038ca7",
+        "evt-ada9bb363aaf4af58d44c821",
+        "evt-c480d3039cfb186a6c233449",
+        "evt-3b80f435be26e14e36c3ac89",
+        "evt-b1604296ea5f5716a233d047"
+      ],
+      "entities": {
+        "source.ip": "203.0.113.7"
+      },
+      "first_seen": "2026-10-24T21:10:00Z",
+      "last_seen": "2026-10-24T21:10:27Z",
+      "attack": [
+        "attack.credential_access",
+        "attack.t1110",
+        "attack.t1110.001"
+      ],
+      "explanation": "10 matching events (threshold 10) for source.ip=203.0.113.7 within a 5m window"
+    },
+    {
+      "id": "alr-ff99ad16d4da5391307b168d",
+      "detector_id": "PRH-ACCT-001",
+      "detector_kind": "rule",
+      "title": "Sensitive account change shortly after sign-in",
+      "severity": "high",
+      "score": 75.0,
+      "event_ids": [
+        "evt-d921c9a6c26404450a3b9d46",
+        "evt-b4a805719a3e5812131f275e"
+      ],
+      "entities": {
+        "user.id": "u-2001"
+      },
+      "first_seen": "2026-10-24T21:11:05Z",
+      "last_seen": "2026-10-24T21:12:30Z",
+      "attack": [
+        "attack.persistence",
+        "attack.privilege_escalation",
+        "attack.defense_impairment",
+        "attack.credential_access",
+        "attack.t1098",
+        "attack.t1556.006"
+      ],
+      "explanation": "1 x signin then 1 x change for user.id=u-2001 within 30m"
+    }
+  ],
+  "timeline": [
+    {
+      "timestamp": "2026-10-24T21:10:00Z",
+      "description": "[app-security] auth.signin.failure (failure), account u-2001, from 203.0.113.7, POST /api/auth/signin, client web",
+      "event_id": "evt-98e13f6d307f2e3be16558ed",
+      "alert_id": null,
+      "account": "u-2001",
+      "source_ip": "203.0.113.7"
+    },
+    {
+      "timestamp": "2026-10-24T21:10:03Z",
+      "description": "[app-security] auth.signin.failure (failure), account u-2001, from 203.0.113.7, POST /api/auth/signin, client web",
+      "event_id": "evt-ef2ea440d254bf4a8d4680f6",
+      "alert_id": null,
+      "account": "u-2001",
+      "source_ip": "203.0.113.7"
+    },
+    {
+      "timestamp": "2026-10-24T21:10:06Z",
+      "description": "[app-security] auth.signin.failure (failure), account u-2001, from 203.0.113.7, POST /api/auth/signin, client web",
+      "event_id": "evt-1ee56267cc7a1b10b9494687",
+      "alert_id": null,
+      "account": "u-2001",
+      "source_ip": "203.0.113.7"
+    },
+    {
+      "timestamp": "2026-10-24T21:10:09Z",
+      "description": "[app-security] auth.signin.failure (failure), account u-2001, from 203.0.113.7, POST /api/auth/signin, client web",
+      "event_id": "evt-bbc30d1e50633effa8d81596",
+      "alert_id": null,
+      "account": "u-2001",
+      "source_ip": "203.0.113.7"
+    },
+    {
+      "timestamp": "2026-10-24T21:10:12Z",
+      "description": "[app-security] auth.signin.failure (failure), account u-2001, from 203.0.113.7, POST /api/auth/signin, client web",
+      "event_id": "evt-c17a57243deeaf70a93c331e",
+      "alert_id": null,
+      "account": "u-2001",
+      "source_ip": "203.0.113.7"
+    },
+    {
+      "timestamp": "2026-10-24T21:10:15Z",
+      "description": "[app-security] auth.signin.failure (failure), account u-2001, from 203.0.113.7, POST /api/auth/signin, client web",
+      "event_id": "evt-e324aaa8ec2561e6cd038ca7",
+      "alert_id": null,
+      "account": "u-2001",
+      "source_ip": "203.0.113.7"
+    },
+    {
+      "timestamp": "2026-10-24T21:10:18Z",
+      "description": "[app-security] auth.signin.failure (failure), account u-2001, from 203.0.113.7, POST /api/auth/signin, client web",
+      "event_id": "evt-ada9bb363aaf4af58d44c821",
+      "alert_id": null,
+      "account": "u-2001",
+      "source_ip": "203.0.113.7"
+    },
+    {
+      "timestamp": "2026-10-24T21:10:21Z",
+      "description": "[app-security] auth.signin.failure (failure), account u-2001, from 203.0.113.7, POST /api/auth/signin, client web",
+      "event_id": "evt-c480d3039cfb186a6c233449",
+      "alert_id": null,
+      "account": "u-2001",
+      "source_ip": "203.0.113.7"
+    },
+    {
+      "timestamp": "2026-10-24T21:10:24Z",
+      "description": "[app-security] auth.signin.failure (failure), account u-2001, from 203.0.113.7, POST /api/auth/signin, client web",
+      "event_id": "evt-3b80f435be26e14e36c3ac89",
+      "alert_id": null,
+      "account": "u-2001",
+      "source_ip": "203.0.113.7"
+    },
+    {
+      "timestamp": "2026-10-24T21:10:27Z",
+      "description": "[app-security] auth.signin.failure (failure), account u-2001, from 203.0.113.7, POST /api/auth/signin, client web",
+      "event_id": "evt-b1604296ea5f5716a233d047",
+      "alert_id": null,
+      "account": "u-2001",
+      "source_ip": "203.0.113.7"
+    },
+    {
+      "timestamp": "2026-10-24T21:10:27Z",
+      "description": "Alert PRH-AUTH-001 (high): Brute-force sign-in attempts from one IP",
+      "event_id": null,
+      "alert_id": "alr-c0790ef87d77eb35d5aec68e",
+      "account": null,
+      "source_ip": null
+    },
+    {
+      "timestamp": "2026-10-24T21:11:05Z",
+      "description": "[app-security] auth.signin.success (success), account u-2001, from 203.0.113.7, POST /api/auth/signin, client web",
+      "event_id": "evt-d921c9a6c26404450a3b9d46",
+      "alert_id": null,
+      "account": "u-2001",
+      "source_ip": "203.0.113.7"
+    },
+    {
+      "timestamp": "2026-10-24T21:11:05Z",
+      "description": "Alert PRH-AUTH-003 (critical): Successful sign-in after many failures from one IP",
+      "event_id": null,
+      "alert_id": "alr-2700f3f4c20ba179ef87851e",
+      "account": null,
+      "source_ip": null
+    },
+    {
+      "timestamp": "2026-10-24T21:12:30Z",
+      "description": "[app-security] account.2fa.disabled (success), account u-2001, from 203.0.113.7, DELETE /api/account/2fa, client web",
+      "event_id": "evt-b4a805719a3e5812131f275e",
+      "alert_id": null,
+      "account": "u-2001",
+      "source_ip": "203.0.113.7"
+    },
+    {
+      "timestamp": "2026-10-24T21:12:30Z",
+      "description": "Alert PRH-ACCT-001 (high): Sensitive account change shortly after sign-in",
+      "event_id": null,
+      "alert_id": "alr-ff99ad16d4da5391307b168d",
+      "account": null,
+      "source_ip": null
+    }
+  ],
+  "indicators": [
+    {
+      "type": "ip",
+      "value": "203.0.113.7",
+      "enrichment": [
+        {
+          "provider": "offline",
+          "retrieved_at": "2026-10-01T00:00:00Z",
+          "data": {
+            "country": "NL",
+            "city": "Amsterdam",
+            "asn": 64501,
+            "as_org": "Example Hosting B.V. (fictional)",
+            "network": "203.0.113.0/24",
+            "abuse_score": 97,
+            "reports": 412,
+            "malicious": 9,
+            "suspicious": 2,
+            "is_tor": false,
+            "usage_type": "Data Center/Web Hosting/Transit"
+          },
+          "note": "Synthetic offline fixture for documentation addresses; not real data."
+        }
+      ]
+    },
+    {
+      "type": "user_agent",
+      "value": "python-requests/2.32.3",
+      "enrichment": []
+    }
+  ],
+  "attack": [
+    "attack.initial_access",
+    "attack.persistence",
+    "attack.privilege_escalation",
+    "attack.defense_impairment",
+    "attack.credential_access",
+    "attack.t1078",
+    "attack.t1098",
+    "attack.t1110",
+    "attack.t1110.001",
+    "attack.t1556.006"
+  ],
+  "attack_version": "20.0",
+  "recommended_actions": [
+    "End all sessions of the account and force a password reset.",
+    "Block the source IP.",
+    "Revert unauthorised changes, such as a changed payout number or disabled two-step verification.",
+    "For SSH, isolate the server, check `authorized_keys`, users and scheduled jobs, and rotate credentials stored on it.",
+    "Require two-step verification for the account.",
+    "Block or rate-limit the source IP at the firewall, reverse proxy or application while you investigate.",
+    "If any sign-in from the IP succeeded, follow the runbook for PRH-AUTH-003.",
+    "For SSH, disable password authentication and allow keys only; restrict SSH to known networks.",
+    "Make sure account lockout or progressive delays and bot checks are enabled on the sign-in form.",
+    "If the owner did not make the change: end all sessions, revert the change, reset the password and re-enable two-step verification.",
+    "Hold payouts to a newly changed payout number until the owner confirms it.",
+    "Consider requiring re-authentication or a confirmation code for these changes."
+  ],
+  "confidence": "high",
+  "limitations": [
+    "Enrichment offline: only bundled demo data, local GeoLite2 data and cached answers were used",
+    "Enrichment of 203.0.113.7 is bundled demo data, not real reputation",
+    "Single log source (app-security): no other log corroborates it",
+    "Possible benign cause for PRH-ACCT-001: The account owner changing their own settings after signing in",
+    "Possible benign cause for PRH-ACCT-001: Support staff helping a user recover an account",
+    "Possible benign cause for PRH-AUTH-001: Many users behind one shared NAT or proxy address",
+    "Possible benign cause for PRH-AUTH-001: A script or password manager retrying a stale password",
+    "Possible benign cause for PRH-AUTH-003: A legitimate user who forgot their password and finally entered it correctly",
+    "Possible benign cause for PRH-AUTH-003: Several users behind one shared NAT, some failing and one succeeding"
+  ],
+  "provenance": {
+    "tool": "prohori",
+    "tool_version": "0.1.0.dev0",
+    "inputs": [
+      {
+        "name": "account-takeover.jsonl",
+        "sha256": "20fea77a6a1a1e56a5ccabd157109c79bb71796f9aa95389f2f8a069e62a48d6",
+        "bytes": 7534,
+        "events": 17,
+        "parser": "app_json"
+      }
+    ],
+    "rules": [
+      {
+        "id": "PRH-ACCT-001",
+        "title": "Sensitive account change shortly after sign-in",
+        "sha256": "f523b6831891b2444e932426d69ce28f08156b251a5bc771b312de3fcf1049c9"
+      },
+      {
+        "id": "PRH-AUTH-001",
+        "title": "Brute-force sign-in attempts from one IP",
+        "sha256": "510045192d86bc5c3e4baae6cea620b22206abf12aa0980b49125fd0af94e97f"
+      },
+      {
+        "id": "PRH-AUTH-003",
+        "title": "Successful sign-in after many failures from one IP",
+        "sha256": "8c63236a86391c4cef1655511802f13d1c331a5a26c1392dc605d6815c73d6bd"
+      }
+    ],
+    "enrichment": "offline"
+  }
+}

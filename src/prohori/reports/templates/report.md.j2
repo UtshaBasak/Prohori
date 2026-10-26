@@ -1,0 +1,146 @@
+# {{ title }}
+
+| | |
+|---|---|
+| Incident | {{ id | code }} |
+| Status | {{ status }} |
+| Severity | **{{ severity }}** (score {{ score }}) |
+| Confidence | {{ confidence }} |
+| First seen | {{ first_seen }} |
+| Last seen | {{ last_seen }} |
+
+## Summary
+
+{{ summary }}
+{% if key_factors %}
+
+Main factors:
+
+{% for factor in key_factors %}
+- {{ factor }}
+{% endfor %}
+{% endif %}
+
+## Timeline
+
+| Time | Kind | What happened |
+|------|------|---------------|
+{% for entry in timeline %}
+| {{ entry.time }} | {{ entry.kind }} | {{ entry.description }} |
+{% endfor %}
+
+## Indicators
+
+{% for indicator in indicators %}
+### {{ indicator.type }}: {{ indicator.value | code }}
+
+{% if indicator.enrichment %}
+| Provider | Retrieved | Data |
+|----------|-----------|------|
+{% for result in indicator.enrichment %}
+| {{ result.provider }} | {{ result.retrieved }} | {% for key, value in result.data %}{{ key }}: {{ value }}{% if not loop.last %}; {% endif %}{% endfor %}{% if result.note %} ({{ result.note }}){% endif %} |
+{% endfor %}
+{% else %}
+No enrichment.
+{% endif %}
+
+{% else %}
+No indicators.
+
+{% endfor %}
+## Affected entities
+
+| Field | Values |
+|-------|--------|
+{% for field, values in entities %}
+| {{ field | code }} | {% for value in values %}{{ value | code }}{% if not loop.last %}, {% endif %}{% endfor %} |
+{% endfor %}
+
+## Evidence
+
+{% for alert in alerts %}
+### {{ alert.rule | code }} {{ alert.title }} ({{ alert.severity }})
+
+- {{ alert.first_seen }} to {{ alert.last_seen }}
+- {{ alert.explanation }}
+- Events: {% for event_id in alert.event_ids %}{{ event_id | code }}{% if not loop.last %}, {% endif %}{% endfor %}{% if alert.more_events %} and {{ alert.more_events }} more{% endif %}
+
+
+{% endfor %}
+## ATT&CK mapping
+
+Enterprise ATT&CK v{{ attack_version }}.
+
+| Tactic | Techniques |
+|--------|------------|
+{% for tactic in tactics %}
+| {{ tactic.name }} | {{ tactic.techniques | join(", ") if tactic.techniques else "-" }} |
+{% endfor %}
+{% if unverified_tags %}
+
+Not verified against ATT&CK v{{ attack_version }}: {{ unverified_tags | join(", ") }}
+{% endif %}
+
+## Score breakdown
+
+| Points | Reason |
+|-------:|--------|
+{% for reason, points in score_breakdown %}
+| {{ points }} | {{ reason }} |
+{% endfor %}
+| **{{ score }}** | **Total** |
+
+## Recommended actions
+
+Prohori only recommends actions; it never changes anything itself.
+
+{% for action in actions %}
+1. {{ action }}
+{% else %}
+No runbook actions for these rules.
+{% endfor %}
+
+## Confidence and limitations
+
+Confidence: **{{ confidence }}**.
+
+{% for limitation in limitations %}
+- {{ limitation }}
+{% else %}
+- None recorded.
+{% endfor %}
+
+## Appendix
+
+### Rules fired
+
+| Rule | Title | Alerts | Rule file SHA-256 |
+|------|-------|-------:|-------------------|
+{% for rule in appendix.rules %}
+| {{ rule.id | code }} | {{ rule.title }} | {{ rule.alerts }} | {{ rule.sha256 | code if rule.sha256 else "-" }} |
+{% endfor %}
+
+### Inputs
+
+{% if appendix.inputs %}
+| File | Parser | Events | Bytes | SHA-256 |
+|------|--------|-------:|------:|---------|
+{% for item in appendix.inputs %}
+| {{ item.name | code }} | {{ item.parser }} | {{ item.events }} | {{ item.bytes }} | {{ item.sha256 | code }} |
+{% endfor %}
+{% else %}
+Not recorded.
+{% endif %}
+
+### Versions
+
+- Incident built with: {{ appendix.built_with }} (enrichment: {{ appendix.enrichment }})
+- Report rendered with: {{ appendix.rendered_with }}
+- ATT&CK: Enterprise v{{ attack_version }}
+{% if appendix.source %}
+- Incident file: {{ appendix.source.name | code }}, SHA-256 {{ appendix.source.sha256 | code }}
+{% endif %}
+
+### Privacy
+
+{{ appendix.redaction }}

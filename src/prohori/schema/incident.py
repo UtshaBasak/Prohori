@@ -75,6 +75,8 @@ class TimelineEntry(BaseModel):
     description: Text
     event_id: ShortText | None = None
     alert_id: ShortText | None = None
+    account: ShortText | None = None  # the account the event concerns, for redaction
+    source_ip: ShortText | None = None
 
 
 class ScoreComponent(BaseModel):
@@ -84,6 +86,43 @@ class ScoreComponent(BaseModel):
 
     reason: Text
     points: Annotated[float, Field(allow_inf_nan=False)]
+
+
+Sha256 = Annotated[str, Field(pattern=r"^[0-9a-f]{64}$")]
+
+
+class InputFile(BaseModel):
+    """One input the incident was built from."""
+
+    model_config = MODEL_CONFIG
+
+    name: ShortText
+    sha256: Sha256
+    bytes: Annotated[int, Field(ge=0)]
+    events: Annotated[int, Field(ge=0)]
+    parser: Annotated[str, Field(max_length=64)]
+
+
+class RuleRef(BaseModel):
+    """A rule that fired in the incident, with a hash of its file."""
+
+    model_config = MODEL_CONFIG
+
+    id: Annotated[str, Field(min_length=1, max_length=64)]
+    title: Text
+    sha256: Sha256 | None = None
+
+
+class Provenance(BaseModel):
+    """How an incident was produced, for the report appendix and reproducibility."""
+
+    model_config = MODEL_CONFIG
+
+    tool: Annotated[str, Field(max_length=64)] = "prohori"
+    tool_version: Annotated[str, Field(max_length=64)]
+    inputs: tuple[InputFile, ...] = ()
+    rules: tuple[RuleRef, ...] = ()
+    enrichment: Annotated[str, Field(max_length=32)] = "none"  # none, offline or online
 
 
 class Incident(BaseModel):
@@ -111,6 +150,7 @@ class Incident(BaseModel):
     recommended_actions: tuple[Text, ...] = ()
     confidence: Confidence = Confidence.MEDIUM
     limitations: tuple[Text, ...] = ()
+    provenance: Provenance | None = None
 
     @model_validator(mode="after")
     def _check(self) -> Self:

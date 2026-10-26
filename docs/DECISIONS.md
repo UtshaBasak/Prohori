@@ -421,3 +421,36 @@ their own entities. Scoring must be explainable, and incidents must be reproduci
 **Consequences.** Linking through event fields joins more of an attack chain but can join two
 attackers who used the same account; the shared-IP cap can split a real incident that crossed it.
 Both are visible in the incident (entities, limitations).
+
+---
+
+## ADR-0015: Report rendering and redaction
+
+- **Date:** 2026-10-27
+- **Status:** Accepted
+
+**Context.** Reports are shared outside the tool, and everything in them can come from attacker
+log lines or third-party data. Redacted reports must not leak, and reports must be reproducible.
+
+**Decision.**
+- **Clean once, escape per format.** A view model cleans every value (control characters and ANSI
+  escapes removed, one line, at most 500 characters). HTML uses Jinja2 autoescaping plus a CSP of
+  `default-src 'none'` and builds no links from data. Markdown escapes through Jinja2's
+  `finalize`, so no template expression can skip it; helper output (code spans) is marked safe.
+  CSV prefixes formula-like cells with `'`.
+- **Packaged templates only**; no user templates, no "generated at" time, so output is
+  deterministic and golden-tested.
+- **Redaction from structured fields, replacement everywhere.** Values come from entities, alert
+  entities, timeline `account` / `source_ip` (added to `TimelineEntry` for this) and indicators,
+  plus email and IP patterns in free text; they are replaced as whole tokens in every string in
+  one pass. Pseudonyms are HMAC-SHA256 with a random per-run key: unsalted hashes of user ids or
+  emails would be reversible.
+- **Fail closed:** the command searches the redacted data for every original value and writes
+  nothing if one remains.
+- **Provenance on the incident** (input SHA-256 computed while streaming, rule-file SHA-256,
+  versions, enrichment mode) rather than recomputed at report time, when the inputs may be gone.
+- **CSV holds the timeline**, the part analysts sort and filter.
+
+**Consequences.** Pseudonyms differ between runs, so two redacted reports cannot be correlated
+(intended). Whole-token replacement can rewrite ordinary words that equal an account name; ids
+and action names are protected.

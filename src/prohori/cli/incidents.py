@@ -17,6 +17,7 @@ from prohori.cli.parse import (
     KeepQueryOption,
     MappingOption,
     OutputFormat,
+    ParsedInput,
     ParserOption,
     PatternOption,
     TimezoneOption,
@@ -25,9 +26,10 @@ from prohori.cli.parse import (
 )
 from prohori.enrich import ConfigError, Enricher, EnrichSettings, build_enricher
 from prohori.incidents import EventContext, IncidentBuilder, IncidentSettings
+from prohori.incidents.provenance import with_provenance
 from prohori.rules import RuleEngine
 from prohori.rules.model import parse_duration
-from prohori.schema import Incident
+from prohori.schema import Incident, InputFile
 
 
 def incidents_command(
@@ -111,8 +113,14 @@ def incidents_command(
             keep_query=keep_query,
         ) as parsed:
             alerts = list(engine.run(context.observe(parsed.events)))
+            source = _input_file(parsed)  # the whole input has been read (and hashed) by now
         builder = IncidentBuilder(rules, context=context, enricher=enricher, settings=settings)
-        incidents = builder.build(alerts)
+        incidents = with_provenance(
+            builder.build(alerts),
+            inputs=[source] if source is not None else [],
+            rules=rules,
+            enrichment="none" if enricher is None else ("online" if online else "offline"),
+        )
     finally:
         if enricher is not None:
             enricher.close()
@@ -133,6 +141,18 @@ def incidents_command(
         raise typer.Exit(ExitCode.NO_EVENTS)
     if incidents and not exit_zero:
         raise typer.Exit(ExitCode.ALERTS_FOUND)
+
+
+def _input_file(parsed: ParsedInput) -> InputFile | None:
+    if parsed.reader is None:
+        return None
+    return InputFile(
+        name=parsed.name,
+        sha256=parsed.reader.hexdigest(),
+        bytes=parsed.reader.bytes,
+        events=parsed.stats.events,
+        parser=parsed.parser,
+    )
 
 
 def _enricher(env_file: Path, *, online: bool) -> Enricher:

@@ -115,6 +115,13 @@ Each incident lists what weakens its evidence, for example:
 - unverified ATT&CK tags;
 - the rules' known benign causes (their `falsepositives`).
 
+## Provenance
+
+Each incident written by `prohori incidents` records how it was made: the Prohori version, each
+input file's name, parser, event count, size and SHA-256 (hashed while it streams, so standard
+input works too), the rules that fired with the SHA-256 of each rule file, and whether enrichment
+was off, offline or online. Reports show this in their appendix ([REPORTS.md](REPORTS.md)).
+
 ## Determinism
 
 The same input gives the same incidents: the id is `INC-` and the first 16 hex digits of the

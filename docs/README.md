@@ -9,7 +9,8 @@
 | [RULES.md](RULES.md) | Detection rule format and authoring guide |
 | [ENRICHMENT.md](ENRICHMENT.md) | IP enrichment providers, privacy, cache and rate limits |
 | [INCIDENTS.md](INCIDENTS.md) | Incident grouping, scoring table, confidence and limitations |
+| [REPORTS.md](REPORTS.md) | Report formats and sections, redaction and output safety |
 | [LICENSES.md](LICENSES.md) | Terms of third-party data and services |
 
-Further documents (reports, simulator, datasets, model card, pipeline, LLM analyst and threat
+Further documents (simulator, datasets, model card, pipeline, LLM analyst and threat
 model) are added alongside the features they describe.
