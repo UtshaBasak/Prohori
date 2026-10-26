@@ -113,7 +113,7 @@ def detect_command(
     Exit codes: 0 no alerts, 3 alerts found (0 with --exit-zero), 1 every non-blank line failed to
     parse or a rule file is invalid, 2 invalid usage or input.
     """
-    allowed_lateness = _parse_lateness(lateness)
+    allowed_lateness = parse_lateness(lateness)
     rules = load_detection_rules(rules_paths or [], builtin=not no_builtin)
     engine = RuleEngine(rules, lateness=allowed_lateness, reference_time=datetime.now(UTC))
     with parsed_events(
@@ -137,7 +137,7 @@ def detect_command(
         raise typer.Exit(ExitCode.ALERTS_FOUND)
 
 
-def _parse_lateness(text: str) -> timedelta:
+def parse_lateness(text: str) -> timedelta:
     """Parse ``--lateness``: a rule duration (``30s``, ``5m``, ...) or zero (``0`` / ``0s``)."""
     if text.strip() in {"0", "0s", "0m", "0h", "0d"}:
         return timedelta(0)
