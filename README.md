@@ -99,13 +99,16 @@ passwords from one IP in 33 seconds, a successful sign-in, then two-step verific
 off. Prohori raises three alerts and joins them into **one critical incident**:
 
 ```text
-$ uv run prohori incidents samples/logs/account-takeover.jsonl   # abridged
+$ uv run prohori incidents samples/logs/account-takeover.jsonl     # first lines
 INC-f124f17a36e60980  critical  score 100
- title       Successful sign-in after many failures from one IP and 2 related alerts
- confidence  high
- rules       PRH-ACCT-001, PRH-AUTH-001, PRH-AUTH-003
- entities    source.ip: 203.0.113.7
-             user.id: u-2001
++-------------------------------------------------------------------------------------------------+
+| title       | Successful sign-in after many failures from one IP and 2 related alerts           |
+| time (UTC)  | 2026-10-24 21:10:00 - 2026-10-24 21:12:30                                         |
+| confidence  | high                                                                              |
+| rules       | PRH-ACCT-001, PRH-AUTH-001, PRH-AUTH-003                                          |
+| entities    | source.ip: 203.0.113.7                                                            |
+|             | user.email_hash: 0cc175b9c0f1b6a831c399e269772661                                 |
+|             | user.id: u-2001                                                                   |
 ```
 
 Every point of the score is explained (from `prohori report`):
