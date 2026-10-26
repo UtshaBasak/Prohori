@@ -372,7 +372,7 @@
   ],
   "provenance": {
     "tool": "prohori",
-    "tool_version": "0.1.0.dev0",
+    "tool_version": "0.1.0",
     "inputs": [
       {
         "name": "account-takeover.jsonl",
