@@ -454,3 +454,38 @@ log lines or third-party data. Redacted reports must not leak, and reports must 
 **Consequences.** Pseudonyms differ between runs, so two redacted reports cannot be correlated
 (intended). Whole-token replacement can rewrite ordinary words that equal an account name; ids
 and action names are protected.
+
+---
+
+## ADR-0016: Simulator and rule evaluation
+
+- **Date:** 2026-10-27
+- **Status:** Accepted
+
+**Context.** The rules need a repeatable measure of what they catch and what they raise by
+mistake, without real logs, network activity or real addresses, and without flattering them.
+
+**Decision.**
+- **Scenarios as code** (`prohori.simulate.scenarios`), each declaring its expected rules before
+  any evaluation, written in the exact formats the parsers read, mixed into benign background
+  that includes known false-positive sources (typos, shared NAT, crawlers, owners' own changes,
+  planned admin work).
+- **Two variants per scenario.** `default` matches the rules' design; `heldout` changes the
+  attacker's behaviour (slower, more addresses, browser user agent, obfuscation, waiting, other
+  hours) with the same expected rules. Both are reported; nothing was tuned after seeing the
+  held-out results.
+- **Determinism:** `random.Random` seeded from scenario, variant and seed, using only methods with
+  stable output across Python versions; no clock; stable sort; LF line endings. A golden file of
+  SHA-256 hashes catches drift in CI on every Python version.
+- **Documentation ranges only**, enforced by one address allocator and checked by tests on both
+  parsed addresses and a raw-text scan.
+- **Scoring:** an alert is a true positive when at least half of its events are attack lines;
+  recall is per expected rule and attack; rules no scenario expects are "not evaluated".
+- **Sequences re-alert** (found while building the account-takeover scenario): a completed
+  sequence stays open until `start + within`, so a second account change after one sign-in raises
+  its own alert.
+- **Time-of-day matching** (`timezone`, `time.*`) to express PRH-ADMIN-002.
+
+**Consequences.** The numbers describe synthetic data written by the rules' author; the held-out
+columns and the stated caveats matter more than the default columns. Adding a scenario changes
+the committed results and golden files, which the tests make visible.

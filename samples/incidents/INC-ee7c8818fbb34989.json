@@ -1,6 +1,6 @@
 {
-  "id": "INC-f124f17a36e60980",
-  "title": "Successful sign-in after many failures from one IP and 2 related alerts",
+  "id": "INC-ee7c8818fbb34989",
+  "title": "Successful sign-in after many failures from one IP and 3 related alerts",
   "status": "open",
   "severity": "critical",
   "score": 100.0,
@@ -18,7 +18,7 @@
       "points": 20.0
     },
     {
-      "reason": "Sensitive account or admin change: account.2fa.disabled",
+      "reason": "Sensitive account or admin change: account.2fa.disabled, account.bkash.changed",
       "points": 15.0
     },
     {
@@ -39,7 +39,7 @@
     }
   ],
   "first_seen": "2026-10-24T21:10:00Z",
-  "last_seen": "2026-10-24T21:12:30Z",
+  "last_seen": "2026-10-24T21:13:10Z",
   "entities": {
     "source.ip": [
       "203.0.113.7"
@@ -110,6 +110,32 @@
         "attack.t1110.001"
       ],
       "explanation": "10 matching events (threshold 10) for source.ip=203.0.113.7 within a 5m window"
+    },
+    {
+      "id": "alr-6e551672d8e006e14cb51624",
+      "detector_id": "PRH-ACCT-001",
+      "detector_kind": "rule",
+      "title": "Sensitive account change shortly after sign-in",
+      "severity": "high",
+      "score": 75.0,
+      "event_ids": [
+        "evt-d921c9a6c26404450a3b9d46",
+        "evt-6f29461df339acb9232831d2"
+      ],
+      "entities": {
+        "user.id": "u-2001"
+      },
+      "first_seen": "2026-10-24T21:11:05Z",
+      "last_seen": "2026-10-24T21:13:10Z",
+      "attack": [
+        "attack.persistence",
+        "attack.privilege_escalation",
+        "attack.defense_impairment",
+        "attack.credential_access",
+        "attack.t1098",
+        "attack.t1556.006"
+      ],
+      "explanation": "1 x signin then 1 x change for user.id=u-2001 within 30m"
     },
     {
       "id": "alr-ff99ad16d4da5391307b168d",
@@ -258,6 +284,22 @@
       "alert_id": "alr-ff99ad16d4da5391307b168d",
       "account": null,
       "source_ip": null
+    },
+    {
+      "timestamp": "2026-10-24T21:13:10Z",
+      "description": "[app-security] account.bkash.changed (success), account u-2001, from 203.0.113.7, PATCH /api/account/payout, client web",
+      "event_id": "evt-6f29461df339acb9232831d2",
+      "alert_id": null,
+      "account": "u-2001",
+      "source_ip": "203.0.113.7"
+    },
+    {
+      "timestamp": "2026-10-24T21:13:10Z",
+      "description": "Alert PRH-ACCT-001 (high): Sensitive account change shortly after sign-in",
+      "event_id": null,
+      "alert_id": "alr-6e551672d8e006e14cb51624",
+      "account": null,
+      "source_ip": null
     }
   ],
   "indicators": [
@@ -308,12 +350,10 @@
     "End all sessions of the account and force a password reset.",
     "Block the source IP.",
     "Revert unauthorised changes, such as a changed payout number or disabled two-step verification.",
-    "For SSH, isolate the server, check `authorized_keys`, users and scheduled jobs, and rotate credentials stored on it.",
     "Require two-step verification for the account.",
     "Block or rate-limit the source IP at the firewall, reverse proxy or application while you investigate.",
     "If any sign-in from the IP succeeded, follow the runbook for PRH-AUTH-003.",
-    "For SSH, disable password authentication and allow keys only; restrict SSH to known networks.",
-    "Make sure account lockout or progressive delays and bot checks are enabled on the sign-in form.",
+    "For the web app, make sure account lockout or progressive delays and bot checks are enabled on the sign-in form.",
     "If the owner did not make the change: end all sessions, revert the change, reset the password and re-enable two-step verification.",
     "Hold payouts to a newly changed payout number until the owner confirms it.",
     "Consider requiring re-authentication or a confirmation code for these changes."

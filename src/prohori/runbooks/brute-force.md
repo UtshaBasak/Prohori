@@ -22,7 +22,8 @@ success (PRH-AUTH-003).
   investigate.
 - If any sign-in from the IP succeeded, follow the runbook for PRH-AUTH-003.
 - For SSH, disable password authentication and allow keys only; restrict SSH to known networks.
-- Make sure account lockout or progressive delays and bot checks are enabled on the sign-in form.
+- For the web app, make sure account lockout or progressive delays and bot checks are enabled on
+  the sign-in form.
 
 ## False positives
 

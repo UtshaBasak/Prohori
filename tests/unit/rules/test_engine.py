@@ -256,6 +256,50 @@ class TestSequence:
         events = [ev(0), ev(1), ev(2), ev(3, action="auth.signin.success", ip="198.51.100.1")]
         assert run([sequence_rule()], events)[0] == []
 
+    def test_later_final_step_events_raise_further_alerts(self) -> None:
+        # Like a second account change after one sign-in: it must not be swallowed.
+        events = [
+            ev(0),
+            ev(1),
+            ev(2),
+            ev(10, action="auth.signin.success"),
+            ev(20),  # an earlier-step event after completion is ignored
+            ev(30, action="auth.signin.success"),
+        ]
+        first, second = run([sequence_rule()], events)[0]
+        assert first.event_ids[:3] == second.event_ids[:3]  # the same earlier steps
+        assert first.event_ids[3] != second.event_ids[3]
+        assert len(second.event_ids) == 4
+        assert first.id != second.id
+
+    def test_further_alerts_stop_when_the_window_ends(self) -> None:
+        events = [
+            ev(0),
+            ev(1),
+            ev(2),
+            ev(10, action="auth.signin.success"),
+            ev(599, action="auth.signin.success"),  # still within 10m of the start
+            ev(600, action="auth.signin.success"),  # expired: starts over, needs failures again
+        ]
+        assert len(run([sequence_rule()], events)[0]) == 2
+
+    def test_final_step_count_applies_to_further_alerts(self) -> None:
+        twice = rule(
+            {
+                "failure": FAILURE,
+                "success": SUCCESS,
+                "sequence": {
+                    "by": ["source.ip"],
+                    "within": "10m",
+                    "steps": [{"selection": "failure"}, {"selection": "success", "count_gte": 2}],
+                },
+                "condition": "sequence",
+            }
+        )
+        successes = [ev(10 + i, action="auth.signin.success", n=i) for i in range(5)]
+        alerts = run([twice], [ev(0), *successes])[0]
+        assert [len(a.event_ids) for a in alerts] == [3, 3]  # after 2 and after 4 successes
+
 
 class TestOrdering:
     def test_out_of_order_within_lateness(self) -> None:
@@ -463,3 +507,50 @@ def test_future_timestamp_without_reference_time_disables_only_reordering() -> N
     alerts += engine.flush()
     assert len(alerts) == 1
     assert engine.stats.late_events == 1
+
+
+class TestSequenceRestart:
+    """A completed sequence must not hide a later, separate one."""
+
+    def _signin_change(self) -> CompiledRule:
+        return rule(
+            {
+                "signin": SUCCESS,
+                "change": {"event.action": "account.password.changed"},
+                "sequence": {
+                    "by": ["source.ip"],
+                    "within": "30m",
+                    "steps": [{"selection": "signin"}, {"selection": "change"}],
+                },
+                "condition": "sequence",
+            }
+        )
+
+    def test_second_signin_opens_a_new_window(self) -> None:
+        events = [
+            ev(0, action="auth.signin.success"),
+            ev(120, action="account.password.changed"),
+            ev(1200, action="auth.signin.success"),  # minute 20: a new sign-in
+            ev(2700, action="account.password.changed"),  # minute 45: 25 min after it
+        ]
+        alerts = run([self._signin_change()], events)[0]
+        assert len(alerts) == 2
+        assert alerts[1].first_seen == T0 + timedelta(seconds=1200)
+
+    def test_failures_after_success_start_a_new_sequence(self) -> None:
+        first = [ev(i) for i in range(5)] + [ev(10, action="auth.signin.success")]
+        second = [ev(600 + i, n=1) for i in range(5)]  # inside the old window
+        late_success = [ev(1000, action="auth.signin.success", n=2)]  # after start + 15m
+        alerts = run([sequence_rule(within="15m", first_count=5)], first + second + late_success)[0]
+        assert len(alerts) == 2
+        assert alerts[1].first_seen == T0 + timedelta(seconds=600)
+
+    def test_success_before_a_new_first_step_completes_re_alerts(self) -> None:
+        events = [ev(i) for i in range(3)] + [
+            ev(10, action="auth.signin.success"),
+            ev(20, n=1),  # one new failure: not enough for a fresh sequence
+            ev(30, action="auth.signin.success", n=1),
+        ]
+        alerts = run([sequence_rule()], events)[0]
+        assert len(alerts) == 2
+        assert alerts[0].event_ids[:3] == alerts[1].event_ids[:3]

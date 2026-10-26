@@ -1,0 +1,18 @@
+{
+  "account-takeover/default": "fc2d6fa8cd56e3bb389c2df4f684c073d4585d6680b64f2389415a151f53aec9",
+  "account-takeover/heldout": "d92a6feaaf4b2d64949e532c272c02663f982fdc39c2853d2d66b368c5adac92",
+  "admin-misuse/default": "f03ebba6ab6f7aa10d7e80effa67645a3524b2f2c3a23516b2b6601d7c268a3d",
+  "admin-misuse/heldout": "492d85e5c15baaafd2b0422a0e604d5823a94d27b39b9f4f4a526b6c0ca081f2",
+  "credential-stuffing/default": "e9a30aee726106ab7a0cd0869dc607e9cc75a2b42c012ae8e3b4287c3748d2a3",
+  "credential-stuffing/heldout": "202f6e380e4136e9041f1b5d60e17a3a11e42c60479423127d23bba6152a197c",
+  "injection/default": "966b1bac8301d5d68251c6f38eba4d83b94a01d537ea938d74dc0869561763e9",
+  "injection/heldout": "a7f6d4f9cb54f28baddd93ee512a254384e4cd42c885951ae150d9201d28b3c6",
+  "password-spraying/default": "5ba05650997f754a16eeb7bcf0d66576e9007e825543681f102ec95e4946997b",
+  "password-spraying/heldout": "65f15aee7903d792b99b296b9195c983a73e125ad9c001ac5a937b0ec27fd0c8",
+  "ssh-bruteforce/default": "bd2fc56e7a98d6a06eef41ba7b67c575d99a3cfc44513dcc4b1281051f22dc7c",
+  "ssh-bruteforce/heldout": "fbf4df2e459b690d75c7d0c5deb9361dfd925453be45231a4cb31c4c8d2741e9",
+  "token-reuse/default": "3dfae43d23f1a9f2ac54fd5e380690e7effb88f5fb85de89e430746268d9cf0d",
+  "token-reuse/heldout": "de16d8bc712431f742ccc86324b4b7cd78eb975e855d9529ff9f4ce7b2d39716",
+  "web-scanning/default": "d48626c9585f25c5fdaa5529e6da36fd3e9d0975b9aab941c91242d06f2f05da",
+  "web-scanning/heldout": "88add0290a3365bbda339a87ef78eb4b403c416bf40767a7e362bc964e207dbd"
+}

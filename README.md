@@ -36,8 +36,9 @@ reports, with honest machine-learning evaluation and a streaming data pipeline.*
 toolkit in Python that runs on a single laptop with free tools only, offline by default.
 
 > **Status: pre-alpha.** The batch core works today, from log file to shareable report:
-> `parse`, `detect`, `enrich`, `incidents` and `report`. The simulator, the `triage` and `demo`
-> commands and the first PyPI release (v0.1.0) are next. See the [CHANGELOG](CHANGELOG.md) and
+> `parse`, `detect`, `enrich`, `incidents` and `report`, plus a labelled attack simulator that
+> measures the rules. The `triage` and `demo` commands and the first PyPI release (v0.1.0) are
+> next. See the [CHANGELOG](CHANGELOG.md) and
 > the [roadmap](#roadmap).
 
 ## Contents
@@ -47,6 +48,7 @@ toolkit in Python that runs on a single laptop with free tools only, offline by 
 - [Example: an account takeover](#example-an-account-takeover)
 - [Commands](#commands)
 - [Built-in detection rules](#built-in-detection-rules)
+- [How well the rules work](#how-well-the-rules-work)
 - [Privacy and safety](#privacy-and-safety)
 - [Documentation](#documentation)
 - [Roadmap](#roadmap)
@@ -57,7 +59,7 @@ toolkit in Python that runs on a single laptop with free tools only, offline by 
 ```mermaid
 flowchart LR
     A[Log files<br>auth.log, nginx, app JSON] --> B[parse<br>common event schema]
-    B --> C[detect<br>14 YAML rules]
+    B --> C[detect<br>15 YAML rules]
     C --> D[incidents<br>group, score, ATT&CK]
     E[enrich<br>GeoLite2, AbuseIPDB, VirusTotal] --> D
     D --> F[report<br>Markdown, HTML, JSON, CSV]
@@ -66,9 +68,10 @@ flowchart LR
 | Stage | Today |
 |-------|-------|
 | **Parse** | Linux `auth.log` (sshd, sudo, PAM), nginx/Apache access logs, application security events (JSON Lines) and any JSON Lines layout through a YAML field mapping, into one typed event schema. Format detection, streaming with bounded memory, hostile input handled (oversized lines, bad encodings, control characters). |
-| **Detect** | 14 readable YAML rules (Sigma-inspired) with field modifiers, thresholds, distinct counts, ratios, sliding and tumbling windows and ordered sequences. Every rule ships with test fixtures and a runbook; regular expressions run on RE2, so no pattern can hang a run. |
+| **Detect** | 15 readable YAML rules (Sigma-inspired) with field modifiers, thresholds, distinct counts, ratios, sliding and tumbling windows and ordered sequences. Every rule ships with test fixtures and a runbook; regular expressions run on RE2, so no pattern can hang a run. |
 | **Enrich** | IP geolocation, network owner and reputation from local GeoLite2 files, AbuseIPDB and VirusTotal, all optional. SQLite cache, daily budgets, rate limiting and bounded retries. Private and documentation addresses never leave the machine. |
 | **Incidents** | Related alerts (same IP, account, request or session within a time gap) become one incident with a points-based score you can read line by line, severity, confidence, MITRE ATT&CK v20.0 mapping, a timeline, recommended actions and stated limitations. Detects sign-ins from an IP or app new to the account. |
+| **Simulate** | Eight labelled attack scenarios (SSH brute force, password spraying, credential stuffing, token reuse, account takeover, web scanning, injection, admin misuse) hidden in realistic background activity, byte-identical for a seed, documentation IP addresses only. Used to measure every rule's precision and recall. |
 | **Report** | Markdown, a self-contained HTML page, JSON or a CSV timeline, with an appendix of input and rule-file SHA-256 hashes. `--redact` replaces account names, ids and emails (and optionally IPs) with keyed pseudonyms, and refuses to write a report that would still leak one. |
 
 Prohori only **recommends** actions. It never blocks addresses, disables accounts or touches
@@ -84,10 +87,11 @@ git clone https://github.com/UtshaBasak/Prohori.git && cd Prohori
 uv sync
 
 uv run prohori parse samples/logs/auth.log                      # normalise a log
-uv run prohori detect samples/logs/auth.log                     # run the 14 rules
+uv run prohori detect samples/logs/auth.log                     # run the 15 rules
 uv run prohori enrich 203.0.113.7 --offline                     # look up an IP (demo data)
 uv run prohori incidents samples/logs/account-takeover.jsonl    # group alerts into incidents
-uv run prohori report samples/incidents/INC-f124f17a36e60980.json -f html -o report.html
+uv run prohori report samples/incidents/INC-ee7c8818fbb34989.json -f html -o report.html
+uv run prohori simulate account-takeover --seed 1 --out out/      # your own labelled attack
 ```
 
 Open `report.html` in a browser: one file, no scripts, no external resources.
@@ -95,15 +99,16 @@ Open `report.html` in a browser: one file, no scripts, no external resources.
 ## Example: an account takeover
 
 `samples/logs/account-takeover.jsonl` is a synthetic attack on a web shop account: twelve wrong
-passwords from one IP in 33 seconds, a successful sign-in, then two-step verification switched
-off. Prohori raises three alerts and joins them into **one critical incident**:
+passwords from one IP in 33 seconds, a successful sign-in, two-step verification switched off and
+the bKash payout number changed. Prohori raises four alerts and joins them into **one critical
+incident**:
 
 ```text
 $ uv run prohori incidents samples/logs/account-takeover.jsonl     # first lines
-INC-f124f17a36e60980  critical  score 100
+INC-ee7c8818fbb34989  critical  score 100
 +-------------------------------------------------------------------------------------------------+
-| title       | Successful sign-in after many failures from one IP and 2 related alerts           |
-| time (UTC)  | 2026-10-24 21:10:00 - 2026-10-24 21:12:30                                         |
+| title       | Successful sign-in after many failures from one IP and 3 related alerts           |
+| time (UTC)  | 2026-10-24 21:10:00 - 2026-10-24 21:13:10                                         |
 | confidence  | high                                                                              |
 | rules       | PRH-ACCT-001, PRH-AUTH-001, PRH-AUTH-003                                          |
 | entities    | source.ip: 203.0.113.7                                                            |
@@ -118,7 +123,7 @@ Every point of the score is explained (from `prohori report`):
 | +50 | Most severe alert: PRH-AUTH-003 (critical) |
 | +20 | 2 more rules fired: PRH-ACCT-001, PRH-AUTH-001 |
 | +20 | A sign-in succeeded after failed attempts |
-| +15 | Sensitive account or admin change: account.2fa.disabled |
+| +15 | Sensitive account or admin change: account.2fa.disabled, account.bkash.changed |
 | +20 | Reputation of 203.0.113.7: abuse confidence 97; 9 vendors flag it as malicious (from bundled demo data) |
 | +10 | Sign-in to u-2001 from 203.0.113.7, an IP not seen for this account before (1 earlier IP) |
 | +5 | Sign-in to u-2001 with client web, not seen for this account before |
@@ -135,11 +140,12 @@ recommended actions from the runbooks and the limitations, such as "single log s
 | Command | What it does | Docs |
 |---------|--------------|------|
 | `prohori parse FILE` | Parse and normalise a log; table or JSON Lines | [PARSERS.md](docs/PARSERS.md) |
-| `prohori detect FILE` | Run the built-in rules (and `--rules DIR`); exit code 3 when alerts are found | [RULES.md](docs/RULES.md) |
+| `prohori detect FILE` | Run the 15 built-in rules (and `--rules DIR`); exit code 3 when alerts are found | [RULES.md](docs/RULES.md) |
 | `prohori rules list` / `validate` / `test` | Show, check and test detection rules | [RULES.md](docs/RULES.md) |
 | `prohori enrich IP...` | Geolocation and reputation; `--offline` never uses the network | [ENRICHMENT.md](docs/ENRICHMENT.md) |
 | `prohori incidents FILE` | Parse, detect and group alerts into scored incidents; offline enrichment unless `--online` | [INCIDENTS.md](docs/INCIDENTS.md) |
 | `prohori report INCIDENT` | Render an incident as `md`, `html`, `json` or `csv`; `--redact`, `--redact-ips` | [REPORTS.md](docs/REPORTS.md) |
+| `prohori simulate SCENARIO --out DIR` | Write a labelled attack scenario (`--list`, `--seed`, `--variant heldout`, `--set`) | [SIMULATOR.md](docs/SIMULATOR.md) |
 | `prohori version` | Show the version | |
 
 Commands that take a file also read standard input with `-`, and every command has `--help`.
@@ -160,6 +166,7 @@ for invalid usage.
 | PRH-AUTHZ-001 | Authorisation denials across many resources | medium | T1595.003 |
 | PRH-ABUSE-001 | Rate-limit bursts or bot-check failures from one IP | medium | T1499.002 |
 | PRH-ADMIN-001 | Admin role granted | high | T1098 |
+| PRH-ADMIN-002 | Admin action at an unusual hour (22:00-07:00 local time) | medium | T1078 |
 | PRH-WEB-001 | Web scanning from one IP | medium | T1595.003 |
 | PRH-WEB-002 | Injection patterns in request paths | medium | T1190 |
 | PRH-WEB-003 | Scanner or empty user agent at a high request rate | medium | T1595.002 |
@@ -169,6 +176,33 @@ for invalid usage.
 ATT&CK tags are verified against the official Enterprise ATT&CK v20.0 data. Each rule has a
 runbook in [`src/prohori/runbooks/`](src/prohori/runbooks/). Writing your own rules is covered in
 [docs/RULES.md](docs/RULES.md).
+
+## How well the rules work
+
+`prohori simulate` writes each attack scenario in two variants: **default**, the attack the rules
+were designed for, and **held-out**, the same attack done the way a careful attacker would
+(slower, from more addresses, with a browser user agent, obfuscated, or at another hour).
+`scripts/evaluate_rules.py` runs all rules over five seeds of each and compares the alerts with
+the line labels.
+
+<!-- results:start -->
+| | Default | Held-out |
+|--|--------:|---------:|
+| Attacks caught by at least one expected rule | 40/40 | 35/40 |
+
+Expected rules that missed in the held-out variants (runs missed out of runs):
+
+- `account-takeover`: PRH-ACCT-001 3/5, PRH-AUTH-001 5/5
+- `admin-misuse`: PRH-ADMIN-002 5/5
+- `credential-stuffing`: PRH-AUTH-001 5/5, PRH-AUTH-002 5/5, PRH-AUTH-003 5/5
+- `password-spraying`: PRH-AUTH-001 5/5
+- `ssh-bruteforce`: PRH-AUTH-001 5/5
+- `web-scanning`: PRH-WEB-003 5/5
+<!-- results:end -->
+
+PRH-ACCT-001 has low precision on purpose: it flags every sensitive change soon after a sign-in,
+including the owners' own. These are synthetic results written by the rules' author; the full
+per-rule table and caveats are in [docs/SIMULATOR.md](docs/SIMULATOR.md#results).
 
 ## Privacy and safety
 
@@ -199,6 +233,7 @@ Third-party data terms (MITRE ATT&CK, GeoLite2, AbuseIPDB, VirusTotal) are summa
 | [Enrichment](docs/ENRICHMENT.md) | Providers, privacy, cache, limits and configuration |
 | [Incidents](docs/INCIDENTS.md) | Grouping, the scoring table, confidence and limitations |
 | [Reports](docs/REPORTS.md) | Formats, sections, redaction and output safety |
+| [Simulator](docs/SIMULATOR.md) | Attack scenarios, labels, and rule precision and recall |
 | [Decisions](docs/DECISIONS.md) | Architecture decision records |
 | [Third-party terms](docs/LICENSES.md) | Data and service licences |
 | [Wiki](https://github.com/UtshaBasak/Prohori/wiki) | Installation, quick start and guides |
@@ -207,7 +242,7 @@ Third-party data terms (MITRE ATT&CK, GeoLite2, AbuseIPDB, VirusTotal) are summa
 
 | Release | Contents | State |
 |---------|----------|-------|
-| v0.1.0 | Batch core: parsers, rules, enrichment, incidents, reports, log simulator with rule evaluation, `triage` and `demo` commands | Most of it is built; simulator and `triage` next |
+| v0.1.0 | Batch core: parsers, rules, enrichment, incidents, reports, log simulator with rule evaluation, `triage` and `demo` commands | Built except `triage`, `demo` and the release itself |
 | v0.2.0 | Machine learning: leakage-controlled intrusion detection on public flow datasets, log-derived anomaly detection, model cards | Planned |
 | v0.3.0 | Pipeline: streaming core, Redpanda and PostgreSQL in Docker, dbt models, dashboard, orchestration | Planned |
 | v1.0.0 | Optional LLM analyst (opt-in, redacted input, validated output), final polish | Planned |

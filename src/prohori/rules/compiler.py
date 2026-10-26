@@ -7,7 +7,9 @@ point at the exact line.
 import re
 from collections.abc import Mapping
 from dataclasses import dataclass, field
+from datetime import UTC
 from typing import Any, TypeVar
+from zoneinfo import ZoneInfo
 
 from pydantic import BaseModel, ValidationError
 
@@ -118,6 +120,7 @@ def compile_rule(document: object, source: str = "") -> CompileResult:
             errors.append(RuleError(("detection",), "detection must be a mapping"))
         return CompileResult(None, errors)
 
+    tz = ZoneInfo(meta.timezone) if meta is not None else UTC
     selections: dict[str, Selection] = {}
     for name, raw in detection.items():
         key = str(name)
@@ -127,7 +130,7 @@ def compile_rule(document: object, source: str = "") -> CompileResult:
         if not _NAME_RE.match(key) or key.lower() in _KEYWORDS:
             errors.append(RuleError(path, f"invalid selection name {key!r}"))
             continue
-        selection = compile_selection(key, raw, path, errors)
+        selection = compile_selection(key, raw, path, errors, tz)
         if selection is not None:
             selections[key] = selection
     if not selections and not any(e.path[:1] == ("detection",) for e in errors):

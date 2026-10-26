@@ -41,7 +41,7 @@ dependencies = [
     "pydantic>=2.10",
     "pyyaml>=6.0",
     "rich>=13.0",
-    "tzdata>=2024.1; sys_platform == 'win32'",
+    "tzdata>=2024.1",  # IANA timezones everywhere, even without system zoneinfo
     "typer>=0.15",
     "google-re2>=1.1",
     "httpx>=0.28",

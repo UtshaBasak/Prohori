@@ -14,3 +14,5 @@ timestamp,kind,description,event_id,alert_id,account,source_ip
 2026-10-24T21:11:05Z,alert,Alert PRH-AUTH-003 (critical): Successful sign-in after many failures from one IP,,alr-2700f3f4c20ba179ef87851e,,
 2026-10-24T21:12:30Z,event,"[app-security] account.2fa.disabled (success), account u-2001, from 203.0.113.7, DELETE /api/account/2fa, client web",evt-b4a805719a3e5812131f275e,,u-2001,203.0.113.7
 2026-10-24T21:12:30Z,alert,Alert PRH-ACCT-001 (high): Sensitive account change shortly after sign-in,,alr-ff99ad16d4da5391307b168d,,
+2026-10-24T21:13:10Z,event,"[app-security] account.bkash.changed (success), account u-2001, from 203.0.113.7, PATCH /api/account/payout, client web",evt-6f29461df339acb9232831d2,,u-2001,203.0.113.7
+2026-10-24T21:13:10Z,alert,Alert PRH-ACCT-001 (high): Sensitive account change shortly after sign-in,,alr-6e551672d8e006e14cb51624,,
