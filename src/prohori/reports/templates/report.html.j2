@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src 'none'; form-action 'none'; base-uri 'none'">
+<meta name="referrer" content="no-referrer">
+<meta name="generator" content="{{ appendix.rendered_with }}">
+<title>{{ id }}: {{ title }}</title>
+<style>
+:root { --fg: #1d232b; --muted: #5b6573; --bg: #ffffff; --panel: #f5f7fa; --line: #d8dde4;
+  --low: #3b7a57; --medium: #a66a00; --high: #c2410c; --critical: #b91c1c; }
+@media (prefers-color-scheme: dark) {
+  :root { --fg: #e6e9ee; --muted: #a2abb8; --bg: #14181d; --panel: #1d232b; --line: #2f3742; }
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--fg);
+  font: 15px/1.55 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+main { max-width: 1040px; margin: 0 auto; padding: 24px 16px 48px; }
+h1 { font-size: 1.6rem; margin: 0 0 4px; }
+h2 { font-size: 1.15rem; margin: 32px 0 8px; padding-bottom: 4px; border-bottom: 1px solid var(--line); }
+h3 { font-size: 1rem; margin: 18px 0 6px; }
+code, .mono { font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; font-size: .9em;
+  overflow-wrap: anywhere; }
+table { border-collapse: collapse; width: 100%; margin: 8px 0; }
+th, td { text-align: left; vertical-align: top; padding: 6px 8px; border-bottom: 1px solid var(--line);
+  overflow-wrap: anywhere; }
+th { background: var(--panel); font-weight: 600; }
+td.num, th.num { text-align: right; white-space: nowrap; }
+.meta { display: flex; flex-wrap: wrap; gap: 8px 24px; color: var(--muted); margin: 8px 0 0; }
+.badge { display: inline-block; padding: 1px 10px; border-radius: 999px; color: #fff; font-weight: 600; }
+.sev-low { background: var(--low); } .sev-medium { background: var(--medium); }
+.sev-high { background: var(--high); } .sev-critical { background: var(--critical); }
+.summary { background: var(--panel); border-left: 4px solid var(--line); padding: 12px 16px; }
+.kind-alert td { font-weight: 600; }
+.muted { color: var(--muted); }
+.table-wrap { overflow-x: auto; }
+</style>
+</head>
+<body>
+<main>
+<header>
+<h1>{{ title }}</h1>
+<div class="meta">
+<span><span class="badge sev-{{ severity }}">{{ severity }}</span> score {{ score }}</span>
+<span>Incident <code>{{ id }}</code></span>
+<span>Status: {{ status }}</span>
+<span>Confidence: {{ confidence }}</span>
+<span>{{ first_seen }} to {{ last_seen }}</span>
+</div>
+</header>
+
+<h2>Summary</h2>
+<div class="summary">
+<p>{{ summary }}</p>
+{% if key_factors %}
+<p>Main factors:</p>
+<ul>
+{% for factor in key_factors %}
+<li>{{ factor }}</li>
+{% endfor %}
+</ul>
+{% endif %}
+</div>
+
+<h2>Timeline</h2>
+<div class="table-wrap">
+<table>
+<thead><tr><th>Time</th><th>Kind</th><th>What happened</th></tr></thead>
+<tbody>
+{% for entry in timeline %}
+<tr class="kind-{{ entry.kind }}"><td class="mono">{{ entry.time }}</td><td>{{ entry.kind }}</td><td>{{ entry.description }}</td></tr>
+{% endfor %}
+</tbody>
+</table>
+</div>
+
+<h2>Indicators</h2>
+{% for indicator in indicators %}
+<h3>{{ indicator.type }}: <code>{{ indicator.value }}</code></h3>
+{% if indicator.enrichment %}
+<div class="table-wrap">
+<table>
+<thead><tr><th>Provider</th><th>Retrieved</th><th>Data</th></tr></thead>
+<tbody>
+{% for result in indicator.enrichment %}
+<tr><td>{{ result.provider }}</td><td class="mono">{{ result.retrieved }}</td><td>
+{% for key, value in result.data %}<span class="mono">{{ key }}</span>: {{ value }}{% if not loop.last %}<br>{% endif %}{% endfor %}
+{% if result.note %}<br><span class="muted">{{ result.note }}</span>{% endif %}
+</td></tr>
+{% endfor %}
+</tbody>
+</table>
+</div>
+{% else %}
+<p class="muted">No enrichment.</p>
+{% endif %}
+{% else %}
+<p class="muted">No indicators.</p>
+{% endfor %}
+
+<h2>Affected entities</h2>
+<table>
+<thead><tr><th>Field</th><th>Values</th></tr></thead>
+<tbody>
+{% for field, values in entities %}
+<tr><td><code>{{ field }}</code></td><td>{% for value in values %}<code>{{ value }}</code>{% if not loop.last %}, {% endif %}{% endfor %}</td></tr>
+{% endfor %}
+</tbody>
+</table>
+
+<h2>Evidence</h2>
+{% for alert in alerts %}
+<h3><code>{{ alert.rule }}</code> {{ alert.title }} ({{ alert.severity }})</h3>
+<ul>
+<li>{{ alert.first_seen }} to {{ alert.last_seen }}</li>
+<li>{{ alert.explanation }}</li>
+<li>Events: {% for event_id in alert.event_ids %}<code>{{ event_id }}</code>{% if not loop.last %}, {% endif %}{% endfor %}{% if alert.more_events %} and {{ alert.more_events }} more{% endif %}</li>
+</ul>
+{% endfor %}
+
+<h2>ATT&amp;CK mapping</h2>
+<p>Enterprise ATT&amp;CK v{{ attack_version }}.</p>
+<table>
+<thead><tr><th>Tactic</th><th>Techniques</th></tr></thead>
+<tbody>
+{% for tactic in tactics %}
+<tr><td>{{ tactic.name }}</td><td>{{ tactic.techniques | join(", ") if tactic.techniques else "-" }}</td></tr>
+{% endfor %}
+</tbody>
+</table>
+{% if unverified_tags %}
+<p class="muted">Not verified against ATT&amp;CK v{{ attack_version }}: {{ unverified_tags | join(", ") }}</p>
+{% endif %}
+
+<h2>Score breakdown</h2>
+<table>
+<thead><tr><th class="num">Points</th><th>Reason</th></tr></thead>
+<tbody>
+{% for reason, points in score_breakdown %}
+<tr><td class="num">{{ points }}</td><td>{{ reason }}</td></tr>
+{% endfor %}
+<tr><th class="num">{{ score }}</th><th>Total</th></tr>
+</tbody>
+</table>
+
+<h2>Recommended actions</h2>
+<p class="muted">Prohori only recommends actions; it never changes anything itself.</p>
+{% if actions %}
+<ol>
+{% for action in actions %}
+<li>{{ action }}</li>
+{% endfor %}
+</ol>
+{% else %}
+<p class="muted">No runbook actions for these rules.</p>
+{% endif %}
+
+<h2>Confidence and limitations</h2>
+<p>Confidence: <strong>{{ confidence }}</strong>.</p>
+<ul>
+{% for limitation in limitations %}
+<li>{{ limitation }}</li>
+{% else %}
+<li>None recorded.</li>
+{% endfor %}
+</ul>
+
+<h2>Appendix</h2>
+<h3>Rules fired</h3>
+<table>
+<thead><tr><th>Rule</th><th>Title</th><th class="num">Alerts</th><th>Rule file SHA-256</th></tr></thead>
+<tbody>
+{% for rule in appendix.rules %}
+<tr><td><code>{{ rule.id }}</code></td><td>{{ rule.title }}</td><td class="num">{{ rule.alerts }}</td><td><code>{{ rule.sha256 or "-" }}</code></td></tr>
+{% endfor %}
+</tbody>
+</table>
+
+<h3>Inputs</h3>
+{% if appendix.inputs %}
+<table>
+<thead><tr><th>File</th><th>Parser</th><th class="num">Events</th><th class="num">Bytes</th><th>SHA-256</th></tr></thead>
+<tbody>
+{% for item in appendix.inputs %}
+<tr><td><code>{{ item.name }}</code></td><td>{{ item.parser }}</td><td class="num">{{ item.events }}</td><td class="num">{{ item.bytes }}</td><td><code>{{ item.sha256 }}</code></td></tr>
+{% endfor %}
+</tbody>
+</table>
+{% else %}
+<p class="muted">Not recorded.</p>
+{% endif %}
+
+<h3>Versions</h3>
+<ul>
+<li>Incident built with: {{ appendix.built_with }} (enrichment: {{ appendix.enrichment }})</li>
+<li>Report rendered with: {{ appendix.rendered_with }}</li>
+<li>ATT&amp;CK: Enterprise v{{ attack_version }}</li>
+{% if appendix.source %}
+<li>Incident file: <code>{{ appendix.source.name }}</code>, SHA-256 <code>{{ appendix.source.sha256 }}</code></li>
+{% endif %}
+</ul>
+
+<h3>Privacy</h3>
+<p>{{ appendix.redaction }}</p>
+</main>
+</body>
+</html>
