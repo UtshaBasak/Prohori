@@ -1,0 +1,457 @@
+{
+  "format": "prohori.rules-eval/1",
+  "seeds": [
+    1
+  ],
+  "scenarios": [
+    "account-takeover",
+    "admin-misuse",
+    "credential-stuffing",
+    "injection",
+    "password-spraying",
+    "ssh-bruteforce",
+    "token-reuse",
+    "web-scanning"
+  ],
+  "lateness_seconds": 300,
+  "parse_errors": 0,
+  "not_evaluated": [
+    "PRH-ABUSE-001",
+    "PRH-AUTH-004",
+    "PRH-AUTHZ-001"
+  ],
+  "variants": {
+    "default": {
+      "rules": {
+        "PRH-ABUSE-001": {
+          "alerts": 0,
+          "true_positives": 0,
+          "false_positives": 0,
+          "attacks_expected": 0,
+          "attacks_detected": 0,
+          "precision": null,
+          "recall": null
+        },
+        "PRH-ACCT-001": {
+          "alerts": 56,
+          "true_positives": 2,
+          "false_positives": 54,
+          "attacks_expected": 1,
+          "attacks_detected": 1,
+          "precision": 0.036,
+          "recall": 1.0
+        },
+        "PRH-ADMIN-001": {
+          "alerts": 2,
+          "true_positives": 1,
+          "false_positives": 1,
+          "attacks_expected": 1,
+          "attacks_detected": 1,
+          "precision": 0.5,
+          "recall": 1.0
+        },
+        "PRH-ADMIN-002": {
+          "alerts": 2,
+          "true_positives": 2,
+          "false_positives": 0,
+          "attacks_expected": 1,
+          "attacks_detected": 1,
+          "precision": 1.0,
+          "recall": 1.0
+        },
+        "PRH-AUTH-001": {
+          "alerts": 20,
+          "true_positives": 20,
+          "false_positives": 0,
+          "attacks_expected": 4,
+          "attacks_detected": 4,
+          "precision": 1.0,
+          "recall": 1.0
+        },
+        "PRH-AUTH-002": {
+          "alerts": 23,
+          "true_positives": 23,
+          "false_positives": 0,
+          "attacks_expected": 2,
+          "attacks_detected": 2,
+          "precision": 1.0,
+          "recall": 1.0
+        },
+        "PRH-AUTH-003": {
+          "alerts": 5,
+          "true_positives": 5,
+          "false_positives": 0,
+          "attacks_expected": 2,
+          "attacks_detected": 2,
+          "precision": 1.0,
+          "recall": 1.0
+        },
+        "PRH-AUTH-004": {
+          "alerts": 0,
+          "true_positives": 0,
+          "false_positives": 0,
+          "attacks_expected": 0,
+          "attacks_detected": 0,
+          "precision": null,
+          "recall": null
+        },
+        "PRH-AUTHZ-001": {
+          "alerts": 0,
+          "true_positives": 0,
+          "false_positives": 0,
+          "attacks_expected": 0,
+          "attacks_detected": 0,
+          "precision": null,
+          "recall": null
+        },
+        "PRH-SESS-001": {
+          "alerts": 3,
+          "true_positives": 3,
+          "false_positives": 0,
+          "attacks_expected": 1,
+          "attacks_detected": 1,
+          "precision": 1.0,
+          "recall": 1.0
+        },
+        "PRH-SSH-001": {
+          "alerts": 10,
+          "true_positives": 10,
+          "false_positives": 0,
+          "attacks_expected": 1,
+          "attacks_detected": 1,
+          "precision": 1.0,
+          "recall": 1.0
+        },
+        "PRH-WEB-001": {
+          "alerts": 14,
+          "true_positives": 14,
+          "false_positives": 0,
+          "attacks_expected": 1,
+          "attacks_detected": 1,
+          "precision": 1.0,
+          "recall": 1.0
+        },
+        "PRH-WEB-002": {
+          "alerts": 6,
+          "true_positives": 6,
+          "false_positives": 0,
+          "attacks_expected": 1,
+          "attacks_detected": 1,
+          "precision": 1.0,
+          "recall": 1.0
+        },
+        "PRH-WEB-003": {
+          "alerts": 5,
+          "true_positives": 5,
+          "false_positives": 0,
+          "attacks_expected": 1,
+          "attacks_detected": 1,
+          "precision": 1.0,
+          "recall": 1.0
+        },
+        "PRH-WEB-004": {
+          "alerts": 3,
+          "true_positives": 3,
+          "false_positives": 0,
+          "attacks_expected": 1,
+          "attacks_detected": 1,
+          "precision": 1.0,
+          "recall": 1.0
+        }
+      },
+      "scenarios": {
+        "account-takeover": {
+          "runs": 1,
+          "attacks": 1,
+          "attacks_detected": 1,
+          "missed_by_rule": {},
+          "false_positives_by_rule": {
+            "PRH-ACCT-001": 13
+          }
+        },
+        "admin-misuse": {
+          "runs": 1,
+          "attacks": 1,
+          "attacks_detected": 1,
+          "missed_by_rule": {},
+          "false_positives_by_rule": {
+            "PRH-ACCT-001": 13,
+            "PRH-ADMIN-001": 1
+          }
+        },
+        "credential-stuffing": {
+          "runs": 1,
+          "attacks": 1,
+          "attacks_detected": 1,
+          "missed_by_rule": {},
+          "false_positives_by_rule": {
+            "PRH-ACCT-001": 9
+          }
+        },
+        "injection": {
+          "runs": 1,
+          "attacks": 1,
+          "attacks_detected": 1,
+          "missed_by_rule": {},
+          "false_positives_by_rule": {}
+        },
+        "password-spraying": {
+          "runs": 1,
+          "attacks": 1,
+          "attacks_detected": 1,
+          "missed_by_rule": {},
+          "false_positives_by_rule": {
+            "PRH-ACCT-001": 10
+          }
+        },
+        "ssh-bruteforce": {
+          "runs": 1,
+          "attacks": 1,
+          "attacks_detected": 1,
+          "missed_by_rule": {},
+          "false_positives_by_rule": {}
+        },
+        "token-reuse": {
+          "runs": 1,
+          "attacks": 1,
+          "attacks_detected": 1,
+          "missed_by_rule": {},
+          "false_positives_by_rule": {
+            "PRH-ACCT-001": 9
+          }
+        },
+        "web-scanning": {
+          "runs": 1,
+          "attacks": 1,
+          "attacks_detected": 1,
+          "missed_by_rule": {},
+          "false_positives_by_rule": {}
+        }
+      }
+    },
+    "heldout": {
+      "rules": {
+        "PRH-ABUSE-001": {
+          "alerts": 0,
+          "true_positives": 0,
+          "false_positives": 0,
+          "attacks_expected": 0,
+          "attacks_detected": 0,
+          "precision": null,
+          "recall": null
+        },
+        "PRH-ACCT-001": {
+          "alerts": 48,
+          "true_positives": 0,
+          "false_positives": 48,
+          "attacks_expected": 1,
+          "attacks_detected": 0,
+          "precision": 0.0,
+          "recall": 0.0
+        },
+        "PRH-ADMIN-001": {
+          "alerts": 2,
+          "true_positives": 1,
+          "false_positives": 1,
+          "attacks_expected": 1,
+          "attacks_detected": 1,
+          "precision": 0.5,
+          "recall": 1.0
+        },
+        "PRH-ADMIN-002": {
+          "alerts": 0,
+          "true_positives": 0,
+          "false_positives": 0,
+          "attacks_expected": 1,
+          "attacks_detected": 0,
+          "precision": null,
+          "recall": 0.0
+        },
+        "PRH-AUTH-001": {
+          "alerts": 0,
+          "true_positives": 0,
+          "false_positives": 0,
+          "attacks_expected": 4,
+          "attacks_detected": 0,
+          "precision": null,
+          "recall": 0.0
+        },
+        "PRH-AUTH-002": {
+          "alerts": 4,
+          "true_positives": 4,
+          "false_positives": 0,
+          "attacks_expected": 2,
+          "attacks_detected": 1,
+          "precision": 1.0,
+          "recall": 0.5
+        },
+        "PRH-AUTH-003": {
+          "alerts": 1,
+          "true_positives": 1,
+          "false_positives": 0,
+          "attacks_expected": 2,
+          "attacks_detected": 1,
+          "precision": 1.0,
+          "recall": 0.5
+        },
+        "PRH-AUTH-004": {
+          "alerts": 0,
+          "true_positives": 0,
+          "false_positives": 0,
+          "attacks_expected": 0,
+          "attacks_detected": 0,
+          "precision": null,
+          "recall": null
+        },
+        "PRH-AUTHZ-001": {
+          "alerts": 0,
+          "true_positives": 0,
+          "false_positives": 0,
+          "attacks_expected": 0,
+          "attacks_detected": 0,
+          "precision": null,
+          "recall": null
+        },
+        "PRH-SESS-001": {
+          "alerts": 3,
+          "true_positives": 3,
+          "false_positives": 0,
+          "attacks_expected": 1,
+          "attacks_detected": 1,
+          "precision": 1.0,
+          "recall": 1.0
+        },
+        "PRH-SSH-001": {
+          "alerts": 2,
+          "true_positives": 2,
+          "false_positives": 0,
+          "attacks_expected": 1,
+          "attacks_detected": 1,
+          "precision": 1.0,
+          "recall": 1.0
+        },
+        "PRH-WEB-001": {
+          "alerts": 14,
+          "true_positives": 14,
+          "false_positives": 0,
+          "attacks_expected": 1,
+          "attacks_detected": 1,
+          "precision": 1.0,
+          "recall": 1.0
+        },
+        "PRH-WEB-002": {
+          "alerts": 4,
+          "true_positives": 4,
+          "false_positives": 0,
+          "attacks_expected": 1,
+          "attacks_detected": 1,
+          "precision": 1.0,
+          "recall": 1.0
+        },
+        "PRH-WEB-003": {
+          "alerts": 0,
+          "true_positives": 0,
+          "false_positives": 0,
+          "attacks_expected": 1,
+          "attacks_detected": 0,
+          "precision": null,
+          "recall": 0.0
+        },
+        "PRH-WEB-004": {
+          "alerts": 3,
+          "true_positives": 3,
+          "false_positives": 0,
+          "attacks_expected": 1,
+          "attacks_detected": 1,
+          "precision": 1.0,
+          "recall": 1.0
+        }
+      },
+      "scenarios": {
+        "account-takeover": {
+          "runs": 1,
+          "attacks": 1,
+          "attacks_detected": 1,
+          "missed_by_rule": {
+            "PRH-ACCT-001": 1,
+            "PRH-AUTH-001": 1
+          },
+          "false_positives_by_rule": {
+            "PRH-ACCT-001": 8
+          }
+        },
+        "admin-misuse": {
+          "runs": 1,
+          "attacks": 1,
+          "attacks_detected": 1,
+          "missed_by_rule": {
+            "PRH-ADMIN-002": 1
+          },
+          "false_positives_by_rule": {
+            "PRH-ACCT-001": 13,
+            "PRH-ADMIN-001": 1
+          }
+        },
+        "credential-stuffing": {
+          "runs": 1,
+          "attacks": 1,
+          "attacks_detected": 0,
+          "missed_by_rule": {
+            "PRH-AUTH-001": 1,
+            "PRH-AUTH-002": 1,
+            "PRH-AUTH-003": 1
+          },
+          "false_positives_by_rule": {
+            "PRH-ACCT-001": 9
+          }
+        },
+        "injection": {
+          "runs": 1,
+          "attacks": 1,
+          "attacks_detected": 1,
+          "missed_by_rule": {},
+          "false_positives_by_rule": {}
+        },
+        "password-spraying": {
+          "runs": 1,
+          "attacks": 1,
+          "attacks_detected": 1,
+          "missed_by_rule": {
+            "PRH-AUTH-001": 1
+          },
+          "false_positives_by_rule": {
+            "PRH-ACCT-001": 10
+          }
+        },
+        "ssh-bruteforce": {
+          "runs": 1,
+          "attacks": 1,
+          "attacks_detected": 1,
+          "missed_by_rule": {
+            "PRH-AUTH-001": 1
+          },
+          "false_positives_by_rule": {}
+        },
+        "token-reuse": {
+          "runs": 1,
+          "attacks": 1,
+          "attacks_detected": 1,
+          "missed_by_rule": {},
+          "false_positives_by_rule": {
+            "PRH-ACCT-001": 8
+          }
+        },
+        "web-scanning": {
+          "runs": 1,
+          "attacks": 1,
+          "attacks_detected": 1,
+          "missed_by_rule": {
+            "PRH-WEB-003": 1
+          },
+          "false_positives_by_rule": {}
+        }
+      }
+    }
+  },
+  "caveat": "Synthetic results. The same author wrote the rules and the scenarios, and the default variants were written knowing the rules' thresholds, so they mostly show that the rules do what they say. The held-out variants change the attacker's behaviour (slower, spread over more addresses, obfuscated, outside a time window) and are the more honest number. Real logs are noisier; rules without a scenario are not evaluated."
+}
