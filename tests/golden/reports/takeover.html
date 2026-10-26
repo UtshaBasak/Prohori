@@ -6,7 +6,7 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src 'none'; form-action 'none'; base-uri 'none'">
 <meta name="referrer" content="no-referrer">
 <meta name="generator" content="prohori <version>">
-<title>INC-f124f17a36e60980: Successful sign-in after many failures from one IP and 2 related alerts</title>
+<title>INC-ee7c8818fbb34989: Successful sign-in after many failures from one IP and 3 related alerts</title>
 <style>
 :root { --fg: #1d232b; --muted: #5b6573; --bg: #ffffff; --panel: #f5f7fa; --line: #d8dde4;
   --low: #3b7a57; --medium: #a66a00; --high: #c2410c; --critical: #b91c1c; }
@@ -40,19 +40,19 @@ td.num, th.num { text-align: right; white-space: nowrap; }
 <body>
 <main>
 <header>
-<h1>Successful sign-in after many failures from one IP and 2 related alerts</h1>
+<h1>Successful sign-in after many failures from one IP and 3 related alerts</h1>
 <div class="meta">
 <span><span class="badge sev-critical">critical</span> score 100</span>
-<span>Incident <code>INC-f124f17a36e60980</code></span>
+<span>Incident <code>INC-ee7c8818fbb34989</code></span>
 <span>Status: open</span>
 <span>Confidence: high</span>
-<span>2026-10-24 21:10:00 UTC to 2026-10-24 21:12:30 UTC</span>
+<span>2026-10-24 21:10:00 UTC to 2026-10-24 21:13:10 UTC</span>
 </div>
 </header>
 
 <h2>Summary</h2>
 <div class="summary">
-<p>Critical incident (score 100, high confidence): 3 alert(s) from 3 rule(s) between 2026-10-24 21:10:00 UTC and 2026-10-24 21:12:30 UTC, from 203.0.113.7, involving u-2001.</p>
+<p>Critical incident (score 100, high confidence): 4 alert(s) from 3 rule(s) between 2026-10-24 21:10:00 UTC and 2026-10-24 21:13:10 UTC, from 203.0.113.7, involving u-2001.</p>
 <p>Main factors:</p>
 <ul>
 <li>Most severe alert: PRH-AUTH-003 (critical)</li>
@@ -81,6 +81,8 @@ td.num, th.num { text-align: right; white-space: nowrap; }
 <tr class="kind-alert"><td class="mono">2026-10-24 21:11:05 UTC</td><td>alert</td><td>Alert PRH-AUTH-003 (critical): Successful sign-in after many failures from one IP</td></tr>
 <tr class="kind-event"><td class="mono">2026-10-24 21:12:30 UTC</td><td>event</td><td>[app-security] account.2fa.disabled (success), account u-2001, from 203.0.113.7, DELETE /api/account/2fa, client web</td></tr>
 <tr class="kind-alert"><td class="mono">2026-10-24 21:12:30 UTC</td><td>alert</td><td>Alert PRH-ACCT-001 (high): Sensitive account change shortly after sign-in</td></tr>
+<tr class="kind-event"><td class="mono">2026-10-24 21:13:10 UTC</td><td>event</td><td>[app-security] account.bkash.changed (success), account u-2001, from 203.0.113.7, PATCH /api/account/payout, client web</td></tr>
+<tr class="kind-alert"><td class="mono">2026-10-24 21:13:10 UTC</td><td>alert</td><td>Alert PRH-ACCT-001 (high): Sensitive account change shortly after sign-in</td></tr>
 </tbody>
 </table>
 </div>
@@ -124,6 +126,12 @@ td.num, th.num { text-align: right; white-space: nowrap; }
 </ul>
 <h3><code>PRH-ACCT-001</code> Sensitive account change shortly after sign-in (high)</h3>
 <ul>
+<li>2026-10-24 21:11:05 UTC to 2026-10-24 21:13:10 UTC</li>
+<li>1 x signin then 1 x change for user.id=u-2001 within 30m</li>
+<li>Events: <code>evt-d921c9a6c26404450a3b9d46</code>, <code>evt-6f29461df339acb9232831d2</code></li>
+</ul>
+<h3><code>PRH-ACCT-001</code> Sensitive account change shortly after sign-in (high)</h3>
+<ul>
 <li>2026-10-24 21:11:05 UTC to 2026-10-24 21:12:30 UTC</li>
 <li>1 x signin then 1 x change for user.id=u-2001 within 30m</li>
 <li>Events: <code>evt-d921c9a6c26404450a3b9d46</code>, <code>evt-b4a805719a3e5812131f275e</code></li>
@@ -149,7 +157,7 @@ td.num, th.num { text-align: right; white-space: nowrap; }
 <tr><td class="num">+50</td><td>Most severe alert: PRH-AUTH-003 (critical)</td></tr>
 <tr><td class="num">+20</td><td>2 more rules fired: PRH-ACCT-001, PRH-AUTH-001</td></tr>
 <tr><td class="num">+20</td><td>A sign-in succeeded after failed attempts</td></tr>
-<tr><td class="num">+15</td><td>Sensitive account or admin change: account.2fa.disabled</td></tr>
+<tr><td class="num">+15</td><td>Sensitive account or admin change: account.2fa.disabled, account.bkash.changed</td></tr>
 <tr><td class="num">+20</td><td>Reputation of 203.0.113.7: abuse confidence 97; 9 vendors flag it as malicious (from bundled demo data)</td></tr>
 <tr><td class="num">+10</td><td>Sign-in to u-2001 from 203.0.113.7, an IP not seen for this account before (1 earlier IP)</td></tr>
 <tr><td class="num">+5</td><td>Sign-in to u-2001 with client web, not seen for this account before</td></tr>
@@ -164,12 +172,10 @@ td.num, th.num { text-align: right; white-space: nowrap; }
 <li>End all sessions of the account and force a password reset.</li>
 <li>Block the source IP.</li>
 <li>Revert unauthorised changes, such as a changed payout number or disabled two-step verification.</li>
-<li>For SSH, isolate the server, check `authorized_keys`, users and scheduled jobs, and rotate credentials stored on it.</li>
 <li>Require two-step verification for the account.</li>
 <li>Block or rate-limit the source IP at the firewall, reverse proxy or application while you investigate.</li>
 <li>If any sign-in from the IP succeeded, follow the runbook for PRH-AUTH-003.</li>
-<li>For SSH, disable password authentication and allow keys only; restrict SSH to known networks.</li>
-<li>Make sure account lockout or progressive delays and bot checks are enabled on the sign-in form.</li>
+<li>For the web app, make sure account lockout or progressive delays and bot checks are enabled on the sign-in form.</li>
 <li>If the owner did not make the change: end all sessions, revert the change, reset the password and re-enable two-step verification.</li>
 <li>Hold payouts to a newly changed payout number until the owner confirms it.</li>
 <li>Consider requiring re-authentication or a confirmation code for these changes.</li>
@@ -194,7 +200,7 @@ td.num, th.num { text-align: right; white-space: nowrap; }
 <table>
 <thead><tr><th>Rule</th><th>Title</th><th class="num">Alerts</th><th>Rule file SHA-256</th></tr></thead>
 <tbody>
-<tr><td><code>PRH-ACCT-001</code></td><td>Sensitive account change shortly after sign-in</td><td class="num">1</td><td><code>f523b6831891b2444e932426d69ce28f08156b251a5bc771b312de3fcf1049c9</code></td></tr>
+<tr><td><code>PRH-ACCT-001</code></td><td>Sensitive account change shortly after sign-in</td><td class="num">2</td><td><code>f523b6831891b2444e932426d69ce28f08156b251a5bc771b312de3fcf1049c9</code></td></tr>
 <tr><td><code>PRH-AUTH-001</code></td><td>Brute-force sign-in attempts from one IP</td><td class="num">1</td><td><code>510045192d86bc5c3e4baae6cea620b22206abf12aa0980b49125fd0af94e97f</code></td></tr>
 <tr><td><code>PRH-AUTH-003</code></td><td>Successful sign-in after many failures from one IP</td><td class="num">1</td><td><code>8c63236a86391c4cef1655511802f13d1c331a5a26c1392dc605d6815c73d6bd</code></td></tr>
 </tbody>

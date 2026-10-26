@@ -9,6 +9,12 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- Time-of-day matching in rules: a `timezone` key and the `time.hour`, `time.weekday` and
+  `time.minute_of_day` fields.
+- Built-in rule PRH-ADMIN-002: admin actions between 22:00 and 07:00 (Asia/Dhaka), with fixtures
+  and a runbook (15 built-in rules in total).
+- Runbook actions starting with `For SSH,` or `For the web app,` are shown only for incidents
+  with that kind of event.
 - Incident reports (`prohori.reports`) and `prohori report INCIDENT [-f md|html|json|csv]`:
   header, summary, timeline, indicators with enrichment, entities, evidence, ATT&CK mapping,
   score breakdown, recommended actions, confidence and limitations, and an appendix with input
@@ -21,7 +27,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - `Incident.provenance` (tool version, input files with SHA-256, rules fired with rule-file
   SHA-256, enrichment mode), filled in by `prohori incidents`; `TimelineEntry.account` and
   `TimelineEntry.source_ip`.
-- Sample incident `samples/incidents/INC-f124f17a36e60980.json`.
+- Sample incident `samples/incidents/INC-ee7c8818fbb34989.json`.
 - `jinja2` is now a core dependency.
 - Incident builder (`prohori.incidents`) and `prohori incidents FILE|-`: alerts that share an IP,
   account, request or session within a time gap become one incident, with a points-based score
@@ -72,13 +78,6 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - `generic_json` parser driven by a validated YAML field-mapping file.
 - Sample access, application and generic JSON logs, and a sample mapping file.
 - `pyyaml` and `rich` as core dependencies.
-
-### Changed
-
-- String values in `Event.extra` and enrichment data are truncated to 1,024 characters.
-- Parse error reasons name the invalid schema field.
-- The fuzz harness covers every parser.
-
 - Parser framework (`prohori.parsers`): bounded binary line reading, sanitising of control,
   ANSI and invisible characters, per-run statistics with error examples, and a parser registry.
 - `auth_log` parser for Linux `auth.log` / `secure`: sshd logins, invalid users, too many
@@ -101,5 +100,11 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- A completed `sequence` stays open until `start + within`: further events matching its last step
+  raise further alerts instead of being ignored. PRH-ACCT-001 now also reports a second account
+  change after one sign-in (for example 2FA disabled, then the payout number changed).
+- String values in `Event.extra` and enrichment data are truncated to 1,024 characters.
+- Parse error reasons name the invalid schema field.
+- The fuzz harness covers every parser.
 - `samples/logs/auth.log` now includes the attacker reconnecting after the first MaxAuthTries
   disconnect, so the sample shows a full brute-force alert.

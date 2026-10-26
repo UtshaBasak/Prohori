@@ -1,17 +1,17 @@
-# Successful sign-in after many failures from one IP and 2 related alerts
+# Successful sign-in after many failures from one IP and 3 related alerts
 
 | | |
 |---|---|
-| Incident | `INC-f124f17a36e60980` |
+| Incident | `INC-ee7c8818fbb34989` |
 | Status | open |
 | Severity | **critical** (score 100) |
 | Confidence | high |
 | First seen | 2026-10-24 21:10:00 UTC |
-| Last seen | 2026-10-24 21:12:30 UTC |
+| Last seen | 2026-10-24 21:13:10 UTC |
 
 ## Summary
 
-Critical incident (score 100, high confidence): 3 alert(s) from 3 rule(s) between 2026-10-24 21:10:00 UTC and 2026-10-24 21:12:30 UTC, from 203.0.113.7, involving u-2001.
+Critical incident (score 100, high confidence): 4 alert(s) from 3 rule(s) between 2026-10-24 21:10:00 UTC and 2026-10-24 21:13:10 UTC, from 203.0.113.7, involving u-2001.
 
 Main factors:
 
@@ -38,6 +38,8 @@ Main factors:
 | 2026-10-24 21:11:05 UTC | alert | Alert PRH-AUTH-003 (critical): Successful sign-in after many failures from one IP |
 | 2026-10-24 21:12:30 UTC | event | \[app-security\] account.2fa.disabled (success), account u-2001, from 203.0.113.7, DELETE /api/account/2fa, client web |
 | 2026-10-24 21:12:30 UTC | alert | Alert PRH-ACCT-001 (high): Sensitive account change shortly after sign-in |
+| 2026-10-24 21:13:10 UTC | event | \[app-security\] account.bkash.changed (success), account u-2001, from 203.0.113.7, PATCH /api/account/payout, client web |
+| 2026-10-24 21:13:10 UTC | alert | Alert PRH-ACCT-001 (high): Sensitive account change shortly after sign-in |
 
 ## Indicators
 
@@ -75,6 +77,12 @@ No enrichment.
 
 ### `PRH-ACCT-001` Sensitive account change shortly after sign-in (high)
 
+- 2026-10-24 21:11:05 UTC to 2026-10-24 21:13:10 UTC
+- 1 x signin then 1 x change for user.id=u-2001 within 30m
+- Events: `evt-d921c9a6c26404450a3b9d46`, `evt-6f29461df339acb9232831d2`
+
+### `PRH-ACCT-001` Sensitive account change shortly after sign-in (high)
+
 - 2026-10-24 21:11:05 UTC to 2026-10-24 21:12:30 UTC
 - 1 x signin then 1 x change for user.id=u-2001 within 30m
 - Events: `evt-d921c9a6c26404450a3b9d46`, `evt-b4a805719a3e5812131f275e`
@@ -98,7 +106,7 @@ Enterprise ATT&CK v20.0.
 | +50 | Most severe alert: PRH-AUTH-003 (critical) |
 | +20 | 2 more rules fired: PRH-ACCT-001, PRH-AUTH-001 |
 | +20 | A sign-in succeeded after failed attempts |
-| +15 | Sensitive account or admin change: account.2fa.disabled |
+| +15 | Sensitive account or admin change: account.2fa.disabled, account.bkash.changed |
 | +20 | Reputation of 203.0.113.7: abuse confidence 97; 9 vendors flag it as malicious (from bundled demo data) |
 | +10 | Sign-in to u-2001 from 203.0.113.7, an IP not seen for this account before (1 earlier IP) |
 | +5 | Sign-in to u-2001 with client web, not seen for this account before |
@@ -112,12 +120,10 @@ Prohori only recommends actions; it never changes anything itself.
 1. End all sessions of the account and force a password reset.
 1. Block the source IP.
 1. Revert unauthorised changes, such as a changed payout number or disabled two-step verification.
-1. For SSH, isolate the server, check \`authorized\_keys\`, users and scheduled jobs, and rotate credentials stored on it.
 1. Require two-step verification for the account.
 1. Block or rate-limit the source IP at the firewall, reverse proxy or application while you investigate.
 1. If any sign-in from the IP succeeded, follow the runbook for PRH-AUTH-003.
-1. For SSH, disable password authentication and allow keys only; restrict SSH to known networks.
-1. Make sure account lockout or progressive delays and bot checks are enabled on the sign-in form.
+1. For the web app, make sure account lockout or progressive delays and bot checks are enabled on the sign-in form.
 1. If the owner did not make the change: end all sessions, revert the change, reset the password and re-enable two-step verification.
 1. Hold payouts to a newly changed payout number until the owner confirms it.
 1. Consider requiring re-authentication or a confirmation code for these changes.
@@ -142,7 +148,7 @@ Confidence: **high**.
 
 | Rule | Title | Alerts | Rule file SHA-256 |
 |------|-------|-------:|-------------------|
-| `PRH-ACCT-001` | Sensitive account change shortly after sign-in | 1 | `f523b6831891b2444e932426d69ce28f08156b251a5bc771b312de3fcf1049c9` |
+| `PRH-ACCT-001` | Sensitive account change shortly after sign-in | 2 | `f523b6831891b2444e932426d69ce28f08156b251a5bc771b312de3fcf1049c9` |
 | `PRH-AUTH-001` | Brute-force sign-in attempts from one IP | 1 | `510045192d86bc5c3e4baae6cea620b22206abf12aa0980b49125fd0af94e97f` |
 | `PRH-AUTH-003` | Successful sign-in after many failures from one IP | 1 | `8c63236a86391c4cef1655511802f13d1c331a5a26c1392dc605d6815c73d6bd` |
 

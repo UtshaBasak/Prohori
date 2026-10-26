@@ -62,7 +62,7 @@ def test_summary_goes_to_stderr() -> None:
         "input": "account-takeover.jsonl",
         "events": 17,
         "parse_errors": 0,
-        "alerts": 3,
+        "alerts": 4,
         "incidents": 1,
     }
 
@@ -72,7 +72,7 @@ def test_table_output() -> None:
     assert result.exit_code == ExitCode.ALERTS_FOUND
     assert "critical  score 100" in result.stdout
     assert "Capped at 100" in result.stdout
-    assert "1 incident(s) from 3 alert(s) in account-takeover.jsonl." in result.stdout
+    assert "1 incident(s) from 4 alert(s) in account-takeover.jsonl." in result.stdout
 
 
 def test_no_enrich_and_exit_zero() -> None:

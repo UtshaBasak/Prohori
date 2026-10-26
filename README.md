@@ -57,7 +57,7 @@ toolkit in Python that runs on a single laptop with free tools only, offline by 
 ```mermaid
 flowchart LR
     A[Log files<br>auth.log, nginx, app JSON] --> B[parse<br>common event schema]
-    B --> C[detect<br>14 YAML rules]
+    B --> C[detect<br>15 YAML rules]
     C --> D[incidents<br>group, score, ATT&CK]
     E[enrich<br>GeoLite2, AbuseIPDB, VirusTotal] --> D
     D --> F[report<br>Markdown, HTML, JSON, CSV]
@@ -66,7 +66,7 @@ flowchart LR
 | Stage | Today |
 |-------|-------|
 | **Parse** | Linux `auth.log` (sshd, sudo, PAM), nginx/Apache access logs, application security events (JSON Lines) and any JSON Lines layout through a YAML field mapping, into one typed event schema. Format detection, streaming with bounded memory, hostile input handled (oversized lines, bad encodings, control characters). |
-| **Detect** | 14 readable YAML rules (Sigma-inspired) with field modifiers, thresholds, distinct counts, ratios, sliding and tumbling windows and ordered sequences. Every rule ships with test fixtures and a runbook; regular expressions run on RE2, so no pattern can hang a run. |
+| **Detect** | 15 readable YAML rules (Sigma-inspired) with field modifiers, thresholds, distinct counts, ratios, sliding and tumbling windows and ordered sequences. Every rule ships with test fixtures and a runbook; regular expressions run on RE2, so no pattern can hang a run. |
 | **Enrich** | IP geolocation, network owner and reputation from local GeoLite2 files, AbuseIPDB and VirusTotal, all optional. SQLite cache, daily budgets, rate limiting and bounded retries. Private and documentation addresses never leave the machine. |
 | **Incidents** | Related alerts (same IP, account, request or session within a time gap) become one incident with a points-based score you can read line by line, severity, confidence, MITRE ATT&CK v20.0 mapping, a timeline, recommended actions and stated limitations. Detects sign-ins from an IP or app new to the account. |
 | **Report** | Markdown, a self-contained HTML page, JSON or a CSV timeline, with an appendix of input and rule-file SHA-256 hashes. `--redact` replaces account names, ids and emails (and optionally IPs) with keyed pseudonyms, and refuses to write a report that would still leak one. |
@@ -84,10 +84,10 @@ git clone https://github.com/UtshaBasak/Prohori.git && cd Prohori
 uv sync
 
 uv run prohori parse samples/logs/auth.log                      # normalise a log
-uv run prohori detect samples/logs/auth.log                     # run the 14 rules
+uv run prohori detect samples/logs/auth.log                     # run the 15 rules
 uv run prohori enrich 203.0.113.7 --offline                     # look up an IP (demo data)
 uv run prohori incidents samples/logs/account-takeover.jsonl    # group alerts into incidents
-uv run prohori report samples/incidents/INC-f124f17a36e60980.json -f html -o report.html
+uv run prohori report samples/incidents/INC-ee7c8818fbb34989.json -f html -o report.html
 ```
 
 Open `report.html` in a browser: one file, no scripts, no external resources.
@@ -95,15 +95,16 @@ Open `report.html` in a browser: one file, no scripts, no external resources.
 ## Example: an account takeover
 
 `samples/logs/account-takeover.jsonl` is a synthetic attack on a web shop account: twelve wrong
-passwords from one IP in 33 seconds, a successful sign-in, then two-step verification switched
-off. Prohori raises three alerts and joins them into **one critical incident**:
+passwords from one IP in 33 seconds, a successful sign-in, two-step verification switched off and
+the bKash payout number changed. Prohori raises four alerts and joins them into **one critical
+incident**:
 
 ```text
 $ uv run prohori incidents samples/logs/account-takeover.jsonl     # first lines
-INC-f124f17a36e60980  critical  score 100
+INC-ee7c8818fbb34989  critical  score 100
 +-------------------------------------------------------------------------------------------------+
-| title       | Successful sign-in after many failures from one IP and 2 related alerts           |
-| time (UTC)  | 2026-10-24 21:10:00 - 2026-10-24 21:12:30                                         |
+| title       | Successful sign-in after many failures from one IP and 3 related alerts           |
+| time (UTC)  | 2026-10-24 21:10:00 - 2026-10-24 21:13:10                                         |
 | confidence  | high                                                                              |
 | rules       | PRH-ACCT-001, PRH-AUTH-001, PRH-AUTH-003                                          |
 | entities    | source.ip: 203.0.113.7                                                            |
@@ -118,7 +119,7 @@ Every point of the score is explained (from `prohori report`):
 | +50 | Most severe alert: PRH-AUTH-003 (critical) |
 | +20 | 2 more rules fired: PRH-ACCT-001, PRH-AUTH-001 |
 | +20 | A sign-in succeeded after failed attempts |
-| +15 | Sensitive account or admin change: account.2fa.disabled |
+| +15 | Sensitive account or admin change: account.2fa.disabled, account.bkash.changed |
 | +20 | Reputation of 203.0.113.7: abuse confidence 97; 9 vendors flag it as malicious (from bundled demo data) |
 | +10 | Sign-in to u-2001 from 203.0.113.7, an IP not seen for this account before (1 earlier IP) |
 | +5 | Sign-in to u-2001 with client web, not seen for this account before |
@@ -135,7 +136,7 @@ recommended actions from the runbooks and the limitations, such as "single log s
 | Command | What it does | Docs |
 |---------|--------------|------|
 | `prohori parse FILE` | Parse and normalise a log; table or JSON Lines | [PARSERS.md](docs/PARSERS.md) |
-| `prohori detect FILE` | Run the built-in rules (and `--rules DIR`); exit code 3 when alerts are found | [RULES.md](docs/RULES.md) |
+| `prohori detect FILE` | Run the 15 built-in rules (and `--rules DIR`); exit code 3 when alerts are found | [RULES.md](docs/RULES.md) |
 | `prohori rules list` / `validate` / `test` | Show, check and test detection rules | [RULES.md](docs/RULES.md) |
 | `prohori enrich IP...` | Geolocation and reputation; `--offline` never uses the network | [ENRICHMENT.md](docs/ENRICHMENT.md) |
 | `prohori incidents FILE` | Parse, detect and group alerts into scored incidents; offline enrichment unless `--online` | [INCIDENTS.md](docs/INCIDENTS.md) |
@@ -160,6 +161,7 @@ for invalid usage.
 | PRH-AUTHZ-001 | Authorisation denials across many resources | medium | T1595.003 |
 | PRH-ABUSE-001 | Rate-limit bursts or bot-check failures from one IP | medium | T1499.002 |
 | PRH-ADMIN-001 | Admin role granted | high | T1098 |
+| PRH-ADMIN-002 | Admin action at an unusual hour (22:00-07:00 local time) | medium | T1078 |
 | PRH-WEB-001 | Web scanning from one IP | medium | T1595.003 |
 | PRH-WEB-002 | Injection patterns in request paths | medium | T1190 |
 | PRH-WEB-003 | Scanner or empty user agent at a high request rate | medium | T1595.002 |

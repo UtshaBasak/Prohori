@@ -5,12 +5,12 @@
 ```bash
 prohori incidents auth.log -f json > incidents.jsonl          # build incidents first
 prohori report incidents.jsonl --incident INC-597217faa07b7dc8 # choose one when there are several
-prohori report samples/incidents/INC-f124f17a36e60980.json                 # Markdown to stdout
-prohori report samples/incidents/INC-f124f17a36e60980.json -f html -o report.html
-prohori report samples/incidents/INC-f124f17a36e60980.json -f json -o report.json
-prohori report samples/incidents/INC-f124f17a36e60980.json -f csv -o timeline.csv
-prohori report samples/incidents/INC-f124f17a36e60980.json --redact        # hide accounts
-prohori report samples/incidents/INC-f124f17a36e60980.json --redact-ips    # hide accounts and IPs
+prohori report samples/incidents/INC-ee7c8818fbb34989.json                 # Markdown to stdout
+prohori report samples/incidents/INC-ee7c8818fbb34989.json -f html -o report.html
+prohori report samples/incidents/INC-ee7c8818fbb34989.json -f json -o report.json
+prohori report samples/incidents/INC-ee7c8818fbb34989.json -f csv -o timeline.csv
+prohori report samples/incidents/INC-ee7c8818fbb34989.json --redact        # hide accounts
+prohori report samples/incidents/INC-ee7c8818fbb34989.json --redact-ips    # hide accounts and IPs
 ```
 
 The input is an incident JSON document, a JSON array of incidents, or the JSON Lines written by
