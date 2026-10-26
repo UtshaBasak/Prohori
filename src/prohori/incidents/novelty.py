@@ -9,10 +9,8 @@ from collections.abc import Mapping
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import StrEnum
-from typing import TYPE_CHECKING
 
-if TYPE_CHECKING:
-    from prohori.incidents.events import EventSummary
+from prohori.incidents.summary import EventSummary
 
 #: Actions that count as a successful sign-in.
 SIGNIN_SUCCESS_ACTIONS = frozenset({"auth.signin.success", "ssh.login.success"})
@@ -85,7 +83,7 @@ class SignInHistory:
         self.accounts_dropped = 0
         self._accounts: dict[str, _Account] = {}
 
-    def add(self, event: "EventSummary") -> None:
+    def add(self, event: EventSummary) -> None:
         """Record ``event`` if it is a successful sign-in with a known account."""
         account = event.account
         if event.action not in SIGNIN_SUCCESS_ACTIONS or account is None:
@@ -101,7 +99,7 @@ class SignInHistory:
         if not fitted:
             state.full = True
 
-    def check(self, event: "EventSummary") -> Novelty | None:
+    def check(self, event: EventSummary) -> Novelty | None:
         """Say whether a successful sign-in came from an IP and client new to the account.
 
         Returns None for events that are not successful sign-ins with a known account.

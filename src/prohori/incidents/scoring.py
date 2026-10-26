@@ -8,13 +8,13 @@ from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
 from datetime import datetime
 
-from prohori.incidents.events import USER_FIELDS, EventSummary
 from prohori.incidents.novelty import (
     SIGNIN_FAILURE_ACTIONS,
     SIGNIN_SUCCESS_ACTIONS,
     Novelty,
     NoveltyStatus,
 )
+from prohori.incidents.summary import USER_FIELDS, EventSummary
 from prohori.schema import Alert, EnrichmentResult, ScoreComponent, Severity
 
 #: Points for the most severe alert in the incident.

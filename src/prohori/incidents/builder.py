@@ -13,7 +13,7 @@ from typing import TypeVar
 from prohori.enrich import Enricher, EnrichmentReport, parse_ip
 from prohori.enrich.enricher import NOT_PUBLIC_NOTE
 from prohori.incidents.attack import map_attack
-from prohori.incidents.events import EventContext, EventSummary
+from prohori.incidents.events import EventContext
 from prohori.incidents.grouping import (
     DEFAULT_GAP,
     DEFAULT_MAX_IP_FANOUT,
@@ -23,6 +23,7 @@ from prohori.incidents.grouping import (
 from prohori.incidents.novelty import SIGNIN_SUCCESS_ACTIONS, Novelty, NoveltyStatus
 from prohori.incidents.runbooks import RuleGuidance, load_guidance
 from prohori.incidents.scoring import Score, score_incident
+from prohori.incidents.summary import EventSummary
 from prohori.rules import CompiledRule
 from prohori.schema import (
     Alert,

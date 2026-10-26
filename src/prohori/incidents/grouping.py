@@ -17,7 +17,8 @@ from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 
-from prohori.incidents.events import LINK_FIELDS, USER_FIELDS, EventContext
+from prohori.incidents.events import EventContext
+from prohori.incidents.summary import LINK_FIELDS, USER_FIELDS
 from prohori.schema import Alert
 
 #: Default gap: alerts more than this far apart do not join one incident through an entity.
