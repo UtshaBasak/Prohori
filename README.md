@@ -27,6 +27,7 @@
 [![Contributor Covenant](https://img.shields.io/badge/contributor%20covenant-2.1-4baaaa)](CODE_OF_CONDUCT.md)
 
 <!-- Repository -->
+[![Clones](https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2FUtshaBasak%2FProhori%2Ftraffic-data%2Fclones-badge.json)](https://github.com/UtshaBasak/Prohori/blob/traffic-data/clones.json)
 [![Last commit](https://img.shields.io/github/last-commit/UtshaBasak/Prohori)](https://github.com/UtshaBasak/Prohori/commits/main)
 [![Commit activity](https://img.shields.io/github/commit-activity/m/UtshaBasak/Prohori)](https://github.com/UtshaBasak/Prohori/graphs/commit-activity)
 [![Open issues](https://img.shields.io/github/issues/UtshaBasak/Prohori)](https://github.com/UtshaBasak/Prohori/issues)
