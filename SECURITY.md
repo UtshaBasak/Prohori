@@ -2,7 +2,11 @@
 
 ## Supported versions
 
-Prohori is pre-release software. Security fixes are applied to the latest release only.
+Prohori is alpha software. Security fixes are applied to the latest release only.
+
+| Version | Supported |
+|---------|-----------|
+| 0.1.x | Yes |
 
 ## Reporting a vulnerability
 
