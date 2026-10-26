@@ -9,6 +9,20 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- Incident reports (`prohori.reports`) and `prohori report INCIDENT [-f md|html|json|csv]`:
+  header, summary, timeline, indicators with enrichment, entities, evidence, ATT&CK mapping,
+  score breakdown, recommended actions, confidence and limitations, and an appendix with input
+  and rule-file SHA-256 hashes and versions. HTML is one self-contained file with a strict
+  Content-Security-Policy; Markdown escapes every value; CSV cells cannot become formulas.
+  Documented in `docs/REPORTS.md`.
+- `--redact` and `--redact-ips`: account names, ids, email hashes, emails and optionally IP
+  addresses become keyed pseudonyms (HMAC-SHA256, random key per run); the command refuses to
+  write a report that would still contain an original value.
+- `Incident.provenance` (tool version, input files with SHA-256, rules fired with rule-file
+  SHA-256, enrichment mode), filled in by `prohori incidents`; `TimelineEntry.account` and
+  `TimelineEntry.source_ip`.
+- Sample incident `samples/incidents/INC-f124f17a36e60980.json`.
+- `jinja2` is now a core dependency.
 - Incident builder (`prohori.incidents`) and `prohori incidents FILE|-`: alerts that share an IP,
   account, request or session within a time gap become one incident, with a points-based score
   and its breakdown, severity, confidence, ATT&CK mapping (with the ATT&CK version), a timeline,
