@@ -6,6 +6,7 @@
 | [ARCHITECTURE.md](ARCHITECTURE.md) | Components, data flow and run modes |
 | [examples/](examples/) | Sample incident reports (Markdown, HTML, redacted) |
 | [DECISIONS.md](DECISIONS.md) | Architecture decision log |
+| [RELEASING.md](RELEASING.md) | Release process: tag, TestPyPI, approval, PyPI, GitHub release |
 | [SCHEMA.md](SCHEMA.md) | Event, Alert and Incident schema |
 | [PARSERS.md](PARSERS.md) | Parser framework and supported log formats |
 | [RULES.md](RULES.md) | Detection rule format and authoring guide |

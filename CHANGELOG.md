@@ -7,8 +7,32 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-10-27
+
+First public release: the batch core, from a log file to scored incidents and shareable reports,
+offline by default.
+
+### Highlights
+
+- `prohori demo`: simulated attacks triaged offline in seconds, with no configuration.
+- `prohori triage FILE`: parse, detect, enrich, build incidents and write a report per incident.
+- Parsers for Linux `auth.log`, nginx/Apache access logs and JSON Lines (app layout or a field
+  mapping), into one typed event schema.
+- 15 YAML detection rules with fixtures, runbooks and ATT&CK v20.0 tags, run by a stateful engine
+  (thresholds, windows, sequences, time of day).
+- Optional IP enrichment (GeoLite2, AbuseIPDB, VirusTotal) that never sends private or
+  documentation addresses, with caching and rate limits.
+- Incidents with a points-based score and its breakdown, confidence and limitations; reports in
+  Markdown, self-contained HTML, JSON and CSV, with fail-closed redaction.
+- A labelled attack simulator and published per-rule precision and recall, including held-out
+  variants that show where the rules miss.
+
 ### Added
 
+- Release workflow (`.github/workflows/release.yml`): tag-triggered build, `twine check`, wheel
+  smoke tests on Linux and Windows, TestPyPI, PyPI after a maintainer's approval (trusted
+  publishing, no tokens), a GitHub release with the changelog section, and an install-from-PyPI
+  check. Documented in `docs/RELEASING.md`.
 - `prohori triage FILE|-`: parse, detect, enrich (offline unless `--online`), build incidents and
   write `incidents.jsonl`, one report per incident (`--format md|html|json|csv`) and
   `summary.md`; `--redact` / `--redact-ips` redact every file with one key per run.
@@ -117,16 +141,5 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Contributor, security and code-of-conduct documents.
 - OpenSSF Scorecard workflow, README status badges and a project wiki.
 
-### Changed
-
-- A completed `sequence` stays open until `start + within`: further events matching its last step
-  raise further alerts instead of being ignored. PRH-ACCT-001 now also reports a second account
-  change after one sign-in (for example 2FA disabled, then the payout number changed).
-  New first-step events meanwhile start a fresh sequence, so a second sign-in opens a new window.
-- `tzdata` is now a dependency on every platform, so built-in rules that use a timezone load even
-  where the system has no timezone database.
-- String values in `Event.extra` and enrichment data are truncated to 1,024 characters.
-- Parse error reasons name the invalid schema field.
-- The fuzz harness covers every parser.
-- `samples/logs/auth.log` now includes the attacker reconnecting after the first MaxAuthTries
-  disconnect, so the sample shows a full brute-force alert.
+[Unreleased]: https://github.com/UtshaBasak/Prohori/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/UtshaBasak/Prohori/releases/tag/v0.1.0

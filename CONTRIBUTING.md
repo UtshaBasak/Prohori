@@ -33,6 +33,7 @@ All four must pass; CI runs the same checks on Linux and Windows.
   `pipeline` or `llm` extras.
 - **Changelog:** add a line under `[Unreleased]` in `CHANGELOG.md`.
 - **Decisions:** record significant design decisions in `docs/DECISIONS.md`.
+- **Releases:** maintainers follow [docs/RELEASING.md](docs/RELEASING.md).
 
 ## Data rules
 

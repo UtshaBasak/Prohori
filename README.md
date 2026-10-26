@@ -8,8 +8,13 @@
 [![Dependabot](https://img.shields.io/badge/dependabot-enabled-025E8C?logo=dependabot)](https://github.com/UtshaBasak/Prohori/blob/main/.github/dependabot.yml)
 
 <!-- Package -->
-![Status: pre-alpha](https://img.shields.io/badge/status-pre--alpha-orange)
-![Python](https://img.shields.io/badge/python-3.11%20%7C%203.12%20%7C%203.13%20%7C%203.14-3776AB?logo=python&logoColor=white)
+[![PyPI](https://img.shields.io/pypi/v/prohori?logo=pypi&logoColor=white)](https://pypi.org/project/prohori/)
+[![Python versions](https://img.shields.io/pypi/pyversions/prohori?logo=python&logoColor=white)](https://pypi.org/project/prohori/)
+[![Wheel](https://img.shields.io/pypi/wheel/prohori)](https://pypi.org/project/prohori/#files)
+[![Downloads](https://img.shields.io/pypi/dm/prohori)](https://pypistats.org/packages/prohori)
+[![GitHub release](https://img.shields.io/github/v/release/UtshaBasak/Prohori)](https://github.com/UtshaBasak/Prohori/releases)
+[![Release workflow](https://github.com/UtshaBasak/Prohori/actions/workflows/release.yml/badge.svg)](https://github.com/UtshaBasak/Prohori/actions/workflows/release.yml)
+![Status: alpha](https://img.shields.io/badge/status-alpha-yellow)
 ![Platforms](https://img.shields.io/badge/platform-Linux%20%7C%20Windows%20%7C%20macOS-lightgrey)
 [![License: MIT](https://img.shields.io/github/license/UtshaBasak/Prohori)](LICENSE)
 
@@ -35,17 +40,16 @@ reports, with honest machine-learning evaluation and a streaming data pipeline.*
 *Prohori* (প্রহরী) is Bengali for "guard". It is an open-source, defensive security-operations
 toolkit in Python that runs on a single laptop with free tools only, offline by default.
 
-> **Status: pre-alpha, close to v0.1.0.** The batch core is complete: one command goes from a
-> log file to scored incidents and shareable reports, and a labelled attack simulator measures
-> the rules. The first PyPI release (v0.1.0) is next. See the [CHANGELOG](CHANGELOG.md) and the
-> [roadmap](#roadmap).
+> **Status: alpha (v0.1.0).** The batch core is complete: one command goes from a log file to
+> scored incidents and shareable reports, and a labelled attack simulator measures the rules.
+> Machine learning, the streaming pipeline and the LLM analyst follow in later releases. See the
+> [CHANGELOG](CHANGELOG.md) and the [roadmap](#roadmap).
 
 ## 60-second demo
 
 ```bash
-git clone https://github.com/UtshaBasak/Prohori.git && cd Prohori
-uv sync
-uv run prohori demo
+pipx install prohori        # or: pip install prohori
+prohori demo
 ```
 
 ![prohori demo: three simulated attacks, the incidents found and every expected rule fired](docs/images/demo.svg)
@@ -99,16 +103,16 @@ remote systems.
 Prohori needs Python 3.11 or newer. CI tests it on Linux and Windows; macOS should work but is
 not tested.
 
-- **From source (today):** install [uv](https://docs.astral.sh/uv/), then
-  `git clone https://github.com/UtshaBasak/Prohori.git && cd Prohori && uv sync`, and run
-  commands as `uv run prohori ...`.
-- **From PyPI (from v0.1.0):** `pip install prohori`, or `pipx install prohori` to get the
-  `prohori` command in its own environment. Local GeoLite2 support is an extra:
+- **From PyPI:** `pipx install prohori` puts the `prohori` command in its own environment;
+  `pip install prohori` works in any virtual environment. Local GeoLite2 support is an extra:
   `pip install "prohori[geoip]"`.
+- **From source:** install [uv](https://docs.astral.sh/uv/), then
+  `git clone https://github.com/UtshaBasak/Prohori.git && cd Prohori && uv sync`, and run
+  commands as `uv run prohori ...`. The sample files used below are in the repository.
 
 ## Quick start
 
-Everything below runs offline on the bundled synthetic samples.
+Everything below runs offline on the synthetic samples in the repository (run from a clone).
 
 ```bash
 uv run prohori triage samples/logs/account-takeover.jsonl -o triage/   # the whole pipeline
@@ -268,6 +272,7 @@ Third-party data terms (MITRE ATT&CK, GeoLite2, AbuseIPDB, VirusTotal) are summa
 | [Reports](docs/REPORTS.md) | Formats, sections, redaction and output safety |
 | [Simulator](docs/SIMULATOR.md) | Attack scenarios, labels, and rule precision and recall |
 | [Decisions](docs/DECISIONS.md) | Architecture decision records |
+| [Releasing](docs/RELEASING.md) | How releases are built, tested and published |
 | [Third-party terms](docs/LICENSES.md) | Data and service licences |
 | [Wiki](https://github.com/UtshaBasak/Prohori/wiki) | Installation, quick start and guides |
 
@@ -295,7 +300,7 @@ Prohori is honest about what it does not do:
 
 | Release | Contents | State |
 |---------|----------|-------|
-| v0.1.0 | Batch core: parsers, rules, enrichment, incidents, reports, log simulator with rule evaluation, `triage` and `demo` commands | Built; release next |
+| v0.1.0 | Batch core: parsers, rules, enrichment, incidents, reports, log simulator with rule evaluation, `triage` and `demo` commands | Released |
 | v0.2.0 | Machine learning: leakage-controlled intrusion detection on public flow datasets, log-derived anomaly detection, model cards | Planned |
 | v0.3.0 | Pipeline: streaming core, Redpanda and PostgreSQL in Docker, dbt models, dashboard, orchestration | Planned |
 | v1.0.0 | Optional LLM analyst (opt-in, redacted input, validated output), final polish | Planned |

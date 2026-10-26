@@ -516,3 +516,28 @@ duplicating the pipeline in each command.
 
 **Consequences.** `triage` writes files rather than streaming to standard output; scripts that
 want JSON use `prohori incidents -f json`.
+
+---
+
+## ADR-0018: Release process
+
+- **Date:** 2026-10-27
+- **Status:** Accepted
+
+**Context.** Publishing to PyPI is public and permanent (a version can never be reused), and
+long-lived upload tokens are a supply-chain risk.
+
+**Decision.**
+- **Trusted publishing (OIDC)** from one workflow, `release.yml`, with GitHub environments:
+  `testpypi` publishes automatically, `pypi` needs a maintainer's approval. No API token is stored
+  anywhere; the publish action adds build attestations.
+- **Gates before anything is uploaded:** the tag must equal the package version, the changelog must
+  have the version's section, `twine check --strict` must pass, and the wheel must install alone
+  and run `prohori demo` and `prohori rules test` on Linux and Windows.
+- **After PyPI:** a GitHub release with the changelog section as its notes, and a job that installs
+  the release from PyPI and runs the demo, so a broken upload is noticed at once.
+- **PyPI README:** `hatch-fancy-pypi-readme` rewrites the README's relative links and images to
+  GitHub URLs at build time, so the project page works on PyPI.
+- Every action is pinned to a commit SHA; the workflow passes `actionlint` and `zizmor`.
+
+**Consequences.** A failed release after TestPyPI is fixed with the next patch version.
