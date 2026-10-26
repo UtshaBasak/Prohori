@@ -1,7 +1,8 @@
-"""Write the rule-evaluation tables into ``docs/SIMULATOR.md`` from ``results/rules_eval.json``.
+"""Write the rule-evaluation results into the docs from ``results/rules_eval.json``.
 
-The tables go between the ``<!-- results:start -->`` and ``<!-- results:end -->`` markers. With
-``--check`` nothing is written and the exit code is 1 when the document is out of date.
+``docs/SIMULATOR.md`` gets the full tables and ``README.md`` a summary, each between the
+``<!-- results:start -->`` and ``<!-- results:end -->`` markers. With ``--check`` nothing is
+written and the exit code is 1 when either document is out of date.
 
     uv run python scripts/generate_results_table.py [--check]
 """
@@ -15,6 +16,7 @@ from typing import Any
 ROOT = Path(__file__).resolve().parents[1]
 RESULTS = ROOT / "results" / "rules_eval.json"
 DOCUMENT = ROOT / "docs" / "SIMULATOR.md"
+README = ROOT / "README.md"
 START = "<!-- results:start -->"
 END = "<!-- results:end -->"
 
@@ -28,6 +30,7 @@ def _precision(score: dict[str, Any]) -> str:
 
 
 def render(results: dict[str, Any]) -> str:
+    """The full tables for docs/SIMULATOR.md."""
     variants = results["variants"]
     default, heldout = variants["default"]["rules"], variants["heldout"]["rules"]
     seeds = results["seeds"]
@@ -70,30 +73,63 @@ def render(results: dict[str, Any]) -> str:
     return "\n".join(lines)
 
 
-def updated(document: str, table: str) -> str:
+def render_summary(results: dict[str, Any]) -> str:
+    """The README summary: attacks caught per variant and every held-out miss."""
+    variants = results["variants"]
+    caught: dict[str, tuple[int, int]] = {}
+    for variant in ("default", "heldout"):
+        scenarios = variants[variant]["scenarios"].values()
+        caught[variant] = (
+            sum(s["attacks_detected"] for s in scenarios),
+            sum(s["attacks"] for s in scenarios),
+        )
+    lines = [
+        "| | Default | Held-out |",
+        "|--|--------:|---------:|",
+        "| Attacks caught by at least one expected rule | "
+        f"{caught['default'][0]}/{caught['default'][1]} | "
+        f"{caught['heldout'][0]}/{caught['heldout'][1]} |",
+        "",
+        "Expected rules that missed in the held-out variants (runs missed out of runs):",
+        "",
+    ]
+    for name in results["scenarios"]:
+        held = variants["heldout"]["scenarios"][name]
+        missed = ", ".join(f"{r} {n}/{held['runs']}" for r, n in held["missed_by_rule"].items())
+        if missed:
+            lines.append(f"- `{name}`: {missed}")
+    return "\n".join(lines)
+
+
+def updated(document: str, block: str, name: str) -> str:
     start, end = document.find(START), document.find(END)
     if start < 0 or end < start:
-        msg = f"{DOCUMENT.name} has no {START} ... {END} block"
+        msg = f"{name} has no {START} ... {END} block"
         raise SystemExit(msg)
-    return document[: start + len(START)] + "\n" + table + "\n" + document[end:]
+    return document[: start + len(START)] + "\n" + block + "\n" + document[end:]
 
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    parser.add_argument("--check", action="store_true", help="only check that the doc is current")
+    parser.add_argument("--check", action="store_true", help="only check that the docs are current")
     args = parser.parse_args(argv)
     results = json.loads(RESULTS.read_text(encoding="utf-8"))
-    document = DOCUMENT.read_text(encoding="utf-8")
-    new = updated(document, render(results))
-    if args.check:
-        if new != document:
-            print(
-                f"{DOCUMENT} is out of date; run scripts/generate_results_table.py", file=sys.stderr
-            )
-            return 1
-        return 0
-    DOCUMENT.write_text(new, encoding="utf-8", newline="\n")
-    print(f"updated {DOCUMENT}")
+    stale: list[str] = []
+    for path, block in ((DOCUMENT, render(results)), (README, render_summary(results))):
+        document = path.read_text(encoding="utf-8")
+        new = updated(document, block, path.name)
+        if new == document:
+            continue
+        stale.append(path.name)
+        if not args.check:
+            path.write_text(new, encoding="utf-8", newline="\n")
+            print(f"updated {path}")
+    if args.check and stale:
+        print(
+            f"out of date: {', '.join(stale)}; run scripts/generate_results_table.py",
+            file=sys.stderr,
+        )
+        return 1
     return 0
 
 

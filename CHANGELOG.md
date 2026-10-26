@@ -112,6 +112,9 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - A completed `sequence` stays open until `start + within`: further events matching its last step
   raise further alerts instead of being ignored. PRH-ACCT-001 now also reports a second account
   change after one sign-in (for example 2FA disabled, then the payout number changed).
+  New first-step events meanwhile start a fresh sequence, so a second sign-in opens a new window.
+- `tzdata` is now a dependency on every platform, so built-in rules that use a timezone load even
+  where the system has no timezone database.
 - String values in `Event.extra` and enrichment data are truncated to 1,024 characters.
 - Parse error reasons name the invalid schema field.
 - The fuzz harness covers every parser.

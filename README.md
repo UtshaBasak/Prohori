@@ -185,13 +185,21 @@ were designed for, and **held-out**, the same attack done the way a careful atta
 `scripts/evaluate_rules.py` runs all rules over five seeds of each and compares the alerts with
 the line labels.
 
+<!-- results:start -->
 | | Default | Held-out |
 |--|--------:|---------:|
 | Attacks caught by at least one expected rule | 40/40 | 35/40 |
 
-Held-out misses, as measured: slow SSH guessing and slow spraying stay under PRH-AUTH-001's
-threshold, credential stuffing from 30 addresses is missed entirely, a scanner with a browser
-user agent evades PRH-WEB-003, and admin activity at 21:30 is outside PRH-ADMIN-002's hours.
+Expected rules that missed in the held-out variants (runs missed out of runs):
+
+- `account-takeover`: PRH-ACCT-001 3/5, PRH-AUTH-001 5/5
+- `admin-misuse`: PRH-ADMIN-002 5/5
+- `credential-stuffing`: PRH-AUTH-001 5/5, PRH-AUTH-002 5/5, PRH-AUTH-003 5/5
+- `password-spraying`: PRH-AUTH-001 5/5
+- `ssh-bruteforce`: PRH-AUTH-001 5/5
+- `web-scanning`: PRH-WEB-003 5/5
+<!-- results:end -->
+
 PRH-ACCT-001 has low precision on purpose: it flags every sensitive change soon after a sign-in,
 including the owners' own. These are synthetic results written by the rules' author; the full
 per-rule table and caveats are in [docs/SIMULATOR.md](docs/SIMULATOR.md#results).

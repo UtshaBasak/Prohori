@@ -26,7 +26,8 @@ def access(
     referer: str = "-",
 ) -> str:
     """An nginx/Apache combined log line."""
-    stamp = timestamp.strftime("%d/%b/%Y:%H:%M:%S +0000")
+    # Month names from a fixed table, not strftime("%b"), which follows the process locale.
+    stamp = f"{timestamp.day:02d}/{_MONTHS[timestamp.month - 1]}/{timestamp:%Y:%H:%M:%S} +0000"
     return (
         f'{ip} - - [{stamp}] "{method} {target} HTTP/1.1" {status} {size} '
         f'"{referer}" "{user_agent}"'
