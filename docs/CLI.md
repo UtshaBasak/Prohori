@@ -81,8 +81,10 @@ and writes to `--out` (default `triage`):
 - `INC-<id>.<format>`: one report per incident (`--format`, default `html`);
 - `summary.md`: every incident with severity, score, confidence, title and a link to its report.
 
-With `--redact` or `--redact-ips` every file, including `incidents.jsonl`, is redacted with one
-key per run, so an account has the same pseudonym in all of them. If redaction cannot hide every
+Before writing, a run deletes what an earlier triage left in `--out` (`incidents.jsonl`,
+`summary.md` and `INC-*` reports) and nothing else, so an old unredacted report never sits next to
+new redacted ones. With `--redact` or `--redact-ips` every file, including `incidents.jsonl`, is
+redacted with one key per run, so an account has the same pseudonym in all of them. If redaction cannot hide every
 value, nothing is written. Other options: `--no-enrich`, `--gap`, `--env-file` and the shared
 options above.
 

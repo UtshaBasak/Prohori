@@ -2,6 +2,7 @@
 
 import hashlib
 import os
+import re
 from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import timedelta
@@ -34,6 +35,7 @@ from prohori.reports import (
     find_leaks,
     incident_strings,
     make_report,
+    md_escape,
 )
 from prohori.rules import CompiledRule
 from prohori.rules.model import parse_duration
@@ -41,6 +43,7 @@ from prohori.schema import Incident
 
 INCIDENTS_FILE = "incidents.jsonl"
 SUMMARY_FILE = "summary.md"
+_REPORT_NAME = re.compile(r"INC-[0-9a-f]{16}\.(?:md|html|json|csv)")
 
 
 @dataclass(frozen=True)
@@ -95,6 +98,7 @@ def triage_file(
         for incident, original in zip(written, run.incidents, strict=True)
     }
     out.mkdir(parents=True, exist_ok=True)
+    remove_previous_outputs(out)
     (out / INCIDENTS_FILE).write_bytes(lines)
     reports: dict[str, Path] = {}
     for incident_id, text in texts.items():
@@ -104,6 +108,19 @@ def triage_file(
     summary = _summary(run, written, reports, fmt, redacted=redact or redact_ips)
     (out / SUMMARY_FILE).write_bytes(summary.encode("utf-8"))
     return TriageResult(run, out, reports, written)
+
+
+def remove_previous_outputs(out: Path) -> None:
+    """Delete what an earlier triage wrote to ``out``, and nothing else.
+
+    Otherwise an unredacted report from an earlier run could sit next to redacted ones in a
+    directory the user believes is safe to share.
+    """
+    for path in out.iterdir():
+        if path.is_file() and (
+            path.name in {INCIDENTS_FILE, SUMMARY_FILE} or _REPORT_NAME.fullmatch(path.name)
+        ):
+            path.unlink()
 
 
 def _redacted(incident: Incident, key: bytes, ips: bool) -> Incident:
@@ -124,10 +141,10 @@ def _summary(
     redacted: bool,
 ) -> str:
     lines = [
-        f"# Triage of `{run.name}`",
+        f"# Triage of {md_escape(run.name)}",
         "",
-        f"{run.events} events, {run.parse_errors} parse errors, {run.alerts} alerts, "
-        f"{len(incidents)} incidents.",
+        f"{run.events} event(s), {run.parse_errors} parse error(s), {run.alerts} alert(s), "
+        f"{len(incidents)} incident(s).",
         "",
     ]
     if incidents:
@@ -136,7 +153,7 @@ def _summary(
             "|----------|----------|------:|------------|-------|--------|",
         ]
         for incident in sorted(incidents, key=lambda i: (-i.score, i.first_seen, i.id)):
-            title = incident.title.replace("|", "\\|")
+            title = md_escape(incident.title)
             lines.append(
                 f"| `{incident.id}` | {incident.severity.value} | {incident.score:g} | "
                 f"{incident.confidence.value} | {title} | "

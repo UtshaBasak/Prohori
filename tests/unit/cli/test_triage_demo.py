@@ -71,6 +71,21 @@ def test_triage_redacts_every_file(tmp_path: Path) -> None:
     assert "(redacted)" in (out / "summary.md").read_text(encoding="utf-8")
 
 
+def test_rerunning_into_a_directory_replaces_earlier_outputs(tmp_path: Path) -> None:
+    out = tmp_path / "shareable"
+    sample = str(SAMPLES / "account-takeover.jsonl")
+    assert runner.invoke(app, ["triage", sample, "-o", str(out)]).exit_code == 3
+    keep = out / "notes.txt"
+    keep.write_text("my own file", encoding="utf-8")
+    again = ["triage", sample, "-o", str(out), "--redact-ips", "-f", "md"]
+    assert runner.invoke(app, again).exit_code == 3
+    assert not list(out.glob("INC-*.html"))  # the unredacted reports are gone
+    text = _all_text(out)
+    for value in ("u-2001", "203.0.113.7", "0cc175b9c0f1b6a831c399e269772661"):
+        assert value not in text
+    assert keep.read_text(encoding="utf-8") == "my own file"  # other files are left alone
+
+
 def test_triage_redaction_failure_writes_nothing(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:

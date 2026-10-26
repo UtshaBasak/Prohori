@@ -1,6 +1,6 @@
-# Triage of `auth.log`
+# Triage of auth.log
 
-32 events, 0 parse errors, 1 alerts, 1 incidents.
+32 event(s), 0 parse error(s), 1 alert(s), 1 incident(s).
 
 | Incident | Severity | Score | Confidence | Title | Report |
 |----------|----------|------:|------------|-------|--------|
