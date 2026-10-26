@@ -63,3 +63,6 @@ pipeline/airflow/logs/
 *.swp
 .DS_Store
 Thumbs.db
+
+# Simulator output written by examples in the docs
+/out/
