@@ -386,3 +386,38 @@ terms, and must keep working offline for tests and demos.
 
 **Consequences.** Online results depend on free-tier limits; large investigations need paid
 plans or GeoLite2 only. Tests block real sockets and DNS for the whole enrichment suite.
+
+---
+
+## ADR-0014: Incident builder design
+
+- **Date:** 2026-10-27
+- **Status:** Accepted
+
+**Context.** Alerts carry only the rule's grouping fields and event ids, so a brute force (grouped
+by IP), a successful sign-in after it (by IP) and an account change (by user) would not join on
+their own entities. Scoring must be explainable, and incidents must be reproducible.
+
+**Decision.**
+- **Link on `(field, value)` pairs** of IP, account, request id and `extra.session_id`; never on
+  `host` or `log_source`. An alert also links on every such field with exactly one value across
+  its matched events. Alerts within a gap (default 30 minutes, inclusive) of the last alert with
+  the same pair join; links are transitive and order-independent.
+- **Shared-IP cap:** an IP that has linked more than 10 distinct accounts stops linking, with a
+  limitation on the incident, instead of merging a NAT gateway's users into one incident.
+- **Integer points with reasons**, capped at 100 by a visible negative component, so the
+  breakdown always sums to the score. Severity is the score band, never below the top alert.
+- **Novelty is incident context**, not a rule feature: a bounded history of all successful
+  sign-ins answers "earlier by timestamp". No history gives a limitation and no points.
+- **Events are kept as slim summaries** (no raw line), at most 100,000, while they stream into the
+  engine; missing ones become a limitation.
+- **Enrichment offline by default** for `prohori incidents`, each address once, at most 100 per
+  run; `--online` opts in to sending addresses to providers.
+- **Deterministic ids:** `INC-` plus 16 hex digits of the SHA-256 of the sorted alert ids;
+  `Incident.attack_version` records the ATT&CK release.
+- `prohori incidents` is added now (the plan had only `triage` in a later step) so incidents can
+  be inspected and saved as JSON for the report renderer.
+
+**Consequences.** Linking through event fields joins more of an attack chain but can join two
+attackers who used the same account; the shared-IP cap can split a real incident that crossed it.
+Both are visible in the incident (entities, limitations).

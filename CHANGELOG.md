@@ -9,6 +9,15 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- Incident builder (`prohori.incidents`) and `prohori incidents FILE|-`: alerts that share an IP,
+  account, request or session within a time gap become one incident, with a points-based score
+  and its breakdown, severity, confidence, ATT&CK mapping (with the ATT&CK version), a timeline,
+  enriched indicators, recommended actions from the runbooks, and limitations. Sign-in novelty
+  (a new IP or client for an account) is incident context from a bounded per-account history.
+  Shared IP addresses stop linking alerts after 10 accounts. Enrichment is offline unless
+  `--online` is given. Documented in `docs/INCIDENTS.md`.
+- `Incident.attack_version` and `prohori.schema.incident_id()` (deterministic incident ids).
+- Sample `samples/logs/account-takeover.jsonl`: brute force, sign-in, 2FA disabled, payout change.
 - IP enrichment (`prohori.enrich`) and `prohori enrich IP... [--offline]`: providers for local
   MaxMind GeoLite2 databases (`prohori[geoip]` extra), AbuseIPDB and VirusTotal, a bundled
   synthetic fixture for offline runs, a SQLite cache with TTLs, daily budgets, a token bucket,

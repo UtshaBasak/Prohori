@@ -14,6 +14,7 @@ from prohori.schema import (
     IncidentStatus,
     Severity,
     alert_id,
+    incident_id,
 )
 
 T0 = datetime(2026, 10, 24, 13, 0, tzinfo=UTC)
@@ -145,3 +146,11 @@ class TestIncident:
 def test_severity_rank_orders_scale() -> None:
     ranks = [s.rank for s in (Severity.LOW, Severity.MEDIUM, Severity.HIGH, Severity.CRITICAL)]
     assert ranks == sorted(ranks) == [1, 2, 3, 4]
+
+
+def test_incident_id_is_order_independent_and_valid() -> None:
+    first = incident_id(["alr-b", "alr-a"])
+    assert first == incident_id(["alr-a", "alr-b"])
+    assert first != incident_id(["alr-a"])
+    assert first.startswith("INC-")
+    assert len(first) == len("INC-") + 16
