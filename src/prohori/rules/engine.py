@@ -301,7 +301,9 @@ class _SequenceEvaluator(_Evaluator):
     * An event matching several steps counts for the current step.
     * After the sequence completes, until ``start + within``, every further ``count_gte`` events
       matching the last step raise another alert with the earlier steps' events: a second
-      account change after one sign-in is reported too, not swallowed.
+      account change after one sign-in is reported too, not swallowed. Meanwhile new step-1
+      events count towards a fresh sequence, which replaces the completed one once its first step
+      completes (a second sign-in opens a new window).
     """
 
     def __init__(self, rule: CompiledRule, stats: EngineStats, max_groups: int) -> None:
@@ -350,29 +352,22 @@ class _SequenceEvaluator(_Evaluator):
             self.groups[key] = group
 
         if group.step == 0:
-            first = steps[0]
-            if not self.rule.selection_matches(first.selection, event):
-                return []
-            group.first.append(_Seen(now, event.id))
-            while group.first and now - group.first[0].timestamp >= within:
-                group.first.popleft()
-            if len(group.first) < first.count_gte:
-                return []
-            group.start = group.first[0].timestamp
-            group.matched = list(group.first)
-            group.first.clear()
-            group.step, group.count = 1, 0
+            self._first_step(group, event)
             return []
 
-        if group.step == len(steps):  # completed; later final-step events raise further alerts
+        if group.step == len(steps):  # completed
             last = steps[-1]
-            if not self.rule.selection_matches(last.selection, event):
-                return []
-            group.extra.append(_Seen(now, event.id))
-            if len(group.extra) < last.count_gte:
-                return []
-            seen, group.extra = group.prefix + group.extra, []
-            return [self._alert(seen, key)]
+            if self.rule.selection_matches(last.selection, event):
+                # Later final-step events raise further alerts with the earlier steps' events.
+                group.extra.append(_Seen(now, event.id))
+                if len(group.extra) < last.count_gte:
+                    return []
+                seen, group.extra = group.prefix + group.extra, []
+                return [self._alert(seen, key)]
+            # New first-step events build up a fresh sequence, which replaces this one once its
+            # first step completes (a second sign-in starts a new 30-minute window).
+            self._first_step(group, event, restart=True)
+            return []
 
         step = steps[group.step]
         if not self.rule.selection_matches(step.selection, event):
@@ -386,6 +381,29 @@ class _SequenceEvaluator(_Evaluator):
             return []
         group.prefix = group.matched[: len(group.matched) - steps[-1].count_gte]
         return [self._alert(group.matched, key)]
+
+    def _first_step(self, group: _SequenceGroup, event: Event, *, restart: bool = False) -> bool:
+        """Count ``event`` towards step 1; start the sequence when the count is reached.
+
+        With ``restart`` (the group already completed once), starting replaces the completed
+        sequence. Returns whether a sequence started.
+        """
+        first = self.spec.steps[0]
+        if not self.rule.selection_matches(first.selection, event):
+            return False
+        now = event.timestamp
+        group.first.append(_Seen(now, event.id))
+        while group.first and now - group.first[0].timestamp >= self.spec.within:
+            group.first.popleft()
+        if len(group.first) < first.count_gte:
+            return False
+        if restart:
+            group.prefix, group.extra = [], []
+        group.start = group.first[0].timestamp
+        group.matched = list(group.first)
+        group.first.clear()
+        group.step, group.count = 1, 0
+        return True
 
     def _alert(self, seen: Sequence[_Seen], key: tuple[str, ...]) -> Alert:
         steps = self.spec.steps

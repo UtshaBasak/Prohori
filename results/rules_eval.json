@@ -37,12 +37,12 @@
           "recall": null
         },
         "PRH-ACCT-001": {
-          "alerts": 296,
+          "alerts": 300,
           "true_positives": 10,
-          "false_positives": 286,
+          "false_positives": 290,
           "attacks_expected": 5,
           "attacks_detected": 5,
-          "precision": 0.034,
+          "precision": 0.033,
           "recall": 1.0
         },
         "PRH-ADMIN-001": {
@@ -170,7 +170,7 @@
           "attacks_detected": 5,
           "missed_by_rule": {},
           "false_positives_by_rule": {
-            "PRH-ACCT-001": 56
+            "PRH-ACCT-001": 57
           }
         },
         "admin-misuse": {
@@ -189,7 +189,7 @@
           "attacks_detected": 5,
           "missed_by_rule": {},
           "false_positives_by_rule": {
-            "PRH-ACCT-001": 58
+            "PRH-ACCT-001": 60
           }
         },
         "injection": {
@@ -221,7 +221,7 @@
           "attacks_detected": 5,
           "missed_by_rule": {},
           "false_positives_by_rule": {
-            "PRH-ACCT-001": 47
+            "PRH-ACCT-001": 48
           }
         },
         "web-scanning": {
@@ -245,9 +245,9 @@
           "recall": null
         },
         "PRH-ACCT-001": {
-          "alerts": 257,
+          "alerts": 258,
           "true_positives": 4,
-          "false_positives": 253,
+          "false_positives": 254,
           "attacks_expected": 5,
           "attacks_detected": 2,
           "precision": 0.016,
@@ -381,7 +381,7 @@
             "PRH-AUTH-001": 5
           },
           "false_positives_by_rule": {
-            "PRH-ACCT-001": 37
+            "PRH-ACCT-001": 36
           }
         },
         "admin-misuse": {
@@ -406,7 +406,7 @@
             "PRH-AUTH-003": 5
           },
           "false_positives_by_rule": {
-            "PRH-ACCT-001": 42
+            "PRH-ACCT-001": 43
           }
         },
         "injection": {
@@ -424,7 +424,7 @@
             "PRH-AUTH-001": 5
           },
           "false_positives_by_rule": {
-            "PRH-ACCT-001": 52
+            "PRH-ACCT-001": 53
           }
         },
         "ssh-bruteforce": {

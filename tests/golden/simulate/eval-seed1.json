@@ -33,12 +33,12 @@
           "recall": null
         },
         "PRH-ACCT-001": {
-          "alerts": 56,
+          "alerts": 57,
           "true_positives": 2,
-          "false_positives": 54,
+          "false_positives": 55,
           "attacks_expected": 1,
           "attacks_detected": 1,
-          "precision": 0.036,
+          "precision": 0.035,
           "recall": 1.0
         },
         "PRH-ADMIN-001": {
@@ -166,7 +166,7 @@
           "attacks_detected": 1,
           "missed_by_rule": {},
           "false_positives_by_rule": {
-            "PRH-ACCT-001": 13
+            "PRH-ACCT-001": 14
           }
         },
         "admin-misuse": {
@@ -377,7 +377,7 @@
             "PRH-AUTH-001": 1
           },
           "false_positives_by_rule": {
-            "PRH-ACCT-001": 8
+            "PRH-ACCT-001": 7
           }
         },
         "admin-misuse": {
@@ -420,7 +420,7 @@
             "PRH-AUTH-001": 1
           },
           "false_positives_by_rule": {
-            "PRH-ACCT-001": 10
+            "PRH-ACCT-001": 11
           }
         },
         "ssh-bruteforce": {
