@@ -4,11 +4,17 @@ name: Release
 # it to TestPyPI, and then waits: publishing to PyPI needs a maintainer's approval of the "pypi"
 # environment. After PyPI, a GitHub release is created and the published package is installed
 # from PyPI and run once more. Uploads use trusted publishing (OIDC); no API tokens are stored.
-# Run it by hand (workflow_dispatch) to build and test without publishing anything.
+# Run by hand (workflow_dispatch) or on a packaging pull request it only builds and tests.
 
 on:
   push:
     tags: ["v*"]
+  # Pull requests that touch packaging run the build and smoke tests only (nothing is published).
+  pull_request:
+    paths:
+      - ".github/workflows/release.yml"
+      - "pyproject.toml"
+      - "src/prohori/version.py"
   workflow_dispatch:
 
 permissions:

@@ -36,8 +36,8 @@ The workflow is [`.github/workflows/release.yml`](../.github/workflows/release.y
       attached;
    8. installs the release from PyPI on Linux and Windows and runs `prohori demo`.
 
-Running the workflow by hand (*Actions > Release > Run workflow*) only builds and tests; it never
-publishes.
+Running the workflow by hand (*Actions > Release > Run workflow*), or on a pull request that
+changes packaging, only builds and tests; it never publishes.
 
 ## Things to know
 
