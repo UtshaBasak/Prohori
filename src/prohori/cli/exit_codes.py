@@ -9,5 +9,6 @@ class ExitCode(IntEnum):
     OK = 0
     NO_EVENTS = 1
     INVALID_RULES = 1  # alias: the same code, named for the rules commands
+    REDACTION_FAILED = 1  # alias: a redacted report would still contain personal data
     USAGE = 2
     ALERTS_FOUND = 3
