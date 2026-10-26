@@ -1,0 +1,27 @@
+                                       Alerts in access.log
++---------------------+----------+-------------+-------------------------+------------------------+
+| first seen (UTC)    | severity | rule        | entities                | alert                  |
++---------------------+----------+-------------+-------------------------+------------------------+
+| 2026-10-24 13:41:00 | medium   | PRH-WEB-004 | source.ip=198.51.100.23 | Probes for sensitive   |
+|                     |          |             |                         | files and admin tools  |
+|                     |          |             |                         | 3 distinct http.path   |
+|                     |          |             |                         | values (threshold 3)   |
+|                     |          |             |                         | for                    |
+|                     |          |             |                         | source.ip=198.51.100.2 |
+|                     |          |             |                         | 3 within a 10m window  |
+| 2026-10-24 13:42:10 | medium   | PRH-WEB-002 | source.ip=203.0.113.7   | Injection patterns in  |
+|                     |          |             |                         | request paths          |
+|                     |          |             |                         | 3 matching events      |
+|                     |          |             |                         | (threshold 3) for      |
+|                     |          |             |                         | source.ip=203.0.113.7  |
+|                     |          |             |                         | within a 10m window    |
++---------------------+----------+-------------+-------------------------+------------------------+
+      Detection summary
++--------------+------------+
+| input        | access.log |
+| parser       | access_log |
+| events       |         14 |
+| parse errors |          0 |
+| rules        |         15 |
+| alerts       |          2 |
++--------------+------------+

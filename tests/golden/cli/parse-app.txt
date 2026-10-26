@@ -1,0 +1,26 @@
+                             Events from app-security.jsonl (first 5)
++---------------------+-------------+------------+---------+---------------+--------+-------------+
+| time (UTC)          | source      | action     | outcome | source.ip     | user   | detail      |
++---------------------+-------------+------------+---------+---------------+--------+-------------+
+| 2026-10-24 13:50:01 | app-securit | auth.signi | failure | 203.0.113.7   | u-1001 | bad_passwor |
+|                     | y           | n.failure  |         |               |        | d           |
+| 2026-10-24 13:50:03 | app-securit | auth.signi | failure | 203.0.113.7   | -      | unknown_use |
+|                     | y           | n.failure  |         |               |        | r           |
+| 2026-10-24 13:50:05 | app-securit | turnstile. | failure | 203.0.113.7   | -      |             |
+|                     | y           | failed     |         |               |        |             |
+| 2026-10-24 13:50:09 | app-securit | auth.locko | failure | 203.0.113.7   | u-1001 | locked      |
+|                     | y           | ut         |         |               |        |             |
+| 2026-10-24 13:52:14 | app-securit | auth.signi | success | 198.51.100.40 | u-1002 |             |
+|                     | y           | n.success  |         |               |        |             |
++---------------------+-------------+------------+---------+---------------+--------+-------------+
+                 Parse summary
++------------------------+--------------------+
+| input                  | app-security.jsonl |
+| parser                 |           app_json |
+| lines                  |                 11 |
+| events                 |                 10 |
+| skipped (not relevant) |                  1 |
+| blank                  |                  0 |
+| errors                 |                  0 |
+| invalid UTF-8 lines    |                  0 |
++------------------------+--------------------+

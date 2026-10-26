@@ -1,0 +1,55 @@
+INC-ee7c8818fbb34989  critical  score 100
++-------------+-----------------------------------------------------------------------------------+
+| title       | Successful sign-in after many failures from one IP and 3 related alerts           |
+| time (UTC)  | 2026-10-24 21:10:00 - 2026-10-24 21:13:10                                         |
+| confidence  | high                                                                              |
+| rules       | PRH-ACCT-001, PRH-AUTH-001, PRH-AUTH-003                                          |
+| entities    | source.ip: 203.0.113.7                                                            |
+|             | user.email_hash: 0cc175b9c0f1b6a831c399e269772661                                 |
+|             | user.id: u-2001                                                                   |
+| ATT&CK      | attack.initial_access, attack.persistence, attack.privilege_escalation,           |
+|             | attack.defense_impairment, attack.credential_access, attack.t1078, attack.t1098,  |
+|             | attack.t1110, attack.t1110.001, attack.t1556.006                                  |
+| score       | +50  Most severe alert: PRH-AUTH-003 (critical)                                   |
+|             | +20  2 more rules fired: PRH-ACCT-001, PRH-AUTH-001                               |
+|             | +20  A sign-in succeeded after failed attempts                                    |
+|             | +15  Sensitive account or admin change: account.2fa.disabled,                     |
+|             | account.bkash.changed                                                             |
+|             | +20  Reputation of 203.0.113.7: abuse confidence 97; 9 vendors flag it as         |
+|             | malicious (from bundled demo data)                                                |
+|             | +10  Sign-in to u-2001 from 203.0.113.7, an IP not seen for this account before   |
+|             | (1 earlier IP)                                                                    |
+|             | +5  Sign-in to u-2001 with client web, not seen for this account before           |
+|             | -40  Capped at 100                                                                |
+| actions     | - End all sessions of the account and force a password reset.                     |
+|             | - Block the source IP.                                                            |
+|             | - Revert unauthorised changes, such as a changed payout number or disabled        |
+|             | two-step verification.                                                            |
+|             | - Require two-step verification for the account.                                  |
+|             | - Block or rate-limit the source IP at the firewall, reverse proxy or application |
+|             | while you investigate.                                                            |
+|             | - If any sign-in from the IP succeeded, follow the runbook for PRH-AUTH-003.      |
+|             | - For the web app, make sure account lockout or progressive delays and bot checks |
+|             | are enabled on the sign-in form.                                                  |
+|             | - If the owner did not make the change: end all sessions, revert the change,      |
+|             | reset the password and re-enable two-step verification.                           |
+|             | - Hold payouts to a newly changed payout number until the owner confirms it.      |
+|             | - Consider requiring re-authentication or a confirmation code for these changes.  |
+| limitations | - Enrichment offline: only bundled demo data, local GeoLite2 data and cached      |
+|             | answers were used                                                                 |
+|             | - Enrichment of 203.0.113.7 is bundled demo data, not real reputation             |
+|             | - Single log source (app-security): no other log corroborates it                  |
+|             | - Possible benign cause for PRH-ACCT-001: The account owner changing their own    |
+|             | settings after signing in                                                         |
+|             | - Possible benign cause for PRH-ACCT-001: Support staff helping a user recover an |
+|             | account                                                                           |
+|             | - Possible benign cause for PRH-AUTH-001: Many users behind one shared NAT or     |
+|             | proxy address                                                                     |
+|             | - Possible benign cause for PRH-AUTH-001: A script or password manager retrying a |
+|             | stale password                                                                    |
+|             | - Possible benign cause for PRH-AUTH-003: A legitimate user who forgot their      |
+|             | password and finally entered it correctly                                         |
+|             | - Possible benign cause for PRH-AUTH-003: Several users behind one shared NAT,    |
+|             | some failing and one succeeding                                                   |
++-------------+-----------------------------------------------------------------------------------+
+1 incident(s) from 4 alert(s) in account-takeover.jsonl.

@@ -1,0 +1,59 @@
+                                             Scenarios
++---------------------+------------+------------------------------+-------------------------------+
+|                     |            |                              | parameters (default /         |
+| scenario            | log        | what it simulates            | heldout)                      |
++---------------------+------------+------------------------------+-------------------------------+
+| account-takeover    | app_json   | Guessing one account's       | attack_at=90                  |
+|                     |            | password, then disabling 2FA | attempts=12 / 9               |
+|                     |            | and changing the payout      | duration=180                  |
+|                     |            | number                       | noise=3                       |
+|                     |            |                              | rate=20 / 1.6                 |
+|                     |            |                              | users=40                      |
++---------------------+------------+------------------------------+-------------------------------+
+| admin-misuse        | app_json   | A hijacked admin session at  | attack_at=160 / 1290          |
+|                     |            | night grants admin rights to | duration=1440                 |
+|                     |            | another account              | noise=0.5                     |
+|                     |            |                              | users=40                      |
++---------------------+------------+------------------------------+-------------------------------+
+| credential-stuffing | app_json   | Leaked credentials replayed  | attack_at=50                  |
+|                     |            | against the sign-in API      | attempts=120                  |
+|                     |            |                              | duration=180                  |
+|                     |            |                              | noise=3                       |
+|                     |            |                              | rate=15 / 0.5                 |
+|                     |            |                              | sources=2 / 30                |
+|                     |            |                              | users=40                      |
++---------------------+------------+------------------------------+-------------------------------+
+| injection           | access_log | SQL injection, cross-site    | attack_at=45                  |
+|                     |            | scripting and path traversal | attempts=18                   |
+|                     |            | in query strings             | duration=120                  |
+|                     |            |                              | noise=6                       |
+|                     |            |                              | rate=6                        |
++---------------------+------------+------------------------------+-------------------------------+
+| password-spraying   | app_json   | One password tried against   | attack_at=60 / 40             |
+|                     |            | many app accounts            | attempts=30                   |
+|                     |            |                              | duration=180                  |
+|                     |            |                              | noise=3                       |
+|                     |            |                              | rate=4 / 0.4                  |
+|                     |            |                              | sources=1 / 4                 |
+|                     |            |                              | users=40                      |
++---------------------+------------+------------------------------+-------------------------------+
+| ssh-bruteforce      | auth_log   | SSH password guessing        | attack_at=60 / 30             |
+|                     |            | against root and common user | attempts=60                   |
+|                     |            | names                        | duration=180 / 240            |
+|                     |            |                              | noise=1.5                     |
+|                     |            |                              | rate=20 / 1.5                 |
+|                     |            |                              | sources=1 / 3                 |
++---------------------+------------+------------------------------+-------------------------------+
+| token-reuse         | app_json   | Stolen refresh tokens        | attack_at=70                  |
+|                     |            | replayed                     | attempts=3                    |
+|                     |            |                              | duration=180                  |
+|                     |            |                              | noise=3                       |
+|                     |            |                              | users=40                      |
++---------------------+------------+------------------------------+-------------------------------+
+| web-scanning        | access_log | Automated scanning for admin | attack_at=40                  |
+|                     |            | tools, backups and leaked    | attempts=150                  |
+|                     |            | files                        | duration=120                  |
+|                     |            |                              | noise=6                       |
+|                     |            |                              | rate=60 / 8                   |
++---------------------+------------+------------------------------+-------------------------------+
+Every scenario also takes --set start=<ISO time>.

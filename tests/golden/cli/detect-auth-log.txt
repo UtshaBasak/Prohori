@@ -1,0 +1,20 @@
+                                        Alerts in auth.log
++---------------------+----------+--------------+-----------------------+-------------------------+
+| first seen (UTC)    | severity | rule         | entities              | alert                   |
++---------------------+----------+--------------+-----------------------+-------------------------+
+| 2026-10-24 13:50:04 | high     | PRH-AUTH-001 | source.ip=203.0.113.7 | Brute-force sign-in     |
+|                     |          |              |                       | attempts from one IP    |
+|                     |          |              |                       | 10 matching events      |
+|                     |          |              |                       | (threshold 10) for      |
+|                     |          |              |                       | source.ip=203.0.113.7   |
+|                     |          |              |                       | within a 5m window      |
++---------------------+----------+--------------+-----------------------+-------------------------+
+     Detection summary
++--------------+----------+
+| input        | auth.log |
+| parser       | auth_log |
+| events       |       32 |
+| parse errors |        0 |
+| rules        |       15 |
+| alerts       |        1 |
++--------------+----------+
