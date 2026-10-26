@@ -11,6 +11,7 @@ from typer.testing import CliRunner
 from prohori.cli import app
 from prohori.cli import report as report_module
 from prohori.cli.exit_codes import ExitCode
+from prohori.reports import make as make_module
 
 ROOT = Path(__file__).resolve().parents[3]
 (SAMPLE,) = (ROOT / "samples" / "incidents").glob("INC-*.json")
@@ -130,7 +131,7 @@ def test_redact_and_redact_ips() -> None:
 def test_a_leaking_redaction_writes_nothing(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    monkeypatch.setattr(report_module, "find_leaks", lambda text, values: ["u-2001"])
+    monkeypatch.setattr(make_module, "find_leaks", lambda text, values: ["u-2001"])
     out = tmp_path / "r.md"
     result = runner.invoke(app, ["report", str(SAMPLE), "--redact", "-o", str(out)])
     assert result.exit_code == ExitCode.REDACTION_FAILED

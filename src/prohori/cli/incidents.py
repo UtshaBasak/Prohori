@@ -2,7 +2,8 @@
 
 import json
 from collections.abc import Sequence
-from datetime import UTC, datetime
+from dataclasses import dataclass
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Annotated
 
@@ -27,7 +28,7 @@ from prohori.cli.parse import (
 from prohori.enrich import ConfigError, Enricher, EnrichSettings, build_enricher
 from prohori.incidents import EventContext, IncidentBuilder, IncidentSettings
 from prohori.incidents.provenance import with_provenance
-from prohori.rules import RuleEngine
+from prohori.rules import CompiledRule, RuleEngine
 from prohori.rules.model import parse_duration
 from prohori.schema import Incident, InputFile
 
@@ -99,18 +100,85 @@ def incidents_command(
     except ValueError as exc:
         raise typer.BadParameter(str(exc), param_hint="--gap") from exc
     rules = load_detection_rules(rules_paths or [], builtin=not no_builtin)
-    enricher = None if no_enrich else _enricher(env_file, online=online)
+    enricher = None if no_enrich else make_enricher(env_file, online=online)
+    mode = "none" if no_enrich else ("online" if online else "offline")
+    run = run_incidents(
+        file,
+        rules=rules,
+        enricher=enricher,
+        enrichment=mode,
+        settings=settings,
+        lateness=allowed_lateness,
+        parse=ParseOptions(parser_name, year, timezone, mapping, pattern, keep_query),
+    )
+    incidents = run.incidents
+    if output is OutputFormat.JSON:
+        for incident in incidents:
+            typer.echo(incident.model_dump_json())
+        summary = {
+            "input": run.name,
+            "events": run.events,
+            "parse_errors": run.parse_errors,
+            "alerts": run.alerts,
+            "incidents": len(incidents),
+        }
+        typer.echo(json.dumps(summary), err=True)
+    else:
+        _print_tables(incidents, run.name, run.alerts)
+    if run.events == 0 and run.parse_errors > 0:
+        raise typer.Exit(ExitCode.NO_EVENTS)
+    if incidents and not exit_zero:
+        raise typer.Exit(ExitCode.ALERTS_FOUND)
+
+
+@dataclass(frozen=True)
+class ParseOptions:
+    """Parser options shared by the commands that read log files."""
+
+    parser: str = "auto"
+    year: int | None = None
+    timezone: str = "UTC"
+    mapping: Path | None = None
+    pattern: str | None = None
+    keep_query: bool = False
+
+
+@dataclass(frozen=True)
+class IncidentRun:
+    """The outcome of parsing one input, running the rules and building incidents."""
+
+    incidents: list[Incident]
+    name: str
+    events: int
+    parse_errors: int
+    alerts: int
+
+
+def run_incidents(
+    file: str,
+    *,
+    rules: list[CompiledRule],
+    enricher: Enricher | None,
+    enrichment: str,
+    settings: IncidentSettings,
+    lateness: timedelta,
+    parse: ParseOptions,
+) -> IncidentRun:
+    """Parse ``file`` ('-' for stdin), run ``rules`` and build incidents with provenance.
+
+    Closes ``enricher`` when done.
+    """
     context = EventContext()
-    engine = RuleEngine(rules, lateness=allowed_lateness, reference_time=datetime.now(UTC))
+    engine = RuleEngine(rules, lateness=lateness, reference_time=datetime.now(UTC))
     try:
         with parsed_events(
             file,
-            parser_name,
-            year=year,
-            timezone=timezone,
-            mapping=mapping,
-            pattern=pattern,
-            keep_query=keep_query,
+            parse.parser,
+            year=parse.year,
+            timezone=parse.timezone,
+            mapping=parse.mapping,
+            pattern=parse.pattern,
+            keep_query=parse.keep_query,
         ) as parsed:
             alerts = list(engine.run(context.observe(parsed.events)))
             source = _input_file(parsed)  # the whole input has been read (and hashed) by now
@@ -119,28 +187,14 @@ def incidents_command(
             builder.build(alerts),
             inputs=[source] if source is not None else [],
             rules=rules,
-            enrichment="none" if enricher is None else ("online" if online else "offline"),
+            enrichment=enrichment,
         )
     finally:
         if enricher is not None:
             enricher.close()
-    if output is OutputFormat.JSON:
-        for incident in incidents:
-            typer.echo(incident.model_dump_json())
-        summary = {
-            "input": parsed.name,
-            "events": parsed.stats.events,
-            "parse_errors": parsed.stats.errors,
-            "alerts": len(alerts),
-            "incidents": len(incidents),
-        }
-        typer.echo(json.dumps(summary), err=True)
-    else:
-        _print_tables(incidents, parsed.name, len(alerts))
-    if parsed.stats.events == 0 and parsed.stats.errors > 0:
-        raise typer.Exit(ExitCode.NO_EVENTS)
-    if incidents and not exit_zero:
-        raise typer.Exit(ExitCode.ALERTS_FOUND)
+    return IncidentRun(
+        incidents, parsed.name, parsed.stats.events, parsed.stats.errors, len(alerts)
+    )
 
 
 def _input_file(parsed: ParsedInput) -> InputFile | None:
@@ -155,7 +209,7 @@ def _input_file(parsed: ParsedInput) -> InputFile | None:
     )
 
 
-def _enricher(env_file: Path, *, online: bool) -> Enricher:
+def make_enricher(env_file: Path, *, online: bool) -> Enricher:
     try:
         settings = EnrichSettings.load(env_file=env_file)
     except ConfigError as exc:
