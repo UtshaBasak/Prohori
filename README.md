@@ -36,8 +36,9 @@ reports, with honest machine-learning evaluation and a streaming data pipeline.*
 toolkit in Python that runs on a single laptop with free tools only, offline by default.
 
 > **Status: pre-alpha.** The batch core works today, from log file to shareable report:
-> `parse`, `detect`, `enrich`, `incidents` and `report`. The simulator, the `triage` and `demo`
-> commands and the first PyPI release (v0.1.0) are next. See the [CHANGELOG](CHANGELOG.md) and
+> `parse`, `detect`, `enrich`, `incidents` and `report`, plus a labelled attack simulator that
+> measures the rules. The `triage` and `demo` commands and the first PyPI release (v0.1.0) are
+> next. See the [CHANGELOG](CHANGELOG.md) and
 > the [roadmap](#roadmap).
 
 ## Contents
@@ -47,6 +48,7 @@ toolkit in Python that runs on a single laptop with free tools only, offline by 
 - [Example: an account takeover](#example-an-account-takeover)
 - [Commands](#commands)
 - [Built-in detection rules](#built-in-detection-rules)
+- [How well the rules work](#how-well-the-rules-work)
 - [Privacy and safety](#privacy-and-safety)
 - [Documentation](#documentation)
 - [Roadmap](#roadmap)
@@ -69,6 +71,7 @@ flowchart LR
 | **Detect** | 15 readable YAML rules (Sigma-inspired) with field modifiers, thresholds, distinct counts, ratios, sliding and tumbling windows and ordered sequences. Every rule ships with test fixtures and a runbook; regular expressions run on RE2, so no pattern can hang a run. |
 | **Enrich** | IP geolocation, network owner and reputation from local GeoLite2 files, AbuseIPDB and VirusTotal, all optional. SQLite cache, daily budgets, rate limiting and bounded retries. Private and documentation addresses never leave the machine. |
 | **Incidents** | Related alerts (same IP, account, request or session within a time gap) become one incident with a points-based score you can read line by line, severity, confidence, MITRE ATT&CK v20.0 mapping, a timeline, recommended actions and stated limitations. Detects sign-ins from an IP or app new to the account. |
+| **Simulate** | Eight labelled attack scenarios (SSH brute force, password spraying, credential stuffing, token reuse, account takeover, web scanning, injection, admin misuse) hidden in realistic background activity, byte-identical for a seed, documentation IP addresses only. Used to measure every rule's precision and recall. |
 | **Report** | Markdown, a self-contained HTML page, JSON or a CSV timeline, with an appendix of input and rule-file SHA-256 hashes. `--redact` replaces account names, ids and emails (and optionally IPs) with keyed pseudonyms, and refuses to write a report that would still leak one. |
 
 Prohori only **recommends** actions. It never blocks addresses, disables accounts or touches
@@ -88,6 +91,7 @@ uv run prohori detect samples/logs/auth.log                     # run the 15 rul
 uv run prohori enrich 203.0.113.7 --offline                     # look up an IP (demo data)
 uv run prohori incidents samples/logs/account-takeover.jsonl    # group alerts into incidents
 uv run prohori report samples/incidents/INC-ee7c8818fbb34989.json -f html -o report.html
+uv run prohori simulate account-takeover --seed 1 --out out/      # your own labelled attack
 ```
 
 Open `report.html` in a browser: one file, no scripts, no external resources.
@@ -141,6 +145,7 @@ recommended actions from the runbooks and the limitations, such as "single log s
 | `prohori enrich IP...` | Geolocation and reputation; `--offline` never uses the network | [ENRICHMENT.md](docs/ENRICHMENT.md) |
 | `prohori incidents FILE` | Parse, detect and group alerts into scored incidents; offline enrichment unless `--online` | [INCIDENTS.md](docs/INCIDENTS.md) |
 | `prohori report INCIDENT` | Render an incident as `md`, `html`, `json` or `csv`; `--redact`, `--redact-ips` | [REPORTS.md](docs/REPORTS.md) |
+| `prohori simulate SCENARIO --out DIR` | Write a labelled attack scenario (`--list`, `--seed`, `--variant heldout`, `--set`) | [SIMULATOR.md](docs/SIMULATOR.md) |
 | `prohori version` | Show the version | |
 
 Commands that take a file also read standard input with `-`, and every command has `--help`.
@@ -172,6 +177,25 @@ ATT&CK tags are verified against the official Enterprise ATT&CK v20.0 data. Each
 runbook in [`src/prohori/runbooks/`](src/prohori/runbooks/). Writing your own rules is covered in
 [docs/RULES.md](docs/RULES.md).
 
+## How well the rules work
+
+`prohori simulate` writes each attack scenario in two variants: **default**, the attack the rules
+were designed for, and **held-out**, the same attack done the way a careful attacker would
+(slower, from more addresses, with a browser user agent, obfuscated, or at another hour).
+`scripts/evaluate_rules.py` runs all rules over five seeds of each and compares the alerts with
+the line labels.
+
+| | Default | Held-out |
+|--|--------:|---------:|
+| Attacks caught by at least one expected rule | 40/40 | 35/40 |
+
+Held-out misses, as measured: slow SSH guessing and slow spraying stay under PRH-AUTH-001's
+threshold, credential stuffing from 30 addresses is missed entirely, a scanner with a browser
+user agent evades PRH-WEB-003, and admin activity at 21:30 is outside PRH-ADMIN-002's hours.
+PRH-ACCT-001 has low precision on purpose: it flags every sensitive change soon after a sign-in,
+including the owners' own. These are synthetic results written by the rules' author; the full
+per-rule table and caveats are in [docs/SIMULATOR.md](docs/SIMULATOR.md#results).
+
 ## Privacy and safety
 
 - **Offline by default.** Nothing leaves the machine unless you configure API keys and, for
@@ -201,6 +225,7 @@ Third-party data terms (MITRE ATT&CK, GeoLite2, AbuseIPDB, VirusTotal) are summa
 | [Enrichment](docs/ENRICHMENT.md) | Providers, privacy, cache, limits and configuration |
 | [Incidents](docs/INCIDENTS.md) | Grouping, the scoring table, confidence and limitations |
 | [Reports](docs/REPORTS.md) | Formats, sections, redaction and output safety |
+| [Simulator](docs/SIMULATOR.md) | Attack scenarios, labels, and rule precision and recall |
 | [Decisions](docs/DECISIONS.md) | Architecture decision records |
 | [Third-party terms](docs/LICENSES.md) | Data and service licences |
 | [Wiki](https://github.com/UtshaBasak/Prohori/wiki) | Installation, quick start and guides |
@@ -209,7 +234,7 @@ Third-party data terms (MITRE ATT&CK, GeoLite2, AbuseIPDB, VirusTotal) are summa
 
 | Release | Contents | State |
 |---------|----------|-------|
-| v0.1.0 | Batch core: parsers, rules, enrichment, incidents, reports, log simulator with rule evaluation, `triage` and `demo` commands | Most of it is built; simulator and `triage` next |
+| v0.1.0 | Batch core: parsers, rules, enrichment, incidents, reports, log simulator with rule evaluation, `triage` and `demo` commands | Built except `triage`, `demo` and the release itself |
 | v0.2.0 | Machine learning: leakage-controlled intrusion detection on public flow datasets, log-derived anomaly detection, model cards | Planned |
 | v0.3.0 | Pipeline: streaming core, Redpanda and PostgreSQL in Docker, dbt models, dashboard, orchestration | Planned |
 | v1.0.0 | Optional LLM analyst (opt-in, redacted input, validated output), final polish | Planned |

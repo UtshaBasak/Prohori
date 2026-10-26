@@ -9,6 +9,15 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- Log simulator (`prohori.simulate`) and `prohori simulate SCENARIO --seed N --out DIR
+  [--variant default|heldout] [--set NAME=VALUE] [--list]`: eight labelled attack scenarios
+  (SSH brute force, password spraying, credential stuffing, refresh-token reuse, account takeover
+  with a payout change, web scanning, injection attempts, admin misuse) in realistic benign
+  background activity, as `auth.log`, access-log or app-JSON files with per-line labels and a
+  manifest. Byte-identical for the same seed; documentation IP ranges only.
+- Rule evaluation: `scripts/evaluate_rules.py` writes per-rule precision and recall for the
+  default and held-out variants to `results/rules_eval.json`; `scripts/generate_results_table.py`
+  puts the tables in `docs/SIMULATOR.md`.
 - Time-of-day matching in rules: a `timezone` key and the `time.hour`, `time.weekday` and
   `time.minute_of_day` fields.
 - Built-in rule PRH-ADMIN-002: admin actions between 22:00 and 07:00 (Asia/Dhaka), with fixtures
