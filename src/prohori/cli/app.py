@@ -12,6 +12,7 @@ from prohori.cli.incidents import incidents_command
 from prohori.cli.parse import parse_command
 from prohori.cli.report import report_command
 from prohori.cli.rules import rules_app
+from prohori.cli.simulate import simulate_command
 from prohori.version import __version__
 
 app = typer.Typer(
@@ -55,6 +56,7 @@ app.command("detect")(detect_command)
 app.command("enrich")(enrich_command)
 app.command("incidents")(incidents_command)
 app.command("report")(report_command)
+app.command("simulate")(simulate_command)
 app.add_typer(rules_app)
 
 
