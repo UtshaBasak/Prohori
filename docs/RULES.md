@@ -61,6 +61,7 @@ verified ATT&CK tags.
 | PRH-AUTHZ-001 | medium | Authorisation denials across many resources | `authz.denied` for >= 5 distinct `http.path` per `source.ip` in 10 min |
 | PRH-ABUSE-001 | medium | Rate-limit bursts or bot-check failures | >= 20 `ratelimit.exceeded` / `turnstile.failed` per `source.ip` in 5 min |
 | PRH-ADMIN-001 | high | Admin role granted | every `admin.role.granted` event |
+| PRH-ADMIN-002 | medium | Admin action at an unusual hour | any admin event from 22:00 to 06:59 in `Asia/Dhaka` (`time.hour`) |
 | PRH-WEB-001 | medium | Web scanning | 403/404 responses for >= 10 distinct `http.path` per `source.ip` in 5 min |
 | PRH-WEB-002 | medium | Injection patterns in request paths | >= 3 requests per `source.ip` in 10 min whose URL-decoded path or query contains SQL injection, traversal or XSS markers |
 | PRH-WEB-003 | medium | Scanner or empty user agent at a high rate | >= 30 requests per `source.ip` in 1 min with a scanning-tool or empty user agent |
@@ -83,8 +84,9 @@ Known limits, also stated in each rule's description:
   single manual attempt does not alert.
 - **PRH-WEB-003** relies on the user agent; a scanner that sends a browser user agent is caught
   only by PRH-WEB-001, PRH-WEB-002 or PRH-WEB-004.
-- **PRH-ADMIN-001** fires for every grant; admin actions at unusual hours are not detected yet
-  (rules cannot match on the time of day; planned).
+- **PRH-ADMIN-001** fires for every grant, planned or not.
+- **PRH-ADMIN-002** uses the shop's local time (`timezone: Asia/Dhaka`) and fixed night hours.
+  Other sites should copy the rule and set their own `timezone` and hours.
 
 ### ATT&CK mapping
 
@@ -128,6 +130,10 @@ package, so they are available after `pip install`. Every runbook has the same s
 order: *What it means*, *Triage*, *Recommended actions* (a bullet list), *False positives* and
 *ATT&CK*.
 
+Recommended actions that start with exactly `For SSH,` are shown only for incidents that contain
+SSH events, and those starting with exactly `For the web app,` only for incidents that contain
+web-app events.
+
 ## Example
 
 ```yaml
@@ -166,6 +172,7 @@ response: runbooks/brute-force.md
 | `falsepositives` | no | List of known benign causes |
 | `response` | no | Relative path to a Markdown runbook, for example `runbooks/brute-force.md` |
 | `references` | no | List of `http(s)://` links |
+| `timezone` | no | IANA timezone for the `time.*` fields, for example `Asia/Dhaka` (default `UTC`) |
 
 Unknown keys are errors, so typos are caught.
 
@@ -189,6 +196,22 @@ detection:
 
 Field names are the dotted schema names from [SCHEMA.md](SCHEMA.md) (`event.action`,
 `source.ip`, `http.path`, ...) or `extra.<key>`. Unknown fields are errors.
+
+Three **time fields** are computed from the event's `timestamp` in the rule's `timezone`:
+`time.hour` (0-23), `time.weekday` (0 = Monday ... 6 = Sunday) and `time.minute_of_day`
+(0-1439). Use them with numeric comparisons in selections; they cannot be used in `group_by`,
+`distinct` or sequence `by` fields.
+
+```yaml
+timezone: Asia/Dhaka
+detection:
+  admin:
+    event.category: admin
+  night:
+    - time.hour|gte: 22
+    - time.hour|lt: 7
+  condition: admin and night
+```
 
 ### Matching rules
 
@@ -331,9 +354,9 @@ events, holding only bounded state.
 | Future timestamps | With a reference time ("now"), events more than one day after it are dropped and counted (`future_events`). Without one, a bogus future timestamp still lets in-order events through, but it disables out-of-order tolerance for the rest of the input. The engine never reads the clock itself |
 | Sliding windows | An event is inside the window at time `t` when `t - event time < window`; an event exactly `window` old is outside |
 | Tumbling windows | Aligned to the Unix epoch in UTC (a `1m` window runs from :00 to :59) |
-| Re-alerting | When a threshold or sequence fires, that group's state is cleared; the next alert needs the threshold to be reached again by later events. Stateless rules alert once per matching event |
+| Re-alerting | When a threshold fires, that group's state is cleared; the next alert needs the threshold to be reached again by later events. A completed sequence stays open until `start + within`: every further `count_gte` events matching its last step raise another alert with the earlier steps' events (a second account change after one sign-in is reported too). Stateless rules alert once per matching event |
 | Missing group fields | An event without a value for every `group_by` / `by` field is skipped for that rule and counted (`ungrouped_events`) |
-| Sequences | Step 1 keeps its matches within `within` of the newest one; when it reaches its count, the sequence starts at the oldest of them. Later steps must complete before `start + within`; an event at or after that moment restarts the sequence with that event. After step 1 completes, more step-1 events are ignored. An event matching several steps counts for the current step |
+| Sequences | Step 1 keeps its matches within `within` of the newest one; when it reaches its count, the sequence starts at the oldest of them. Later steps must complete before `start + within`; an event at or after that moment restarts the sequence with that event. After step 1 completes, more step-1 events are ignored. An event matching several steps counts for the current step. After the last step, see re-alerting |
 
 Alerts carry the rule's id, title, severity, ATT&CK tags and an explanation. Their entities are
 the `group_by` / `by` values, or for stateless rules whichever of `source.ip`, `user.name`,

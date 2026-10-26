@@ -8,6 +8,7 @@ import re
 from datetime import timedelta
 from enum import StrEnum
 from typing import Annotated, Any, Self
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from pydantic import (
     AfterValidator,
@@ -72,6 +73,15 @@ def _runbook_path(value: str) -> str:
     ):
         msg = "response must be a relative path to a Markdown runbook, such as runbooks/x.md"
         raise ValueError(msg)
+    return value
+
+
+def _timezone(value: str) -> str:
+    try:
+        ZoneInfo(value)
+    except (ZoneInfoNotFoundError, ValueError):
+        msg = f"unknown timezone {value!r}; use an IANA name such as UTC or Asia/Dhaka"
+        raise ValueError(msg) from None
     return value
 
 
@@ -197,6 +207,8 @@ class RuleMeta(BaseModel):
         list[Annotated[str, Field(max_length=500)]], Field(max_length=32)
     ] = []
     response: RunbookPath | None = None
+    #: IANA timezone for the ``time.*`` fields (``time.hour`` and so on).
+    timezone: Annotated[str, Field(max_length=64), AfterValidator(_timezone)] = "UTC"
     references: Annotated[
         list[Annotated[str, Field(pattern=r"^https?://\S+$", max_length=500)]],
         Field(max_length=32),

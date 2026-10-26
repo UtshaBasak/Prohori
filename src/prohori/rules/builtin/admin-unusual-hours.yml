@@ -1,0 +1,24 @@
+id: PRH-ADMIN-002
+title: Admin action at an unusual hour
+status: stable
+severity: medium
+description: >-
+  Any admin action between 22:00 and 06:59 in the rule's timezone (Asia/Dhaka, the shop's local
+  time). Attackers who take over an admin session often act when the real admins are asleep.
+  Copy this rule and change `timezone` and the hours to match your own working hours.
+author: Prohori
+tags: [attack.persistence, attack.privilege_escalation, attack.t1078]
+logsource: {category: admin}
+timezone: Asia/Dhaka
+detection:
+  admin:
+    event.category: admin
+  late:
+    time.hour|gte: 22
+  early:
+    time.hour|lt: 7
+  condition: admin and (late or early)
+falsepositives:
+  - An administrator working late or on call
+  - Scheduled maintenance by an admin account
+response: runbooks/admin-unusual-hours.md

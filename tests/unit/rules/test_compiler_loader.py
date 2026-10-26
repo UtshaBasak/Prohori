@@ -372,3 +372,43 @@ def test_extremely_deep_yaml_is_reported_not_raised(tmp_path: Path) -> None:
     report = load_rule(path)
     assert not report.ok
     assert "nested deeper" in report.errors[0].message
+
+
+class TestTimeFields:
+    def _at(self, when: datetime, category: str = "admin") -> Event:
+        return Event.model_validate(
+            {
+                "timestamp": when,
+                "log_source": "app",
+                "event": {"action": "admin.role.granted", "category": category},
+                "raw": "x",
+            }
+        )
+
+    def test_hour_weekday_and_minute_use_the_rule_timezone(self) -> None:
+        compiled = compile_rule(
+            rule(
+                timezone="Asia/Dhaka",
+                detection={
+                    "night": {"time.hour": 3, "time.weekday": 6, "time.minute_of_day": 195},
+                    "condition": "night",
+                },
+            )
+        ).rule
+        assert compiled is not None
+        # 21:15 UTC on Saturday 2026-10-24 is 03:15 on Sunday in Dhaka (UTC+6).
+        assert compiled.matches_filter(self._at(datetime(2026, 10, 24, 21, 15, tzinfo=UTC)))
+        assert not compiled.matches_filter(self._at(datetime(2026, 10, 24, 3, 15, tzinfo=UTC)))
+
+    def test_default_timezone_is_utc(self) -> None:
+        compiled = compile_rule(
+            detection(selection={"time.hour|gte": 21}, condition="selection")
+        ).rule
+        assert compiled is not None
+        assert compiled.meta.timezone == "UTC"
+        assert compiled.matches_filter(self._at(datetime(2026, 10, 24, 21, 15, tzinfo=UTC)))
+
+    def test_unknown_timezone_and_unknown_time_field(self) -> None:
+        assert any("unknown timezone" in e for e in errors_of(rule(timezone="Mars/Olympus")))
+        bad = detection(selection={"time.second": 1}, condition="selection")
+        assert any("unknown field 'time.second'" in e for e in errors_of(bad))

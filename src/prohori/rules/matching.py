@@ -18,6 +18,7 @@ import math
 import re
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
+from datetime import UTC, tzinfo
 from urllib.parse import unquote_plus
 
 from prohori.rules.regex_safety import UnsafeRegexError, compile_regex
@@ -34,6 +35,9 @@ TEXT_OPERATORS = frozenset({None, "contains", "startswith", "endswith", "re"})
 #: Decoding rounds for ``urldecode``: enough for double and triple encoding.
 URLDECODE_ROUNDS = 3
 MAX_VALUES = 512
+#: Virtual fields computed from ``timestamp`` in the rule's ``timezone``: the hour (0-23), the
+#: weekday (0 = Monday ... 6 = Sunday) and the minute of the day (0-1439).
+TIME_FIELDS = frozenset({"time.hour", "time.weekday", "time.minute_of_day"})
 MAX_VALUE_LENGTH = 1024
 
 Path = tuple[str | int, ...]
@@ -58,9 +62,14 @@ class FieldMatcher:
     predicates: tuple[Predicate, ...]
     require_all: bool
     urldecode: bool = False
+    tz: tzinfo = UTC
 
     def matches(self, event: Event) -> bool:
-        value = get_field(event, self.field)
+        value = (
+            time_field(event, self.field, self.tz)
+            if self.field in TIME_FIELDS
+            else get_field(event, self.field)
+        )
         if self.urldecode and isinstance(value, str):
             value = url_decode(value)
         if self.require_all:
@@ -270,15 +279,25 @@ def _in_network(value: JsonScalar, network: ipaddress.IPv4Network | ipaddress.IP
         return False
 
 
+def time_field(event: Event, field: str, tz: tzinfo) -> int:
+    """Value of a :data:`TIME_FIELDS` field for ``event``, in timezone ``tz``."""
+    local = event.timestamp.astimezone(tz)
+    if field == "time.hour":
+        return local.hour
+    if field == "time.weekday":
+        return local.weekday()
+    return local.hour * 60 + local.minute
+
+
 def compile_field(
-    key: object, raw: object, path: Path, errors: list[RuleError]
+    key: object, raw: object, path: Path, errors: list[RuleError], tz: tzinfo = UTC
 ) -> FieldMatcher | None:
     """Compile one ``field|modifiers: value(s)`` entry; append problems to ``errors``."""
     if not isinstance(key, str):
         errors.append(RuleError(path, "field names must be strings"))
         return None
     field, *modifiers = key.split("|")
-    if not is_valid_path(field):
+    if not is_valid_path(field) and field not in TIME_FIELDS:
         errors.append(RuleError(path, f"unknown field {field!r}"))
         return None
     operators = [m for m in modifiers if m in OPERATORS]
@@ -318,11 +337,11 @@ def compile_field(
             predicates.append(predicate)
     if len(errors) > before:
         return None
-    return FieldMatcher(field, tuple(predicates), require_all, urldecode)
+    return FieldMatcher(field, tuple(predicates), require_all, urldecode, tz)
 
 
 def compile_selection(
-    name: str, raw: object, path: Path, errors: list[RuleError]
+    name: str, raw: object, path: Path, errors: list[RuleError], tz: tzinfo = UTC
 ) -> Selection | None:
     """Compile a selection (a mapping, or a list of mappings); append problems to ``errors``."""
     groups_raw: list[tuple[Path, object]]
@@ -342,7 +361,7 @@ def compile_selection(
             errors.append(RuleError(group_path, "expected a non-empty mapping of field: value"))
             continue
         matchers = [
-            compile_field(key, value, (*group_path, str(key)), errors)
+            compile_field(key, value, (*group_path, str(key)), errors, tz)
             for key, value in group.items()
         ]
         groups.append(tuple(m for m in matchers if m is not None))

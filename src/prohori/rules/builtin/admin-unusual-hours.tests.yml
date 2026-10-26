@@ -1,0 +1,38 @@
+rule: PRH-ADMIN-002
+start: 2026-10-24T14:00:00Z
+defaults:
+  log_source: app-security
+  event.category: admin
+  event.outcome: success
+  user.id: u-0001
+cases:
+  - name: an admin action at 03:00 in Dhaka (21:00 UTC) alerts
+    expect: {alerts: 1, entities: [{user.id: u-0001}]}
+    events:
+      - {at: "2026-10-24T21:00:00Z", event.action: admin.role.granted}
+
+  - name: the boundaries are 22:00 and 07:00 local time
+    expect: {alerts: 2}
+    events:
+      - {at: "2026-10-24T15:59:59Z", event.action: admin.user.deactivated}
+      - {at: "2026-10-24T16:00:00Z", event.action: admin.user.deactivated}
+      - {at: "2026-10-25T00:59:59Z", event.action: admin.user.deactivated}
+      - {at: "2026-10-25T01:00:00Z", event.action: admin.user.deactivated}
+
+  - name: working hours do not alert
+    expect: {alerts: 0}
+    events:
+      - {at: "2026-10-24T04:00:00Z", event.action: admin.role.granted}
+      - {at: "2026-10-24T10:30:00Z", event.action: admin.payout.recorded}
+
+  - name: non-admin events at night do not alert
+    expect: {alerts: 0}
+    events:
+      - {at: "2026-10-24T20:00:00Z", event.action: auth.signin.success, event.category: authentication}
+
+  - name: late admin action through the app_json parser
+    expect: {alerts: 1}
+    log:
+      parser: app_json
+      lines:
+        - '{"time": "2026-10-24T20:30:00Z", "event": {"action": "admin.role.granted", "category": "admin", "outcome": "success", "severity": "high"}, "source": {"ip": "192.0.2.10"}, "client": "web", "user": {"id": "u-0001"}}'
