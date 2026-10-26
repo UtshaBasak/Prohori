@@ -9,6 +9,16 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- `prohori triage FILE|-`: parse, detect, enrich (offline unless `--online`), build incidents and
+  write `incidents.jsonl`, one report per incident (`--format md|html|json|csv`) and
+  `summary.md`; `--redact` / `--redact-ips` redact every file with one key per run.
+- `prohori demo`: simulates an account takeover, an SSH brute force and a web scan, triages them
+  offline with no configuration and shows whether every expected rule fired.
+- `prohori version` shows the ATT&CK release and a fingerprint of the built-in rule set.
+- Command-line reference `docs/CLI.md`, sample reports in `docs/examples/`, a terminal capture of
+  the demo (`docs/images/demo.svg`) and `scripts/generate_examples.py` to regenerate them.
+- Golden tests for the table output of the main commands, a `--help` test for every command and
+  an end-to-end test (simulator, triage, incidents) against the simulator's ground truth.
 - Log simulator (`prohori.simulate`) and `prohori simulate SCENARIO --seed N --out DIR
   [--variant default|heldout] [--set NAME=VALUE] [--list]`: eight labelled attack scenarios
   (SSH brute force, password spraying, credential stuffing, refresh-token reuse, account takeover

@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src 'none'; form-action 'none'; base-uri 'none'">
+<meta name="referrer" content="no-referrer">
+<meta name="generator" content="prohori 0.1.0.dev0">
+<title>INC-ee7c8818fbb34989: Successful sign-in after many failures from one IP and 3 related alerts</title>
+<style>
+:root { --fg: #1d232b; --muted: #5b6573; --bg: #ffffff; --panel: #f5f7fa; --line: #d8dde4;
+  --low: #3b7a57; --medium: #a66a00; --high: #c2410c; --critical: #b91c1c; }
+@media (prefers-color-scheme: dark) {
+  :root { --fg: #e6e9ee; --muted: #a2abb8; --bg: #14181d; --panel: #1d232b; --line: #2f3742; }
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--fg);
+  font: 15px/1.55 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+main { max-width: 1040px; margin: 0 auto; padding: 24px 16px 48px; }
+h1 { font-size: 1.6rem; margin: 0 0 4px; }
+h2 { font-size: 1.15rem; margin: 32px 0 8px; padding-bottom: 4px; border-bottom: 1px solid var(--line); }
+h3 { font-size: 1rem; margin: 18px 0 6px; }
+code, .mono { font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; font-size: .9em;
+  overflow-wrap: anywhere; }
+table { border-collapse: collapse; width: 100%; margin: 8px 0; }
+th, td { text-align: left; vertical-align: top; padding: 6px 8px; border-bottom: 1px solid var(--line);
+  overflow-wrap: anywhere; }
+th { background: var(--panel); font-weight: 600; }
+td.num, th.num { text-align: right; white-space: nowrap; }
+.meta { display: flex; flex-wrap: wrap; gap: 8px 24px; color: var(--muted); margin: 8px 0 0; }
+.badge { display: inline-block; padding: 1px 10px; border-radius: 999px; color: #fff; font-weight: 600; }
+.sev-low { background: var(--low); } .sev-medium { background: var(--medium); }
+.sev-high { background: var(--high); } .sev-critical { background: var(--critical); }
+.summary { background: var(--panel); border-left: 4px solid var(--line); padding: 12px 16px; }
+.kind-alert td { font-weight: 600; }
+.muted { color: var(--muted); }
+.table-wrap { overflow-x: auto; }
+</style>
+</head>
+<body>
+<main>
+<header>
+<h1>Successful sign-in after many failures from one IP and 3 related alerts</h1>
+<div class="meta">
+<span><span class="badge sev-critical">critical</span> score 100</span>
+<span>Incident <code>INC-ee7c8818fbb34989</code></span>
+<span>Status: open</span>
+<span>Confidence: high</span>
+<span>2026-10-24 21:10:00 UTC to 2026-10-24 21:13:10 UTC</span>
+</div>
+</header>
+
+<h2>Summary</h2>
+<div class="summary">
+<p>Critical incident (score 100, high confidence): 4 alert(s) from 3 rule(s) between 2026-10-24 21:10:00 UTC and 2026-10-24 21:13:10 UTC, from 203.0.113.7, involving u-2001.</p>
+<p>Main factors:</p>
+<ul>
+<li>Most severe alert: PRH-AUTH-003 (critical)</li>
+<li>2 more rules fired: PRH-ACCT-001, PRH-AUTH-001</li>
+<li>A sign-in succeeded after failed attempts</li>
+</ul>
+</div>
+
+<h2>Timeline</h2>
+<div class="table-wrap">
+<table>
+<thead><tr><th>Time</th><th>Kind</th><th>What happened</th></tr></thead>
+<tbody>
+<tr class="kind-event"><td class="mono">2026-10-24 21:10:00 UTC</td><td>event</td><td>[app-security] auth.signin.failure (failure), account u-2001, from 203.0.113.7, POST /api/auth/signin, client web</td></tr>
+<tr class="kind-event"><td class="mono">2026-10-24 21:10:03 UTC</td><td>event</td><td>[app-security] auth.signin.failure (failure), account u-2001, from 203.0.113.7, POST /api/auth/signin, client web</td></tr>
+<tr class="kind-event"><td class="mono">2026-10-24 21:10:06 UTC</td><td>event</td><td>[app-security] auth.signin.failure (failure), account u-2001, from 203.0.113.7, POST /api/auth/signin, client web</td></tr>
+<tr class="kind-event"><td class="mono">2026-10-24 21:10:09 UTC</td><td>event</td><td>[app-security] auth.signin.failure (failure), account u-2001, from 203.0.113.7, POST /api/auth/signin, client web</td></tr>
+<tr class="kind-event"><td class="mono">2026-10-24 21:10:12 UTC</td><td>event</td><td>[app-security] auth.signin.failure (failure), account u-2001, from 203.0.113.7, POST /api/auth/signin, client web</td></tr>
+<tr class="kind-event"><td class="mono">2026-10-24 21:10:15 UTC</td><td>event</td><td>[app-security] auth.signin.failure (failure), account u-2001, from 203.0.113.7, POST /api/auth/signin, client web</td></tr>
+<tr class="kind-event"><td class="mono">2026-10-24 21:10:18 UTC</td><td>event</td><td>[app-security] auth.signin.failure (failure), account u-2001, from 203.0.113.7, POST /api/auth/signin, client web</td></tr>
+<tr class="kind-event"><td class="mono">2026-10-24 21:10:21 UTC</td><td>event</td><td>[app-security] auth.signin.failure (failure), account u-2001, from 203.0.113.7, POST /api/auth/signin, client web</td></tr>
+<tr class="kind-event"><td class="mono">2026-10-24 21:10:24 UTC</td><td>event</td><td>[app-security] auth.signin.failure (failure), account u-2001, from 203.0.113.7, POST /api/auth/signin, client web</td></tr>
+<tr class="kind-event"><td class="mono">2026-10-24 21:10:27 UTC</td><td>event</td><td>[app-security] auth.signin.failure (failure), account u-2001, from 203.0.113.7, POST /api/auth/signin, client web</td></tr>
+<tr class="kind-alert"><td class="mono">2026-10-24 21:10:27 UTC</td><td>alert</td><td>Alert PRH-AUTH-001 (high): Brute-force sign-in attempts from one IP</td></tr>
+<tr class="kind-event"><td class="mono">2026-10-24 21:11:05 UTC</td><td>event</td><td>[app-security] auth.signin.success (success), account u-2001, from 203.0.113.7, POST /api/auth/signin, client web</td></tr>
+<tr class="kind-alert"><td class="mono">2026-10-24 21:11:05 UTC</td><td>alert</td><td>Alert PRH-AUTH-003 (critical): Successful sign-in after many failures from one IP</td></tr>
+<tr class="kind-event"><td class="mono">2026-10-24 21:12:30 UTC</td><td>event</td><td>[app-security] account.2fa.disabled (success), account u-2001, from 203.0.113.7, DELETE /api/account/2fa, client web</td></tr>
+<tr class="kind-alert"><td class="mono">2026-10-24 21:12:30 UTC</td><td>alert</td><td>Alert PRH-ACCT-001 (high): Sensitive account change shortly after sign-in</td></tr>
+<tr class="kind-event"><td class="mono">2026-10-24 21:13:10 UTC</td><td>event</td><td>[app-security] account.bkash.changed (success), account u-2001, from 203.0.113.7, PATCH /api/account/payout, client web</td></tr>
+<tr class="kind-alert"><td class="mono">2026-10-24 21:13:10 UTC</td><td>alert</td><td>Alert PRH-ACCT-001 (high): Sensitive account change shortly after sign-in</td></tr>
+</tbody>
+</table>
+</div>
+
+<h2>Indicators</h2>
+<h3>ip: <code>203.0.113.7</code></h3>
+<div class="table-wrap">
+<table>
+<thead><tr><th>Provider</th><th>Retrieved</th><th>Data</th></tr></thead>
+<tbody>
+<tr><td>offline</td><td class="mono">2026-10-01 00:00:00 UTC</td><td>
+<span class="mono">country</span>: NL<br><span class="mono">city</span>: Amsterdam<br><span class="mono">asn</span>: 64501<br><span class="mono">as_org</span>: Example Hosting B.V. (fictional)<br><span class="mono">network</span>: 203.0.113.0/24<br><span class="mono">abuse_score</span>: 97<br><span class="mono">reports</span>: 412<br><span class="mono">malicious</span>: 9<br><span class="mono">suspicious</span>: 2<br><span class="mono">is_tor</span>: False<br><span class="mono">usage_type</span>: Data Center/Web Hosting/Transit<br><span class="muted">Synthetic offline fixture for documentation addresses; not real data.</span></td></tr>
+</tbody>
+</table>
+</div>
+<h3>user_agent: <code>python-requests/2.32.3</code></h3>
+<p class="muted">No enrichment.</p>
+
+<h2>Affected entities</h2>
+<table>
+<thead><tr><th>Field</th><th>Values</th></tr></thead>
+<tbody>
+<tr><td><code>source.ip</code></td><td><code>203.0.113.7</code></td></tr>
+<tr><td><code>user.email_hash</code></td><td><code>0cc175b9c0f1b6a831c399e269772661</code></td></tr>
+<tr><td><code>user.id</code></td><td><code>u-2001</code></td></tr>
+</tbody>
+</table>
+
+<h2>Evidence</h2>
+<h3><code>PRH-AUTH-003</code> Successful sign-in after many failures from one IP (critical)</h3>
+<ul>
+<li>2026-10-24 21:10:00 UTC to 2026-10-24 21:11:05 UTC</li>
+<li>5 x failure then 1 x success for source.ip=203.0.113.7 within 15m</li>
+<li>Events: <code>evt-98e13f6d307f2e3be16558ed</code>, <code>evt-ef2ea440d254bf4a8d4680f6</code>, <code>evt-1ee56267cc7a1b10b9494687</code>, <code>evt-bbc30d1e50633effa8d81596</code>, <code>evt-c17a57243deeaf70a93c331e</code>, <code>evt-d921c9a6c26404450a3b9d46</code></li>
+</ul>
+<h3><code>PRH-AUTH-001</code> Brute-force sign-in attempts from one IP (high)</h3>
+<ul>
+<li>2026-10-24 21:10:00 UTC to 2026-10-24 21:10:27 UTC</li>
+<li>10 matching events (threshold 10) for source.ip=203.0.113.7 within a 5m window</li>
+<li>Events: <code>evt-98e13f6d307f2e3be16558ed</code>, <code>evt-ef2ea440d254bf4a8d4680f6</code>, <code>evt-1ee56267cc7a1b10b9494687</code>, <code>evt-bbc30d1e50633effa8d81596</code>, <code>evt-c17a57243deeaf70a93c331e</code>, <code>evt-e324aaa8ec2561e6cd038ca7</code>, <code>evt-ada9bb363aaf4af58d44c821</code>, <code>evt-c480d3039cfb186a6c233449</code>, <code>evt-3b80f435be26e14e36c3ac89</code>, <code>evt-b1604296ea5f5716a233d047</code></li>
+</ul>
+<h3><code>PRH-ACCT-001</code> Sensitive account change shortly after sign-in (high)</h3>
+<ul>
+<li>2026-10-24 21:11:05 UTC to 2026-10-24 21:13:10 UTC</li>
+<li>1 x signin then 1 x change for user.id=u-2001 within 30m</li>
+<li>Events: <code>evt-d921c9a6c26404450a3b9d46</code>, <code>evt-6f29461df339acb9232831d2</code></li>
+</ul>
+<h3><code>PRH-ACCT-001</code> Sensitive account change shortly after sign-in (high)</h3>
+<ul>
+<li>2026-10-24 21:11:05 UTC to 2026-10-24 21:12:30 UTC</li>
+<li>1 x signin then 1 x change for user.id=u-2001 within 30m</li>
+<li>Events: <code>evt-d921c9a6c26404450a3b9d46</code>, <code>evt-b4a805719a3e5812131f275e</code></li>
+</ul>
+
+<h2>ATT&amp;CK mapping</h2>
+<p>Enterprise ATT&amp;CK v20.0.</p>
+<table>
+<thead><tr><th>Tactic</th><th>Techniques</th></tr></thead>
+<tbody>
+<tr><td>Initial Access</td><td>T1078 Valid Accounts</td></tr>
+<tr><td>Persistence</td><td>T1078 Valid Accounts, T1098 Account Manipulation, T1556.006 Multi-Factor Authentication</td></tr>
+<tr><td>Privilege Escalation</td><td>T1078 Valid Accounts, T1098 Account Manipulation</td></tr>
+<tr><td>Defense Impairment</td><td>T1556.006 Multi-Factor Authentication</td></tr>
+<tr><td>Credential Access</td><td>T1110 Brute Force, T1110.001 Password Guessing, T1556.006 Multi-Factor Authentication</td></tr>
+</tbody>
+</table>
+
+<h2>Score breakdown</h2>
+<table>
+<thead><tr><th class="num">Points</th><th>Reason</th></tr></thead>
+<tbody>
+<tr><td class="num">+50</td><td>Most severe alert: PRH-AUTH-003 (critical)</td></tr>
+<tr><td class="num">+20</td><td>2 more rules fired: PRH-ACCT-001, PRH-AUTH-001</td></tr>
+<tr><td class="num">+20</td><td>A sign-in succeeded after failed attempts</td></tr>
+<tr><td class="num">+15</td><td>Sensitive account or admin change: account.2fa.disabled, account.bkash.changed</td></tr>
+<tr><td class="num">+20</td><td>Reputation of 203.0.113.7: abuse confidence 97; 9 vendors flag it as malicious (from bundled demo data)</td></tr>
+<tr><td class="num">+10</td><td>Sign-in to u-2001 from 203.0.113.7, an IP not seen for this account before (1 earlier IP)</td></tr>
+<tr><td class="num">+5</td><td>Sign-in to u-2001 with client web, not seen for this account before</td></tr>
+<tr><td class="num">-40</td><td>Capped at 100</td></tr>
+<tr><th class="num">100</th><th>Total</th></tr>
+</tbody>
+</table>
+
+<h2>Recommended actions</h2>
+<p class="muted">Prohori only recommends actions; it never changes anything itself.</p>
+<ol>
+<li>End all sessions of the account and force a password reset.</li>
+<li>Block the source IP.</li>
+<li>Revert unauthorised changes, such as a changed payout number or disabled two-step verification.</li>
+<li>Require two-step verification for the account.</li>
+<li>Block or rate-limit the source IP at the firewall, reverse proxy or application while you investigate.</li>
+<li>If any sign-in from the IP succeeded, follow the runbook for PRH-AUTH-003.</li>
+<li>For the web app, make sure account lockout or progressive delays and bot checks are enabled on the sign-in form.</li>
+<li>If the owner did not make the change: end all sessions, revert the change, reset the password and re-enable two-step verification.</li>
+<li>Hold payouts to a newly changed payout number until the owner confirms it.</li>
+<li>Consider requiring re-authentication or a confirmation code for these changes.</li>
+</ol>
+
+<h2>Confidence and limitations</h2>
+<p>Confidence: <strong>high</strong>.</p>
+<ul>
+<li>Enrichment offline: only bundled demo data, local GeoLite2 data and cached answers were used</li>
+<li>Enrichment of 203.0.113.7 is bundled demo data, not real reputation</li>
+<li>Single log source (app-security): no other log corroborates it</li>
+<li>Possible benign cause for PRH-ACCT-001: The account owner changing their own settings after signing in</li>
+<li>Possible benign cause for PRH-ACCT-001: Support staff helping a user recover an account</li>
+<li>Possible benign cause for PRH-AUTH-001: Many users behind one shared NAT or proxy address</li>
+<li>Possible benign cause for PRH-AUTH-001: A script or password manager retrying a stale password</li>
+<li>Possible benign cause for PRH-AUTH-003: A legitimate user who forgot their password and finally entered it correctly</li>
+<li>Possible benign cause for PRH-AUTH-003: Several users behind one shared NAT, some failing and one succeeding</li>
+</ul>
+
+<h2>Appendix</h2>
+<h3>Rules fired</h3>
+<table>
+<thead><tr><th>Rule</th><th>Title</th><th class="num">Alerts</th><th>Rule file SHA-256</th></tr></thead>
+<tbody>
+<tr><td><code>PRH-ACCT-001</code></td><td>Sensitive account change shortly after sign-in</td><td class="num">2</td><td><code>f523b6831891b2444e932426d69ce28f08156b251a5bc771b312de3fcf1049c9</code></td></tr>
+<tr><td><code>PRH-AUTH-001</code></td><td>Brute-force sign-in attempts from one IP</td><td class="num">1</td><td><code>510045192d86bc5c3e4baae6cea620b22206abf12aa0980b49125fd0af94e97f</code></td></tr>
+<tr><td><code>PRH-AUTH-003</code></td><td>Successful sign-in after many failures from one IP</td><td class="num">1</td><td><code>8c63236a86391c4cef1655511802f13d1c331a5a26c1392dc605d6815c73d6bd</code></td></tr>
+</tbody>
+</table>
+
+<h3>Inputs</h3>
+<table>
+<thead><tr><th>File</th><th>Parser</th><th class="num">Events</th><th class="num">Bytes</th><th>SHA-256</th></tr></thead>
+<tbody>
+<tr><td><code>account-takeover.jsonl</code></td><td>app_json</td><td class="num">17</td><td class="num">7534</td><td><code>20fea77a6a1a1e56a5ccabd157109c79bb71796f9aa95389f2f8a069e62a48d6</code></td></tr>
+</tbody>
+</table>
+
+<h3>Versions</h3>
+<ul>
+<li>Incident built with: prohori 0.1.0.dev0 (enrichment: offline)</li>
+<li>Report rendered with: prohori 0.1.0.dev0</li>
+<li>ATT&amp;CK: Enterprise v20.0</li>
+<li>Incident file: <code>INC-ee7c8818fbb34989.json</code>, SHA-256 <code>79be9f57cd0df2cd371d06bfd7682f1bc6f7bdf5c27a460327ff5bce5170762b</code></li>
+</ul>
+
+<h3>Privacy</h3>
+<p>Not redacted: account names, ids and IP addresses are shown as logged.</p>
+</main>
+</body>
+</html>

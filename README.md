@@ -35,15 +35,31 @@ reports, with honest machine-learning evaluation and a streaming data pipeline.*
 *Prohori* (প্রহরী) is Bengali for "guard". It is an open-source, defensive security-operations
 toolkit in Python that runs on a single laptop with free tools only, offline by default.
 
-> **Status: pre-alpha.** The batch core works today, from log file to shareable report:
-> `parse`, `detect`, `enrich`, `incidents` and `report`, plus a labelled attack simulator that
-> measures the rules. The `triage` and `demo` commands and the first PyPI release (v0.1.0) are
-> next. See the [CHANGELOG](CHANGELOG.md) and
-> the [roadmap](#roadmap).
+> **Status: pre-alpha, close to v0.1.0.** The batch core is complete: one command goes from a
+> log file to scored incidents and shareable reports, and a labelled attack simulator measures
+> the rules. The first PyPI release (v0.1.0) is next. See the [CHANGELOG](CHANGELOG.md) and the
+> [roadmap](#roadmap).
+
+## 60-second demo
+
+```bash
+git clone https://github.com/UtshaBasak/Prohori.git && cd Prohori
+uv sync
+uv run prohori demo
+```
+
+![prohori demo: three simulated attacks, the incidents found and every expected rule fired](docs/images/demo.svg)
+
+The demo simulates an account takeover, an SSH brute force and a web scan, triages each one
+offline and writes an HTML report per incident to `prohori-demo/`. It needs no configuration and
+sends nothing over the network. Sample reports: [Markdown](docs/examples/account-takeover.md),
+[HTML](docs/examples/account-takeover.html) (download and open it) and
+[redacted](docs/examples/account-takeover-redacted.md).
 
 ## Contents
 
 - [What it does](#what-it-does)
+- [Install](#install)
 - [Quick start](#quick-start)
 - [Example: an account takeover](#example-an-account-takeover)
 - [Commands](#commands)
@@ -51,6 +67,7 @@ toolkit in Python that runs on a single laptop with free tools only, offline by 
 - [How well the rules work](#how-well-the-rules-work)
 - [Privacy and safety](#privacy-and-safety)
 - [Documentation](#documentation)
+- [Limitations](#limitations)
 - [Roadmap](#roadmap)
 - [Development](#development)
 
@@ -77,15 +94,24 @@ flowchart LR
 Prohori only **recommends** actions. It never blocks addresses, disables accounts or touches
 remote systems.
 
+## Install
+
+Prohori needs Python 3.11 or newer. CI tests it on Linux and Windows; macOS should work but is
+not tested.
+
+- **From source (today):** install [uv](https://docs.astral.sh/uv/), then
+  `git clone https://github.com/UtshaBasak/Prohori.git && cd Prohori && uv sync`, and run
+  commands as `uv run prohori ...`.
+- **From PyPI (from v0.1.0):** `pip install prohori`, or `pipx install prohori` to get the
+  `prohori` command in its own environment. Local GeoLite2 support is an extra:
+  `pip install "prohori[geoip]"`.
+
 ## Quick start
 
-Requires Python 3.11+ and [uv](https://docs.astral.sh/uv/). Everything below runs offline on the
-bundled synthetic samples.
+Everything below runs offline on the bundled synthetic samples.
 
 ```bash
-git clone https://github.com/UtshaBasak/Prohori.git && cd Prohori
-uv sync
-
+uv run prohori triage samples/logs/account-takeover.jsonl -o triage/   # the whole pipeline
 uv run prohori parse samples/logs/auth.log                      # normalise a log
 uv run prohori detect samples/logs/auth.log                     # run the 15 rules
 uv run prohori enrich 203.0.113.7 --offline                     # look up an IP (demo data)
@@ -94,7 +120,11 @@ uv run prohori report samples/incidents/INC-ee7c8818fbb34989.json -f html -o rep
 uv run prohori simulate account-takeover --seed 1 --out out/      # your own labelled attack
 ```
 
-Open `report.html` in a browser: one file, no scripts, no external resources.
+`prohori triage` writes `triage/summary.md`, `triage/incidents.jsonl` and an HTML report per
+incident. Open a report in a browser: one file, no scripts, no external resources. For your own
+logs, `prohori triage /var/log/auth.log --year 2026 -o triage/` works the same way (add
+`--redact-ips` before sharing the output).
+
 
 ## Example: an account takeover
 
@@ -139,6 +169,8 @@ recommended actions from the runbooks and the limitations, such as "single log s
 
 | Command | What it does | Docs |
 |---------|--------------|------|
+| `prohori demo` | Simulate attacks, triage them and show the results; no configuration, offline | [CLI.md](docs/CLI.md#prohori-demo) |
+| `prohori triage FILE` | Log in, incidents and a report per incident out (`--format`, `--redact`, `--online`) | [CLI.md](docs/CLI.md#prohori-triage) |
 | `prohori parse FILE` | Parse and normalise a log; table or JSON Lines | [PARSERS.md](docs/PARSERS.md) |
 | `prohori detect FILE` | Run the 15 built-in rules (and `--rules DIR`); exit code 3 when alerts are found | [RULES.md](docs/RULES.md) |
 | `prohori rules list` / `validate` / `test` | Show, check and test detection rules | [RULES.md](docs/RULES.md) |
@@ -146,12 +178,12 @@ recommended actions from the runbooks and the limitations, such as "single log s
 | `prohori incidents FILE` | Parse, detect and group alerts into scored incidents; offline enrichment unless `--online` | [INCIDENTS.md](docs/INCIDENTS.md) |
 | `prohori report INCIDENT` | Render an incident as `md`, `html`, `json` or `csv`; `--redact`, `--redact-ips` | [REPORTS.md](docs/REPORTS.md) |
 | `prohori simulate SCENARIO --out DIR` | Write a labelled attack scenario (`--list`, `--seed`, `--variant heldout`, `--set`) | [SIMULATOR.md](docs/SIMULATOR.md) |
-| `prohori version` | Show the version | |
+| `prohori version` | The version, ATT&CK release and built-in rule set | |
 
 Commands that take a file also read standard input with `-`, and every command has `--help`.
-`detect` and `incidents` exit with `0` when nothing is found, `3` when alerts or incidents are
-found (`--exit-zero` turns this off for CI pipelines), `1` when nothing could be parsed and `2`
-for invalid usage.
+Exit codes are the same everywhere: `0` nothing found, `3` alerts or incidents found
+(`--exit-zero` turns this off for CI pipelines), `1` nothing could be processed and `2` invalid
+usage. The full reference is [docs/CLI.md](docs/CLI.md).
 
 ## Built-in detection rules
 
@@ -226,6 +258,7 @@ Third-party data terms (MITRE ATT&CK, GeoLite2, AbuseIPDB, VirusTotal) are summa
 
 | Document | Contents |
 |----------|----------|
+| [CLI reference](docs/CLI.md) | Every command, the shared options, formats and exit codes |
 | [Architecture](docs/ARCHITECTURE.md) | Components, data flow and run modes |
 | [Event schema](docs/SCHEMA.md) | Event, Alert and Incident fields |
 | [Parsers](docs/PARSERS.md) | Supported formats, options and field mappings |
@@ -238,11 +271,31 @@ Third-party data terms (MITRE ATT&CK, GeoLite2, AbuseIPDB, VirusTotal) are summa
 | [Third-party terms](docs/LICENSES.md) | Data and service licences |
 | [Wiki](https://github.com/UtshaBasak/Prohori/wiki) | Installation, quick start and guides |
 
+## Limitations
+
+Prohori is honest about what it does not do:
+
+- **It reads logs after the fact.** There is no live monitoring yet (the streaming pipeline is
+  planned for v0.3.0), and it never blocks, disables or changes anything.
+- **Rules see only what the logs say.** Request bodies, headers and encrypted traffic are not
+  inspected; the web rules use the request line only.
+- **Thresholds can be evaded.** The held-out evaluation shows that slow or widely distributed
+  attacks stay under the brute-force and spraying thresholds; see
+  [How well the rules work](#how-well-the-rules-work).
+- **Some rules are noisy by design.** PRH-ACCT-001 flags every sensitive change shortly after a
+  sign-in, including the owner's own; incidents list such benign causes as limitations.
+- **The evaluation is synthetic** and written by the rules' author. Test the rules on your own
+  logs before relying on them.
+- **Enrichment free tiers** are small and non-commercial, and reputation data is evidence, not
+  proof.
+- **Supported formats** are `auth.log`, nginx/Apache access logs and JSON Lines (built-in app
+  layout or a field mapping). Windows event logs and cloud audit logs are not supported yet.
+
 ## Roadmap
 
 | Release | Contents | State |
 |---------|----------|-------|
-| v0.1.0 | Batch core: parsers, rules, enrichment, incidents, reports, log simulator with rule evaluation, `triage` and `demo` commands | Built except `triage`, `demo` and the release itself |
+| v0.1.0 | Batch core: parsers, rules, enrichment, incidents, reports, log simulator with rule evaluation, `triage` and `demo` commands | Built; release next |
 | v0.2.0 | Machine learning: leakage-controlled intrusion detection on public flow datasets, log-derived anomaly detection, model cards | Planned |
 | v0.3.0 | Pipeline: streaming core, Redpanda and PostgreSQL in Docker, dbt models, dashboard, orchestration | Planned |
 | v1.0.0 | Optional LLM analyst (opt-in, redacted input, validated output), final polish | Planned |

@@ -1,0 +1,15 @@
+                                Prohori demo (seed 1)
++------------------+--------+-----------+---------------------+----------------------+
+| scenario         | alerts | incidents | top incident        | expected rules fired |
++------------------+--------+-----------+---------------------+----------------------+
+| account-takeover |     18 |        12 | critical, score 100 |                  3/3 |
+| ssh-bruteforce   |     16 |         1 | high, score 45      |                  2/2 |
+| web-scanning     |     22 |         1 | medium, score 40    |                  3/3 |
++------------------+--------+-----------+---------------------+----------------------+
+Highest-scoring incident of each scenario:
+  account-takeover: prohori-demo/account-takeover/INC-bfb0bd8e7f2b4d18.html
+  ssh-bruteforce: prohori-demo/ssh-bruteforce/INC-e18a751de23737db.html
+  web-scanning: prohori-demo/web-scanning/INC-636926b1f15a3c88.html
+Everything is in prohori-demo: simulated logs with labels, incidents.jsonl, a report per incident
+and a summary.md per scenario. The logs are synthetic, every address is from a documentation range,
+and nothing was sent over the network.

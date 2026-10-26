@@ -1,5 +1,6 @@
 """Incident report renderers (Markdown, HTML, JSON, CSV) and redaction."""
 
+from prohori.reports.make import RedactionError, make_report
 from prohori.reports.redact import Redactor, find_leaks, incident_strings
 from prohori.reports.render import (
     RedactionNote,
@@ -13,6 +14,7 @@ from prohori.reports.render import (
 )
 
 __all__ = [
+    "RedactionError",
     "RedactionNote",
     "Redactor",
     "ReportFormat",
@@ -22,6 +24,7 @@ __all__ = [
     "csv_cell",
     "find_leaks",
     "incident_strings",
+    "make_report",
     "md_escape",
     "render",
 ]

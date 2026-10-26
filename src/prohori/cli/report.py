@@ -2,7 +2,6 @@
 
 import hashlib
 import json
-import os
 import sys
 from pathlib import Path
 from typing import Annotated
@@ -12,15 +11,7 @@ from pydantic import ValidationError
 
 from prohori.cli.exit_codes import ExitCode
 from prohori.parsers import sanitize
-from prohori.reports import (
-    RedactionNote,
-    Redactor,
-    ReportFormat,
-    ReportSource,
-    find_leaks,
-    incident_strings,
-    render,
-)
+from prohori.reports import RedactionError, ReportFormat, ReportSource, make_report
 from prohori.schema import Incident
 
 #: Largest incident file read, in bytes.
@@ -67,24 +58,13 @@ def report_command(
     data, name = _read(file)
     incident = _select(_parse(data), incident_id)
     source = ReportSource(name=name, sha256=hashlib.sha256(data).hexdigest())
-    note = None
-    if redact or redact_ips:
-        redactor = Redactor(os.urandom(32), ips=redact_ips)
-        redacted = redactor.redact(incident)
-        note = RedactionNote(users=True, ips=redact_ips, replaced=len(redactor.replaced))
-        text = render(redacted, output_format, source=source, redaction=note)
-        # Every value a report shows comes from these strings. Checking them, rather than the
-        # rendered output, avoids matching Prohori's own words (JSON keys, the CSS ":root",
-        # "from" in the summary) against an attacker-chosen account name such as "root".
-        leaks = find_leaks("\n".join(incident_strings(redacted)), redactor.replaced)
-        if leaks:
-            typer.echo(
-                f"error: {len(leaks)} value(s) could not be redacted; no report was written",
-                err=True,
-            )
-            raise typer.Exit(ExitCode.REDACTION_FAILED)
-    else:
-        text = render(incident, output_format, source=source)
+    try:
+        text = make_report(
+            incident, output_format, source=source, redact=redact, redact_ips=redact_ips
+        )
+    except RedactionError as exc:
+        typer.echo(f"error: {exc}; no report was written", err=True)
+        raise typer.Exit(ExitCode.REDACTION_FAILED) from None
     payload = text.encode("utf-8")
     if output is None:
         # Bytes, not text: the console code page could not encode every character.

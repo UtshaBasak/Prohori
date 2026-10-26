@@ -37,11 +37,17 @@ def test_subpackage_imports(name: str) -> None:
     importlib.import_module(f"prohori.{name}")
 
 
-@pytest.mark.parametrize("args", [["version"], ["--version"], ["-V"]])
+@pytest.mark.parametrize("args", [["--version"], ["-V"]])
 def test_cli_prints_version(args: list[str]) -> None:
     result = runner.invoke(app, args)
     assert result.exit_code == 0
     assert result.stdout.strip() == f"prohori {prohori.__version__}"
+
+
+def test_version_command_starts_with_the_version() -> None:
+    result = runner.invoke(app, ["version"])
+    assert result.exit_code == 0
+    assert result.stdout.splitlines()[0] == f"prohori {prohori.__version__}"
 
 
 def test_python_m_entry_point() -> None:

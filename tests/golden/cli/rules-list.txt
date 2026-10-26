@@ -1,0 +1,49 @@
+                                            Rules (15)
++---------------+----------+--------+------------------------------+------------------------------+
+| id            | severity | status | title                        | ATT&CK                       |
++---------------+----------+--------+------------------------------+------------------------------+
+| PRH-ABUSE-001 | medium   | stable | Rate-limit bursts or         | attack.impact,               |
+|               |          |        | bot-check failures from one  | attack.t1499.002             |
+|               |          |        | IP                           |                              |
+| PRH-ACCT-001  | high     | stable | Sensitive account change     | attack.persistence,          |
+|               |          |        | shortly after sign-in        | attack.privilege_escalation, |
+|               |          |        |                              | attack.defense_impairment,   |
+|               |          |        |                              | attack.credential_access,    |
+|               |          |        |                              | attack.t1098,                |
+|               |          |        |                              | attack.t1556.006             |
+| PRH-ADMIN-001 | high     | stable | Admin role granted           | attack.persistence,          |
+|               |          |        |                              | attack.privilege_escalation, |
+|               |          |        |                              | attack.t1098                 |
+| PRH-ADMIN-002 | medium   | stable | Admin action at an unusual   | attack.persistence,          |
+|               |          |        | hour                         | attack.privilege_escalation, |
+|               |          |        |                              | attack.t1078                 |
+| PRH-AUTH-001  | high     | stable | Brute-force sign-in attempts | attack.credential_access,    |
+|               |          |        | from one IP                  | attack.t1110,                |
+|               |          |        |                              | attack.t1110.001             |
+| PRH-AUTH-002  | high     | stable | Password spraying or         | attack.credential_access,    |
+|               |          |        | credential stuffing from one | attack.t1110.003,            |
+|               |          |        | IP                           | attack.t1110.004             |
+| PRH-AUTH-003  | critical | stable | Successful sign-in after     | attack.credential_access,    |
+|               |          |        | many failures from one IP    | attack.initial_access,       |
+|               |          |        |                              | attack.t1110, attack.t1078   |
+| PRH-AUTH-004  | high     | stable | Account lockouts across many | attack.credential_access,    |
+|               |          |        | accounts                     | attack.t1110                 |
+| PRH-AUTHZ-001 | medium   | stable | Authorisation denials across | attack.reconnaissance,       |
+|               |          |        | many resources               | attack.t1595.003             |
+| PRH-SESS-001  | high     | stable | Refresh-token reuse detected | attack.credential_access,    |
+|               |          |        |                              | attack.lateral_movement,     |
+|               |          |        |                              | attack.t1528,                |
+|               |          |        |                              | attack.t1550.001             |
+| PRH-SSH-001   | high     | stable | SSH invalid-user storm or    | attack.credential_access,    |
+|               |          |        | repeated                     | attack.t1110,                |
+|               |          |        | authentication-limit         | attack.t1110.001             |
+|               |          |        | disconnects                  |                              |
+| PRH-WEB-001   | medium   | stable | Web scanning from one IP     | attack.reconnaissance,       |
+|               |          |        |                              | attack.t1595.003             |
+| PRH-WEB-002   | medium   | stable | Injection patterns in        | attack.initial_access,       |
+|               |          |        | request paths                | attack.t1190                 |
+| PRH-WEB-003   | medium   | stable | Scanner or empty user agent  | attack.reconnaissance,       |
+|               |          |        | at a high request rate       | attack.t1595.002             |
+| PRH-WEB-004   | medium   | stable | Probes for sensitive files   | attack.reconnaissance,       |
+|               |          |        | and admin tools              | attack.t1595.003             |
++---------------+----------+--------+------------------------------+------------------------------+
