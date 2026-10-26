@@ -1609,7 +1609,7 @@ dependencies = [
     { name = "pyyaml" },
     { name = "rich" },
     { name = "typer" },
-    { name = "tzdata", marker = "sys_platform == 'win32'" },
+    { name = "tzdata" },
 ]
 
 [package.optional-dependencies]
@@ -1644,7 +1644,7 @@ requires-dist = [
     { name = "pyyaml", specifier = ">=6.0" },
     { name = "rich", specifier = ">=13.0" },
     { name = "typer", specifier = ">=0.15" },
-    { name = "tzdata", marker = "sys_platform == 'win32'", specifier = ">=2024.1" },
+    { name = "tzdata", specifier = ">=2024.1" },
 ]
 provides-extras = ["all", "geoip", "llm", "ml", "pipeline"]
 
