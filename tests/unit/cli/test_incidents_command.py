@@ -1,5 +1,6 @@
 """``prohori incidents``: golden files for the samples, options and exit codes."""
 
+import hashlib
 import json
 import os
 import socket
@@ -11,6 +12,7 @@ from typer.testing import CliRunner
 from prohori.cli import app
 from prohori.cli.exit_codes import ExitCode
 from prohori.schema import Incident
+from prohori.version import __version__
 from tests.unit.enrich.conftest import NetworkAccessError, isolated_settings, no_network
 
 __all__ = ["isolated_settings", "no_network"]  # autouse: no network, no real cache or keys
@@ -24,8 +26,9 @@ runner = CliRunner(env={"COLUMNS": "200", "NO_COLOR": "1"})
 UPDATE_GOLDEN = os.environ.get("PROHORI_UPDATE_GOLDEN") == "1"
 
 
-def _run(*args: str) -> object:
-    return runner.invoke(app, ["incidents", *args])
+def normalise_version(text: str) -> str:
+    """Golden files hold a placeholder, so a version bump does not change them."""
+    return text.replace(f'"tool_version":"{__version__}"', '"tool_version":"<version>"')
 
 
 @pytest.mark.parametrize(
@@ -41,10 +44,11 @@ def test_json_output_matches_golden_file(sample: str, golden: str, extra: list[s
     result = runner.invoke(app, ["incidents", str(SAMPLES / sample), "-f", "json", *extra])
     assert result.exit_code == ExitCode.ALERTS_FOUND, result.output
     path = GOLDEN / golden
+    output = normalise_version(result.stdout)
     if UPDATE_GOLDEN:
         path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(result.stdout, encoding="utf-8", newline="\n")
-    assert result.stdout == path.read_text(encoding="utf-8")
+        path.write_text(output, encoding="utf-8", newline="\n")
+    assert output == path.read_text(encoding="utf-8")
     for line in result.stdout.splitlines():
         Incident.model_validate_json(line)  # every line is a valid incident
 
@@ -148,3 +152,41 @@ def test_suite_is_isolated_from_the_network_and_the_real_cache(tmp_path: Path) -
     assert Path(os.environ["PROHORI_CACHE_PATH"]).is_relative_to(tmp_path)
     with pytest.raises(NetworkAccessError):
         socket.create_connection(("example.com", 443))
+
+
+def test_provenance_records_the_input_hash_and_rules() -> None:
+    sample = SAMPLES / "account-takeover.jsonl"
+    result = runner.invoke(app, ["incidents", str(sample), "-f", "json"])
+    incident = Incident.model_validate_json(result.stdout.splitlines()[0])
+    provenance = incident.provenance
+    assert provenance is not None
+    assert provenance.tool_version == __version__
+    assert provenance.enrichment == "offline"
+    (source,) = provenance.inputs
+    assert source.sha256 == hashlib.sha256(sample.read_bytes()).hexdigest()
+    assert (source.bytes, source.events, source.parser) == (sample.stat().st_size, 17, "app_json")
+    assert [r.id for r in provenance.rules] == ["PRH-ACCT-001", "PRH-AUTH-001", "PRH-AUTH-003"]
+    assert all(r.sha256 for r in provenance.rules)
+
+
+def test_provenance_from_stdin_and_without_enrichment() -> None:
+    data = (SAMPLES / "account-takeover.jsonl").read_bytes()
+    result = runner.invoke(app, ["incidents", "-", "-f", "json", "--no-enrich"], input=data)
+    incident = Incident.model_validate_json(result.stdout.splitlines()[0])
+    assert incident.provenance is not None
+    assert incident.provenance.enrichment == "none"
+    assert incident.provenance.inputs[0].name == "<stdin>"
+    assert incident.provenance.inputs[0].sha256 == hashlib.sha256(data).hexdigest()
+
+
+def test_sample_incident_file_is_current() -> None:
+    """samples/incidents/ is the report sample; it must match what the builder produces now."""
+    (path,) = (ROOT / "samples" / "incidents").glob("INC-*.json")
+    result = runner.invoke(
+        app, ["incidents", str(SAMPLES / "account-takeover.jsonl"), "-f", "json"]
+    )
+    current = Incident.model_validate_json(result.stdout.splitlines()[0])
+    stored = Incident.model_validate_json(path.read_text(encoding="utf-8"))
+    assert path.stem == current.id
+    version = {"provenance": {"tool_version"}}
+    assert stored.model_dump(exclude=version) == current.model_dump(exclude=version)
