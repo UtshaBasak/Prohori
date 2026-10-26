@@ -1,12 +1,11 @@
 [build-system]
-requires = ["hatchling>=1.27"]
+requires = ["hatchling>=1.27", "hatch-fancy-pypi-readme>=24.1"]
 build-backend = "hatchling.build"
 
 [project]
 name = "prohori"
-dynamic = ["version"]
+dynamic = ["version", "readme"]
 description = "A laptop-sized mini-SOC: from raw logs to detections, enriched incidents and analyst-ready reports."
-readme = "README.md"
 requires-python = ">=3.11"
 license = "MIT"
 license-files = ["LICENSE"]
@@ -21,7 +20,7 @@ keywords = [
     "threat-detection",
 ]
 classifiers = [
-    "Development Status :: 2 - Pre-Alpha",
+    "Development Status :: 3 - Alpha",
     "Environment :: Console",
     "Intended Audience :: Information Technology",
     "Intended Audience :: System Administrators",
@@ -83,6 +82,22 @@ dev = [
 
 [tool.hatch.version]
 path = "src/prohori/version.py"
+
+# PyPI shows the README without the repository around it: point relative links and images at
+# GitHub so they keep working there.
+[tool.hatch.metadata.hooks.fancy-pypi-readme]
+content-type = "text/markdown"
+
+[[tool.hatch.metadata.hooks.fancy-pypi-readme.fragments]]
+path = "README.md"
+
+[[tool.hatch.metadata.hooks.fancy-pypi-readme.substitutions]]
+pattern = '!\[([^\]]*)\]\((?!https?://)([^)]+)\)'
+replacement = '![\1](https://raw.githubusercontent.com/UtshaBasak/Prohori/main/\2)'
+
+[[tool.hatch.metadata.hooks.fancy-pypi-readme.substitutions]]
+pattern = '\]\((?!https?://|#)([^)]+)\)'
+replacement = '](https://github.com/UtshaBasak/Prohori/blob/main/\1)'
 
 [tool.hatch.build.targets.sdist]
 include = [
