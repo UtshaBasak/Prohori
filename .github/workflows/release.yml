@@ -1,0 +1,182 @@
+name: Release
+
+# Pushing a tag such as v0.1.0 builds the package, tests the wheel on Linux and Windows, publishes
+# it to TestPyPI, and then waits: publishing to PyPI needs a maintainer's approval of the "pypi"
+# environment. After PyPI, a GitHub release is created and the published package is installed
+# from PyPI and run once more. Uploads use trusted publishing (OIDC); no API tokens are stored.
+# Run it by hand (workflow_dispatch) to build and test without publishing anything.
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  UV_FROZEN: "1"
+  PYTHONUTF8: "1"
+
+jobs:
+  build:
+    name: Build and check
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
+        with:
+          python-version: "3.13"
+      - name: Read the package version
+        id: version
+        run: |
+          version=$(uv run --no-dev python -c "from prohori.version import __version__; print(__version__)")
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "Package version: $version"
+      - name: The tag must match the package version
+        if: github.event_name == 'push'
+        env:
+          TAG: ${{ github.ref_name }}
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          if [ "$TAG" != "v$VERSION" ]; then
+            echo "::error::tag $TAG does not match package version $VERSION"
+            exit 1
+          fi
+      - name: The changelog must have a section for the version
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: uv run --no-dev python scripts/release_notes.py "$VERSION" > /dev/null
+      - run: uv build
+      - name: Check the distributions (metadata and README rendering)
+        run: uvx twine check --strict dist/*
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: dist
+          path: dist/
+          if-no-files-found: error
+
+  smoke:
+    name: Wheel smoke test (${{ matrix.os }})
+    needs: build
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: true
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: dist
+          path: dist
+      - uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
+        with:
+          python-version: "3.13"
+      - name: Install the wheel alone in a fresh environment and run the demo
+        shell: bash
+        run: |
+          uv venv smoke-env
+          uv pip install --python smoke-env dist/*.whl
+          if [ -x smoke-env/bin/prohori ]; then bin=smoke-env/bin; else bin=smoke-env/Scripts; fi
+          "$bin/prohori" --version
+          "$bin/prohori" version
+          "$bin/prohori" demo --out demo-out
+          "$bin/prohori" rules test
+
+  testpypi:
+    name: Publish to TestPyPI
+    if: github.event_name == 'push'
+    needs: [build, smoke]
+    runs-on: ubuntu-latest
+    environment:
+      name: testpypi
+      url: https://test.pypi.org/project/prohori/${{ needs.build.outputs.version }}/
+    permissions:
+      id-token: write # trusted publishing
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: dist
+          path: dist
+      - uses: pypa/gh-action-pypi-publish@7245906fb61fa33a13554f9d5fb856fe61758086 # v1.14.3
+        with:
+          repository-url: https://test.pypi.org/legacy/
+
+  pypi:
+    name: Publish to PyPI (needs approval)
+    if: github.event_name == 'push'
+    needs: [build, testpypi]
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/project/prohori/${{ needs.build.outputs.version }}/
+    permissions:
+      id-token: write # trusted publishing
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: dist
+          path: dist
+      - uses: pypa/gh-action-pypi-publish@7245906fb61fa33a13554f9d5fb856fe61758086 # v1.14.3
+
+  github-release:
+    name: GitHub release
+    needs: [build, pypi]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # create the release
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
+        with:
+          python-version: "3.13"
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: dist
+          path: dist
+      - name: Create the release with the changelog section and the distributions
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+          VERSION: ${{ needs.build.outputs.version }}
+        run: |
+          uv run --no-dev python scripts/release_notes.py "$VERSION" > notes.md
+          gh release create "$TAG" dist/* --title "Prohori $VERSION" --notes-file notes.md --verify-tag
+
+  verify:
+    name: Install from PyPI (${{ matrix.os }})
+    needs: [build, pypi]
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    steps:
+      - uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
+        with:
+          python-version: "3.13"
+      - name: pip install prohori==${{ needs.build.outputs.version }} && prohori demo
+        shell: bash
+        env:
+          VERSION: ${{ needs.build.outputs.version }}
+        run: |
+          uv venv verify-env
+          if [ -d verify-env/bin ]; then bin=verify-env/bin; else bin=verify-env/Scripts; fi
+          # The new version can take a few minutes to appear on every PyPI mirror.
+          for attempt in 1 2 3 4 5 6 7 8 9 10; do
+            if uv pip install --python verify-env --no-cache "prohori==$VERSION"; then break; fi
+            echo "not available yet (attempt $attempt); waiting 30 s"
+            sleep 30
+          done
+          "$bin/prohori" version
+          "$bin/prohori" demo --out demo-out
