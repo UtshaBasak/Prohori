@@ -89,7 +89,8 @@ def test_single_line_and_array_and_stdin(tmp_path: Path) -> None:
         ("", "no incident in the file"),
         ("not json\n", "incident 1"),
         ('{"id": "INC-1"}', "incident 1"),
-        ("[" * 100_000 + "]" * 100_000, "nested too deeply"),
+        # Rejected by json.loads or, where it copes with the depth, by the schema validation.
+        ("[" * 100_000 + "]" * 100_000, "nested too deeply|recursion limit"),
     ],
     ids=["empty", "not-json", "invalid-incident", "deeply-nested"],
 )
@@ -98,7 +99,7 @@ def test_invalid_input(tmp_path: Path, content: str, message: str) -> None:
     path.write_text(content, encoding="utf-8")
     result = runner.invoke(app, ["report", str(path)])
     assert result.exit_code == ExitCode.USAGE
-    assert message in _plain(result.output)
+    assert any(m in _plain(result.output) for m in message.split("|"))
 
 
 def test_missing_and_oversized_files(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
