@@ -201,7 +201,13 @@ class IncidentBuilder:
                 e.timestamp,
                 0,
                 e.id,
-                TimelineEntry(timestamp=e.timestamp, description=_describe(e), event_id=e.id),
+                TimelineEntry(
+                    timestamp=e.timestamp,
+                    description=_describe(e),
+                    event_id=e.id,
+                    account=e.account,
+                    source_ip=e.source_ip,
+                ),
             )
             for e in shown
         ]
