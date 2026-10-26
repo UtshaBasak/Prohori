@@ -1,0 +1,67 @@
+name: Clone count
+
+# GitHub keeps clone numbers for 14 days only. Once a day this saves them to the traffic-data
+# branch, which the README's clones badge reads. Nothing is committed to main, so it never
+# triggers CI or a release.
+#
+# Reading traffic needs more than the workflow's own token: the TRAFFIC_TOKEN secret is a
+# fine-grained personal access token with access to this repository and the permission
+# "Administration: Read-only".
+
+on:
+  schedule:
+    - cron: "41 3 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write # push the traffic-data branch
+
+concurrency:
+  group: traffic
+  cancel-in-progress: false
+
+jobs:
+  clones:
+    name: Record clones
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          sparse-checkout: scripts/traffic_clones.py
+          sparse-checkout-cone-mode: false
+
+      - name: Fetch the last 14 days
+        env:
+          GH_TOKEN: ${{ secrets.TRAFFIC_TOKEN }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          if [ -z "$GH_TOKEN" ]; then
+            echo "::error::Add the TRAFFIC_TOKEN secret (see the top of this workflow)."
+            exit 1
+          fi
+          gh api "repos/$REPOSITORY/traffic/clones" > "$RUNNER_TEMP/clones.json"
+
+      - name: Add them to the record
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          remote="https://x-access-token:${GH_TOKEN}@github.com/${REPOSITORY}.git"
+          if git ls-remote --exit-code --heads "$remote" traffic-data > /dev/null; then
+            git clone --quiet --depth 1 --branch traffic-data "$remote" data
+          else
+            git init --quiet -b traffic-data data
+            git -C data remote add origin "$remote"
+          fi
+          python3 scripts/traffic_clones.py "$RUNNER_TEMP/clones.json" data
+          cd data
+          git add clones.json clones-badge.json
+          if git diff --cached --quiet; then
+            echo "No change."
+            exit 0
+          fi
+          git -c user.name="github-actions[bot]" \
+            -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
+            commit --quiet -m "Clone count for $(date -u +%F)"
+          git push --quiet origin traffic-data
