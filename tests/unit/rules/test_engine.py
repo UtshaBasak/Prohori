@@ -256,6 +256,50 @@ class TestSequence:
         events = [ev(0), ev(1), ev(2), ev(3, action="auth.signin.success", ip="198.51.100.1")]
         assert run([sequence_rule()], events)[0] == []
 
+    def test_later_final_step_events_raise_further_alerts(self) -> None:
+        # Like a second account change after one sign-in: it must not be swallowed.
+        events = [
+            ev(0),
+            ev(1),
+            ev(2),
+            ev(10, action="auth.signin.success"),
+            ev(20),  # an earlier-step event after completion is ignored
+            ev(30, action="auth.signin.success"),
+        ]
+        first, second = run([sequence_rule()], events)[0]
+        assert first.event_ids[:3] == second.event_ids[:3]  # the same earlier steps
+        assert first.event_ids[3] != second.event_ids[3]
+        assert len(second.event_ids) == 4
+        assert first.id != second.id
+
+    def test_further_alerts_stop_when_the_window_ends(self) -> None:
+        events = [
+            ev(0),
+            ev(1),
+            ev(2),
+            ev(10, action="auth.signin.success"),
+            ev(599, action="auth.signin.success"),  # still within 10m of the start
+            ev(600, action="auth.signin.success"),  # expired: starts over, needs failures again
+        ]
+        assert len(run([sequence_rule()], events)[0]) == 2
+
+    def test_final_step_count_applies_to_further_alerts(self) -> None:
+        twice = rule(
+            {
+                "failure": FAILURE,
+                "success": SUCCESS,
+                "sequence": {
+                    "by": ["source.ip"],
+                    "within": "10m",
+                    "steps": [{"selection": "failure"}, {"selection": "success", "count_gte": 2}],
+                },
+                "condition": "sequence",
+            }
+        )
+        successes = [ev(10 + i, action="auth.signin.success", n=i) for i in range(5)]
+        alerts = run([twice], [ev(0), *successes])[0]
+        assert [len(a.event_ids) for a in alerts] == [3, 3]  # after 2 and after 4 successes
+
 
 class TestOrdering:
     def test_out_of_order_within_lateness(self) -> None:
