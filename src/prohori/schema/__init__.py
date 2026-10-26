@@ -3,7 +3,7 @@
 from prohori.schema.alert import ATTACK_TAG_PATTERN, Alert, AttackTag, DetectorKind
 from prohori.schema.event import ACTION_PATTERN, Event, EventInfo, HttpInfo, SourceInfo, UserInfo
 from prohori.schema.fields import FIELD_PATHS, get_field, is_valid_path
-from prohori.schema.ids import alert_id, event_id
+from prohori.schema.ids import alert_id, event_id, incident_id
 from prohori.schema.incident import (
     Confidence,
     EnrichmentResult,
@@ -56,6 +56,7 @@ __all__ = [
     "event_id",
     "from_json",
     "get_field",
+    "incident_id",
     "is_valid_path",
     "read_jsonl",
     "to_json",

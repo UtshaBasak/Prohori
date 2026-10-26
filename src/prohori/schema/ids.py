@@ -28,3 +28,8 @@ def event_id(log_source: str, timestamp: datetime, raw: str, discriminator: str 
 def alert_id(detector_id: str, event_ids: Iterable[str]) -> str:
     """Return the id of an alert raised by ``detector_id`` over a set of events."""
     return "alr-" + _digest((detector_id, *sorted(event_ids)), 24)
+
+
+def incident_id(alert_ids: Iterable[str]) -> str:
+    """Return the id of the incident grouping ``alert_ids`` (order does not matter)."""
+    return "INC-" + _digest(sorted(alert_ids), 16)

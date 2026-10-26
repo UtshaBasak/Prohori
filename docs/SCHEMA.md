@@ -104,7 +104,7 @@ must keep such lines apart (for example two identical failures within one second
 
 | Field | Type | Notes |
 |-------|------|-------|
-| `id` | str | `INC-` followed by letters, digits or hyphens, for example `INC-0042` |
+| `id` | str | `INC-` followed by letters, digits or hyphens. The incident builder derives it from the alert ids (`INC-` and 16 hex digits), so the same input gives the same id |
 | `title` | str | |
 | `status` | enum | `open` (default), `investigating`, `resolved`, `false_positive` |
 | `severity` | enum | `low`, `medium`, `high`, `critical` |
@@ -116,6 +116,7 @@ must keep such lines apart (for example two identical failures within one second
 | `timeline` | list of `{timestamp, description, event_id?, alert_id?}` | |
 | `indicators` | list of `{type, value, enrichment[]}` | `type`: `ip`, `domain`, `url`, `hash`, `user`, `user_agent` |
 | `attack` | list of str | ATT&CK tags as for alerts |
+| `attack_version` | str, optional | ATT&CK release the tags were checked against, such as `20.0` |
 | `recommended_actions` | list of str | From runbooks |
 | `confidence` | enum | `low`, `medium` (default), `high` |
 | `limitations` | list of str | For example `single log source`, `enrichment offline` |

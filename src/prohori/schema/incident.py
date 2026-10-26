@@ -107,6 +107,7 @@ class Incident(BaseModel):
     timeline: tuple[TimelineEntry, ...] = ()
     indicators: tuple[Indicator, ...] = ()
     attack: tuple[AttackTag, ...] = ()
+    attack_version: Annotated[str, Field(max_length=16)] | None = None
     recommended_actions: tuple[Text, ...] = ()
     confidence: Confidence = Confidence.MEDIUM
     limitations: tuple[Text, ...] = ()
