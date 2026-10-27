@@ -534,8 +534,10 @@ long-lived upload tokens are a supply-chain risk.
 - **Gates before anything is uploaded:** the tag must equal the package version, the changelog must
   have the version's section, `twine check --strict` must pass, and the wheel must install alone
   and run `prohori demo` and `prohori rules test` on Linux and Windows.
-- **After PyPI:** a GitHub release with the changelog section as its notes, and a job that installs
-  the release from PyPI and runs the demo, so a broken upload is noticed at once.
+- **After PyPI:** a job installs the release from PyPI and runs the demo, so a broken upload is
+  noticed at once. The maintainer then creates the GitHub release from the workflow's files with
+  the changelog section as notes (amended 2026-10-27: no job in the release workflow may write to
+  the repository; OpenSSF Scorecard's Token-Permissions check flagged the earlier release job).
 - **PyPI README:** `hatch-fancy-pypi-readme` rewrites the README's relative links and images to
   GitHub URLs at build time, so the project page works on PyPI.
 - Every action is pinned to a commit SHA; the workflow passes `actionlint` and `zizmor`.
