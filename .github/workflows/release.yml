@@ -2,8 +2,9 @@ name: Release
 
 # Pushing a tag such as v0.1.0 builds the package, tests the wheel on Linux and Windows, publishes
 # it to TestPyPI, and then waits: publishing to PyPI needs a maintainer's approval of the "pypi"
-# environment. After PyPI, a GitHub release is created and the published package is installed
-# from PyPI and run once more. Uploads use trusted publishing (OIDC); no API tokens are stored.
+# environment. After PyPI, the published package is installed from PyPI and run once more.
+# Uploads use trusted publishing (OIDC); no API tokens are stored, and no job can write to the
+# repository. The maintainer creates the GitHub release afterwards (docs/RELEASING.md).
 # Run by hand (workflow_dispatch) or on a packaging pull request it only builds and tests.
 
 on:
@@ -132,32 +133,6 @@ jobs:
           name: dist
           path: dist
       - uses: pypa/gh-action-pypi-publish@7245906fb61fa33a13554f9d5fb856fe61758086 # v1.14.3
-
-  github-release:
-    name: GitHub release
-    needs: [build, pypi]
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write # create the release
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-      - uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
-        with:
-          python-version: "3.13"
-      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
-        with:
-          name: dist
-          path: dist
-      - name: Create the release with the changelog section and the distributions
-        env:
-          GH_TOKEN: ${{ github.token }}
-          TAG: ${{ github.ref_name }}
-          VERSION: ${{ needs.build.outputs.version }}
-        run: |
-          uv run --no-dev python scripts/release_notes.py "$VERSION" > notes.md
-          gh release create "$TAG" dist/* --title "Prohori $VERSION" --notes-file notes.md --verify-tag
 
   verify:
     name: Install from PyPI (${{ matrix.os }})

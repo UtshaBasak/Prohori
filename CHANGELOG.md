@@ -7,6 +7,13 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Changed
+
+- The release workflow no longer creates the GitHub release, so none of its jobs can write to the
+  repository; maintainers create it with one command (`docs/RELEASING.md`).
+- The clones badge's data branch is published with `peaceiris/actions-gh-pages`; the workflow's
+  top-level token is read-only.
+
 ## [0.1.0] - 2026-10-27
 
 First public release: the batch core, from a log file to scored incidents and shareable reports,

@@ -32,9 +32,19 @@ The workflow is [`.github/workflows/release.yml`](../.github/workflows/release.y
    5. **waits for approval** of the `pypi` environment: open the run under *Actions*, review it
       and click *Approve and deploy*;
    6. publishes to **PyPI** (with build attestations);
-   7. creates the **GitHub release** with the changelog section as notes and the distributions
-      attached;
-   8. installs the release from PyPI on Linux and Windows and runs `prohori demo`.
+   7. installs the release from PyPI on Linux and Windows and runs `prohori demo`.
+
+5. **Create the GitHub release** from the same files, with the changelog section as notes
+   (`<run-id>` is the release run's id, shown in its URL):
+
+   ```bash
+   gh run download <run-id> --name dist --dir dist
+   uv run python scripts/release_notes.py 0.2.0 > notes.md
+   gh release create v0.2.0 dist/* --title "Prohori 0.2.0" --notes-file notes.md --verify-tag
+   ```
+
+   The workflow does not do this itself on purpose: creating a release needs a token that can
+   write to the repository, and no job in the release workflow has one.
 
 Running the workflow by hand (*Actions > Release > Run workflow*), or on a pull request that
 changes packaging, only builds and tests; it never publishes.
