@@ -6,7 +6,7 @@ name: Clone count
 #
 # Reading traffic needs more than the workflow's own token: the TRAFFIC_TOKEN secret is a
 # fine-grained personal access token with access to this repository and the permission
-# "Administration: Read-only".
+# "Administration: Read-only". It is only read here, never used to write.
 
 on:
   schedule:
@@ -14,7 +14,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write # push the traffic-data branch
+  contents: read
 
 concurrency:
   group: traffic
@@ -24,6 +24,8 @@ jobs:
   clones:
     name: Record clones
     runs-on: ubuntu-latest
+    permissions:
+      contents: write # publish the traffic-data branch (nothing else is written)
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -43,25 +45,28 @@ jobs:
           gh api "repos/$REPOSITORY/traffic/clones" > "$RUNNER_TEMP/clones.json"
 
       - name: Add them to the record
+        id: record
         env:
-          GH_TOKEN: ${{ github.token }}
           REPOSITORY: ${{ github.repository }}
         run: |
-          remote="https://x-access-token:${GH_TOKEN}@github.com/${REPOSITORY}.git"
-          if git ls-remote --exit-code --heads "$remote" traffic-data > /dev/null; then
-            git clone --quiet --depth 1 --branch traffic-data "$remote" data
-          else
-            git init --quiet -b traffic-data data
-            git -C data remote add origin "$remote"
+          # The repository is public, so the existing record is read without any token.
+          url="https://github.com/${REPOSITORY}.git"
+          if git ls-remote --exit-code --heads "$url" traffic-data > /dev/null; then
+            git clone --quiet --depth 1 --branch traffic-data "$url" "$RUNNER_TEMP/previous"
+            mkdir -p data
+            cp "$RUNNER_TEMP/previous/clones.json" data/ 2> /dev/null || true
           fi
           python3 scripts/traffic_clones.py "$RUNNER_TEMP/clones.json" data
-          cd data
-          git add clones.json clones-badge.json
-          if git diff --cached --quiet; then
-            echo "No change."
-            exit 0
-          fi
-          git -c user.name="github-actions[bot]" \
-            -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
-            commit --quiet -m "Clone count for $(date -u +%F)"
-          git push --quiet origin traffic-data
+          echo "date=$(date -u +%F)" >> "$GITHUB_OUTPUT"
+
+      - name: Publish the traffic-data branch
+        uses: peaceiris/actions-gh-pages@84c30a85c19949d7eee79c4ff27748b70285e453 # v4.1.0
+        with:
+          github_token: ${{ github.token }}
+          publish_branch: traffic-data
+          publish_dir: data
+          keep_files: true
+          disable_nojekyll: true
+          user_name: github-actions[bot]
+          user_email: 41898282+github-actions[bot]@users.noreply.github.com
+          full_commit_message: Clone count for ${{ steps.record.outputs.date }}
