@@ -102,6 +102,15 @@ error.
 - **Indicators:** the incident's IP addresses with their enrichment, and up to 10 user agents.
 - **Entities:** every entity of the incident's alerts, at most 50 values per field.
 
+## Anomaly alerts
+
+With `--models`, alerts from the anomaly detectors ([ANOMALY.md](ANOMALY.md)) are grouped like
+rule alerts, by their source IP. They are `low` severity, so on their own they make a low incident;
+next to a rule alert for the same address they count as one more detector (+10). An incident with
+one gets the limitation "Raised by an anomaly detector (...): the activity is unusual compared with
+the rest of this log, which is not proof of an attack" and the action to review the flagged window,
+because anomaly detectors have no runbook.
+
 ## Limitations
 
 Each incident lists what weakens its evidence, for example:

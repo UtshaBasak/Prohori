@@ -14,6 +14,7 @@ from rich.text import Text
 
 from prohori.cli.detect import load_detection_rules, parse_lateness
 from prohori.cli.exit_codes import ExitCode
+from prohori.cli.models import ModelRun, ModelsOption
 from prohori.cli.parse import (
     KeepQueryOption,
     MappingOption,
@@ -87,6 +88,7 @@ def incidents_command(
     mapping: MappingOption = None,
     pattern: PatternOption = None,
     keep_query: KeepQueryOption = False,
+    models: ModelsOption = False,
 ) -> None:
     """Parse a log file, run the detection rules and group the alerts into scored incidents.
 
@@ -110,6 +112,7 @@ def incidents_command(
         settings=settings,
         lateness=allowed_lateness,
         parse=ParseOptions(parser_name, year, timezone, mapping, pattern, keep_query),
+        models=models,
     )
     incidents = run.incidents
     if output is OutputFormat.JSON:
@@ -163,10 +166,12 @@ def run_incidents(
     settings: IncidentSettings,
     lateness: timedelta,
     parse: ParseOptions,
+    models: bool = False,
 ) -> IncidentRun:
     """Parse ``file`` ('-' for stdin), run ``rules`` and build incidents with provenance.
 
-    Closes ``enricher`` when done.
+    With ``models`` the anomaly detectors run over the same events and their alerts join the
+    rule alerts. Closes ``enricher`` when done.
     """
     context = EventContext()
     engine = RuleEngine(rules, lateness=lateness, reference_time=datetime.now(UTC))
@@ -180,7 +185,9 @@ def run_incidents(
             pattern=parse.pattern,
             keep_query=parse.keep_query,
         ) as parsed:
-            alerts = list(engine.run(context.observe(parsed.events)))
+            model_run = ModelRun(models)
+            alerts = list(engine.run(context.observe(model_run.observe(parsed.events))))
+            alerts += model_run.alerts()
             source = _input_file(parsed)  # the whole input has been read (and hashed) by now
         builder = IncidentBuilder(rules, context=context, enricher=enricher, settings=settings)
         incidents = with_provenance(

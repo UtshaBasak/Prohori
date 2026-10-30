@@ -690,3 +690,44 @@ columns. Users also need a way to run a saved model on their own flows.
 
 **Consequences.** The headline ML result of v0.2.0 is negative: flow models trained on one lab do
 not transfer to the other. Track B (step 17) works on Prohori's own normalised log events instead.
+
+---
+
+## ADR-0022: Log anomaly detection
+
+- **Date:** 2026-10-31
+- **Status:** Accepted
+
+**Context.** Track B of the machine-learning work looks for unusual behaviour in Prohori's own
+normalised events and compares it honestly with the rules, using the simulator's labelled
+attacks and its held-out variants.
+
+**Decision.**
+- **Unit of analysis:** one source IP in one five-minute tumbling window, with thirteen
+  behaviour features (`prohori.ml.features`). Ratios and entropy need five events of their kind,
+  so a single failure is not a 100 % failure ratio. Standard library only.
+- **Detectors judge a log against itself.** Robust one-sided z-scores (median and MAD, with a
+  floor on the scale per feature, constant features skipped) in the base install; an Isolation
+  Forest over log-scaled features with the `ml` extra; fixed thresholds as an evaluation-only
+  baseline. Nothing is trained in advance and no model file is saved or loaded, so there is no
+  pickle to trust. A log needs 20 windows before anything is judged unusual.
+- **Cut-offs chosen on development data only.** For the z-score and the Isolation Forest, the
+  candidate with the best window-level F1 on the simulator's default variants (seeds 1-5), ties
+  to the stricter value: z 12 and an anomaly score of 0.8. They were frozen in code before the
+  held-out variants were scored, and the committed results record the selection table.
+- **Evaluation like the rules:** an alert is a true positive when at least half of its events
+  are attack lines; an attack is caught when a true-positive alert is credited to it. Any rule
+  counts for the rules (not only expected ones), so the comparison is like for like; the
+  documents say which definition each number uses.
+- **Model alerts in the normal path:** `--models` on `detect`, `incidents` and `triage` runs the
+  detectors on the same parsed events and adds alerts with `detector_kind: model`, severity
+  `low`, the source IP as entity and at most 100 event ids. Their explanation holds only feature
+  names and numbers, so redaction never has to act on it. Incidents with a model alert get a
+  limitation and a review action, since anomaly detectors have no runbook; a model alert next to
+  a rule alert counts as one more detector in the score, as two independent signals should.
+- **Night is UTC by default.** The rule PRH-ADMIN-002 has its own timezone; the feature's
+  timezone is a parameter of the extractor, and the limitation is documented.
+
+**Consequences.** On the held-out variants the detectors catch no attack the rules miss, with far
+fewer false alerts. They are positioned as a quiet second signal. Without `--models` nothing
+changes, and all golden files are unchanged.

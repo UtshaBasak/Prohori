@@ -7,6 +7,21 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-10-31
+
+Machine learning, evaluated honestly: anomaly detection on your own logs, and intrusion-detection
+models on two public flow datasets with leakage controls, a model card and a cross-dataset test.
+
+### Highlights
+
+- `--models` on `detect`, `incidents` and `triage`: anomaly detectors flag source IPs that behave
+  unlike the rest of the log; their alerts join the incidents.
+- Leakage-controlled UNSW-NB15 and CIC-IDS-2017 preparation, gradient boosting and Isolation
+  Forest flow models, SOC metrics (PR-AUC, recall at frozen thresholds, false alerts per 10,000
+  flows, per-class recall) and `docs/MODEL_CARD.md`.
+- A cross-dataset test showing that the flow models do not transfer between the datasets.
+- `prohori score FLOWS --model NAME` for scoring a CSV of flows with a saved model.
+
 ### Added
 
 - Leakage-controlled preparation of the UNSW-NB15 and CIC-IDS-2017 flow datasets for the
@@ -45,6 +60,15 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   when it is missing.
 - `--no-cache` for `prohori.ml.train` and `prohori.ml.transfer`: neither read nor write the
   Parquet cache.
+- Anomaly detection on your own logs: `--models` on `detect`, `incidents` and `triage` cuts the
+  events into five-minute windows per source IP, computes thirteen behaviour features and flags
+  unusual windows with a robust z-score (base install) and an Isolation Forest (`ml` extra).
+  Model alerts (`detector_kind: model`) join the incidents with a limitation and a review action.
+- `python -m prohori.ml.logeval` compares the detectors with the rules on the simulator's
+  attacks; cut-offs were chosen on the default variants and frozen before the held-out variants
+  were scored. Results in `results/ml_logs.json` and `docs/ANOMALY.md` (ADR-0022): on the
+  held-out variants the detectors catch 15 to 17 of 40 attacks against 36 for the rules, none
+  that the rules miss, with 0 to 0.35 false alerts a run against 6.5.
 
 ### Changed
 
@@ -192,5 +216,6 @@ offline by default.
 - Contributor, security and code-of-conduct documents.
 - OpenSSF Scorecard workflow, README status badges and a project wiki.
 
-[Unreleased]: https://github.com/UtshaBasak/Prohori/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/UtshaBasak/Prohori/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/UtshaBasak/Prohori/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/UtshaBasak/Prohori/releases/tag/v0.1.0

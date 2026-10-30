@@ -28,6 +28,7 @@ from prohori.rules import CompiledRule
 from prohori.schema import (
     Alert,
     Confidence,
+    DetectorKind,
     Incident,
     Indicator,
     IndicatorType,
@@ -134,6 +135,7 @@ class IncidentBuilder:
                 for tag in mapping.unverified
             ),
             *self._false_positives(alerts),
+            *_model_limitations(alerts),
         ]
         return Incident(
             id=incident_id(a.id for a in alerts),
@@ -260,12 +262,14 @@ class IncidentBuilder:
 
     def _actions(self, alerts: Sequence[Alert], events: Sequence[EventSummary]) -> tuple[str, ...]:
         ordered = sorted(alerts, key=lambda a: (-a.severity.rank, a.first_seen, a.id))
-        actions = (
+        actions = [
             action
             for rule_id in _unique(a.detector_id for a in ordered)
             for action in self.guidance.get(rule_id, RuleGuidance(rule_id)).actions
             if _applies(action, events)
-        )
+        ]
+        if any(a.detector_kind is DetectorKind.MODEL for a in alerts):
+            actions.append(MODEL_ACTION)
         return tuple(_unique(actions)[: self.settings.max_actions])
 
     def _false_positives(self, alerts: Sequence[Alert]) -> list[str]:
@@ -406,6 +410,23 @@ def _confidence(
     if len(alerts) == 1 and top <= Severity.MEDIUM.rank and not score.reputation_points:
         return Confidence.LOW
     return Confidence.MEDIUM
+
+
+#: Anomaly detectors have no runbook; this is their guidance.
+MODEL_ACTION = (
+    "Review the events in the window an anomaly detector flagged and decide whether the activity "
+    "is expected (a shared NAT or proxy address, a crawler, a batch job) before acting on it."
+)
+
+
+def _model_limitations(alerts: Sequence[Alert]) -> list[str]:
+    detectors = sorted({a.detector_id for a in alerts if a.detector_kind is DetectorKind.MODEL})
+    if not detectors:
+        return []
+    return [
+        f"Raised by an anomaly detector ({', '.join(detectors)}): the activity is unusual "
+        "compared with the rest of this log, which is not proof of an attack"
+    ]
 
 
 def _novelty_limitations(novelty: Sequence[Novelty]) -> list[str]:
