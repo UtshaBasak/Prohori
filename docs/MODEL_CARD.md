@@ -14,6 +14,7 @@ and tested on, how well they work and where they fail. Design decisions:
 - [Training and evaluation data](#training-and-evaluation-data)
 - [How they are evaluated](#how-they-are-evaluated)
 - [Results](#results)
+- [Cross-dataset test](#cross-dataset-test)
 - [Failure cases](#failure-cases)
 - [Limitations](#limitations)
 - [Reproducing the results](#reproducing-the-results)
@@ -32,9 +33,13 @@ and tested on, how well they work and where they fail. Design decisions:
   why is not established. A SOC deploying a model meets the same kind of shift between the data
   a threshold was set on and live traffic. The 0.1 % threshold held (0.07 %).
 - **CIC-IDS-2017 is close to solved by gradient boosting, even after cleaning:** 99.98 % of
-  attacks caught at a 0.1 % false-positive rate. That says more about the dataset than about the model: every
-  attack in it comes from a few scripted tools run in one lab week. Step 16 tests how a model
-  trained on one dataset does on the other.
+  attacks caught at a 0.1 % false-positive rate. That says more about the dataset than about the
+  model: every attack in it comes from a few scripted tools run in one lab week.
+- **Neither model transfers to the other dataset.** Trained on the twelve features both datasets
+  share, gradient boosting keeps a PR-AUC of 0.92 (UNSW-NB15) and 0.999 (CIC-IDS-2017) on its
+  own dataset but falls to 0.32 and 0.40 on the other, little above the attack shares there
+  (0.16 and 0.33). Its 1 % threshold flags 42 % and 60 % of the other dataset's benign flows:
+  thousands of false alerts per 10,000 flows. See [Cross-dataset test](#cross-dataset-test).
 - **The Isolation Forest, trained on benign traffic only, is not useful as a detector here.** It
   catches fewer than 5 % of attacks at a 1 % false-positive rate on either dataset. Attacks in
   these datasets are not unusual in the way an Isolation Forest measures unusual.
@@ -179,6 +184,114 @@ Recall per attack class (gradient boosting, cleaned) with the class's test flows
 | Web Attack - XSS | 5 | 100.0 ± 0.0 % | 100.0 ± 0.0 % |
 <!-- ml-results:end -->
 
+## Cross-dataset test
+
+A model is only useful if it works on traffic other than the lab it was trained in. The two
+datasets were captured by different tools on different networks, so the test trains on one and
+scores the other, using only the features both have.
+
+**The mapping is lossy.** Twelve features can be computed from both datasets; everything else
+(UNSW-NB15's TTLs, TCP sequence and window values and connection counters, CICFlowMeter's
+packet-length extremes, flag counts, bulk and idle statistics) has no counterpart:
+
+| Common feature | UNSW-NB15 | CIC-IDS-2017 |
+|----------------|-----------|--------------|
+| `duration_s` | `dur` (seconds) | `flow_duration` / 10^6 (microseconds) |
+| `fwd_packets`, `bwd_packets` | `spkts`, `dpkts` | `total_fwd_packet`, `total_bwd_packets` |
+| `fwd_bytes`, `bwd_bytes` | `sbytes`, `dbytes` (whole packets) | payload + transport headers + 34 bytes a packet |
+| `fwd_mean_bytes`, `bwd_mean_bytes` | bytes / packets | the same |
+| `fwd_iat_mean_s`, `bwd_iat_mean_s` | `sinpkt`, `dinpkt` / 10^3 (ms) | `fwd_iat_mean`, `bwd_iat_mean` / 10^6 (µs) |
+| `packets_per_s`, `bytes_per_s` | over the duration | the same |
+| `protocol` | `proto`: tcp 6, udp 17, icmp 1, other -1 | `protocol`: 6, 17, 1, other -1 |
+
+Bytes are counted on the wire on both sides. UNSW-NB15 counts whole packets (a two-packet DNS
+query is about 146 bytes); CICFlowMeter counts payload, so its byte counts get the transport
+header lengths it records plus 34 bytes a packet for the Ethernet and IPv4 headers (the same
+kind of DNS query: about 154 bytes). The two tools also cut flows differently (timeouts, when a
+flow ends), which no mapping can undo.
+
+**Method.** For each seed, both datasets are prepared with every leakage control, mapped and
+deduplicated again on the common features (fewer features make more rows identical). A model is
+fitted on the source's training split; its thresholds come from the source's validation split;
+it is scored once on the source's test split (in-dataset) and once on the target's test split
+(cross-dataset). The target is never seen before it is scored, as on a new network.
+
+<!-- ml-cross:start -->
+Seeds 0, 1, 2; mean ± standard deviation. Each model is trained on the source dataset's 12 common features, its thresholds are chosen on the source's validation split, and it is scored once on the source's test split (in-dataset) and once on the target's (cross-dataset). Generated from `results/ml_cross.json`; do not edit by hand.
+
+| Direction | Model | PR-AUC, all features | PR-AUC, common features | PR-AUC, cross-dataset | Attack share in target |
+|-----------|-------|------:|------:|------:|------:|
+| unsw-nb15 → cicids2017 | Gradient boosting (supervised) | 0.952 ± 0.002 | 0.918 ± 0.001 | 0.323 ± 0.086 | 16.4 % |
+| unsw-nb15 → cicids2017 | Isolation Forest (benign only) | 0.522 ± 0.003 | 0.354 ± 0.006 | 0.213 ± 0.013 | 16.4 % |
+| cicids2017 → unsw-nb15 | Gradient boosting (supervised) | 0.999 ± 0.000 | 0.999 ± 0.001 | 0.404 ± 0.016 | 32.9 % |
+| cicids2017 → unsw-nb15 | Isolation Forest (benign only) | 0.527 ± 0.044 | 0.439 ± 0.005 | 0.303 ± 0.005 | 32.9 % |
+
+At the threshold chosen for a 1 % false-positive rate on the source's validation split:
+
+| Direction | Model | In-dataset recall | In-dataset test FPR | Cross-dataset recall | Cross-dataset FPR | False alerts / 10k |
+|-----------|-------|------:|------:|------:|------:|------:|
+| unsw-nb15 → cicids2017 | Gradient boosting (supervised) | 66.8 ± 2.2 % | 2.54 ± 0.42 % | 58.8 ± 10.8 % | 42.19 ± 1.15 % | 3525 ± 96 |
+| unsw-nb15 → cicids2017 | Isolation Forest (benign only) | 1.3 ± 0.3 % | 0.78 ± 0.22 % | 1.1 ± 0.3 % | 3.71 ± 0.77 % | 310 ± 64 |
+| cicids2017 → unsw-nb15 | Gradient boosting (supervised) | 100.0 ± 0.0 % | 0.98 ± 0.02 % | 75.4 ± 0.1 % | 60.49 ± 2.20 % | 4058 ± 147 |
+| cicids2017 → unsw-nb15 | Isolation Forest (benign only) | 0.1 ± 0.0 % | 1.03 ± 0.03 % | 6.3 ± 0.5 % | 5.10 ± 0.18 % | 342 ± 12 |
+
+At the threshold chosen for a 0.1 % false-positive rate on the source's validation split:
+
+| Direction | Model | In-dataset recall | In-dataset test FPR | Cross-dataset recall | Cross-dataset FPR | False alerts / 10k |
+|-----------|-------|------:|------:|------:|------:|------:|
+| unsw-nb15 → cicids2017 | Gradient boosting (supervised) | 24.3 ± 8.1 % | 0.06 ± 0.04 % | 27.9 ± 6.0 % | 11.33 ± 6.88 % | 947 ± 575 |
+| unsw-nb15 → cicids2017 | Isolation Forest (benign only) | 0.5 ± 0.0 % | 0.05 ± 0.04 % | 0.3 ± 0.2 % | 2.14 ± 0.19 % | 179 ± 16 |
+| cicids2017 → unsw-nb15 | Gradient boosting (supervised) | 99.9 ± 0.0 % | 0.10 ± 0.01 % | 48.7 ± 2.8 % | 35.61 ± 4.71 % | 2389 ± 316 |
+| cicids2017 → unsw-nb15 | Isolation Forest (benign only) | 0.0 ± 0.0 % | 0.11 ± 0.00 % | 0.3 ± 0.1 % | 0.08 ± 0.07 % | 5 ± 5 |
+
+Recall per attack class in the target, unsw-nb15 → cicids2017 (gradient boosting, 1 % source-validation threshold):
+
+| Class | Test flows | Recall |
+|-------|------:|------:|
+| Botnet | 221 | 0.3 ± 0.3 % |
+| DDoS | 28,543 | 46.7 ± 29.1 % |
+| DoS GoldenEye | 2,270 | 77.3 ± 7.5 % |
+| DoS Hulk | 47,540 | 70.6 ± 1.3 % |
+| DoS Slowhttptest | 515 | 19.2 ± 7.2 % |
+| DoS Slowloris | 1,001 | 45.1 ± 11.7 % |
+| FTP-Patator | 1,192 | 0.2 ± 0.3 % |
+| Heartbleed | 3 | 100.0 ± 0.0 % |
+| Infiltration | 11 | 54.5 ± 15.7 % |
+| Infiltration - Portscan | 1,797 | 6.5 ± 0.2 % |
+| Portscan | 301 | 4.0 ± 0.9 % |
+| SSH-Patator | 888 | 21.4 ± 35.7 % |
+| Web Attack - Brute Force | 22 | 100.0 ± 0.0 % |
+| Web Attack - SQL Injection | 4 | 16.7 ± 28.9 % |
+| Web Attack - XSS | 5 | 100.0 ± 0.0 % |
+
+Recall per attack class in the target, cicids2017 → unsw-nb15 (gradient boosting, 1 % source-validation threshold):
+
+| Class | Test flows | Recall |
+|-------|------:|------:|
+| Analysis | 58 | 96.6 ± 3.0 % |
+| Backdoor | 57 | 84.2 ± 0.0 % |
+| DoS | 1,123 | 71.7 ± 1.4 % |
+| Exploits | 6,989 | 62.8 ± 0.7 % |
+| Fuzzers | 3,742 | 90.9 ± 1.2 % |
+| Generic | 629 | 45.6 ± 1.2 % |
+| Reconnaissance | 1,850 | 99.5 ± 0.1 % |
+| Shellcode | 275 | 99.5 ± 0.4 % |
+| Worms | 39 | 82.1 ± 0.0 % |
+<!-- ml-cross:end -->
+
+**What this shows.**
+
+- Losing features costs little: gradient boosting on the twelve common features is almost as
+  good as on all of them inside each dataset (PR-AUC 0.92 against 0.95 on UNSW-NB15, 0.999 on
+  CIC-IDS-2017).
+- Changing dataset costs almost everything: PR-AUC drops to 0.32 and 0.40, barely above what a
+  random score gets (the attack share), and the frozen thresholds stop meaning anything. The 1 %
+  threshold flags 42 % (UNSW-NB15 to CIC-IDS-2017) and 60 % (the reverse) of the target's benign
+  flows. The high per-class recall in the reverse direction comes from flagging most of the
+  traffic.
+- The generalisation gap is the finding: a flow model trained on one lab's traffic learns that
+  lab. Before relying on one, train it and set its threshold on the network it will watch.
+
 ## Failure cases
 
 - **Fuzzers and Analysis on UNSW-NB15.** At the 1 % threshold gradient boosting catches about
@@ -200,6 +313,9 @@ Recall per attack class (gradient boosting, cleaned) with the class's test flows
   alerts.
 - **Nearly perfect CIC-IDS-2017 scores** are a warning about the dataset rather than evidence
   that the model would work on a real network.
+- **Another network.** On the other dataset the 1 % threshold flags 42 % to 60 % of benign
+  flows, and a model trained on UNSW-NB15 misses almost all of CIC-IDS-2017's FTP brute force,
+  botnet traffic and port scans.
 
 ## Limitations
 
@@ -213,8 +329,9 @@ Recall per attack class (gradient boosting, cleaned) with the class's test flows
 - **Three seeds** are enough to show the spread, not to estimate it precisely.
 - **Not tuned.** Better settings exist, and a tuned model would look better; tuning would have
   to use the validation split only.
-- **No cross-dataset result yet:** how a model trained on one dataset does on the other is step
-  16.
+- **The cross-dataset test is limited by the mapping.** Only twelve features map, measured by
+  different tools. A model with more shared information might transfer better, so the gap
+  describes these two datasets and this mapping, not every flow model.
 
 ## Reproducing the results
 
@@ -223,6 +340,7 @@ With both datasets in `data/` (see [DATASETS.md](DATASETS.md#getting-the-files))
 ```bash
 uv run python -m prohori.ml.train --dataset unsw-nb15 --seeds 0 1 2    # about 1 minute
 uv run python -m prohori.ml.train --dataset cicids2017 --seeds 0 1 2   # about 6 minutes
+uv run python -m prohori.ml.transfer --seeds 0 1 2                     # about 3 minutes
 uv run python scripts/generate_results_table.py                        # update the tables
 ```
 
@@ -233,7 +351,8 @@ different numbers.
 
 ## Saved models and safety
 
-Each run saves the cleaned models to `models/<dataset>/<model>-seed<N>.joblib`, which git
+Use a saved model with `prohori score FLOWS.csv --model <dataset>/<model>-seed<N>`
+([CLI.md](CLI.md#prohori-score)). Each run saves the cleaned models to `models/<dataset>/<model>-seed<N>.joblib`, which git
 ignores, with a JSON file next to it holding the features, the frozen thresholds, the library
 versions and the model file's SHA-256.
 

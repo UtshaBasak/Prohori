@@ -307,8 +307,9 @@ print(data.report.to_dict())
 ## Limitations
 
 - **Old, lab-made traffic.** Both datasets were captured in testbeds in 2015 and 2017. Models
-  trained on them say little about a real network today; step 16 measures how badly they
-  transfer from one dataset to the other.
+  trained on them say little about a real network today, and they do not transfer from one
+  dataset to the other (see the model card's
+  [cross-dataset test](MODEL_CARD.md#cross-dataset-test)).
 - **Removing overlap changes the benchmark.** Scores are lower than, and not comparable with,
   results on the untouched official UNSW-NB15 test set.
 - **Hash-based comparison.** Duplicates and overlap are found with a 64-bit hash of the feature

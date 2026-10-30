@@ -61,7 +61,7 @@ Both modes share the same core library.
 | `prohori.incidents` | Grouping, scoring, ATT&CK mapping |
 | `prohori.reports` | Report templates, renderers and redaction |
 | `prohori.simulate` | Labelled attack-scenario log generator |
-| `prohori.ml` | Dataset registry, chunked loading, leakage-controlled cleaning, flow models, training and SOC metrics (`prohori score` follows) |
+| `prohori.ml` | Dataset registry, chunked loading, leakage-controlled cleaning, flow models, training, SOC metrics, the cross-dataset test and flow scoring |
 | `prohori.pipeline` | Producers, consumers, sinks, lite-mode runner |
 | `prohori.llm` | Provider interface, retrieval, safeguards |
 
