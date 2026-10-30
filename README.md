@@ -267,7 +267,7 @@ and join the incidents. Compared with the rules on the simulator's held-out atta
 | Fixed thresholds | 10/40 | 49 % | 0.93 | 0 |
 | Isolation Forest | 17/40 | 70 % | 0.35 | 0 |
 
-Held-out variants, seeds 1 to 5; an attack is caught when a true-positive alert is credited to it.
+Held-out variants, seeds 1 to 5; an attack is caught when a true-positive alert is credited to it. Any rule counts here, which is why the rules catch one attack more than in the expected-rule count above.
 <!-- anomaly:end -->
 
 The detectors catch the loud attacks (brute force, scanning, injection) with almost no false

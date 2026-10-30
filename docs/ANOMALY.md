@@ -72,8 +72,8 @@ no model file is saved or loaded.
 - **Fixed thresholds** (evaluation only): at least 10 failed sign-ins, 5 accounts, 30 paths or
   30 events a minute in a window. The simplest baseline, and close to what the rules do.
 
-Every detector needs at least 20 windows in the log; with fewer, nothing is judged unusual and the
-command says so.
+The z-score and the Isolation Forest need at least 20 windows in the log; with fewer, nothing is
+judged unusual and the command says so.
 
 The cut-offs (12 and 0.8) were chosen on the simulator's **default** variants, as the candidates
 with the best window-level F1, and frozen before the held-out variants were scored once. The
@@ -167,19 +167,20 @@ Cut-off selection on the default variants (window-level precision, recall and F1
 
 ## What the false alerts are
 
-Every false alert in the held-out runs was looked at:
+Every false alert of the z-score and the Isolation Forest in the held-out runs was looked at,
+and a sample of the fixed thresholds':
 
 - **Shared addresses.** Each of the Isolation Forest's 14 false alerts is a window in which three
-  to seven accounts used one address: the shared NAT address in the simulated background, where
+  to seven accounts used one address, as the simulated background's shared NAT address does:
   several customers sign in and refresh sessions within five minutes. Such a window has more
   events, sign-ins and accounts than the usual window of one person, and an occasional typo adds
   a failure. Incidents already treat an address seen with many accounts as shared.
 - **Thin backgrounds make small bursts stand out.** In the day-long admin-misuse logs the usual
   window has one event, so four events and one failed sign-in through the NAT address are enough
   for the Isolation Forest.
-- **Fixed thresholds** flag the same kind of window far more often (37 false alerts), because
-  five accounts behind one address is common in a busy shop. The z-score's floors and cut-off
-  keep it silent there.
+- **Fixed thresholds** flag windows of the same kind far more often (37 false alerts; the ones
+  sampled all had five or more accounts on one address), because that is common in a busy shop.
+  The z-score's floors and cut-off keep it silent there.
 
 ## Limitations
 

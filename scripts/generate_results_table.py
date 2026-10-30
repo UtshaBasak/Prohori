@@ -468,7 +468,8 @@ def render_anomaly_summary(results: dict[str, Any] | None) -> str:
         )
     note = (
         f"Held-out variants, seeds {results['seeds'][0]} to {results['seeds'][-1]}; an attack is "
-        "caught when a true-positive alert is credited to it."
+        "caught when a true-positive alert is credited to it. Any rule counts here, which is why "
+        "the rules catch one attack more than in the expected-rule count above."
     )
     lines += ["", note]
     return "\n".join(lines)
