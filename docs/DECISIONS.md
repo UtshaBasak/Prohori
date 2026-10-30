@@ -543,3 +543,61 @@ long-lived upload tokens are a supply-chain risk.
 - Every action is pinned to a commit SHA; the workflow passes `actionlint` and `zizmor`.
 
 **Consequences.** A failed release after TestPyPI is fixed with the next patch version.
+
+---
+
+## ADR-0019: Flow datasets and leakage controls
+
+- **Date:** 2026-10-30
+- **Status:** Accepted
+
+**Context.** Published intrusion-detection results on UNSW-NB15 and CIC-IDS-2017 are often
+inflated by leakage: identifier and time columns that encode the capture, duplicate rows shared
+by the training and test data, transforms fitted on all the data, and labelling errors. Step 15
+trains models on these datasets, so the data preparation must make leakage hard by construction
+and test it.
+
+**Decision.**
+- **Datasets.** UNSW-NB15's official training and testing partition files, and the improved
+  CIC-IDS-2017 release from the CNS 2022 paper (`CICIDS2017_improved.zip`), which regenerates
+  the flows with a fixed CICFlowMeter and relabels them. It supersedes the same group's WTMC 2021
+  release, as that release's page says; the original CSVs have documented labelling errors.
+- **Getting the files.** `scripts/download_datasets.py` downloads only on an explicit `fetch`,
+  and only CIC-IDS-2017 (a direct HTTPS link); UNSW-NB15 is in a SharePoint folder that needs a
+  browser, so the script prints the steps and verifies the files once they are in place. Neither
+  publisher gives checksums: the CIC-IDS-2017 archive and its five CSVs are pinned to the size
+  and SHA-256 measured on 2026-10-30, the archive is checked before it is opened, and only the
+  expected member names (no paths) are extracted, up to their pinned sizes. UNSW-NB15's hashes
+  are printed as "not pinned" until the files are pinned from a real download.
+- **Cleaning order** (`prohori.ml.cleaning`): labels, then columns, then infinite values, then
+  duplicates, then the split, then cross-split overlap, then train-only transforms.
+  `check_leakage` verifies the result and `prepare` refuses to return data that fails it.
+- **Duplicates.** Exact duplicates are removed on features and class (identifiers are already
+  gone, so rows differing only in an id or a timestamp are duplicates). When rows share every
+  feature but not the class, all of them are removed: no label is right for them, and keeping
+  one would choose a label arbitrarily.
+- **Official test rows that also occur in training are removed** and counted. This changes the
+  official UNSW-NB15 test set, so results are not directly comparable with papers that keep it
+  whole; the count is published with the results.
+- **Ports are dropped in CIC-IDS-2017**, source and destination. Source ports are ephemeral
+  identifiers. Destination ports identify the lab's victim services, so a model can learn
+  "port 80 on this capture day" instead of the behaviour of the attack, and the UNSW-NB15
+  partition has no ports to map to in the cross-dataset test of step 16. Protocol is kept.
+- **"Attempted" flows become benign**, as the release's authors advise: they carried no attack
+  payload and must never be a class of their own.
+- **Suspect columns are reported, not dropped by default.** UNSW-NB15's TTL columns (`sttl`,
+  `dttl`, `ct_state_ttl`) are reported to separate the classes because of the testbed. Step 15
+  compares models with and without them instead of deciding by assumption.
+- **Splits.** UNSW-NB15 keeps its official partition, with a stratified validation set (20 %)
+  from the training file. CIC-IDS-2017 gets a seeded split stratified by class (50/20/30) after
+  deduplication. A class with one row stays in training, and the class counts per split are in
+  the report.
+- **Storage.** Values are kept as float64 in the Parquet cache so deduplication compares exact
+  values; models get float32. Cache files are keyed by the raw file's SHA-256.
+- **Dependencies.** The `ml` extra holds scikit-learn, pandas, pyarrow and joblib; the same
+  packages are in the development group so CI runs the ML tests. Nothing outside
+  `prohori.ml.datasets` and `prohori.ml.cleaning` imports them, and a test checks that the base
+  install works without them.
+
+**Consequences.** Scores will be lower than many published ones, and the documentation says why.
+Results depend on the seed; step 15 reports the mean and standard deviation over several seeds.

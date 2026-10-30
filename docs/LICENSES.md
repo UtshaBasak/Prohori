@@ -57,7 +57,32 @@ so check them again before relying on them.
 - **Privacy:** indicators queried through the API are added to the VirusTotal dataset. Prohori
   never sends private, reserved or documentation addresses (see [ENRICHMENT.md](ENRICHMENT.md)).
 
+## UNSW-NB15
+
+- **Used for:** training and testing the flow detectors (`prohori.ml`, from step 15); see
+  [DATASETS.md](DATASETS.md). Terms checked on **2026-10-30**.
+- **Terms:** <https://research.unsw.edu.au/projects/unsw-nb15-dataset>: "Free use of the
+  UNSW-NB15 dataset for academic research purposes is hereby granted in perpetuity. Use for
+  commercial purposes should be agreed by the authors." The authors (Nour Moustafa and Jill Slay)
+  assert copyright and ask users to cite the papers listed on that page.
+- **Prohori ships:** nothing from the dataset. Users download it themselves; the test fixtures
+  copy only its column names, with made-up values.
+
+## CIC-IDS-2017 (improved release)
+
+- **Used for:** training and testing the flow detectors; see [DATASETS.md](DATASETS.md). Checked
+  on **2026-10-30**.
+- **Terms:** the distributor of the improved release
+  (<https://intrusion-detection.distrinet-research.be/CNS2022/>) states no licence and asks users
+  to cite its paper (Liu, Engelen et al., IEEE CNS 2022). The original dataset's page
+  (<https://www.unb.ca/cic/datasets/ids-2017.html>) says the data is "publicly available for
+  researchers" and asks for a citation of Sharafaldin et al., ICISSP 2018. With no licence
+  stated, treat it as research use only and do not redistribute it.
+- **Prohori ships:** nothing from the dataset. `scripts/download_datasets.py fetch cicids2017`
+  downloads it from the distributor when a user asks; the fixtures copy only its column names.
+
 ## Sample data
 
 All sample logs and the offline enrichment fixture are synthetic and use documentation address
-ranges (RFC 5737, RFC 3849). Organisation names in the fixture are fictional.
+ranges (RFC 5737, RFC 3849). Organisation names in the fixture are fictional. The ML fixture
+datasets in `tests/fixtures/ml/` are synthetic too.
