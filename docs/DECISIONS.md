@@ -665,7 +665,9 @@ columns. Users also need a way to run a saved model on their own flows.
   datasets: duration, packets and bytes each way, mean packet size each way, mean inter-arrival
   time each way, packet and byte rates, and protocol. Units are converted to seconds and bytes;
   bytes are counted on the wire, so CICFlowMeter's payload counts get its transport header
-  lengths plus 34 bytes a packet (Ethernet and IPv4). Nothing else maps, and the documentation
+  lengths plus 34 bytes a packet (Ethernet and IPv4). That UNSW-NB15's byte counts include
+  headers is inferred from the data (benign DNS flows send a median of 146 bytes forward, against
+  154 after conversion), not from documentation. Nothing else maps, and the documentation
   says so.
 - **Features that only look alike are left out:** UNSW-NB15's `rate`, `swin`/`dwin` (TCP window
   values with a different range from CICFlowMeter's initial window bytes) and the TTLs (absent

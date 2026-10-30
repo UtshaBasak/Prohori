@@ -23,9 +23,10 @@ protocol        ``proto``: tcp 6, udp 17,      ``protocol``: 6, 17 and 1 kept
                 icmp 1
 ==============  =============================  ========================================
 
-Bytes are made comparable as bytes on the wire. UNSW-NB15 counts whole packets (a two-packet DNS
-query is about 146 bytes); CICFlowMeter counts payload, so its bytes get the measured transport
-header lengths plus 34 bytes per packet for the Ethernet (14) and IPv4 (20) headers. Other
+Bytes are made comparable as bytes on the wire: CICFlowMeter counts payload, so its bytes get
+the transport header lengths it records plus 34 bytes per packet for the Ethernet (14) and IPv4
+(20) headers. That UNSW-NB15 counts headers is inferred from the data, not documented: benign
+DNS flows send a median of 146 bytes forward there and 154 after this conversion. Other
 protocols are -1 on both sides. A rate over a zero duration is missing and imputed.
 
 For each direction and seed: both datasets are prepared with every leakage control; the source's

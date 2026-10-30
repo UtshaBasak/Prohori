@@ -35,10 +35,11 @@ and tested on, how well they work and where they fail. Design decisions:
 - **CIC-IDS-2017 is close to solved by gradient boosting, even after cleaning:** 99.98 % of
   attacks caught at a 0.1 % false-positive rate. That says more about the dataset than about the
   model: every attack in it comes from a few scripted tools run in one lab week.
-- **Neither model transfers to the other dataset.** Trained on the twelve features both datasets
-  share, gradient boosting keeps a PR-AUC of 0.92 (UNSW-NB15) and 0.999 (CIC-IDS-2017) on its
-  own dataset but falls to 0.32 and 0.40 on the other, little above the attack shares there
-  (0.16 and 0.33). Its 1 % threshold flags 42 % and 60 % of the other dataset's benign flows:
+- **Neither model transfers usefully to the other dataset.** Trained on the twelve features
+  both datasets share, gradient boosting has a ROC-AUC of 0.95 (UNSW-NB15) and 1.00
+  (CIC-IDS-2017) on its own dataset and 0.64 and 0.61 on the other: weak, though above chance.
+  Its PR-AUC falls from 0.92 and 0.999 to 0.32 and 0.40, against chance levels of 0.16 and 0.33.
+  Worst for a SOC, its 1 % threshold flags 42 % and 60 % of the other dataset's benign flows:
   thousands of false alerts per 10,000 flows. See [Cross-dataset test](#cross-dataset-test).
 - **The Isolation Forest, trained on benign traffic only, is not useful as a detector here.** It
   catches fewer than 5 % of attacks at a 1 % false-positive rate on either dataset. Attacks in
@@ -198,16 +199,17 @@ packet-length extremes, flag counts, bulk and idle statistics) has no counterpar
 |----------------|-----------|--------------|
 | `duration_s` | `dur` (seconds) | `flow_duration` / 10^6 (microseconds) |
 | `fwd_packets`, `bwd_packets` | `spkts`, `dpkts` | `total_fwd_packet`, `total_bwd_packets` |
-| `fwd_bytes`, `bwd_bytes` | `sbytes`, `dbytes` (whole packets) | payload + transport headers + 34 bytes a packet |
+| `fwd_bytes`, `bwd_bytes` | `sbytes`, `dbytes` (headers included, as measured) | payload + transport headers + 34 bytes a packet |
 | `fwd_mean_bytes`, `bwd_mean_bytes` | bytes / packets | the same |
 | `fwd_iat_mean_s`, `bwd_iat_mean_s` | `sinpkt`, `dinpkt` / 10^3 (ms) | `fwd_iat_mean`, `bwd_iat_mean` / 10^6 (µs) |
 | `packets_per_s`, `bytes_per_s` | over the duration | the same |
 | `protocol` | `proto`: tcp 6, udp 17, icmp 1, other -1 | `protocol`: 6, 17, 1, other -1 |
 
-Bytes are counted on the wire on both sides. UNSW-NB15 counts whole packets (a two-packet DNS
-query is about 146 bytes); CICFlowMeter counts payload, so its byte counts get the transport
-header lengths it records plus 34 bytes a packet for the Ethernet and IPv4 headers (the same
-kind of DNS query: about 154 bytes). The two tools also cut flows differently (timeouts, when a
+Bytes are counted on the wire on both sides. CICFlowMeter counts payload, so its byte counts
+get the transport header lengths it records plus 34 bytes a packet for the Ethernet and IPv4
+headers. This follows from what was measured, not from either tool's documentation: benign DNS
+flows send a median of 146 bytes forward (in two packets) in UNSW-NB15 and 154 after conversion
+in CIC-IDS-2017, consistent with UNSW-NB15 counting headers. The two tools also cut flows differently (timeouts, when a
 flow ends), which no mapping can undo.
 
 **Method.** For each seed, both datasets are prepared with every leakage control, mapped and
@@ -219,12 +221,14 @@ it is scored once on the source's test split (in-dataset) and once on the target
 <!-- ml-cross:start -->
 Seeds 0, 1, 2; mean ± standard deviation. Each model is trained on the source dataset's 12 common features, its thresholds are chosen on the source's validation split, and it is scored once on the source's test split (in-dataset) and once on the target's (cross-dataset). Generated from `results/ml_cross.json`; do not edit by hand.
 
-| Direction | Model | PR-AUC, all features | PR-AUC, common features | PR-AUC, cross-dataset | Attack share in target |
-|-----------|-------|------:|------:|------:|------:|
-| unsw-nb15 → cicids2017 | Gradient boosting (supervised) | 0.952 ± 0.002 | 0.918 ± 0.001 | 0.323 ± 0.086 | 16.4 % |
-| unsw-nb15 → cicids2017 | Isolation Forest (benign only) | 0.522 ± 0.003 | 0.354 ± 0.006 | 0.213 ± 0.013 | 16.4 % |
-| cicids2017 → unsw-nb15 | Gradient boosting (supervised) | 0.999 ± 0.000 | 0.999 ± 0.001 | 0.404 ± 0.016 | 32.9 % |
-| cicids2017 → unsw-nb15 | Isolation Forest (benign only) | 0.527 ± 0.044 | 0.439 ± 0.005 | 0.303 ± 0.005 | 32.9 % |
+PR-AUC depends on the share of attacks, which differs between the datasets, so each PR-AUC has its chance level (the attack share) next to it. ROC-AUC does not depend on it (0.5 is chance) and is the fairer comparison across datasets.
+
+| Direction | Model | PR-AUC, all features | PR-AUC, common features | Chance, source | PR-AUC, cross-dataset | Chance, target | ROC-AUC, in-dataset | ROC-AUC, cross-dataset |
+|-----------|-------|------:|------:|------:|------:|------:|------:|------:|
+| unsw-nb15 → cicids2017 | Gradient boosting (supervised) | 0.952 ± 0.002 | 0.918 ± 0.001 | 0.329 | 0.323 ± 0.086 | 0.164 | 0.952 ± 0.000 | 0.639 ± 0.064 |
+| unsw-nb15 → cicids2017 | Isolation Forest (benign only) | 0.522 ± 0.003 | 0.354 ± 0.006 | 0.329 | 0.213 ± 0.013 | 0.164 | 0.469 ± 0.019 | 0.681 ± 0.024 |
+| cicids2017 → unsw-nb15 | Gradient boosting (supervised) | 0.999 ± 0.000 | 0.999 ± 0.001 | 0.164 | 0.404 ± 0.016 | 0.329 | 1.000 ± 0.000 | 0.614 ± 0.020 |
+| cicids2017 → unsw-nb15 | Isolation Forest (benign only) | 0.527 ± 0.044 | 0.439 ± 0.005 | 0.164 | 0.303 ± 0.005 | 0.329 | 0.895 ± 0.003 | 0.432 ± 0.017 |
 
 At the threshold chosen for a 1 % false-positive rate on the source's validation split:
 
@@ -284,11 +288,13 @@ Recall per attack class in the target, cicids2017 → unsw-nb15 (gradient boosti
 - Losing features costs little: gradient boosting on the twelve common features is almost as
   good as on all of them inside each dataset (PR-AUC 0.92 against 0.95 on UNSW-NB15, 0.999 on
   CIC-IDS-2017).
-- Changing dataset costs almost everything: PR-AUC drops to 0.32 and 0.40, barely above what a
-  random score gets (the attack share), and the frozen thresholds stop meaning anything. The 1 %
-  threshold flags 42 % (UNSW-NB15 to CIC-IDS-2017) and 60 % (the reverse) of the target's benign
-  flows. The high per-class recall in the reverse direction comes from flagging most of the
-  traffic.
+- Changing dataset costs most of the signal. ROC-AUC, which does not depend on the share of
+  attacks, falls from 0.95 and 1.00 to 0.64 and 0.61. PR-AUC falls to 0.32 (chance 0.16) and 0.40
+  (chance 0.33); it cannot be compared directly with the in-dataset PR-AUC, whose chance level is
+  different.
+- The frozen thresholds stop meaning anything: the 1 % threshold flags 42 % (UNSW-NB15 to
+  CIC-IDS-2017) and 60 % (the reverse) of the target's benign flows. The high per-class recall
+  in the reverse direction comes from flagging most of the traffic.
 - The generalisation gap is the finding: a flow model trained on one lab's traffic learns that
   lab. Before relying on one, train it and set its threshold on the network it will watch.
 

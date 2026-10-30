@@ -282,16 +282,18 @@ test file. The Isolation Forest is not a usable detector on either dataset. With
 controls the same pipeline would report a PR-AUC of 0.989 instead of 0.952 on UNSW-NB15. Details,
 failure cases and limitations: [docs/MODEL_CARD.md](docs/MODEL_CARD.md).
 
-**Do the models work on another network?** No. Trained on the twelve features both datasets
-share and tested on the *other* dataset, gradient boosting falls to a PR-AUC barely above chance,
-and the threshold that gave 1 % false positives at home flags 42 % to 60 % of the other dataset's
-benign flows:
+**Do the models work on another network?** Not usefully. Trained on the twelve features both
+datasets share and tested on the *other* dataset, gradient boosting's ROC-AUC falls from 0.95 and
+1.00 to 0.64 and 0.61, weak but above chance, and the threshold that gave 1 % false positives at home
+flags 42 % to 60 % of the other dataset's benign flows:
 
 <!-- ml-cross:start -->
-| Trained on → tested on | PR-AUC, same dataset | PR-AUC, other dataset | Chance level (attack share) | FPR on the other dataset (1 % threshold) |
-|------------------------|------:|------:|------:|------:|
-| unsw-nb15 → cicids2017 | 0.918 | 0.323 | 0.164 | 42.2 % |
-| cicids2017 → unsw-nb15 | 0.999 | 0.404 | 0.329 | 60.5 % |
+| Trained on → tested on | ROC-AUC, same dataset | ROC-AUC, other dataset | PR-AUC (chance), same dataset | PR-AUC (chance), other dataset | Benign flows flagged on the other dataset (1 % threshold) |
+|------------------------|------:|------:|------:|------:|------:|
+| unsw-nb15 → cicids2017 | 0.952 | 0.639 | 0.918 (0.33) | 0.323 (0.16) | 42.2 % |
+| cicids2017 → unsw-nb15 | 1.000 | 0.614 | 0.999 (0.16) | 0.404 (0.33) | 60.5 % |
+
+Gradient boosting, means over seeds 0, 1, 2. ROC-AUC: 0.5 is chance. PR-AUC: chance is the attack share, in brackets.
 <!-- ml-cross:end -->
 
 A flow model trained on one lab's traffic learns that lab. The mapping, its losses and the

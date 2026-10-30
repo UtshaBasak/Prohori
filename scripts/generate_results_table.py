@@ -269,11 +269,16 @@ def render_cross(cross: dict[str, Any], in_dataset: list[dict[str, Any]]) -> str
         "source's test split (in-dataset) and once on the target's (cross-dataset). Generated "
         "from `results/ml_cross.json`; do not edit by hand."
     )
-    header = (
-        "| Direction | Model | PR-AUC, all features | PR-AUC, common features | "
-        "PR-AUC, cross-dataset | Attack share in target |"
+    note = (
+        "PR-AUC depends on the share of attacks, which differs between the datasets, so each "
+        "PR-AUC has its chance level (the attack share) next to it. ROC-AUC does not depend on "
+        "it (0.5 is chance) and is the fairer comparison across datasets."
     )
-    lines = [intro, "", header, "|-----------|-------|------:|------:|------:|------:|"]
+    header = (
+        "| Direction | Model | PR-AUC, all features | PR-AUC, common features | Chance, source | "
+        "PR-AUC, cross-dataset | Chance, target | ROC-AUC, in-dataset | ROC-AUC, cross-dataset |"
+    )
+    lines = [intro, "", note, "", header, "|-----------|-------|" + "------:|" * 7]
     for key, direction in cross["directions"].items():
         for model, entry in direction["models"].items():
             same, other = entry["summary"]["in_dataset"], entry["summary"]["cross_dataset"]
@@ -281,7 +286,9 @@ def render_cross(cross: dict[str, Any], in_dataset: list[dict[str, Any]]) -> str
             lines.append(
                 f"| {key.replace('->', ' → ')} | {MODEL_NAMES.get(model, model)} | "
                 f"{_stat(reference.get('pr_auc', {}))} | {_stat(same['pr_auc'])} | "
-                f"{_stat(other['pr_auc'])} | {other['prevalence']['mean'] * 100:.1f} % |"
+                f"{same['prevalence']['mean']:.3f} | {_stat(other['pr_auc'])} | "
+                f"{other['prevalence']['mean']:.3f} | {_stat(same['roc_auc'])} | "
+                f"{_stat(other['roc_auc'])} |"
             )
     point_header = (
         "| Direction | Model | In-dataset recall | In-dataset test FPR | "
@@ -329,21 +336,29 @@ def render_cross_summary(cross: dict[str, Any] | None) -> str:
         return "No cross-dataset results yet."
     fpr = cross["target_fprs"][0]
     header = (
-        "| Trained on → tested on | PR-AUC, same dataset | PR-AUC, other dataset | "
-        f"Chance level (attack share) | FPR on the other dataset ({_label(fpr)} threshold) |"
+        "| Trained on → tested on | ROC-AUC, same dataset | ROC-AUC, other dataset | "
+        "PR-AUC (chance), same dataset | PR-AUC (chance), other dataset | "
+        f"Benign flows flagged on the other dataset ({_label(fpr)} threshold) |"
     )
-    lines = [header, "|------------------------|------:|------:|------:|------:|"]
+    lines = [header, "|------------------------|" + "------:|" * 5]
     for key, direction in cross["directions"].items():
         if "hgb" not in direction["models"]:
             continue
         summary = direction["models"]["hgb"]["summary"]
-        point = _point(summary["cross_dataset"], fpr)
+        same, other = summary["in_dataset"], summary["cross_dataset"]
+        point = _point(other, fpr)
         lines.append(
-            f"| {key.replace('->', ' → ')} | {summary['in_dataset']['pr_auc']['mean']:.3f} | "
-            f"{summary['cross_dataset']['pr_auc']['mean']:.3f} | "
-            f"{summary['cross_dataset']['prevalence']['mean']:.3f} | "
-            f"{point['fpr']['mean'] * 100:.1f} % |"
+            f"| {key.replace('->', ' → ')} | {same['roc_auc']['mean']:.3f} | "
+            f"{other['roc_auc']['mean']:.3f} | {same['pr_auc']['mean']:.3f} "
+            f"({same['prevalence']['mean']:.2f}) | {other['pr_auc']['mean']:.3f} "
+            f"({other['prevalence']['mean']:.2f}) | {point['fpr']['mean'] * 100:.1f} % |"
         )
+    note = (
+        "Gradient boosting, means over seeds "
+        f"{', '.join(map(str, cross['seeds']))}. ROC-AUC: 0.5 is chance. PR-AUC: chance is "
+        "the attack share, in brackets."
+    )
+    lines += ["", note]
     return "\n".join(lines)
 
 

@@ -129,5 +129,5 @@ def test_cross_tables(data_dir: Path) -> None:
     assert "Recall per attack class in the target, cicids2017 → unsw-nb15" in card
     summary = tables.render_cross_summary(results)
     assert summary.count(" → ") == 3  # the header and one row a direction
-    assert "Chance level" in summary
+    assert "PR-AUC (chance)" in summary
     assert tables.render_cross_summary(None) == "No cross-dataset results yet."
