@@ -114,8 +114,20 @@ UNSW_NB15 = Dataset(
         "further papers its authors ask users to cite."
     ),
     files=(
-        DataFile("UNSW_NB15_training-set.csv", rows=175_341, split="train"),
-        DataFile("UNSW_NB15_testing-set.csv", rows=82_332, split="test"),
+        DataFile(
+            "UNSW_NB15_training-set.csv",
+            size=32_293_018,
+            sha256="bec7dd5ec88dc2a0ccc7a07879d338395ed7421750f675fd0339e07dfe0648fa",
+            rows=175_341,
+            split="train",
+        ),
+        DataFile(
+            "UNSW_NB15_testing-set.csv",
+            size=15_380_800,
+            sha256="734fe6642edf758f7c94d7d9149426b49d202fe8e7bf0bef47392489c3c0a559",
+            rows=82_332,
+            split="test",
+        ),
     ),
     manual_steps=(
         "Open https://research.unsw.edu.au/projects/unsw-nb15-dataset and follow the 'HERE' "

@@ -22,6 +22,19 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
     the training split only. A leakage check runs on every prepared dataset.
   - Synthetic fixture datasets in `tests/fixtures/ml/` with the real headers.
   - `docs/DATASETS.md` and ADR-0019.
+- The first flow detectors and their evaluation (`python -m prohori.ml.train`):
+  - Gradient boosting (supervised) and an Isolation Forest trained on benign flows only, with
+    fixed settings.
+  - Thresholds chosen on the validation split for 1 % and 0.1 % false-positive rates and
+    frozen; the test split is scored once per seed.
+  - PR-AUC, ROC-AUC, the test false-positive rate reached, recall, precision, false alerts per
+    10,000 flows and recall per attack class, as mean and standard deviation over seeds 0-2.
+    Accuracy is not reported.
+  - Uncleaned and no-TTL variants that show the effect of the leakage controls.
+  - Results for both datasets in `results/ml_*.json`, tables generated into
+    `docs/MODEL_CARD.md` and the README, and models saved outside git with a SHA-256 sidecar
+    and a warning that model files are pickles.
+  - `docs/MODEL_CARD.md` and ADR-0020.
 
 ### Changed
 
@@ -29,6 +42,11 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   repository; maintainers create it with one command (`docs/RELEASING.md`).
 - The clones badge's data branch is published with `peaceiris/actions-gh-pages`; the workflow's
   top-level token is read-only.
+
+### Fixed
+
+- The UNSW-NB15 partition files are pinned to the size and SHA-256 of the published files, and
+  the dataset documentation has the measured effect of cleaning them.
 
 ## [0.1.0] - 2026-10-27
 

@@ -41,20 +41,18 @@ def test_list_shows_licence_citation_and_steps(capsys: pytest.CaptureFixture[str
 
 
 def test_verify(data_dir: Path, capsys: pytest.CaptureFixture[str]) -> None:
-    assert download_datasets.main(["--data-dir", str(data_dir), "verify", "unsw-nb15"]) == 0
-    out = capsys.readouterr().out
-    assert out.count("UNPINNED") == 2
-    # The fixture days are not the real files: their sizes do not match the pins.
-    assert download_datasets.main(["--data-dir", str(data_dir), "verify", "cicids2017"]) == 1
-    out = capsys.readouterr().out
-    assert "BAD" in out
-    assert "To get cicids2017" in out
+    # The fixtures are not the real files: their sizes do not match the pins.
+    for name in ("unsw-nb15", "cicids2017"):
+        assert download_datasets.main(["--data-dir", str(data_dir), "verify", name]) == 1
+        out = capsys.readouterr().out
+        assert "BAD" in out
+        assert f"To get {name}" in out
     (data_dir / "raw" / "unsw-nb15" / "UNSW_NB15_testing-set.csv").unlink()
     assert download_datasets.main(["--data-dir", str(data_dir), "verify"]) == 1
     assert "MISSING" in capsys.readouterr().out
 
 
-def test_verify_pinned_files(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_verify_pinned_files(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
     folder = tmp_path / "raw" / "cicids2017"
     folder.mkdir(parents=True)
     (folder / "a.csv").write_bytes(b"abc")
@@ -64,6 +62,9 @@ def test_verify_pinned_files(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) ->
     assert not download_datasets.verify(
         replace(dataset, files=(replace(good, sha256="0" * 64),)), tmp_path
     )
+    # An unpinned file passes, but its hash is printed for comparison.
+    assert download_datasets.verify(replace(dataset, files=(DataFile("a.csv"),)), tmp_path)
+    assert f"UNPINNED {folder / 'a.csv'}: sha256 {good.sha256}" in capsys.readouterr().out
 
 
 # --------------------------------------------------------------------------- fetch
@@ -220,7 +221,13 @@ for name in ("pandas", "sklearn", "pyarrow", "numpy"):
     sys.modules[name] = None
 import prohori, prohori.cli, prohori.ml, prohori.ml.registry
 from prohori.ml import MissingExtraError
-for module in ("prohori.ml.datasets", "prohori.ml.cleaning"):
+for module in (
+    "prohori.ml.datasets",
+    "prohori.ml.cleaning",
+    "prohori.ml.evaluate",
+    "prohori.ml.models",
+    "prohori.ml.train",
+):
     try:
         __import__(module)
     except MissingExtraError as exc:

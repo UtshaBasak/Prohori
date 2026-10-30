@@ -43,8 +43,8 @@ toolkit in Python that runs on a single laptop with free tools only, offline by 
 
 > **Status: alpha (v0.1.0).** The batch core is complete: one command goes from a log file to
 > scored incidents and shareable reports, and a labelled attack simulator measures the rules.
-> Machine learning is in progress for v0.2.0 (leakage-controlled dataset preparation is done);
-> the streaming pipeline and the LLM analyst follow. See the [CHANGELOG](CHANGELOG.md) and the
+> Machine learning is in progress for v0.2.0: leakage-controlled datasets and the first models,
+> with a model card, are done. The streaming pipeline and the LLM analyst follow. See the [CHANGELOG](CHANGELOG.md) and the
 > [roadmap](#roadmap).
 
 ## 60-second demo
@@ -246,32 +246,47 @@ per-rule table and caveats are in [docs/SIMULATOR.md](docs/SIMULATOR.md#results)
 
 ## Machine learning (in progress)
 
-v0.2.0 adds intrusion-detection models trained on public network-flow datasets, evaluated so
-that the numbers can be trusted. The first part, preparing the data, is done:
+v0.2.0 adds intrusion-detection models trained on two public network-flow datasets, UNSW-NB15
+and the improved CIC-IDS-2017, evaluated the way a SOC would judge them: how many attacks are
+caught for a tolerable number of false alerts. Done so far:
 
-- **Two datasets:** UNSW-NB15 (official training and testing partition) and the improved
-  CIC-IDS-2017 release from the CNS 2022 paper, which fixes the original's flow-construction and
-  labelling errors. Neither is shipped; `scripts/download_datasets.py` lists their licences and
-  citations, downloads CIC-IDS-2017 when asked (checked against a pinned SHA-256 before it is
-  opened) and explains the manual download of UNSW-NB15.
-- **Leakage controls written as code and tests:** identifier, address, port, time and
-  label-derived columns are dropped; duplicates and contradictory rows are removed; test rows that
-  also occur in training are removed and counted; imputation and category codes are learned from
-  the training split only. Every prepared dataset passes a leakage check or is refused.
-- **Measured on CIC-IDS-2017:** 18 % of the 2.1 million flows are duplicates once identifiers are
-  gone. Most are port-scan probes (99 % of the `Portscan` rows are copies), the rest repeated
-  benign flows. Left in, they would put copies of training rows in the test set and make
-  port-scan detection look nearly perfect.
+- **Leakage-controlled data.** Identifier, address, port, time and label-derived columns are
+  dropped; duplicates and contradictory rows are removed; test rows that also occur in training
+  are removed and counted; transforms are learned from training data only. On CIC-IDS-2017, 18 %
+  of the 2.1 million flows are duplicates once identifiers are gone, most of them port-scan
+  probes; on UNSW-NB15, 41 % of the rows. [DATASETS.md](docs/DATASETS.md) has the numbers.
+- **Two models:** gradient boosting (supervised) and an Isolation Forest trained on benign
+  traffic only.
+- **Honest metrics.** Thresholds are chosen on a validation split for a 1 % or 0.1 %
+  false-positive rate and frozen; the test split is scored once per seed. Reported: PR-AUC,
+  recall, the false-positive rate actually reached on test, false alerts per 10,000 flows and
+  recall per attack class, as mean and standard deviation over three seeds. Never accuracy.
+
+<!-- ml-results:start -->
+| Dataset | Model | PR-AUC | Recall | Test FPR | False alerts / 10k |
+|---------|-------|-------:|-------:|---------:|-------------------:|
+| unsw-nb15 | Gradient boosting (supervised) | 0.952 | 46.00 % | 0.07 % | 4.2 |
+| unsw-nb15 | Isolation Forest (benign only) | 0.522 | 0.71 % | 0.11 % | 6.9 |
+| cicids2017 | Gradient boosting (supervised) | 0.999 | 99.98 % | 0.10 % | 8.7 |
+| cicids2017 | Isolation Forest (benign only) | 0.527 | 0.00 % | 0.10 % | 8.7 |
+
+Means over seeds 0, 1, 2 on the cleaned test splits, with thresholds chosen for a 0.1 % false-positive rate on the validation split and then frozen.
+<!-- ml-results:end -->
+
+What the numbers say: gradient boosting catches about half of UNSW-NB15's attacks at a
+false-alert rate a SOC could live with, misses most fuzzing and analysis traffic, and on
+CIC-IDS-2017 catches nearly everything, which says more about that lab dataset than about the
+model. The 1 % threshold chosen on UNSW-NB15's validation data gave 4.5 % false positives on its
+test file. The Isolation Forest is not a usable detector on either dataset. Without the leakage
+controls the same pipeline would report a PR-AUC of 0.989 instead of 0.952 on UNSW-NB15. Details,
+failure cases and limitations: [docs/MODEL_CARD.md](docs/MODEL_CARD.md).
 
 ```bash
-uv sync                                                        # from a clone: includes the ml extra
-uv run python scripts/download_datasets.py list                # what to get, licences, citations
-uv run python scripts/download_datasets.py fetch cicids2017    # about 330 MB
-uv run python scripts/download_datasets.py prepare cicids2017  # clean, split, print the report
+uv run python scripts/download_datasets.py fetch cicids2017      # about 330 MB
+uv run python -m prohori.ml.train --dataset cicids2017 --seeds 0 1 2
 ```
 
-Models, metrics and a model card follow in the next steps. Details:
-[docs/DATASETS.md](docs/DATASETS.md).
+The cross-dataset test and `prohori score` follow in the next step.
 
 ## Privacy and safety
 
@@ -306,6 +321,7 @@ Third-party data terms (MITRE ATT&CK, GeoLite2, AbuseIPDB, VirusTotal) are summa
 | [Reports](docs/REPORTS.md) | Formats, sections, redaction and output safety |
 | [Simulator](docs/SIMULATOR.md) | Attack scenarios, labels, and rule precision and recall |
 | [Datasets](docs/DATASETS.md) | UNSW-NB15 and CIC-IDS-2017: getting them, licences, leakage controls |
+| [Model card](docs/MODEL_CARD.md) | Flow detectors: intended use, evaluation, results, failure cases |
 | [Decisions](docs/DECISIONS.md) | Architecture decision records |
 | [Releasing](docs/RELEASING.md) | How releases are built, tested and published |
 | [Third-party terms](docs/LICENSES.md) | Data and service licences |
@@ -336,7 +352,7 @@ Prohori is honest about what it does not do:
 | Release | Contents | State |
 |---------|----------|-------|
 | v0.1.0 | Batch core: parsers, rules, enrichment, incidents, reports, log simulator with rule evaluation, `triage` and `demo` commands | Released |
-| v0.2.0 | Machine learning: leakage-controlled intrusion detection on public flow datasets, log-derived anomaly detection, model cards | In progress: dataset preparation done |
+| v0.2.0 | Machine learning: leakage-controlled intrusion detection on public flow datasets, log-derived anomaly detection, model cards | In progress: datasets and first models done |
 | v0.3.0 | Pipeline: streaming core, Redpanda and PostgreSQL in Docker, dbt models, dashboard, orchestration | Planned |
 | v1.0.0 | Optional LLM analyst (opt-in, redacted input, validated output), final polish | Planned |
 

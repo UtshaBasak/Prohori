@@ -1,8 +1,11 @@
-"""Write the rule-evaluation results into the docs from ``results/rules_eval.json``.
+"""Write the evaluation results into the docs from the files in ``results/``.
 
-``docs/SIMULATOR.md`` gets the full tables and ``README.md`` a summary, each between the
-``<!-- results:start -->`` and ``<!-- results:end -->`` markers. With ``--check`` nothing is
-written and the exit code is 1 when either document is out of date.
+* Rules (``rules_eval.json``): full tables in ``docs/SIMULATOR.md``, a summary in ``README.md``,
+  between the ``<!-- results:start -->`` and ``<!-- results:end -->`` markers.
+* Flow models (``ml_<dataset>.json``): full tables in ``docs/MODEL_CARD.md``, a summary in
+  ``README.md``, between ``<!-- ml-results:start -->`` and ``<!-- ml-results:end -->``.
+
+With ``--check`` nothing is written and the exit code is 1 when a document is out of date.
 
     uv run python scripts/generate_results_table.py [--check]
 """
@@ -16,9 +19,20 @@ from typing import Any
 ROOT = Path(__file__).resolve().parents[1]
 RESULTS = ROOT / "results" / "rules_eval.json"
 DOCUMENT = ROOT / "docs" / "SIMULATOR.md"
+MODEL_CARD = ROOT / "docs" / "MODEL_CARD.md"
 README = ROOT / "README.md"
 START = "<!-- results:start -->"
 END = "<!-- results:end -->"
+ML_START = "<!-- ml-results:start -->"
+ML_END = "<!-- ml-results:end -->"
+#: Datasets in the order they appear in the docs.
+ML_DATASETS = ("unsw-nb15", "cicids2017")
+MODEL_NAMES = {"hgb": "Gradient boosting (supervised)", "iforest": "Isolation Forest (benign only)"}
+VARIANT_NAMES = {
+    "cleaned": "Cleaned (every leakage control)",
+    "cleaned-no-suspect": "Cleaned, without the TTL columns",
+    "uncleaned": "Uncleaned (no deduplication, ids and ports kept)",
+}
 
 
 def _pct(value: float | None) -> str:
@@ -112,12 +126,152 @@ def render_summary(results: dict[str, Any]) -> str:
     return "\n".join(lines)
 
 
-def updated(document: str, block: str, name: str) -> str:
-    start, end = document.find(START), document.find(END)
+def _stat(summary: dict[str, Any], *, percent: bool = False, digits: int = 3) -> str:
+    """``{"mean": .., "std": ..}`` as ``0.952 ± 0.003`` or ``82.0 ± 1.2 %``."""
+    if not summary:
+        return "-"
+    mean, std = summary["mean"], summary["std"]
+    if percent:
+        return f"{mean * 100:.{digits}f} ± {std * 100:.{digits}f} %"
+    return f"{mean:.{digits}f} ± {std:.{digits}f}"
+
+
+def _label(fpr: float) -> str:
+    return f"{fpr * 100:g} %"
+
+
+def _point(summary: dict[str, Any], fpr: float) -> dict[str, Any]:
+    point: dict[str, Any] = summary["operating_points"][f"fpr_{fpr:g}"]
+    return point
+
+
+def render_ml(results: dict[str, Any]) -> str:
+    """The tables for one dataset in docs/MODEL_CARD.md."""
+    fprs = results["target_fprs"]
+    cleaned = results["variants"]["cleaned"]
+    intro = (
+        f"Seeds {', '.join(map(str, results['seeds']))}; mean ± standard deviation over the "
+        "seeds. Each threshold is chosen on the validation split for a target false-positive "
+        "rate (FPR) and frozen; the test split is scored once. Generated from "
+        f"`results/ml_{results['dataset']}.json`; do not edit by hand."
+    )
+    lines = [f"#### {results['dataset_title']}", "", intro, ""]
+    columns = ["Model", "PR-AUC", "ROC-AUC"]
+    for fpr in fprs:
+        columns += [f"Test FPR ({_label(fpr)} val.)", "Recall", "False alerts / 10k"]
+    lines += ["| " + " | ".join(columns) + " |", "|" + "---|" * len(columns)]
+    for model, entry in cleaned["models"].items():
+        summary = entry["summary"]
+        row = [MODEL_NAMES.get(model, model), _stat(summary["pr_auc"]), _stat(summary["roc_auc"])]
+        for fpr in fprs:
+            point = _point(summary, fpr)
+            row += [
+                _stat(point["fpr"], percent=True, digits=2),
+                _stat(point["recall"], percent=True, digits=2),
+                _stat(point["false_alerts_per_10k"], digits=1),
+            ]
+        lines.append("| " + " | ".join(row) + " |")
+
+    last = fprs[-1]
+    effect = (
+        "Effect of the leakage controls on gradient boosting. Each variant has its own test "
+        "split, so this compares what the same pipeline reports about itself, not two models "
+        "on the same data:"
+    )
+    header = (
+        "| Variant | Test flows | Attack share | PR-AUC | ROC-AUC | "
+        f"Recall ({_label(last)} val.) | Test FPR |"
+    )
+    lines += [
+        "",
+        effect,
+        "",
+        header,
+        "|---------|-----------:|-------------:|-------:|--------:|------:|------:|",
+    ]
+    for variant, found in results["variants"].items():
+        if "hgb" not in found["models"]:
+            continue
+        summary = found["models"]["hgb"]["summary"]
+        point = _point(summary, last)
+        lines.append(
+            f"| {VARIANT_NAMES.get(variant, variant)} | {summary['flows']['mean']:,.0f} | "
+            f"{summary['prevalence']['mean'] * 100:.1f} % | {_stat(summary['pr_auc'])} | "
+            f"{_stat(summary['roc_auc'])} | {_stat(point['recall'], percent=True, digits=1)} | "
+            f"{_stat(point['fpr'], percent=True, digits=2)} |"
+        )
+
+    if "hgb" in cleaned["models"]:
+        summary = cleaned["models"]["hgb"]["summary"]
+        points = [_point(summary, fpr) for fpr in fprs]
+        header = " | ".join(f"Recall ({_label(fpr)} val.)" for fpr in fprs)
+        per_class = (
+            "Recall per attack class (gradient boosting, cleaned) with the class's test flows, "
+            "averaged over the seeds:"
+        )
+        lines += [
+            "",
+            per_class,
+            "",
+            f"| Class | Test flows | {header} |",
+            "|-------|-----------:|" + "------:|" * len(fprs),
+        ]
+        for name in sorted(points[0]["per_class_recall"]):
+            flows = points[0]["per_class_recall"][name]["flows"]["mean"]
+            recalls = [
+                _stat(p["per_class_recall"].get(name, {}).get("recall", {}), percent=True, digits=1)
+                for p in points
+            ]
+            lines.append(f"| {name} | {flows:,.0f} | {' | '.join(recalls)} |")
+    return "\n".join(lines)
+
+
+def render_ml_summary(all_results: list[dict[str, Any]]) -> str:
+    """The README summary: the cleaned results of every model on every dataset."""
+    if not all_results:
+        return "No model results yet."
+    fpr = all_results[0]["target_fprs"][-1]
+    lines = [
+        "| Dataset | Model | PR-AUC | Recall | Test FPR | False alerts / 10k |",
+        "|---------|-------|-------:|-------:|---------:|-------------------:|",
+    ]
+    for results in all_results:
+        for model, entry in results["variants"]["cleaned"]["models"].items():
+            summary = entry["summary"]
+            point = _point(summary, fpr)
+            lines.append(
+                f"| {results['dataset']} | {MODEL_NAMES.get(model, model)} | "
+                f"{summary['pr_auc']['mean']:.3f} | {point['recall']['mean'] * 100:.2f} % | "
+                f"{point['fpr']['mean'] * 100:.2f} % | "
+                f"{point['false_alerts_per_10k']['mean']:.1f} |"
+            )
+    note = (
+        f"Means over seeds {', '.join(map(str, all_results[0]['seeds']))} on the cleaned test "
+        f"splits, with thresholds chosen for a {_label(fpr)} false-positive rate on the "
+        "validation split and then frozen."
+    )
+    lines += ["", note]
+    return "\n".join(lines)
+
+
+def ml_results(directory: Path) -> list[dict[str, Any]]:
+    """The model results present in ``directory``, in documentation order."""
+    found = []
+    for name in ML_DATASETS:
+        path = directory / f"ml_{name}.json"
+        if path.is_file():
+            found.append(json.loads(path.read_text(encoding="utf-8")))
+    return found
+
+
+def updated(
+    document: str, block: str, name: str, start_marker: str = START, end_marker: str = END
+) -> str:
+    start, end = document.find(start_marker), document.find(end_marker)
     if start < 0 or end < start:
-        msg = f"{name} has no {START} ... {END} block"
+        msg = f"{name} has no {start_marker} ... {end_marker} block"
         raise SystemExit(msg)
-    return document[: start + len(START)] + "\n" + block + "\n" + document[end:]
+    return document[: start + len(start_marker)] + "\n" + block + "\n" + document[end:]
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -125,10 +279,18 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--check", action="store_true", help="only check that the docs are current")
     args = parser.parse_args(argv)
     results = json.loads(RESULTS.read_text(encoding="utf-8"))
+    models = ml_results(RESULTS.parent)
+    card = "\n\n".join(render_ml(r) for r in models) or "No model results yet."
+    blocks = (
+        (DOCUMENT, render(results), START, END),
+        (README, render_summary(results), START, END),
+        (MODEL_CARD, card, ML_START, ML_END),
+        (README, render_ml_summary(models), ML_START, ML_END),
+    )
     stale: list[str] = []
-    for path, block in ((DOCUMENT, render(results)), (README, render_summary(results))):
+    for path, block, start, end in blocks:
         document = path.read_text(encoding="utf-8")
-        new = updated(document, block, path.name)
+        new = updated(document, block, path.name, start, end)
         if new == document:
             continue
         stale.append(path.name)

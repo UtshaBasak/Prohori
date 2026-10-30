@@ -27,7 +27,7 @@ each user into the git-ignored `data/` directory, and the test fixtures are synt
 | Publisher | UNSW Canberra (Moustafa and Slay) | imec-DistriNet, KU Leuven (Liu, Engelen et al.), from the Canadian Institute for Cybersecurity's original |
 | Files used | `UNSW_NB15_training-set.csv` (175,341 rows), `UNSW_NB15_testing-set.csv` (82,332 rows) | `CICIDS2017_improved.zip`: `monday.csv` to `friday.csv` (1.15 GB) |
 | Split | Official training/testing partition | None; Prohori makes one |
-| Features | 42 after cleaning, 3 of them text (`proto`, `service`, `state`); from the published feature list, to be confirmed on the real files | 82 after cleaning, all numeric |
+| Features | 42 after cleaning, 3 of them text (`proto`, `service`, `state`) | 82 after cleaning, all numeric |
 | Classes | Normal and 9 attack classes | Benign and the attack classes of the five capture days |
 | Download | By hand (a SharePoint folder) | `fetch` (direct HTTPS) |
 | Licence | Free for academic research; commercial use by agreement with the authors | None stated by the distributor; research use, cite the papers |
@@ -88,13 +88,10 @@ a browser:
 4. Put both, with their names unchanged, in `data/raw/unsw-nb15/`.
 5. Run `uv run python scripts/download_datasets.py verify unsw-nb15`.
 
-UNSW does not publish checksums and the files have not been pinned yet, so `verify` prints their
-SHA-256 as `UNPINNED` instead of passing silently. Compare it with someone else's download if
-you need certainty.
-
-**Checksums.** Neither publisher gives checksums. The CIC-IDS-2017 values in
-`src/prohori/ml/registry.py` were measured by the maintainer on 2026-10-30 from the
-distributor's file:
+**Checksums.** Neither publisher gives checksums. The values in `src/prohori/ml/registry.py`
+were measured by the maintainer on 2026-10-30 from the publishers' files; a file not pinned yet
+would be reported as `UNPINNED` with its hash rather than pass silently. The UNSW-NB15 files
+start with a UTF-8 byte-order mark, which the loader ignores.
 
 | File | Bytes | SHA-256 |
 |------|------:|---------|
@@ -104,6 +101,8 @@ distributor's file:
 | `wednesday.csv` | 291,290,505 | `bf46c5f3c792e8817381f724511229569606918eaf07ac986d7a2592b6341bc2` |
 | `thursday.csv` | 189,519,159 | `78a4d11eaf473d099e30e71ddb01e0f38218e844c0a9cdd36602145d674af482` |
 | `friday.csv` | 285,188,226 | `ebd499e6f23bd59f9cb81bec28178491b02b925fa5640a24215c9437d79482d0` |
+| `UNSW_NB15_training-set.csv` | 32,293,018 | `bec7dd5ec88dc2a0ccc7a07879d338395ed7421750f675fd0339e07dfe0648fa` |
+| `UNSW_NB15_testing-set.csv` | 15,380,800 | `734fe6642edf758f7c94d7d9149426b49d202fe8e7bf0bef47392489c3c0a559` |
 
 ## Loading
 
@@ -216,6 +215,8 @@ them rather than deciding by assumption.
 
 ## Measured on the real data
 
+### CIC-IDS-2017
+
 `prepare cicids2017` with seed 0 on the full release, run on 2026-10-30 (about a minute on a
 laptop, most of it the first conversion to Parquet):
 
@@ -252,11 +253,42 @@ laptop, most of it the first conversion to Parquet):
 removed, the probes of a scan are the same tiny flow over and over, so 99 % of `Portscan` and
 92 % of `Infiltration - Portscan` rows are copies. Kept, they would fill the test set with rows
 the model has already seen in training and make port-scan detection look nearly perfect. The
-rest are repeated benign flows: benign traffic loses 10 %. The other attack classes keep every row. The smallest classes (Heartbleed, SQL
-injection, XSS, Infiltration) have only a few test rows, so their per-class results will be noisy
-and are reported with their counts.
+rest are repeated benign flows: benign traffic loses 10 %. The other attack classes keep every
+row. The smallest classes (Heartbleed, SQL injection, XSS, Infiltration) have only a few test
+rows, so their per-class results are noisy and always reported with their counts.
 
-UNSW-NB15 has not been measured yet: its files must be downloaded by hand (see above).
+### UNSW-NB15
+
+`prepare unsw-nb15` with seed 0, run on 2026-10-30 (5 seconds):
+
+| Step | Training file | Testing file |
+|------|--------------:|-------------:|
+| Rows as published | 175,341 | 82,332 |
+| Exact duplicates removed | 67,601 | 26,387 |
+| Rows with equal features but different classes removed | 8,472 | 2,574 |
+| Rows also in the training file removed | | 953 |
+| Left | 79,415 train + 19,853 validation | 52,418 test |
+
+| Class | Rows as published (both files) | After cleaning (all splits) |
+|-------|-------------------------------:|----------------------------:|
+| Benign (`Normal`) | 93,000 | 85,417 |
+| Generic | 58,871 | 7,303 |
+| Exploits | 44,525 | 25,458 |
+| Fuzzers | 24,246 | 18,923 |
+| DoS | 16,353 | 3,640 |
+| Reconnaissance | 13,987 | 8,424 |
+| Analysis | 2,677 | 451 |
+| Backdoor | 2,329 | 460 |
+| Shellcode | 1,511 | 1,450 |
+| Worms | 174 | 160 |
+
+**What this shows.** 41 % of UNSW-NB15's partition rows are duplicates or contradictory once
+the row number is ignored. The attack classes are hit hardest: 88 % of `Generic`, 83 % of
+`Analysis`, 80 % of `Backdoor` and 78 % of `DoS` rows go, while benign traffic loses 8 %. The
+share of attacks in the test file falls from 55 % to 36 %. Every label agreed with its class, and
+the files have no infinite or non-numeric values. The 953 test rows that also occur in the
+training file are few, but the duplicates *within* each file would otherwise weight the
+evaluation towards a few repeated flows.
 
 ## Using it from Python
 
@@ -282,7 +314,5 @@ print(data.report.to_dict())
 - **Hash-based comparison.** Duplicates and overlap are found with a 64-bit hash of the feature
   values; a collision could hide a duplicate, with a probability that is negligible at these
   sizes.
-- **Unpinned UNSW-NB15 files.** Until their hashes are pinned, a modified copy would not be
-  noticed by `verify`.
 - **No licence for the improved CIC-IDS-2017.** It is used for research only and never
   redistributed.
