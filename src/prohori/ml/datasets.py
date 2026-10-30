@@ -147,7 +147,17 @@ def read_file(
     use_cache: bool = True,
     chunk_rows: int = CHUNK_ROWS,
 ) -> tuple[pd.DataFrame, FileStats]:
-    """One CSV as a frame, converted once and then read from the Parquet cache."""
+    """One CSV as a frame, converted once and then read from the Parquet cache.
+
+    With ``use_cache=False`` the cache is neither read nor written.
+    """
+    if not use_cache:
+        stats = FileStats()
+        chunks = list(read_csv_chunks(path, dataset, stats, chunk_rows))
+        if stats.rows == 0:
+            msg = f"{path.name} has a header but no rows"
+            raise DatasetFormatError(msg)
+        return pd.concat(chunks, ignore_index=True), stats
     target = _cache_path(dataset, data_file, sha256_file(path), data_dir)
     sidecar = target.with_suffix(".json")
     if use_cache and target.is_file() and sidecar.is_file():

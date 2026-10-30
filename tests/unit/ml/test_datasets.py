@@ -50,7 +50,7 @@ def test_registry_describes_both_datasets() -> None:
     # Every column the cleaning code names exists in the fixtures' headers.
     for dataset in DATASETS.values():
         for data_file in dataset.files:
-            header = (FIXTURES / dataset.name / data_file.name).read_text().splitlines()[0]
+            header = (FIXTURES / "raw" / dataset.name / data_file.name).read_text().splitlines()[0]
             names = {normalise_column(c) for c in header.split(",")}
             missing = set(dataset.required_columns) | set(dataset.suspect_columns)
             assert missing <= names, (data_file.name, missing - names)

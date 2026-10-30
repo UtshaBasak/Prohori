@@ -12,5 +12,5 @@ FIXTURES = Path(__file__).resolve().parents[2] / "fixtures" / "ml"
 def data_dir(tmp_path: Path) -> Path:
     root = tmp_path / "data"
     for name in ("unsw-nb15", "cicids2017"):
-        shutil.copytree(FIXTURES / name, root / "raw" / name)
+        shutil.copytree(FIXTURES / "raw" / name, root / "raw" / name)
     return root
