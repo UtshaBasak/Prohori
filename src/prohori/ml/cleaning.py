@@ -111,8 +111,8 @@ def standardise_labels(
 ) -> pd.DataFrame:
     """Replace the dataset's label columns with ``attack_cat`` and ``label``."""
     category = frame[dataset.category_column].astype("string").str.strip()
-    if dataset.label_column:
-        given = frame[dataset.label_column]
+    given = frame[dataset.label_column] if dataset.label_column else None
+    if given is not None:
         category = category.fillna(given.map({0: BENIGN}).astype("string"))
     category = category.fillna("Unknown")
     attempted = category.str.lower().str.endswith(ATTEMPTED_SUFFIX).to_numpy(dtype=bool)
@@ -122,7 +122,7 @@ def standardise_labels(
         category.str.lower().isin([*dataset.benign_values, BENIGN.lower()]).to_numpy(dtype=bool)
         | attempted
     )
-    if dataset.label_column:
+    if given is not None:
         report.label_mismatches += int(((given != 0).to_numpy() == benign).sum())
     report.attempted_relabelled += int(attempted.sum())
     labels = [c for c in (dataset.category_column, dataset.label_column) if c]
