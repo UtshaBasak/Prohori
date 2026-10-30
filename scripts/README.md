@@ -7,7 +7,7 @@ Scripts are run explicitly; nothing is downloaded at import time.
 |--------|---------|
 | `download_datasets.py` | List, fetch (CIC-IDS-2017 only, on request), verify and prepare the ML datasets in `data/`; see `docs/DATASETS.md` |
 | `evaluate_rules.py` | Run the built-in rules on every simulated scenario (default and held-out variants, seeds 1-5) and write `results/rules_eval.json` |
-| `generate_results_table.py` | Write the evaluation tables into `docs/SIMULATOR.md` from `results/rules_eval.json` (`--check` only verifies) |
+| `generate_results_table.py` | Write the evaluation tables into `docs/SIMULATOR.md`, `docs/MODEL_CARD.md` and the README from `results/` (`--check` only verifies) |
 | `traffic_clones.py` | Fold GitHub's 14-day clone numbers into an all-time record and badge (run daily by `.github/workflows/traffic.yml`) |
 | `release_notes.py` | Print a version's CHANGELOG section (used by the release workflow) |
 | `generate_examples.py` | Regenerate `docs/examples/` and `docs/images/demo.svg` |

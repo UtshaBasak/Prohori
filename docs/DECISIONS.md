@@ -601,3 +601,50 @@ and test it.
 
 **Consequences.** Scores will be lower than many published ones, and the documentation says why.
 Results depend on the seed; step 15 reports the mean and standard deviation over several seeds.
+
+---
+
+## ADR-0020: Flow models and how they are evaluated
+
+- **Date:** 2026-10-30
+- **Status:** Accepted
+
+**Context.** Step 15 trains the first models on the prepared datasets (ADR-0019). Intrusion
+detection results are easy to make look good: accuracy on a mostly benign test set, thresholds
+tuned on the test data, a single lucky seed. The evaluation has to answer the question a SOC
+asks: how many attacks are caught for a tolerable number of false alerts.
+
+**Decision.**
+- **Two models, fixed in advance.** Histogram gradient boosting (supervised; scikit-learn, no
+  extra dependency) and an Isolation Forest fitted on benign training flows only (unsupervised).
+  Hyper-parameters are fixed in `prohori.ml.models.PARAMS` and were not tuned; gradient boosting's
+  early stopping uses a slice of the training split.
+- **Thresholds come from validation.** For each target false-positive rate (1 % and 0.1 %) the
+  threshold is the lowest at which at most that share of the validation split's benign flows
+  alert. It is frozen before the test split is scored, and the test split is scored once per
+  seed. The rate actually reached on test is reported next to the target, because it need not
+  match.
+- **Metrics:** PR-AUC (with the attack share as its chance level), ROC-AUC, and per operating
+  point the test FPR, recall, precision, false alerts per 10,000 flows and recall per attack
+  class with the class's test flows. Accuracy is not computed anywhere.
+- **Seeds:** 0, 1 and 2; the seed drives the validation split (and for CIC-IDS-2017 the whole
+  split) and the models. Tables show mean and standard deviation. The UNSW-NB15 test split is the
+  official file and the same for every seed, so its spread reflects the models and the
+  validation split only.
+- **Before and after cleaning:** an `uncleaned` variant (no deduplication or overlap removal,
+  numeric identifiers and ports kept) is trained with the same code, and UNSW-NB15 also gets a
+  variant without its TTL columns. Each variant has its own test split, so the comparison shows
+  what the same pipeline would report about itself; prevalence and ROC-AUC are shown beside
+  PR-AUC for that reason.
+- **Results are committed** (`results/ml_<dataset>.json`, floats rounded to six significant
+  digits) and the tables in `docs/MODEL_CARD.md` and the README are generated from them by
+  `scripts/generate_results_table.py`, which CI checks.
+- **Models are not committed.** Cleaned models are saved with joblib to the git-ignored
+  `models/` directory with a JSON sidecar (features, thresholds, versions, SHA-256). Loading
+  checks the hash and the documentation warns that a pickle runs code when loaded; the hash
+  catches a corrupted or swapped file, not a deliberate attack.
+- **The test splits were scored during development** with these same parameters, to check that
+  the pipeline worked. Nothing about the models, features or thresholds was changed afterwards.
+
+**Consequences.** The published numbers are reproducible from the data with one command per
+dataset. They are lab results; step 16 measures how they transfer between datasets.
