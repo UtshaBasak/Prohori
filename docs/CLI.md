@@ -51,8 +51,8 @@ Code `3` lets scripts and CI pipelines react to findings; add `--exit-zero` to g
 | `--keep-query` | `access_log`: keep the query string in `http.path` |
 
 `detect`, `incidents` and `triage` also accept `--rules PATH` (repeatable; your rules run with
-the built-in ones), `--no-builtin`, `--lateness 5m` (how far out of order events may arrive) and
-`--exit-zero`. See [PARSERS.md](PARSERS.md) and [RULES.md](RULES.md).
+the built-in ones), `--no-builtin`, `--lateness 5m` (how far out of order events may arrive),
+`--models` (anomaly detectors, see [ANOMALY.md](ANOMALY.md)) and `--exit-zero`. See [PARSERS.md](PARSERS.md) and [RULES.md](RULES.md).
 
 ## `prohori demo`
 
@@ -98,6 +98,11 @@ See [PARSERS.md](PARSERS.md).
 
 Runs the 15 built-in rules (plus `--rules`) and prints the alerts and a summary.
 See [RULES.md](RULES.md).
+
+`--models` (also on `incidents` and `triage`) adds the anomaly detectors: source IPs whose
+five-minute windows are unusual for the log get `low` alerts with `detector_kind: model`. The
+robust z-score needs nothing extra; the Isolation Forest needs the `ml` extra and is skipped with a
+note without it. See [ANOMALY.md](ANOMALY.md).
 
 ## `prohori incidents`
 

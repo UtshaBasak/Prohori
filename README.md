@@ -41,11 +41,11 @@ reports, with honest machine-learning evaluation and a streaming data pipeline.*
 *Prohori* (প্রহরী) is Bengali for "guard". It is an open-source, defensive security-operations
 toolkit in Python that runs on a single laptop with free tools only, offline by default.
 
-> **Status: alpha (v0.1.0).** The batch core is complete: one command goes from a log file to
-> scored incidents and shareable reports, and a labelled attack simulator measures the rules.
-> Machine learning is in progress for v0.2.0: leakage-controlled datasets, flow models with a
-> model card, a cross-dataset test and `prohori score` are done. The streaming pipeline and the LLM analyst follow. See the [CHANGELOG](CHANGELOG.md) and the
-> [roadmap](#roadmap).
+> **Status: alpha (v0.2.0).** One command goes from a log file to scored incidents and
+> shareable reports, a labelled attack simulator measures the rules, and v0.2.0 adds machine
+> learning: anomaly detectors over your own logs, and flow models on public datasets evaluated
+> with leakage controls, a model card and a cross-dataset test. The streaming pipeline and the
+> LLM analyst follow. See the [CHANGELOG](CHANGELOG.md) and the [roadmap](#roadmap).
 
 ## 60-second demo
 
@@ -71,7 +71,7 @@ sends nothing over the network. Sample reports: [Markdown](docs/examples/account
 - [Commands](#commands)
 - [Built-in detection rules](#built-in-detection-rules)
 - [How well the rules work](#how-well-the-rules-work)
-- [Machine learning (in progress)](#machine-learning-in-progress)
+- [Machine learning](#machine-learning)
 - [Privacy and safety](#privacy-and-safety)
 - [Documentation](#documentation)
 - [Limitations](#limitations)
@@ -83,7 +83,7 @@ sends nothing over the network. Sample reports: [Markdown](docs/examples/account
 ```mermaid
 flowchart LR
     A[Log files<br>auth.log, nginx, app JSON] --> B[parse<br>common event schema]
-    B --> C[detect<br>15 YAML rules]
+    B --> C[detect<br>15 YAML rules<br>+ anomaly detectors]
     C --> D[incidents<br>group, score, ATT&CK]
     E[enrich<br>GeoLite2, AbuseIPDB, VirusTotal] --> D
     D --> F[report<br>Markdown, HTML, JSON, CSV]
@@ -92,7 +92,7 @@ flowchart LR
 | Stage | Today |
 |-------|-------|
 | **Parse** | Linux `auth.log` (sshd, sudo, PAM), nginx/Apache access logs, application security events (JSON Lines) and any JSON Lines layout through a YAML field mapping, into one typed event schema. Format detection, streaming with bounded memory, hostile input handled (oversized lines, bad encodings, control characters). |
-| **Detect** | 15 readable YAML rules (Sigma-inspired) with field modifiers, thresholds, distinct counts, ratios, sliding and tumbling windows and ordered sequences. Every rule ships with test fixtures and a runbook; regular expressions run on RE2, so no pattern can hang a run. |
+| **Detect** | 15 readable YAML rules (Sigma-inspired) with field modifiers, thresholds, distinct counts, ratios, sliding and tumbling windows and ordered sequences. Every rule ships with test fixtures and a runbook; regular expressions run on RE2, so no pattern can hang a run. With `--models`, anomaly detectors (robust z-score, Isolation Forest) also flag source IPs that behave unlike the rest of the log. |
 | **Enrich** | IP geolocation, network owner and reputation from local GeoLite2 files, AbuseIPDB and VirusTotal, all optional. SQLite cache, daily budgets, rate limiting and bounded retries. Private and documentation addresses never leave the machine. |
 | **Incidents** | Related alerts (same IP, account, request or session within a time gap) become one incident with a points-based score you can read line by line, severity, confidence, MITRE ATT&CK v20.0 mapping, a timeline, recommended actions and stated limitations. Detects sign-ins from an IP or app new to the account. |
 | **Simulate** | Eight labelled attack scenarios (SSH brute force, password spraying, credential stuffing, token reuse, account takeover, web scanning, injection, admin misuse) hidden in realistic background activity, byte-identical for a seed, documentation IP addresses only. Used to measure every rule's precision and recall. |
@@ -180,7 +180,7 @@ recommended actions from the runbooks and the limitations, such as "single log s
 | `prohori demo` | Simulate attacks, triage them and show the results; no configuration, offline | [CLI.md](docs/CLI.md#prohori-demo) |
 | `prohori triage FILE` | Log in, incidents and a report per incident out (`--format`, `--redact`, `--online`) | [CLI.md](docs/CLI.md#prohori-triage) |
 | `prohori parse FILE` | Parse and normalise a log; table or JSON Lines | [PARSERS.md](docs/PARSERS.md) |
-| `prohori detect FILE` | Run the 15 built-in rules (and `--rules DIR`); exit code 3 when alerts are found | [RULES.md](docs/RULES.md) |
+| `prohori detect FILE` | Run the 15 built-in rules (and `--rules DIR`, `--models` for the anomaly detectors); exit code 3 when alerts are found | [RULES.md](docs/RULES.md) |
 | `prohori rules list` / `validate` / `test` | Show, check and test detection rules | [RULES.md](docs/RULES.md) |
 | `prohori enrich IP...` | Geolocation and reputation; `--offline` never uses the network | [ENRICHMENT.md](docs/ENRICHMENT.md) |
 | `prohori incidents FILE` | Parse, detect and group alerts into scored incidents; offline enrichment unless `--online` | [INCIDENTS.md](docs/INCIDENTS.md) |
@@ -245,11 +245,40 @@ PRH-ACCT-001 has low precision on purpose: it flags every sensitive change soon 
 including the owners' own. These are synthetic results written by the rules' author; the full
 per-rule table and caveats are in [docs/SIMULATOR.md](docs/SIMULATOR.md#results).
 
-## Machine learning (in progress)
+## Machine learning
 
-v0.2.0 adds intrusion-detection models trained on two public network-flow datasets, UNSW-NB15
-and the improved CIC-IDS-2017, evaluated the way a SOC would judge them: how many attacks are
-caught for a tolerable number of false alerts. Done so far:
+Two tracks, both evaluated the way a SOC would judge them: how many attacks are caught for how
+many false alerts, never accuracy.
+
+### Anomaly detection on your logs
+
+`--models` on `detect`, `incidents` and `triage` cuts the parsed events into five-minute windows
+per source IP, computes thirteen behaviour features (sign-in attempts and failures, accounts and
+paths touched, 4xx share, path entropy, user-agent diversity, new clients, night activity) and
+flags windows that are unusual for that log: a robust z-score (base install) and an Isolation
+Forest (`ml` extra). Their alerts are marked `detector_kind: model`, explained with numbers only,
+and join the incidents. Compared with the rules on the simulator's held-out attacks:
+
+<!-- anomaly:start -->
+| Detector | Attacks caught | Precision | False alerts a run | Caught only by it |
+|----------|------:|------:|------:|------:|
+| Detection rules (any rule) | 36/40 | 39 % | 6.47 | - |
+| Robust z-score | 15/40 | 100 % | 0.0 | 0 |
+| Fixed thresholds | 10/40 | 49 % | 0.93 | 0 |
+| Isolation Forest | 17/40 | 70 % | 0.35 | 0 |
+
+Held-out variants, seeds 1 to 5; an attack is caught when a true-positive alert is credited to it.
+<!-- anomaly:end -->
+
+The detectors catch the loud attacks (brute force, scanning, injection) with almost no false
+alerts, but nothing the rules miss: a slow or spread-out attack looks ordinary in a five-minute
+window from one address. They are a quiet second signal, not a new way to find attacks. Details
+and the false alerts' causes: [docs/ANOMALY.md](docs/ANOMALY.md).
+
+### Flow models on public datasets
+
+Intrusion-detection models trained on two public network-flow datasets, UNSW-NB15 and the
+improved CIC-IDS-2017:
 
 - **Leakage-controlled data.** Identifier, address, port, time and label-derived columns are
   dropped; duplicates and contradictory rows are removed; test rows that also occur in training
@@ -308,7 +337,6 @@ prohori score flows.csv --model cicids2017/hgb-seed0              # score your o
 
 `prohori score` reads a CSV of flows in the layout the model was trained on (CICFlowMeter output
 for a CIC-IDS-2017 model) and lists the flagged flows; see [docs/CLI.md](docs/CLI.md#prohori-score).
-Log-derived anomaly detection and the v0.2.0 release follow in the next step.
 
 ## Privacy and safety
 
@@ -344,6 +372,7 @@ Third-party data terms (MITRE ATT&CK, GeoLite2, AbuseIPDB, VirusTotal) are summa
 | [Simulator](docs/SIMULATOR.md) | Attack scenarios, labels, and rule precision and recall |
 | [Datasets](docs/DATASETS.md) | UNSW-NB15 and CIC-IDS-2017: getting them, licences, leakage controls |
 | [Model card](docs/MODEL_CARD.md) | Flow detectors: intended use, evaluation, results, failure cases |
+| [Anomaly detection](docs/ANOMALY.md) | `--models`: features, detectors, comparison with the rules, false alerts |
 | [Decisions](docs/DECISIONS.md) | Architecture decision records |
 | [Releasing](docs/RELEASING.md) | How releases are built, tested and published |
 | [Third-party terms](docs/LICENSES.md) | Data and service licences |
@@ -374,7 +403,7 @@ Prohori is honest about what it does not do:
 | Release | Contents | State |
 |---------|----------|-------|
 | v0.1.0 | Batch core: parsers, rules, enrichment, incidents, reports, log simulator with rule evaluation, `triage` and `demo` commands | Released |
-| v0.2.0 | Machine learning: leakage-controlled intrusion detection on public flow datasets, log-derived anomaly detection, model cards | In progress: datasets, models, cross-dataset test and `prohori score` done |
+| v0.2.0 | Machine learning: leakage-controlled intrusion detection on public flow datasets, log-derived anomaly detection, model cards | Released |
 | v0.3.0 | Pipeline: streaming core, Redpanda and PostgreSQL in Docker, dbt models, dashboard, orchestration | Planned |
 | v1.0.0 | Optional LLM analyst (opt-in, redacted input, validated output), final polish | Planned |
 

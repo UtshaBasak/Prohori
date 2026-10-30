@@ -45,6 +45,15 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   when it is missing.
 - `--no-cache` for `prohori.ml.train` and `prohori.ml.transfer`: neither read nor write the
   Parquet cache.
+- Anomaly detection on your own logs: `--models` on `detect`, `incidents` and `triage` cuts the
+  events into five-minute windows per source IP, computes thirteen behaviour features and flags
+  unusual windows with a robust z-score (base install) and an Isolation Forest (`ml` extra).
+  Model alerts (`detector_kind: model`) join the incidents with a limitation and a review action.
+- `python -m prohori.ml.logeval` compares the detectors with the rules on the simulator's
+  attacks; cut-offs were chosen on the default variants and frozen before the held-out variants
+  were scored. Results in `results/ml_logs.json` and `docs/ANOMALY.md` (ADR-0022): on the
+  held-out variants the detectors catch 15 to 17 of 40 attacks against 36 for the rules, none
+  that the rules miss, with 0 to 0.35 false alerts a run against 6.5.
 
 ### Changed
 
