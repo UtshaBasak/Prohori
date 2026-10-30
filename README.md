@@ -259,8 +259,9 @@ that the numbers can be trusted. The first part, preparing the data, is done:
   also occur in training are removed and counted; imputation and category codes are learned from
   the training split only. Every prepared dataset passes a leakage check or is refused.
 - **Measured on CIC-IDS-2017:** 18 % of the 2.1 million flows are duplicates once identifiers are
-  gone, almost all of them port-scan probes (99 % of the `Portscan` rows). Left in, they would put
-  copies of training rows in the test set and make port-scan detection look nearly perfect.
+  gone. Most are port-scan probes (99 % of the `Portscan` rows are copies), the rest repeated
+  benign flows. Left in, they would put copies of training rows in the test set and make
+  port-scan detection look nearly perfect.
 
 ```bash
 uv sync                                                        # from a clone: includes the ml extra

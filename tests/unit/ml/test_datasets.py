@@ -46,7 +46,7 @@ def test_registry_describes_both_datasets() -> None:
         assert dataset.licence
         assert dataset.citation
         assert dataset.manual_steps
-    # Every column the cleaning code names exists in the fixtures' (published) headers.
+    # Every column the cleaning code names exists in the fixtures' headers.
     for dataset in DATASETS.values():
         for data_file in dataset.files:
             header = (FIXTURES / dataset.name / data_file.name).read_text().splitlines()[0]

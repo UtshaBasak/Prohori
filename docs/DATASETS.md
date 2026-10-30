@@ -27,7 +27,7 @@ each user into the git-ignored `data/` directory, and the test fixtures are synt
 | Publisher | UNSW Canberra (Moustafa and Slay) | imec-DistriNet, KU Leuven (Liu, Engelen et al.), from the Canadian Institute for Cybersecurity's original |
 | Files used | `UNSW_NB15_training-set.csv` (175,341 rows), `UNSW_NB15_testing-set.csv` (82,332 rows) | `CICIDS2017_improved.zip`: `monday.csv` to `friday.csv` (1.15 GB) |
 | Split | Official training/testing partition | None; Prohori makes one |
-| Features | 42 after cleaning, 3 of them text (`proto`, `service`, `state`) | 82 after cleaning, all numeric |
+| Features | 42 after cleaning, 3 of them text (`proto`, `service`, `state`); from the published feature list, to be confirmed on the real files | 82 after cleaning, all numeric |
 | Classes | Normal and 9 attack classes | Benign and the attack classes of the five capture days |
 | Download | By hand (a SharePoint folder) | `fetch` (direct HTTPS) |
 | Licence | Free for academic research; commercial use by agreement with the authors | None stated by the distributor; research use, cite the papers |
@@ -248,11 +248,11 @@ laptop, most of it the first conversion to Parquet):
 | Web Attack - SQL Injection | 13 | 13 |
 | Heartbleed | 11 | 11 |
 
-**What this shows.** Almost all of the duplicates are port scans: once the ports are removed, the
-probes of a scan are the same tiny flow over and over, so 99 % of `Portscan` and 92 % of
-`Infiltration - Portscan` rows are copies. Kept, they would fill the test set with rows the model
-has already seen in training and make port-scan detection look nearly perfect. Benign traffic
-loses 10 %. The other attack classes keep every row. The smallest classes (Heartbleed, SQL
+**What this shows.** Most of the rows removed (58 %) are port-scan probes: once the ports are
+removed, the probes of a scan are the same tiny flow over and over, so 99 % of `Portscan` and
+92 % of `Infiltration - Portscan` rows are copies. Kept, they would fill the test set with rows
+the model has already seen in training and make port-scan detection look nearly perfect. The
+rest are repeated benign flows: benign traffic loses 10 %. The other attack classes keep every row. The smallest classes (Heartbleed, SQL
 injection, XSS, Infiltration) have only a few test rows, so their per-class results will be noisy
 and are reported with their counts.
 
