@@ -33,6 +33,7 @@ def test_column_names_are_normalised() -> None:
     assert normalise_column("Down/Up Ratio") == "down_up_ratio"
     assert normalise_column("FWD Init Win Bytes") == "fwd_init_win_bytes"
     assert normalise_column("ct_src_dport_ltm") == "ct_src_dport_ltm"
+    assert normalise_column(chr(0xFEFF) + "id") == "id"  # the UNSW-NB15 files start with a BOM
 
 
 def test_registry_describes_both_datasets() -> None:
@@ -55,13 +56,14 @@ def test_registry_describes_both_datasets() -> None:
             assert missing <= names, (data_file.name, missing - names)
 
 
-def test_cicids_archive_is_pinned() -> None:
+def test_every_file_is_pinned() -> None:
     archive = CICIDS2017.archive
     assert archive is not None
     assert archive.url.startswith("https://")
     assert archive.size > 300_000_000
     assert len(archive.sha256) == 64
     assert all(f.size and f.sha256 for f in CICIDS2017.files)
+    assert all(f.size and f.sha256 and f.rows for f in UNSW_NB15.files)
 
 
 def test_missing_files_explain_how_to_get_them(tmp_path: Path) -> None:

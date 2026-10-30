@@ -1,8 +1,7 @@
 """Write the tiny synthetic ML fixture datasets in this directory.
 
-The files have the datasets' file names and headers but made-up values. The CIC-IDS-2017
-header is copied from the release; the UNSW-NB15 header follows the published feature list and
-is to be checked against the real files once they are downloaded. The rows are
+The files have the datasets' file names and headers (copied from the real files) but made-up
+values. The rows are
 chosen to exercise every cleaning rule: duplicates that differ only in identifiers,
 feature-identical rows with different classes, rows shared between the official training and
 testing files, "Attempted" flows, infinite and missing values, a class with a single row and a
