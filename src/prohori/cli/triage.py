@@ -17,6 +17,7 @@ from rich.text import Text
 from prohori.cli.detect import load_detection_rules, parse_lateness
 from prohori.cli.exit_codes import ExitCode
 from prohori.cli.incidents import IncidentRun, ParseOptions, make_enricher, run_incidents
+from prohori.cli.models import ModelsOption
 from prohori.cli.parse import (
     KeepQueryOption,
     MappingOption,
@@ -69,6 +70,7 @@ def triage_file(
     fmt: ReportFormat,
     redact: bool = False,
     redact_ips: bool = False,
+    models: bool = False,
 ) -> TriageResult:
     """Build incidents from ``file`` and write ``incidents.jsonl``, one report each and a summary.
 
@@ -86,6 +88,7 @@ def triage_file(
         settings=settings,
         lateness=lateness,
         parse=parse,
+        models=models,
     )
     key = os.urandom(32)
     written = [_redacted(i, key, redact_ips) if redact or redact_ips else i for i in run.incidents]
@@ -226,6 +229,7 @@ def triage_command(
     mapping: MappingOption = None,
     pattern: PatternOption = None,
     keep_query: KeepQueryOption = False,
+    models: ModelsOption = False,
 ) -> None:
     """Triage a log file: parse, detect, enrich, build incidents and write a report for each.
 
@@ -254,6 +258,7 @@ def triage_command(
             fmt=output_format,
             redact=redact,
             redact_ips=redact_ips,
+            models=models,
         )
     except RedactionError as exc:
         typer.echo(f"error: {exc}; nothing was written", err=True)

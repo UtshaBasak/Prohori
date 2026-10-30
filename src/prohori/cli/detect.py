@@ -13,6 +13,7 @@ from rich.table import Table
 from rich.text import Text
 
 from prohori.cli.exit_codes import ExitCode
+from prohori.cli.models import ModelRun, ModelsOption
 from prohori.cli.parse import (
     KeepQueryOption,
     MappingOption,
@@ -107,6 +108,7 @@ def detect_command(
     mapping: MappingOption = None,
     pattern: PatternOption = None,
     keep_query: KeepQueryOption = False,
+    models: ModelsOption = False,
 ) -> None:
     """Parse a log file and run detection rules over it; print the alerts and a summary.
 
@@ -125,7 +127,8 @@ def detect_command(
         pattern=pattern,
         keep_query=keep_query,
     ) as parsed:
-        alerts = engine.run(parsed.events)
+        model_run = ModelRun(models)
+        alerts = model_run.chain(engine.run(model_run.observe(parsed.events)))
         if output is OutputFormat.JSON:
             count = _write_json(alerts)
             _summary_json(parsed, len(rules), count, engine.stats)
