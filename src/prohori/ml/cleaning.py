@@ -19,6 +19,10 @@
 
 :func:`check_leakage` verifies the result and :func:`prepare` refuses to return data that fails
 it.
+
+``clean=False`` skips steps 4 and 6 and keeps the numeric identifier and port columns. That
+variant exists only to measure how much the controls change the results; it is what a pipeline
+without them would report, and no model trained on it is meant to be used.
 """
 
 from dataclasses import asdict, dataclass, field
@@ -26,7 +30,7 @@ from pathlib import Path
 from typing import Any
 
 from prohori.ml import MissingExtraError
-from prohori.ml.registry import Dataset
+from prohori.ml.registry import LABEL_DERIVED, Dataset
 
 try:
     import numpy as np
@@ -61,6 +65,8 @@ class CleaningReport:
 
     dataset: str
     seed: int
+    #: False for the uncleaned comparison variant (no deduplication or overlap removal).
+    cleaned: bool = True
     rows_loaded: dict[str, int] = field(default_factory=dict)
     attempted_relabelled: int = 0
     #: Rows whose 0/1 label disagrees with their class; the class is used.
@@ -133,9 +139,20 @@ def standardise_labels(
 
 
 def drop_columns(
-    frame: pd.DataFrame, dataset: Dataset, report: CleaningReport, *, drop_suspect: bool
+    frame: pd.DataFrame,
+    dataset: Dataset,
+    report: CleaningReport,
+    *,
+    drop_suspect: bool,
+    clean: bool = True,
 ) -> pd.DataFrame:
-    dropped = {c: why for c, why in dataset.drop_columns.items() if c in frame}
+    """Drop the dataset's listed columns; uncleaned, only text and label-derived ones."""
+    dropped = {
+        c: why
+        for c, why in dataset.drop_columns.items()
+        if c in frame
+        and (clean or why == LABEL_DERIVED or not pd.api.types.is_numeric_dtype(frame[c]))
+    }
     if drop_suspect:
         dropped |= {c: SUSPECT for c in dataset.suspect_columns if c in frame}
     else:
@@ -240,17 +257,18 @@ def prepare_frames(
     validation_size: float = VALIDATION_SIZE,
     test_size: float = TEST_SIZE,
     drop_suspect: bool = False,
+    clean: bool = True,
 ) -> Prepared:
     """Apply every control to loaded frames (``train``/``test``, or ``all``)."""
-    report = CleaningReport(dataset=dataset.name, seed=seed)
+    report = CleaningReport(dataset=dataset.name, seed=seed, cleaned=clean)
     cleaned: dict[str, pd.DataFrame] = {}
     for split, frame in frames.items():
         report.rows_loaded[split] = len(frame)
         frame = standardise_labels(frame, dataset, report)
-        frame = drop_columns(frame, dataset, report, drop_suspect=drop_suspect)
+        frame = drop_columns(frame, dataset, report, drop_suspect=drop_suspect, clean=clean)
         frame = replace_non_finite(frame, report)
         frame = _categorical(frame, dataset)
-        cleaned[split] = deduplicate(frame, report, split)
+        cleaned[split] = deduplicate(frame, report, split) if clean else frame
     if set(cleaned) == {"train", "test"}:
         train, validation = stratified_split(cleaned["train"], validation_size, seed)
         test = cleaned["test"]
@@ -260,8 +278,9 @@ def prepare_frames(
     else:
         msg = f"expected splits train+test or {ALL}, got {sorted(cleaned)}"
         raise ValueError(msg)
-    validation = remove_overlap(validation, [train], report, "validation")
-    test = remove_overlap(test, [train, validation], report, "test")
+    if clean:
+        validation = remove_overlap(validation, [train], report, "validation")
+        test = remove_overlap(test, [train, validation], report, "test")
 
     features = feature_columns(train)
     categorical = [c for c in dataset.categorical_columns if c in features]
@@ -284,7 +303,7 @@ def prepare_frames(
         preprocessor=preprocessor,
         report=report,
     )
-    problems = check_leakage(prepared)
+    problems = check_leakage(prepared) if clean else []
     if problems:
         raise LeakageError("; ".join(problems))
     return prepared
@@ -297,10 +316,13 @@ def prepare(
     seed: int = 0,
     sample: float | None = None,
     drop_suspect: bool = False,
+    clean: bool = True,
 ) -> Prepared:
     """Load ``dataset`` from ``data_dir`` and :func:`prepare_frames` it."""
     loaded = load(dataset, data_dir, sample=sample, seed=seed)
-    prepared = prepare_frames(dataset, loaded.frames, seed=seed, drop_suspect=drop_suspect)
+    prepared = prepare_frames(
+        dataset, loaded.frames, seed=seed, drop_suspect=drop_suspect, clean=clean
+    )
     for stats in loaded.files.values():
         for column, count in stats.non_numeric.items():
             values = prepared.report.non_numeric_values
