@@ -227,6 +227,8 @@ for module in (
     "prohori.ml.evaluate",
     "prohori.ml.models",
     "prohori.ml.train",
+    "prohori.ml.transfer",
+    "prohori.ml.score",
 ):
     try:
         __import__(module)

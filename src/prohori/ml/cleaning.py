@@ -317,9 +317,10 @@ def prepare(
     sample: float | None = None,
     drop_suspect: bool = False,
     clean: bool = True,
+    use_cache: bool = True,
 ) -> Prepared:
     """Load ``dataset`` from ``data_dir`` and :func:`prepare_frames` it."""
-    loaded = load(dataset, data_dir, sample=sample, seed=seed)
+    loaded = load(dataset, data_dir, sample=sample, seed=seed, use_cache=use_cache)
     prepared = prepare_frames(
         dataset, loaded.frames, seed=seed, drop_suspect=drop_suspect, clean=clean
     )

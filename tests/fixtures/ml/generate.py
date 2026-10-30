@@ -5,7 +5,8 @@ values. The rows are
 chosen to exercise every cleaning rule: duplicates that differ only in identifiers,
 feature-identical rows with different classes, rows shared between the official training and
 testing files, "Attempted" flows, infinite and missing values, a class with a single row and a
-category value never seen in training. Deterministic; re-run after changing it:
+category value never seen in training. ``tests/fixtures/flows.csv`` holds unlabelled flows in the
+CIC-IDS-2017 layout for ``prohori score``. Deterministic; re-run after changing it:
 
     uv run python tests/fixtures/ml/generate.py
 """
@@ -72,8 +73,8 @@ def _unsw_row(rng: random.Random, category: str) -> dict[str, object]:
 
 
 def unsw(rng: random.Random) -> None:
-    folder = HERE / "unsw-nb15"
-    folder.mkdir(exist_ok=True)
+    folder = HERE / "raw" / "unsw-nb15"
+    folder.mkdir(parents=True, exist_ok=True)
     classes = ["Normal"] * 20 + ["Exploits"] * 8 + ["DoS"] * 6 + ["Generic"] * 4 + ["Worms"]
     train = [_unsw_row(rng, c) for c in classes]
     train += [dict(train[i]) for i in (0, 1, 21)]  # exact duplicates (new ids below)
@@ -115,8 +116,8 @@ def _cicids_row(rng: random.Random, number: int, label: str, attempted: int) -> 
 
 
 def cicids(rng: random.Random) -> None:
-    folder = HERE / "cicids2017"
-    folder.mkdir(exist_ok=True)
+    folder = HERE / "raw" / "cicids2017"
+    folder.mkdir(parents=True, exist_ok=True)
     days: dict[str, list[tuple[str, int]]] = {
         "monday": [("BENIGN", -1)] * 12,
         "tuesday": [("BENIGN", -1)] * 6 + [("FTP-Patator", -1)] * 4 + [("SSH-Patator", -1)] * 3,
@@ -151,6 +152,17 @@ def cicids(rng: random.Random) -> None:
         _write(folder / f"{day}.csv", CICIDS_COLUMNS, rows)
 
 
+def flows(rng: random.Random) -> None:
+    """``tests/fixtures/flows.csv``: unlabelled CICFlowMeter flows for ``prohori score``."""
+    columns = [c for c in CICIDS_COLUMNS if c not in ("Label", "Attempted Category")]
+    rows = [_cicids_row(rng, number, "", -1) for number in range(1, 26)]
+    for row in rows:
+        del row["Label"], row["Attempted Category"]
+    rows[3]["Flow Bytes/s"] = "Infinity"
+    rows[4]["Flow IAT Min"] = ""
+    _write(HERE.parent / "flows.csv", columns, rows)
+
+
 def _write(path: Path, columns: list[str], rows: list[dict[str, object]]) -> None:
     with path.open("w", encoding="utf-8", newline="") as handle:
         writer = csv.DictWriter(handle, fieldnames=columns, lineterminator="\n")
@@ -161,6 +173,7 @@ def _write(path: Path, columns: list[str], rows: list[dict[str, object]]) -> Non
 def main() -> None:
     unsw(random.Random(14))  # noqa: S311 - made-up fixture values
     cicids(random.Random(2017))  # noqa: S311
+    flows(random.Random(16))  # noqa: S311
 
 
 if __name__ == "__main__":

@@ -35,6 +35,16 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
     `docs/MODEL_CARD.md` and the README, and models saved outside git with a SHA-256 sidecar
     and a warning that model files are pickles.
   - `docs/MODEL_CARD.md` and ADR-0020.
+- A cross-dataset test (`python -m prohori.ml.transfer`): models trained on one dataset's twelve
+  common features (a documented, lossy mapping) and scored on the other. Gradient boosting's
+  ROC-AUC falls from 0.95 and 1.00 to 0.64 and 0.61, and its 1 % threshold flags 42 % and 60 % of
+  the other dataset's benign flows; results in `results/ml_cross.json` and the model card
+  (ADR-0021).
+- `prohori score FLOWS --model NAME`: score a CSV of flows with a saved model and list the
+  flagged flows (`--fpr`, `--top`, `-f json`, `--exit-zero`); needs the `ml` extra and says so
+  when it is missing.
+- `--no-cache` for `prohori.ml.train` and `prohori.ml.transfer`: neither read nor write the
+  Parquet cache.
 
 ### Changed
 

@@ -15,6 +15,7 @@ from prohori.cli.incidents import incidents_command
 from prohori.cli.parse import parse_command
 from prohori.cli.report import report_command
 from prohori.cli.rules import rules_app
+from prohori.cli.score import score_command
 from prohori.cli.simulate import simulate_command
 from prohori.cli.triage import triage_command
 from prohori.rules import builtin_rules_dir
@@ -71,6 +72,7 @@ app.command("enrich")(enrich_command)
 app.command("incidents")(incidents_command)
 app.command("report")(report_command)
 app.command("simulate")(simulate_command)
+app.command("score")(score_command)
 app.command("triage")(triage_command)
 app.command("demo")(demo_command)
 app.add_typer(rules_app)

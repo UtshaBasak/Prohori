@@ -4,6 +4,8 @@
   between the ``<!-- results:start -->`` and ``<!-- results:end -->`` markers.
 * Flow models (``ml_<dataset>.json``): full tables in ``docs/MODEL_CARD.md``, a summary in
   ``README.md``, between ``<!-- ml-results:start -->`` and ``<!-- ml-results:end -->``.
+* Cross-dataset test (``ml_cross.json``): the same two documents, between
+  ``<!-- ml-cross:start -->`` and ``<!-- ml-cross:end -->``.
 
 With ``--check`` nothing is written and the exit code is 1 when a document is out of date.
 
@@ -25,6 +27,8 @@ START = "<!-- results:start -->"
 END = "<!-- results:end -->"
 ML_START = "<!-- ml-results:start -->"
 ML_END = "<!-- ml-results:end -->"
+CROSS_START = "<!-- ml-cross:start -->"
+CROSS_END = "<!-- ml-cross:end -->"
 #: Datasets in the order they appear in the docs.
 ML_DATASETS = ("unsw-nb15", "cicids2017")
 MODEL_NAMES = {"hgb": "Gradient boosting (supervised)", "iforest": "Isolation Forest (benign only)"}
@@ -254,6 +258,110 @@ def render_ml_summary(all_results: list[dict[str, Any]]) -> str:
     return "\n".join(lines)
 
 
+def render_cross(cross: dict[str, Any], in_dataset: list[dict[str, Any]]) -> str:
+    """The cross-dataset tables for docs/MODEL_CARD.md."""
+    full = {r["dataset"]: r["variants"]["cleaned"]["models"] for r in in_dataset}
+    fprs = cross["target_fprs"]
+    intro = (
+        f"Seeds {', '.join(map(str, cross['seeds']))}; mean ± standard deviation. Each model is "
+        f"trained on the source dataset's {len(cross['features'])} common features, its "
+        "thresholds are chosen on the source's validation split, and it is scored once on the "
+        "source's test split (in-dataset) and once on the target's (cross-dataset). Generated "
+        "from `results/ml_cross.json`; do not edit by hand."
+    )
+    note = (
+        "PR-AUC depends on the share of attacks, which differs between the datasets, so each "
+        "PR-AUC has its chance level (the attack share) next to it. ROC-AUC does not depend on "
+        "it (0.5 is chance) and is the fairer comparison across datasets."
+    )
+    header = (
+        "| Direction | Model | PR-AUC, all features | PR-AUC, common features | Chance, source | "
+        "PR-AUC, cross-dataset | Chance, target | ROC-AUC, in-dataset | ROC-AUC, cross-dataset |"
+    )
+    lines = [intro, "", note, "", header, "|-----------|-------|" + "------:|" * 7]
+    for key, direction in cross["directions"].items():
+        for model, entry in direction["models"].items():
+            same, other = entry["summary"]["in_dataset"], entry["summary"]["cross_dataset"]
+            reference = full.get(direction["source"], {}).get(model, {}).get("summary", {})
+            lines.append(
+                f"| {key.replace('->', ' → ')} | {MODEL_NAMES.get(model, model)} | "
+                f"{_stat(reference.get('pr_auc', {}))} | {_stat(same['pr_auc'])} | "
+                f"{same['prevalence']['mean']:.3f} | {_stat(other['pr_auc'])} | "
+                f"{other['prevalence']['mean']:.3f} | {_stat(same['roc_auc'])} | "
+                f"{_stat(other['roc_auc'])} |"
+            )
+    point_header = (
+        "| Direction | Model | In-dataset recall | In-dataset test FPR | "
+        "Cross-dataset recall | Cross-dataset FPR | False alerts / 10k |"
+    )
+    for fpr in fprs:
+        caption = (
+            f"At the threshold chosen for a {_label(fpr)} false-positive rate on the source's "
+            "validation split:"
+        )
+        lines += ["", caption, "", point_header, "|-----------|-------|" + "------:|" * 5]
+        for key, direction in cross["directions"].items():
+            for model, entry in direction["models"].items():
+                same = _point(entry["summary"]["in_dataset"], fpr)
+                other = _point(entry["summary"]["cross_dataset"], fpr)
+                lines.append(
+                    f"| {key.replace('->', ' → ')} | {MODEL_NAMES.get(model, model)} | "
+                    f"{_stat(same['recall'], percent=True, digits=1)} | "
+                    f"{_stat(same['fpr'], percent=True, digits=2)} | "
+                    f"{_stat(other['recall'], percent=True, digits=1)} | "
+                    f"{_stat(other['fpr'], percent=True, digits=2)} | "
+                    f"{_stat(other['false_alerts_per_10k'], digits=0)} |"
+                )
+    first = fprs[0]
+    for key, direction in cross["directions"].items():
+        if "hgb" not in direction["models"]:
+            continue
+        point = _point(direction["models"]["hgb"]["summary"]["cross_dataset"], first)
+        caption = (
+            f"Recall per attack class in the target, {key.replace('->', ' → ')} (gradient "
+            f"boosting, {_label(first)} source-validation threshold):"
+        )
+        lines += ["", caption, "", "| Class | Test flows | Recall |", "|-------|------:|------:|"]
+        for name, found in sorted(point["per_class_recall"].items()):
+            lines.append(
+                f"| {name} | {found['flows']['mean']:,.0f} | "
+                f"{_stat(found['recall'], percent=True, digits=1)} |"
+            )
+    return "\n".join(lines)
+
+
+def render_cross_summary(cross: dict[str, Any] | None) -> str:
+    """The README summary of the cross-dataset test (gradient boosting)."""
+    if cross is None:
+        return "No cross-dataset results yet."
+    fpr = cross["target_fprs"][0]
+    header = (
+        "| Trained on → tested on | ROC-AUC, same dataset | ROC-AUC, other dataset | "
+        "PR-AUC (chance), same dataset | PR-AUC (chance), other dataset | "
+        f"Benign flows flagged on the other dataset ({_label(fpr)} threshold) |"
+    )
+    lines = [header, "|------------------------|" + "------:|" * 5]
+    for key, direction in cross["directions"].items():
+        if "hgb" not in direction["models"]:
+            continue
+        summary = direction["models"]["hgb"]["summary"]
+        same, other = summary["in_dataset"], summary["cross_dataset"]
+        point = _point(other, fpr)
+        lines.append(
+            f"| {key.replace('->', ' → ')} | {same['roc_auc']['mean']:.3f} | "
+            f"{other['roc_auc']['mean']:.3f} | {same['pr_auc']['mean']:.3f} "
+            f"({same['prevalence']['mean']:.2f}) | {other['pr_auc']['mean']:.3f} "
+            f"({other['prevalence']['mean']:.2f}) | {point['fpr']['mean'] * 100:.1f} % |"
+        )
+    note = (
+        "Gradient boosting, means over seeds "
+        f"{', '.join(map(str, cross['seeds']))}. ROC-AUC: 0.5 is chance. PR-AUC: chance is "
+        "the attack share, in brackets."
+    )
+    lines += ["", note]
+    return "\n".join(lines)
+
+
 def ml_results(directory: Path) -> list[dict[str, Any]]:
     """The model results present in ``directory``, in documentation order."""
     found = []
@@ -281,11 +389,16 @@ def main(argv: list[str] | None = None) -> int:
     results = json.loads(RESULTS.read_text(encoding="utf-8"))
     models = ml_results(RESULTS.parent)
     card = "\n\n".join(render_ml(r) for r in models) or "No model results yet."
+    cross_path = RESULTS.parent / "ml_cross.json"
+    cross = json.loads(cross_path.read_text(encoding="utf-8")) if cross_path.is_file() else None
+    cross_card = render_cross(cross, models) if cross else "No cross-dataset results yet."
     blocks = (
         (DOCUMENT, render(results), START, END),
         (README, render_summary(results), START, END),
         (MODEL_CARD, card, ML_START, ML_END),
         (README, render_ml_summary(models), ML_START, ML_END),
+        (MODEL_CARD, cross_card, CROSS_START, CROSS_END),
+        (README, render_cross_summary(cross), CROSS_START, CROSS_END),
     )
     stale: list[str] = []
     for path, block, start, end in blocks:

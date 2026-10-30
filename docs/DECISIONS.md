@@ -648,3 +648,45 @@ asks: how many attacks are caught for a tolerable number of false alerts.
 
 **Consequences.** The published numbers are reproducible from the data with one command per
 dataset. They are lab results; step 16 measures how they transfer between datasets.
+
+---
+
+## ADR-0021: Cross-dataset test and `prohori score`
+
+- **Date:** 2026-10-31
+- **Status:** Accepted
+
+**Context.** In-dataset results (ADR-0020) say nothing about another network. UNSW-NB15 and
+CIC-IDS-2017 were captured by different tools, so a model trained on one cannot read the other's
+columns. Users also need a way to run a saved model on their own flows.
+
+**Decision.**
+- **Twelve common features** (`prohori.ml.transfer.COMMON_FEATURES`), derived from both
+  datasets: duration, packets and bytes each way, mean packet size each way, mean inter-arrival
+  time each way, packet and byte rates, and protocol. Units are converted to seconds and bytes;
+  bytes are counted on the wire, so CICFlowMeter's payload counts get its transport header
+  lengths plus 34 bytes a packet (Ethernet and IPv4). That UNSW-NB15's byte counts include
+  headers is inferred from the data (benign DNS flows send a median of 146 bytes forward, against
+  154 after conversion), not from documentation. Nothing else maps, and the documentation
+  says so.
+- **Features that only look alike are left out:** UNSW-NB15's `rate`, `swin`/`dwin` (TCP window
+  values with a different range from CICFlowMeter's initial window bytes) and the TTLs (absent
+  from CIC-IDS-2017).
+- **Method:** both datasets are prepared with every leakage control and deduplicated again on the
+  common features. The model is trained and its thresholds chosen on the source only, then
+  scored once on the source's test split and once on the target's. In-dataset results on the
+  common features are reported next to the full-feature results, to separate what is lost by
+  dropping features from what is lost by changing dataset.
+- **The gap is reported as a finding**, not tuned away: no setting was changed after the
+  cross-dataset results were seen.
+- **`prohori score FLOWS --model NAME`** scores a CSV in the training dataset's layout with a saved
+  cleaned model, chunk by chunk, at one of the model's frozen thresholds. It shows identifier
+  columns next to flagged flows but never feeds them to the model, refuses a model whose hash does
+  not match its sidecar, prints the pickle warning, and exits `3` when flows are flagged (like
+  `detect`). The `ml` code is imported only when the command runs, so the base install keeps
+  working and the command explains how to add the extra.
+- **No model file is committed**, not even for tests: the tests train fixture models in a temporary
+  directory, and the CLI documentation shows the two commands that do the same.
+
+**Consequences.** The headline ML result of v0.2.0 is negative: flow models trained on one lab do
+not transfer to the other. Track B (step 17) works on Prohori's own normalised log events instead.

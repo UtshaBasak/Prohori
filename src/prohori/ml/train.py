@@ -138,6 +138,7 @@ def run(
     fprs: Sequence[float] = TARGET_FPRS,
     sample: float | None = None,
     models_dir: Path | None = None,
+    use_cache: bool = True,
     log: Log | None = None,
 ) -> dict[str, Any]:
     """Every seed, variant and model; the results document written by :func:`main`."""
@@ -152,7 +153,7 @@ def run(
     }
     timings: dict[str, dict[str, list[float]]] = {v: {m: [] for m in models} for v in chosen}
     for seed in seeds:
-        frames = load(dataset, data_dir, sample=sample, seed=seed).frames
+        frames = load(dataset, data_dir, sample=sample, seed=seed, use_cache=use_cache).frames
         for variant in chosen:
             prepared = _prepare(dataset, frames, seed, variant)
             found[variant]["cleaning"].append(_cleaning_summary(prepared))
@@ -229,6 +230,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--out", type=Path, help="default: results/ml_<dataset>.json")
     parser.add_argument("--models-dir", type=Path, default=DEFAULT_MODELS_DIR)
     parser.add_argument("--no-save", action="store_true", help="do not save the cleaned models")
+    parser.add_argument("--no-cache", action="store_true", help="do not read or write Parquet")
     args = parser.parse_args(argv)
     if len(set(args.seeds)) != len(args.seeds):
         parser.error("--seeds must be distinct")
@@ -246,6 +248,7 @@ def main(argv: list[str] | None = None) -> int:
             variant_names=args.variants,
             sample=args.sample,
             models_dir=None if args.no_save else args.models_dir,
+            use_cache=not args.no_cache,
             log=log,
         )
     except (DatasetMissingError, ValueError) as exc:

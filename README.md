@@ -43,8 +43,8 @@ toolkit in Python that runs on a single laptop with free tools only, offline by 
 
 > **Status: alpha (v0.1.0).** The batch core is complete: one command goes from a log file to
 > scored incidents and shareable reports, and a labelled attack simulator measures the rules.
-> Machine learning is in progress for v0.2.0: leakage-controlled datasets and the first models,
-> with a model card, are done. The streaming pipeline and the LLM analyst follow. See the [CHANGELOG](CHANGELOG.md) and the
+> Machine learning is in progress for v0.2.0: leakage-controlled datasets, flow models with a
+> model card, a cross-dataset test and `prohori score` are done. The streaming pipeline and the LLM analyst follow. See the [CHANGELOG](CHANGELOG.md) and the
 > [roadmap](#roadmap).
 
 ## 60-second demo
@@ -186,6 +186,7 @@ recommended actions from the runbooks and the limitations, such as "single log s
 | `prohori incidents FILE` | Parse, detect and group alerts into scored incidents; offline enrichment unless `--online` | [INCIDENTS.md](docs/INCIDENTS.md) |
 | `prohori report INCIDENT` | Render an incident as `md`, `html`, `json` or `csv`; `--redact`, `--redact-ips` | [REPORTS.md](docs/REPORTS.md) |
 | `prohori simulate SCENARIO --out DIR` | Write a labelled attack scenario (`--list`, `--seed`, `--variant heldout`, `--set`) | [SIMULATOR.md](docs/SIMULATOR.md) |
+| `prohori score FLOWS --model NAME` | Score a CSV of network flows with a saved model; needs the `ml` extra (`--fpr`, `--top`, `-f json`) | [CLI.md](docs/CLI.md#prohori-score) |
 | `prohori version` | The version, ATT&CK release and built-in rule set | |
 
 Commands that take a file also read standard input with `-`, and every command has `--help`.
@@ -281,12 +282,33 @@ test file. The Isolation Forest is not a usable detector on either dataset. With
 controls the same pipeline would report a PR-AUC of 0.989 instead of 0.952 on UNSW-NB15. Details,
 failure cases and limitations: [docs/MODEL_CARD.md](docs/MODEL_CARD.md).
 
+**Do the models work on another network?** Not usefully. Trained on the twelve features both
+datasets share and tested on the *other* dataset, gradient boosting's ROC-AUC falls from 0.95 and
+1.00 to 0.64 and 0.61, weak but above chance, and the threshold that gave 1 % false positives at home
+flags 42 % to 60 % of the other dataset's benign flows:
+
+<!-- ml-cross:start -->
+| Trained on → tested on | ROC-AUC, same dataset | ROC-AUC, other dataset | PR-AUC (chance), same dataset | PR-AUC (chance), other dataset | Benign flows flagged on the other dataset (1 % threshold) |
+|------------------------|------:|------:|------:|------:|------:|
+| unsw-nb15 → cicids2017 | 0.952 | 0.639 | 0.918 (0.33) | 0.323 (0.16) | 42.2 % |
+| cicids2017 → unsw-nb15 | 1.000 | 0.614 | 0.999 (0.16) | 0.404 (0.33) | 60.5 % |
+
+Gradient boosting, means over seeds 0, 1, 2. ROC-AUC: 0.5 is chance. PR-AUC: chance is the attack share, in brackets.
+<!-- ml-cross:end -->
+
+A flow model trained on one lab's traffic learns that lab. The mapping, its losses and the
+per-class results are in the [model card](docs/MODEL_CARD.md#cross-dataset-test).
+
 ```bash
 uv run python scripts/download_datasets.py fetch cicids2017      # about 330 MB
 uv run python -m prohori.ml.train --dataset cicids2017 --seeds 0 1 2
+uv run python -m prohori.ml.transfer --seeds 0 1 2               # the cross-dataset test
+prohori score flows.csv --model cicids2017/hgb-seed0              # score your own flows
 ```
 
-The cross-dataset test and `prohori score` follow in the next step.
+`prohori score` reads a CSV of flows in the layout the model was trained on (CICFlowMeter output
+for a CIC-IDS-2017 model) and lists the flagged flows; see [docs/CLI.md](docs/CLI.md#prohori-score).
+Log-derived anomaly detection and the v0.2.0 release follow in the next step.
 
 ## Privacy and safety
 
@@ -352,7 +374,7 @@ Prohori is honest about what it does not do:
 | Release | Contents | State |
 |---------|----------|-------|
 | v0.1.0 | Batch core: parsers, rules, enrichment, incidents, reports, log simulator with rule evaluation, `triage` and `demo` commands | Released |
-| v0.2.0 | Machine learning: leakage-controlled intrusion detection on public flow datasets, log-derived anomaly detection, model cards | In progress: datasets and first models done |
+| v0.2.0 | Machine learning: leakage-controlled intrusion detection on public flow datasets, log-derived anomaly detection, model cards | In progress: datasets, models, cross-dataset test and `prohori score` done |
 | v0.3.0 | Pipeline: streaming core, Redpanda and PostgreSQL in Docker, dbt models, dashboard, orchestration | Planned |
 | v1.0.0 | Optional LLM analyst (opt-in, redacted input, validated output), final polish | Planned |
 

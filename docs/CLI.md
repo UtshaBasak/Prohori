@@ -14,6 +14,7 @@ file is `-`. Nothing uses the network unless you configure API keys and ask for 
 | [`prohori report INCIDENT`](#prohori-report) | Render an incident report |
 | [`prohori enrich IP...`](#prohori-enrich) | Look up IP addresses |
 | [`prohori simulate SCENARIO`](#prohori-simulate) | Write a labelled attack scenario |
+| [`prohori score FLOWS --model NAME`](#prohori-score) | Score a CSV of network flows with a saved model (`ml` extra) |
 | `prohori rules list` / `validate` / `test` | Show, check and test detection rules ([RULES.md](RULES.md)) |
 | `prohori version` | Version, ATT&CK release and built-in rule set |
 
@@ -30,9 +31,9 @@ Tables never interpret text from logs as markup, and every report format escapes
 | Code | Meaning |
 |------|---------|
 | `0` | Success, nothing found (or `--exit-zero`) |
-| `1` | Nothing could be processed: every line failed to parse, a rule file is invalid, or redaction could not hide every value (nothing is written) |
+| `1` | Nothing could be processed: every line failed to parse, a rule file is invalid, redaction could not hide every value (nothing is written), or `score` lacks the `ml` extra, a loadable model or a scorable file |
 | `2` | Invalid usage, input or setting |
-| `3` | Findings: `detect`, `incidents` and `triage` found alerts or incidents |
+| `3` | Findings: `detect`, `incidents` and `triage` found alerts or incidents; `score` flagged flows |
 
 Code `3` lets scripts and CI pipelines react to findings; add `--exit-zero` to get `0` instead.
 
@@ -118,3 +119,37 @@ See [ENRICHMENT.md](ENRICHMENT.md).
 
 Writes a labelled scenario: `--out DIR`, `--seed`, `--variant default|heldout`,
 `--set NAME=VALUE` (repeatable), `--list`. See [SIMULATOR.md](SIMULATOR.md).
+
+## `prohori score`
+
+```bash
+prohori score flows.csv --model cicids2017/hgb-seed0            # a model under ./models
+prohori score flows.csv -m models/unsw-nb15/hgb-seed1.joblib --fpr 0.01 -f json --top 0
+```
+
+Scores every flow in a CSV with a model saved by `python -m prohori.ml.train` (see
+[MODEL_CARD.md](MODEL_CARD.md)) and lists the flagged flows, highest score first, with a summary.
+It needs the `ml` extra (`pip install "prohori[ml]"`); without it the command says so and exits
+with `1`.
+
+- **Input:** the columns of the dataset the model was trained on: CICFlowMeter output for a
+  `cicids2017` model, UNSW-NB15 partition columns for a `unsw-nb15` model. A missing column is
+  an error that names it; label columns are ignored. The file is read in chunks, and `-` reads
+  standard input.
+- **Threshold:** `--fpr` picks one of the model's frozen thresholds (`0.01` or `0.001`, the
+  false-positive rate it was set for on validation data); the default is the strictest.
+- **Output:** a table, or `-f json` with every count and the flagged flows. Addresses, ports and
+  timestamps are shown next to flagged flows to help find them, but never used for scoring.
+  `--top N` limits the list (default 20, `0` for all); `--models-dir` (default `models`) is where
+  model names are looked up; `--exit-zero` exits `0` when flows are flagged.
+- **Safety:** model files are pickles, and loading one runs code from it. The command refuses a
+  file whose SHA-256 does not match its JSON sidecar and prints a warning; only use models you
+  trained yourself. A model trained on lab data misses attacks and flags benign flows on other
+  networks (see the cross-dataset results in the model card): treat flagged flows as leads.
+
+To try it on the repository's synthetic fixtures:
+
+```bash
+uv run python -m prohori.ml.train --dataset cicids2017 --data-dir tests/fixtures/ml --seeds 0 --variants cleaned --no-cache --out tmp/results.json --models-dir tmp/models
+uv run prohori score tests/fixtures/flows.csv --model cicids2017/iforest-seed0 --models-dir tmp/models --fpr 0.01
+```
