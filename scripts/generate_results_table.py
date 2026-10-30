@@ -149,15 +149,13 @@ def render_ml(results: dict[str, Any]) -> str:
     """The tables for one dataset in docs/MODEL_CARD.md."""
     fprs = results["target_fprs"]
     cleaned = results["variants"]["cleaned"]
-    lines = [
-        f"#### {results['dataset_title']}",
-        "",
+    intro = (
         f"Seeds {', '.join(map(str, results['seeds']))}; mean ± standard deviation over the "
         "seeds. Each threshold is chosen on the validation split for a target false-positive "
         "rate (FPR) and frozen; the test split is scored once. Generated from "
-        f"`results/ml_{results['dataset']}.json`; do not edit by hand.",
-        "",
-    ]
+        f"`results/ml_{results['dataset']}.json`; do not edit by hand."
+    )
+    lines = [f"#### {results['dataset_title']}", "", intro, ""]
     columns = ["Model", "PR-AUC", "ROC-AUC"]
     for fpr in fprs:
         columns += [f"Test FPR ({_label(fpr)} val.)", "Recall", "False alerts / 10k"]
@@ -175,14 +173,20 @@ def render_ml(results: dict[str, Any]) -> str:
         lines.append("| " + " | ".join(row) + " |")
 
     last = fprs[-1]
-    lines += [
-        "",
+    effect = (
         "Effect of the leakage controls on gradient boosting. Each variant has its own test "
         "split, so this compares what the same pipeline reports about itself, not two models "
-        "on the same data:",
-        "",
+        "on the same data:"
+    )
+    header = (
         "| Variant | Test flows | Attack share | PR-AUC | ROC-AUC | "
-        f"Recall ({_label(last)} val.) | Test FPR |",
+        f"Recall ({_label(last)} val.) | Test FPR |"
+    )
+    lines += [
+        "",
+        effect,
+        "",
+        header,
         "|---------|-----------:|-------------:|-------:|--------:|------:|------:|",
     ]
     for variant, found in results["variants"].items():
@@ -201,10 +205,13 @@ def render_ml(results: dict[str, Any]) -> str:
         summary = cleaned["models"]["hgb"]["summary"]
         points = [_point(summary, fpr) for fpr in fprs]
         header = " | ".join(f"Recall ({_label(fpr)} val.)" for fpr in fprs)
+        per_class = (
+            "Recall per attack class (gradient boosting, cleaned) with the class's test flows, "
+            "averaged over the seeds:"
+        )
         lines += [
             "",
-            "Recall per attack class (gradient boosting, cleaned) with the class's test flows, "
-            "averaged over the seeds:",
+            per_class,
             "",
             f"| Class | Test flows | {header} |",
             "|-------|-----------:|" + "------:|" * len(fprs),
@@ -238,12 +245,12 @@ def render_ml_summary(all_results: list[dict[str, Any]]) -> str:
                 f"{point['fpr']['mean'] * 100:.2f} % | "
                 f"{point['false_alerts_per_10k']['mean']:.1f} |"
             )
-    lines += [
-        "",
+    note = (
         f"Means over seeds {', '.join(map(str, all_results[0]['seeds']))} on the cleaned test "
         f"splits, with thresholds chosen for a {_label(fpr)} false-positive rate on the "
-        "validation split and then frozen.",
-    ]
+        "validation split and then frozen."
+    )
+    lines += ["", note]
     return "\n".join(lines)
 
 
