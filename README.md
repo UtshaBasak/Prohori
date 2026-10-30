@@ -43,8 +43,9 @@ toolkit in Python that runs on a single laptop with free tools only, offline by 
 
 > **Status: alpha (v0.1.0).** The batch core is complete: one command goes from a log file to
 > scored incidents and shareable reports, and a labelled attack simulator measures the rules.
-> Machine learning, the streaming pipeline and the LLM analyst follow in later releases. See the
-> [CHANGELOG](CHANGELOG.md) and the [roadmap](#roadmap).
+> Machine learning is in progress for v0.2.0 (leakage-controlled dataset preparation is done);
+> the streaming pipeline and the LLM analyst follow. See the [CHANGELOG](CHANGELOG.md) and the
+> [roadmap](#roadmap).
 
 ## 60-second demo
 
@@ -70,6 +71,7 @@ sends nothing over the network. Sample reports: [Markdown](docs/examples/account
 - [Commands](#commands)
 - [Built-in detection rules](#built-in-detection-rules)
 - [How well the rules work](#how-well-the-rules-work)
+- [Machine learning (in progress)](#machine-learning-in-progress)
 - [Privacy and safety](#privacy-and-safety)
 - [Documentation](#documentation)
 - [Limitations](#limitations)
@@ -105,8 +107,9 @@ Prohori needs Python 3.11 or newer. CI tests it on Linux and Windows; macOS shou
 not tested.
 
 - **From PyPI:** `pipx install prohori` puts the `prohori` command in its own environment;
-  `pip install prohori` works in any virtual environment. Local GeoLite2 support is an extra:
-  `pip install "prohori[geoip]"`.
+  `pip install prohori` works in any virtual environment. Optional parts are extras:
+  `pip install "prohori[geoip]"` for local GeoLite2 files and `pip install "prohori[ml]"` for the
+  machine-learning code (scikit-learn, pandas, pyarrow). The base install never needs them.
 - **From source:** install [uv](https://docs.astral.sh/uv/), then
   `git clone https://github.com/UtshaBasak/Prohori.git && cd Prohori && uv sync`, and run
   commands as `uv run prohori ...`. The sample files used below are in the repository.
@@ -241,6 +244,34 @@ PRH-ACCT-001 has low precision on purpose: it flags every sensitive change soon 
 including the owners' own. These are synthetic results written by the rules' author; the full
 per-rule table and caveats are in [docs/SIMULATOR.md](docs/SIMULATOR.md#results).
 
+## Machine learning (in progress)
+
+v0.2.0 adds intrusion-detection models trained on public network-flow datasets, evaluated so
+that the numbers can be trusted. The first part, preparing the data, is done:
+
+- **Two datasets:** UNSW-NB15 (official training and testing partition) and the improved
+  CIC-IDS-2017 release from the CNS 2022 paper, which fixes the original's flow-construction and
+  labelling errors. Neither is shipped; `scripts/download_datasets.py` lists their licences and
+  citations, downloads CIC-IDS-2017 when asked (checked against a pinned SHA-256 before it is
+  opened) and explains the manual download of UNSW-NB15.
+- **Leakage controls written as code and tests:** identifier, address, port, time and
+  label-derived columns are dropped; duplicates and contradictory rows are removed; test rows that
+  also occur in training are removed and counted; imputation and category codes are learned from
+  the training split only. Every prepared dataset passes a leakage check or is refused.
+- **Measured on CIC-IDS-2017:** 18 % of the 2.1 million flows are duplicates once identifiers are
+  gone, almost all of them port-scan probes (99 % of the `Portscan` rows). Left in, they would put
+  copies of training rows in the test set and make port-scan detection look nearly perfect.
+
+```bash
+uv sync                                                        # from a clone: includes the ml extra
+uv run python scripts/download_datasets.py list                # what to get, licences, citations
+uv run python scripts/download_datasets.py fetch cicids2017    # about 330 MB
+uv run python scripts/download_datasets.py prepare cicids2017  # clean, split, print the report
+```
+
+Models, metrics and a model card follow in the next steps. Details:
+[docs/DATASETS.md](docs/DATASETS.md).
+
 ## Privacy and safety
 
 - **Offline by default.** Nothing leaves the machine unless you configure API keys and, for
@@ -254,7 +285,8 @@ per-rule table and caveats are in [docs/SIMULATOR.md](docs/SIMULATOR.md#results)
 - **Shareable reports.** `--redact` / `--redact-ips` use keyed pseudonyms and fail closed.
 - **No secrets in the repository.** API keys live in the environment or a git-ignored `.env`;
   gitleaks runs on every commit and in CI.
-- **Samples are synthetic** and use documentation address ranges only.
+- **Samples are synthetic** and use documentation address ranges only. Public datasets are
+  downloaded only on an explicit command, never committed and never fetched at import time.
 
 Third-party data terms (MITRE ATT&CK, GeoLite2, AbuseIPDB, VirusTotal) are summarised in
 [docs/LICENSES.md](docs/LICENSES.md).
@@ -272,6 +304,7 @@ Third-party data terms (MITRE ATT&CK, GeoLite2, AbuseIPDB, VirusTotal) are summa
 | [Incidents](docs/INCIDENTS.md) | Grouping, the scoring table, confidence and limitations |
 | [Reports](docs/REPORTS.md) | Formats, sections, redaction and output safety |
 | [Simulator](docs/SIMULATOR.md) | Attack scenarios, labels, and rule precision and recall |
+| [Datasets](docs/DATASETS.md) | UNSW-NB15 and CIC-IDS-2017: getting them, licences, leakage controls |
 | [Decisions](docs/DECISIONS.md) | Architecture decision records |
 | [Releasing](docs/RELEASING.md) | How releases are built, tested and published |
 | [Third-party terms](docs/LICENSES.md) | Data and service licences |
@@ -302,7 +335,7 @@ Prohori is honest about what it does not do:
 | Release | Contents | State |
 |---------|----------|-------|
 | v0.1.0 | Batch core: parsers, rules, enrichment, incidents, reports, log simulator with rule evaluation, `triage` and `demo` commands | Released |
-| v0.2.0 | Machine learning: leakage-controlled intrusion detection on public flow datasets, log-derived anomaly detection, model cards | Planned |
+| v0.2.0 | Machine learning: leakage-controlled intrusion detection on public flow datasets, log-derived anomaly detection, model cards | In progress: dataset preparation done |
 | v0.3.0 | Pipeline: streaming core, Redpanda and PostgreSQL in Docker, dbt models, dashboard, orchestration | Planned |
 | v1.0.0 | Optional LLM analyst (opt-in, redacted input, validated output), final polish | Planned |
 
@@ -317,6 +350,7 @@ uv run ruff format --check .   # formatting
 uv run mypy                    # strict type check
 uv run pytest --cov            # tests with coverage (kept at 85 % or more)
 uv run prohori rules test      # run every rule against its fixtures
+uv run pytest tests/unit/ml -q # dataset and leakage tests (synthetic fixtures, no downloads)
 ```
 
 CI runs on Linux and Windows with Python 3.11 to 3.14, plus CodeQL, secret scanning, parser

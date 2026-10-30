@@ -14,7 +14,8 @@
 | [INCIDENTS.md](INCIDENTS.md) | Incident grouping, scoring table, confidence and limitations |
 | [REPORTS.md](REPORTS.md) | Report formats and sections, redaction and output safety |
 | [SIMULATOR.md](SIMULATOR.md) | Attack scenarios, labels, and rule precision and recall |
+| [DATASETS.md](DATASETS.md) | ML datasets: sources, licences, download, leakage controls, measured effects |
 | [LICENSES.md](LICENSES.md) | Terms of third-party data and services |
 
-Further documents ( datasets, model card, pipeline, LLM analyst and threat
+Further documents (model card, pipeline, LLM analyst and threat
 model) are added alongside the features they describe.

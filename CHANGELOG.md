@@ -7,6 +7,22 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- Leakage-controlled preparation of the UNSW-NB15 and CIC-IDS-2017 flow datasets for the
+  machine-learning track (`prohori.ml`, behind the `ml` extra):
+  - `scripts/download_datasets.py` lists the datasets with their licences and citations,
+    downloads CIC-IDS-2017 only when asked (checked against a pinned size and SHA-256 before it is
+    opened, then extracted member by member), prints the manual steps for UNSW-NB15, verifies
+    the files and prints a cleaning report.
+  - Chunked CSV reading with fixed column types and a Parquet cache keyed by the raw file's hash.
+  - Cleaning that drops identifier, address, port, time and label-derived columns, relabels
+    "Attempted" CIC-IDS-2017 flows as benign, removes duplicates and conflicting rows, removes
+    official test rows that also occur in training, and fits imputation and category encoding on
+    the training split only. A leakage check runs on every prepared dataset.
+  - Synthetic fixture datasets in `tests/fixtures/ml/` with the real headers.
+  - `docs/DATASETS.md` and ADR-0019.
+
 ### Changed
 
 - The release workflow no longer creates the GitHub release, so none of its jobs can write to the
