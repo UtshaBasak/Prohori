@@ -60,8 +60,15 @@ class _LineTracker:
             yield line
 
 
-def detect(simulation: Simulation, rules: Sequence[CompiledRule]) -> Detection:
-    """Parse the simulated log and run ``rules`` over it, keeping each event's line number."""
+def detect(
+    simulation: Simulation,
+    rules: Sequence[CompiledRule],
+    events: list[Event] | None = None,
+) -> Detection:
+    """Parse the simulated log and run ``rules`` over it, keeping each event's line number.
+
+    Parsed events are also appended to ``events`` when it is given.
+    """
     scenario = simulation.scenario
     options = {"year": simulation.year} if scenario.parser == "auth_log" else {}
     parser = get_parser(scenario.parser, **options)
@@ -76,6 +83,8 @@ def detect(simulation: Simulation, rules: Sequence[CompiledRule]) -> Detection:
                 msg = f"event id {event.id} maps to two lines"
                 raise AssertionError(msg)
             line_of[event.id] = tracker.current
+            if events is not None:
+                events.append(event)
             yield event
 
     engine = RuleEngine(rules, lateness=LATENESS, reference_time=None)

@@ -1,0 +1,487 @@
+{
+  "format": "prohori.log-anomaly-eval/1",
+  "seeds": [
+    1,
+    2,
+    3,
+    4,
+    5
+  ],
+  "scenarios": [
+    "account-takeover",
+    "admin-misuse",
+    "credential-stuffing",
+    "injection",
+    "password-spraying",
+    "ssh-bruteforce",
+    "token-reuse",
+    "web-scanning"
+  ],
+  "window_minutes": 5,
+  "min_windows": 20,
+  "cutoffs": {
+    "zscore": 12.0,
+    "iforest": 0.8
+  },
+  "cutoff_selection_on_default": {
+    "zscore": {
+      "chosen": 12.0,
+      "candidates": [
+        {
+          "cutoff": 3.0,
+          "precision": 0.046,
+          "recall": 0.615,
+          "f1": 0.085
+        },
+        {
+          "cutoff": 4.0,
+          "precision": 0.065,
+          "recall": 0.615,
+          "f1": 0.118
+        },
+        {
+          "cutoff": 5.0,
+          "precision": 0.134,
+          "recall": 0.615,
+          "f1": 0.22
+        },
+        {
+          "cutoff": 6.0,
+          "precision": 0.258,
+          "recall": 0.615,
+          "f1": 0.364
+        },
+        {
+          "cutoff": 8.0,
+          "precision": 0.519,
+          "recall": 0.615,
+          "f1": 0.563
+        },
+        {
+          "cutoff": 10.0,
+          "precision": 0.625,
+          "recall": 0.615,
+          "f1": 0.62
+        },
+        {
+          "cutoff": 12.0,
+          "precision": 0.972,
+          "recall": 0.538,
+          "f1": 0.693
+        },
+        {
+          "cutoff": 15.0,
+          "precision": 1.0,
+          "recall": 0.462,
+          "f1": 0.632
+        },
+        {
+          "cutoff": 20.0,
+          "precision": 1.0,
+          "recall": 0.385,
+          "f1": 0.556
+        },
+        {
+          "cutoff": 30.0,
+          "precision": 1.0,
+          "recall": 0.308,
+          "f1": 0.471
+        }
+      ]
+    },
+    "iforest": {
+      "chosen": 0.8,
+      "candidates": [
+        {
+          "cutoff": 0.55,
+          "precision": 0.025,
+          "recall": 0.769,
+          "f1": 0.048
+        },
+        {
+          "cutoff": 0.6,
+          "precision": 0.034,
+          "recall": 0.769,
+          "f1": 0.066
+        },
+        {
+          "cutoff": 0.65,
+          "precision": 0.061,
+          "recall": 0.708,
+          "f1": 0.113
+        },
+        {
+          "cutoff": 0.7,
+          "precision": 0.145,
+          "recall": 0.646,
+          "f1": 0.237
+        },
+        {
+          "cutoff": 0.75,
+          "precision": 0.351,
+          "recall": 0.615,
+          "f1": 0.447
+        },
+        {
+          "cutoff": 0.8,
+          "precision": 0.851,
+          "recall": 0.615,
+          "f1": 0.714
+        },
+        {
+          "cutoff": 0.85,
+          "precision": 1.0,
+          "recall": 0.292,
+          "f1": 0.452
+        },
+        {
+          "cutoff": 0.9,
+          "precision": 1.0,
+          "recall": 0.077,
+          "f1": 0.143
+        }
+      ]
+    }
+  },
+  "variants": {
+    "default": {
+      "runs": 40,
+      "windows": 18511,
+      "attack_windows": 65,
+      "detectors": {
+        "rules": {
+          "alerts": 761,
+          "true_positives": 466,
+          "false_alerts": 295,
+          "precision": 0.612,
+          "attacks": 40,
+          "attacks_caught": 40,
+          "false_alerts_per_run": 7.38,
+          "caught_by_scenario": {
+            "account-takeover": 5,
+            "admin-misuse": 5,
+            "credential-stuffing": 5,
+            "injection": 5,
+            "password-spraying": 5,
+            "ssh-bruteforce": 5,
+            "token-reuse": 5,
+            "web-scanning": 5
+          }
+        },
+        "zscore": {
+          "alerts": 36,
+          "true_positives": 35,
+          "false_alerts": 1,
+          "precision": 0.972,
+          "attacks": 40,
+          "attacks_caught": 30,
+          "false_alerts_per_run": 0.03,
+          "caught_by_scenario": {
+            "account-takeover": 5,
+            "admin-misuse": 0,
+            "credential-stuffing": 5,
+            "injection": 5,
+            "password-spraying": 5,
+            "ssh-bruteforce": 5,
+            "token-reuse": 0,
+            "web-scanning": 5
+          }
+        },
+        "threshold": {
+          "alerts": 74,
+          "true_positives": 35,
+          "false_alerts": 39,
+          "precision": 0.473,
+          "attacks": 40,
+          "attacks_caught": 25,
+          "false_alerts_per_run": 0.97,
+          "caught_by_scenario": {
+            "account-takeover": 5,
+            "admin-misuse": 0,
+            "credential-stuffing": 5,
+            "injection": 0,
+            "password-spraying": 5,
+            "ssh-bruteforce": 5,
+            "token-reuse": 0,
+            "web-scanning": 5
+          }
+        },
+        "iforest": {
+          "alerts": 47,
+          "true_positives": 40,
+          "false_alerts": 7,
+          "precision": 0.851,
+          "attacks": 40,
+          "attacks_caught": 30,
+          "false_alerts_per_run": 0.17,
+          "caught_by_scenario": {
+            "account-takeover": 5,
+            "admin-misuse": 0,
+            "credential-stuffing": 5,
+            "injection": 5,
+            "password-spraying": 5,
+            "ssh-bruteforce": 5,
+            "token-reuse": 0,
+            "web-scanning": 5
+          }
+        }
+      },
+      "versus_rules": {
+        "zscore": {
+          "attacks": 40,
+          "caught_by_rules": 40,
+          "caught_by_model": 30,
+          "caught_by_either": 40,
+          "caught_by_model_only": 0,
+          "caught_by_rules_only": 10,
+          "model_only_by_scenario": {
+            "account-takeover": 0,
+            "admin-misuse": 0,
+            "credential-stuffing": 0,
+            "injection": 0,
+            "password-spraying": 0,
+            "ssh-bruteforce": 0,
+            "token-reuse": 0,
+            "web-scanning": 0
+          },
+          "rules_only_by_scenario": {
+            "account-takeover": 0,
+            "admin-misuse": 5,
+            "credential-stuffing": 0,
+            "injection": 0,
+            "password-spraying": 0,
+            "ssh-bruteforce": 0,
+            "token-reuse": 5,
+            "web-scanning": 0
+          }
+        },
+        "threshold": {
+          "attacks": 40,
+          "caught_by_rules": 40,
+          "caught_by_model": 25,
+          "caught_by_either": 40,
+          "caught_by_model_only": 0,
+          "caught_by_rules_only": 15,
+          "model_only_by_scenario": {
+            "account-takeover": 0,
+            "admin-misuse": 0,
+            "credential-stuffing": 0,
+            "injection": 0,
+            "password-spraying": 0,
+            "ssh-bruteforce": 0,
+            "token-reuse": 0,
+            "web-scanning": 0
+          },
+          "rules_only_by_scenario": {
+            "account-takeover": 0,
+            "admin-misuse": 5,
+            "credential-stuffing": 0,
+            "injection": 5,
+            "password-spraying": 0,
+            "ssh-bruteforce": 0,
+            "token-reuse": 5,
+            "web-scanning": 0
+          }
+        },
+        "iforest": {
+          "attacks": 40,
+          "caught_by_rules": 40,
+          "caught_by_model": 30,
+          "caught_by_either": 40,
+          "caught_by_model_only": 0,
+          "caught_by_rules_only": 10,
+          "model_only_by_scenario": {
+            "account-takeover": 0,
+            "admin-misuse": 0,
+            "credential-stuffing": 0,
+            "injection": 0,
+            "password-spraying": 0,
+            "ssh-bruteforce": 0,
+            "token-reuse": 0,
+            "web-scanning": 0
+          },
+          "rules_only_by_scenario": {
+            "account-takeover": 0,
+            "admin-misuse": 5,
+            "credential-stuffing": 0,
+            "injection": 0,
+            "password-spraying": 0,
+            "ssh-bruteforce": 0,
+            "token-reuse": 5,
+            "web-scanning": 0
+          }
+        }
+      }
+    },
+    "heldout": {
+      "runs": 40,
+      "windows": 19194,
+      "attack_windows": 495,
+      "detectors": {
+        "rules": {
+          "alerts": 422,
+          "true_positives": 163,
+          "false_alerts": 259,
+          "precision": 0.386,
+          "attacks": 40,
+          "attacks_caught": 36,
+          "false_alerts_per_run": 6.47,
+          "caught_by_scenario": {
+            "account-takeover": 5,
+            "admin-misuse": 5,
+            "credential-stuffing": 1,
+            "injection": 5,
+            "password-spraying": 5,
+            "ssh-bruteforce": 5,
+            "token-reuse": 5,
+            "web-scanning": 5
+          }
+        },
+        "zscore": {
+          "alerts": 35,
+          "true_positives": 35,
+          "false_alerts": 0,
+          "precision": 1.0,
+          "attacks": 40,
+          "attacks_caught": 15,
+          "false_alerts_per_run": 0.0,
+          "caught_by_scenario": {
+            "account-takeover": 0,
+            "admin-misuse": 0,
+            "credential-stuffing": 0,
+            "injection": 5,
+            "password-spraying": 0,
+            "ssh-bruteforce": 5,
+            "token-reuse": 0,
+            "web-scanning": 5
+          }
+        },
+        "threshold": {
+          "alerts": 72,
+          "true_positives": 35,
+          "false_alerts": 37,
+          "precision": 0.486,
+          "attacks": 40,
+          "attacks_caught": 10,
+          "false_alerts_per_run": 0.93,
+          "caught_by_scenario": {
+            "account-takeover": 0,
+            "admin-misuse": 0,
+            "credential-stuffing": 0,
+            "injection": 0,
+            "password-spraying": 0,
+            "ssh-bruteforce": 5,
+            "token-reuse": 0,
+            "web-scanning": 5
+          }
+        },
+        "iforest": {
+          "alerts": 46,
+          "true_positives": 32,
+          "false_alerts": 14,
+          "precision": 0.696,
+          "attacks": 40,
+          "attacks_caught": 17,
+          "false_alerts_per_run": 0.35,
+          "caught_by_scenario": {
+            "account-takeover": 3,
+            "admin-misuse": 0,
+            "credential-stuffing": 0,
+            "injection": 5,
+            "password-spraying": 0,
+            "ssh-bruteforce": 4,
+            "token-reuse": 0,
+            "web-scanning": 5
+          }
+        }
+      },
+      "versus_rules": {
+        "zscore": {
+          "attacks": 40,
+          "caught_by_rules": 36,
+          "caught_by_model": 15,
+          "caught_by_either": 36,
+          "caught_by_model_only": 0,
+          "caught_by_rules_only": 21,
+          "model_only_by_scenario": {
+            "account-takeover": 0,
+            "admin-misuse": 0,
+            "credential-stuffing": 0,
+            "injection": 0,
+            "password-spraying": 0,
+            "ssh-bruteforce": 0,
+            "token-reuse": 0,
+            "web-scanning": 0
+          },
+          "rules_only_by_scenario": {
+            "account-takeover": 5,
+            "admin-misuse": 5,
+            "credential-stuffing": 1,
+            "injection": 0,
+            "password-spraying": 5,
+            "ssh-bruteforce": 0,
+            "token-reuse": 5,
+            "web-scanning": 0
+          }
+        },
+        "threshold": {
+          "attacks": 40,
+          "caught_by_rules": 36,
+          "caught_by_model": 10,
+          "caught_by_either": 36,
+          "caught_by_model_only": 0,
+          "caught_by_rules_only": 26,
+          "model_only_by_scenario": {
+            "account-takeover": 0,
+            "admin-misuse": 0,
+            "credential-stuffing": 0,
+            "injection": 0,
+            "password-spraying": 0,
+            "ssh-bruteforce": 0,
+            "token-reuse": 0,
+            "web-scanning": 0
+          },
+          "rules_only_by_scenario": {
+            "account-takeover": 5,
+            "admin-misuse": 5,
+            "credential-stuffing": 1,
+            "injection": 5,
+            "password-spraying": 5,
+            "ssh-bruteforce": 0,
+            "token-reuse": 5,
+            "web-scanning": 0
+          }
+        },
+        "iforest": {
+          "attacks": 40,
+          "caught_by_rules": 36,
+          "caught_by_model": 17,
+          "caught_by_either": 36,
+          "caught_by_model_only": 0,
+          "caught_by_rules_only": 19,
+          "model_only_by_scenario": {
+            "account-takeover": 0,
+            "admin-misuse": 0,
+            "credential-stuffing": 0,
+            "injection": 0,
+            "password-spraying": 0,
+            "ssh-bruteforce": 0,
+            "token-reuse": 0,
+            "web-scanning": 0
+          },
+          "rules_only_by_scenario": {
+            "account-takeover": 2,
+            "admin-misuse": 5,
+            "credential-stuffing": 1,
+            "injection": 0,
+            "password-spraying": 5,
+            "ssh-bruteforce": 1,
+            "token-reuse": 5,
+            "web-scanning": 0
+          }
+        }
+      }
+    }
+  },
+  "caveat": "Synthetic logs written by the same author as the rules and the detectors. The default variants were used to choose the anomaly cut-offs; the held-out variants were scored once with those cut-offs frozen. Every detector judges a window against the other windows of the same log, so how unusual an attack looks depends on how much background the simulated log has."
+}
