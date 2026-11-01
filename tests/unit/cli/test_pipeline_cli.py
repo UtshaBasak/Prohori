@@ -1,6 +1,7 @@
 """``prohori pipeline replay`` and ``prohori pipeline tail``."""
 
 import json
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -17,6 +18,14 @@ __all__ = ["isolated_settings", "no_network"]  # autouse: no network, no real ca
 
 ROOT = Path(__file__).resolve().parents[3]
 runner = CliRunner(env={"COLUMNS": "200", "NO_COLOR": "1"})
+_ANSI = re.compile(r"\x1b\[[0-9;]*m")
+
+
+def _plain(output: str) -> str:
+    """Usage errors are drawn in a box that may wrap and colour the text; compare words only."""
+    text = _ANSI.sub("", output)
+    text = re.sub(r"[\u2500-\u257f|+]", " ", text)  # box-drawing characters and ASCII borders
+    return " ".join(text.split())
 
 
 @pytest.fixture(scope="module")
@@ -89,7 +98,7 @@ def test_replay_usage_errors(web_log: Path, tmp_path: Path, args: list[str], mes
     filled = [a.replace("{log}", str(web_log)) for a in args]
     result = runner.invoke(app, ["pipeline", "replay", *filled, "--state", str(tmp_path)])
     assert result.exit_code == ExitCode.USAGE
-    assert message in result.output
+    assert message in _plain(result.output)
 
 
 def test_tail_follows_a_file_until_stopped(web_log: Path, tmp_path: Path) -> None:
@@ -114,7 +123,7 @@ def test_tail_with_an_unknown_parser_is_a_usage_error(tmp_path: Path) -> None:
         ["pipeline", "tail", str(tmp_path / "x.log"), "--state", str(tmp_path), "-p", "nope"],
     )
     assert result.exit_code == ExitCode.USAGE
-    assert "unknown parser" in result.output
+    assert "unknown parser" in _plain(result.output)
 
 
 def test_pipeline_without_the_extra(web_log: Path, tmp_path: Path) -> None:
