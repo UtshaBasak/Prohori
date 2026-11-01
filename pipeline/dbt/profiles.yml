@@ -1,0 +1,21 @@
+# Connection settings, from the environment; nothing secret is stored here.
+#   duckdb (default): the lite-mode database, PROHORI_DUCKDB (default .prohori/pipeline/prohori.duckdb
+#                     relative to where dbt runs). Stop the lite pipeline first: DuckDB has one writer.
+#   postgres:         the Docker stack's warehouse on 127.0.0.1:15432 (PROHORI_POSTGRES_HOST,
+#                     PROHORI_POSTGRES_PORT, PROHORI_POSTGRES_PASSWORD).
+prohori:
+  target: duckdb
+  outputs:
+    duckdb:
+      type: duckdb
+      path: "{{ env_var('PROHORI_DUCKDB', '.prohori/pipeline/prohori.duckdb') }}"
+      threads: 1
+    postgres:
+      type: postgres
+      host: "{{ env_var('PROHORI_POSTGRES_HOST', '127.0.0.1') }}"
+      port: "{{ env_var('PROHORI_POSTGRES_PORT', '15432') | as_number }}"
+      user: prohori
+      password: "{{ env_var('PROHORI_POSTGRES_PASSWORD', 'prohori') }}"
+      dbname: prohori
+      schema: analytics
+      threads: 2

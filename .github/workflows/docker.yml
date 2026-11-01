@@ -1,7 +1,8 @@
 name: Docker stack
 
 # Builds the image, starts Redpanda, PostgreSQL and the four stage containers, replays a
-# simulated log and checks the warehouse (tests/integration/test_docker_stack.py).
+# simulated log, checks the warehouse and builds the dbt models on it
+# (tests/integration/test_docker_stack.py).
 on:
   push:
     branches: [main]
@@ -50,7 +51,7 @@ jobs:
         with:
           python-version: "3.13"
           enable-cache: true
-      - run: uv sync
+      - run: uv sync --group dbt
       - name: Smoke test
         env:
           PROHORI_DOCKER_TESTS: "1"

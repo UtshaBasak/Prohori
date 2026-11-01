@@ -1,0 +1,95 @@
+version: 2
+
+sources:
+  - name: prohori
+    description: Tables written by the pipeline's sink and by the warehouse loaders.
+    schema: "{{ 'raw' if target.type == 'postgres' else 'main' }}"
+    config:
+      loaded_at_field: stored_at
+      freshness:
+        warn_after: {count: 1, period: day}
+        error_after: {count: 7, period: day}
+    tables:
+      - name: events
+        description: One row per normalised event.
+        columns:
+          - name: id
+            data_tests: [unique, not_null]
+          - name: timestamp
+            data_tests:
+              - not_null
+              - not_in_future
+          - name: outcome
+            data_tests:
+              - accepted_values:
+                  arguments:
+                    values: [success, failure, unknown]
+          - name: http_status
+            data_tests:
+              - value_between:
+                  arguments:
+                    min_value: 100
+                    max_value: 599
+      - name: alerts
+        description: One row per alert from a rule or an anomaly detector.
+        columns:
+          - name: id
+            data_tests: [unique, not_null]
+          - name: severity
+            data_tests:
+              - accepted_values:
+                  arguments:
+                    values: [low, medium, high, critical]
+          - name: detector_kind
+            data_tests:
+              - accepted_values:
+                  arguments:
+                    values: [rule, model]
+          - name: event_count
+            data_tests:
+              - value_between:
+                  arguments:
+                    min_value: 1
+      - name: incidents
+        description: One row per incident.
+        columns:
+          - name: id
+            data_tests: [unique, not_null]
+          - name: severity
+            data_tests:
+              - accepted_values:
+                  arguments:
+                    values: [low, medium, high, critical]
+          - name: score
+            data_tests:
+              - value_between:
+                  arguments:
+                    min_value: 0
+                    max_value: 100
+      - name: dead_letters
+        description: Messages a stage could not use, with the reason.
+        config:
+          freshness: null
+        columns:
+          - name: id
+            data_tests: [unique, not_null]
+      - name: labels
+        description: Simulator ground truth (prohori pipeline load-labels); empty for real logs.
+        config:
+          freshness: null
+        columns:
+          - name: id
+            data_tests: [unique, not_null]
+      - name: model_evaluations
+        description: Flow-model results (prohori pipeline load-results).
+        config:
+          freshness: null
+        columns:
+          - name: id
+            data_tests: [unique, not_null]
+          - name: recall
+            data_tests:
+              - value_between:
+                  arguments:
+                    min_value: 0
+                    max_value: 1

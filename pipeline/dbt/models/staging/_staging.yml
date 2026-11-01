@@ -1,0 +1,67 @@
+version: 2
+
+models:
+  - name: stg_events
+    description: Events with a UTC date.
+    columns:
+      - name: event_id
+        data_tests: [unique, not_null]
+  - name: stg_alerts
+    description: Alerts with a UTC date (of the event that raised them).
+    columns:
+      - name: alert_id
+        data_tests: [unique, not_null]
+  - name: stg_alert_events
+    description: One row per alert and event it lists.
+    data_tests:
+      - unique_combination:
+          arguments:
+            columns: [alert_id, event_id]
+    columns:
+      - name: event_id
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_events')
+                field: event_id
+  - name: stg_incidents
+    description: Incidents with their duration in seconds.
+    columns:
+      - name: incident_id
+        data_tests: [unique, not_null]
+      - name: duration_seconds
+        data_tests:
+          - value_between:
+              arguments:
+                min_value: 0
+  - name: stg_incident_alerts
+    description: One row per incident and alert it groups.
+    data_tests:
+      - unique_combination:
+          arguments:
+            columns: [incident_id, alert_id]
+    columns:
+      - name: alert_id
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_alerts')
+                field: alert_id
+  - name: stg_dead_letters
+    description: Rejected messages.
+  - name: stg_labels
+    description: Simulator ground truth per event.
+    columns:
+      - name: event_id
+        data_tests:
+          - unique
+          - relationships:
+              arguments:
+                to: ref('stg_events')
+                field: event_id
+              config:
+                severity: warn
+  - name: stg_model_evaluations
+    description: Flow-model results per seed and operating point.
