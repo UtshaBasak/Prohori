@@ -855,3 +855,50 @@ from 279 MB to about 100 MB. A replay
 into the stack gives the same incident ids as `prohori incidents`, with each event stored once
 when the file is replayed twice. The stack needs a clone of the repository; a published image is
 out of scope until the v0.3.0 release.
+
+---
+
+## ADR-0025: Warehouse models with dbt
+
+- **Date:** 2026-11-02
+- **Status:** Accepted
+
+**Context.** Step 20 turns the pipeline's raw tables into tested models: daily attack counts,
+top source addresses, incident durations, rule precision, detection latency and model
+performance over time. The same models must build on the lite-mode DuckDB file (CI) and on the
+Docker stack's PostgreSQL.
+
+**Decision.**
+- **dbt in its own dependency group.** dbt-core 1.12.6, dbt-duckdb 1.11.0 and dbt-postgres 1.11.0
+  live in a `dbt` dependency group (`uv sync --group dbt`), not in the package or its extras.
+  The project in `pipeline/dbt/` is a repository tool, not something `pip install prohori`
+  users run, and dbt's dependency tree is large. All three support Python 3.10 to 3.14 and
+  resolve with the rest of the lock unchanged. dbt-duckdb is locked to 1.11.0 rather than
+  1.11.1, which was six days old.
+- **One project, two targets.** The profile reads the environment (no secrets in the
+  repository). Only three things differ between the targets, and macros cover them: the source
+  schema (`main` or `raw`), unnesting a JSON array, and seconds between two timestamps. UTC
+  dates are explicit (`AT TIME ZONE 'UTC'`), so the session time zone never matters. Schema
+  names are used as they are (`staging`, `intermediate`, `marts`).
+- **No dbt packages.** The range, duplicate and future-timestamp checks are three small generic
+  tests in the project, so `dbt build` needs no network.
+- **Ground truth and model results as tables, not seeds.** `prohori pipeline load-labels`
+  matches each simulated line to the event it became, using the replay's parser, source name and
+  file time. `prohori pipeline load-results` turns `results/ml_*.json` into one row per model,
+  seed, variant and operating point, stamped with the evaluation time. Both write through the
+  sinks' idempotent writer. Rule precision uses the simulator's definition, with an alert a true
+  positive when at least half its labelled events are attack events, so the CI test can require
+  it to equal the simulator's own evaluation.
+- **`stored_at` on every table** (database default, added to existing tables by `ALTER TABLE
+  ... ADD COLUMN IF NOT EXISTS`). It drives the freshness checks and the pipeline-latency
+  measure. The table definitions moved into `prohori.pipeline.tables`, which generates the DDL
+  for both databases, and inserts now name their columns.
+- **CI:** a `dbt (DuckDB)` job builds a warehouse from every scenario with
+  `scripts/build_lite_warehouse.py` (one pipeline per scenario, so their clocks do not collide)
+  and runs `dbt build` and `dbt source freshness`. The Docker smoke test builds the models on
+  PostgreSQL after its replay.
+
+**Consequences.** `dbt build` runs 18 models and 68 checks on both databases. The marts
+were identical between DuckDB and PostgreSQL for the same replay. Precision and time to detect
+exist only for labelled (simulated) logs. Model performance over time has one point per loaded
+evaluation until the nightly job of step 22 adds more.

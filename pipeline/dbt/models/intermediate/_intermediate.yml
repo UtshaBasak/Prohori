@@ -1,0 +1,8 @@
+version: 2
+
+models:
+  - name: int_alert_judgements
+    description: Each alert judged against the simulator's labels.
+    columns:
+      - name: alert_id
+        data_tests: [unique, not_null]

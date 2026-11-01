@@ -76,6 +76,11 @@ Changelog = "https://github.com/UtshaBasak/Prohori/blob/main/CHANGELOG.md"
 prohori = "prohori.cli:main"
 
 [dependency-groups]
+dbt = [
+    "dbt-core>=1.10",
+    "dbt-duckdb>=1.10",
+    "dbt-postgres>=1.9",
+]
 dev = [
     "hypothesis>=6.100",
     "mypy>=1.15",

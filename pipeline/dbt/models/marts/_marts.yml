@@ -1,0 +1,87 @@
+version: 2
+
+models:
+  - name: daily_attack_counts
+    description: Per UTC day, events, failed events, source addresses, alerts and incidents.
+    columns:
+      - name: day
+        data_tests: [unique, not_null]
+      - name: events
+        data_tests:
+          - value_between:
+              arguments:
+                min_value: 0
+  - name: daily_alerts_by_rule
+    description: Per UTC day and rule, the alerts raised.
+    data_tests:
+      - unique_combination:
+          arguments:
+            columns: [day, detector_id, severity]
+  - name: top_source_ips
+    description: Every source address with its events, accounts, alerts and incidents, ranked.
+    columns:
+      - name: source_ip
+        data_tests: [unique, not_null]
+      - name: rank
+        data_tests: [unique, not_null]
+  - name: incident_durations
+    description: Each incident's length, alerts and rules.
+    columns:
+      - name: incident_id
+        data_tests: [unique, not_null]
+      - name: duration_seconds
+        data_tests:
+          - value_between:
+              arguments:
+                min_value: 0
+  - name: rule_precision
+    description: >
+      Per rule, alerts and true positives against the simulator's labels (alerts on unlabelled
+      events are not judged; precision is null when none were).
+    columns:
+      - name: detector_id
+        data_tests: [unique, not_null]
+      - name: precision
+        data_tests:
+          - value_between:
+              arguments:
+                min_value: 0
+                max_value: 1
+  - name: alert_latency
+    description: Per alert, activity time before the rule fired and time through the pipeline.
+    columns:
+      - name: alert_id
+        data_tests: [unique, not_null]
+      - name: activity_seconds
+        data_tests:
+          - value_between:
+              arguments:
+                min_value: 0
+  - name: detection_latency
+    description: Per rule, median and maximum activity and pipeline latency.
+    columns:
+      - name: detector_id
+        data_tests: [unique, not_null]
+  - name: attack_detection
+    description: Per simulated attack, whether and how fast a true-positive alert was credited to it.
+    columns:
+      - name: attack_id
+        data_tests: [unique, not_null]
+      - name: time_to_detect_seconds
+        data_tests:
+          - value_between:
+              arguments:
+                min_value: 0
+  - name: model_performance
+    description: Flow-model metrics per evaluation, averaged over seeds, with the change since the last.
+    data_tests:
+      - unique_combination:
+          arguments:
+            columns: [evaluated_at, dataset, variant, model, operating_point]
+    columns:
+      - name: recall
+        data_tests:
+          - value_between:
+              arguments:
+                min_value: 0
+                max_value: 1

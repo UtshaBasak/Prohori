@@ -1,0 +1,21 @@
+select
+    id as evaluation_id,
+    evaluated_at,
+    {{ utc_date('evaluated_at') }} as evaluated_date,
+    dataset,
+    variant,
+    model,
+    seed,
+    operating_point,
+    threshold,
+    flows,
+    attacks,
+    alerts,
+    recall,
+    precision,
+    fpr,
+    false_alerts_per_10k,
+    pr_auc,
+    roc_auc,
+    prohori_version
+from {{ source('prohori', 'model_evaluations') }}

@@ -93,6 +93,7 @@ Python packages from PyPI, and `prohori pipeline up` pulls the container images.
 | [confluent-kafka](https://github.com/confluentinc/confluent-kafka-python) and librdkafka | Kafka client | Apache 2.0; librdkafka BSD 2-Clause |
 | [psycopg 3](https://www.psycopg.org/) | PostgreSQL client | LGPL 3.0 (used unmodified as a library, which the LGPL permits from MIT code) |
 | [DuckDB](https://duckdb.org/) | Lite-mode database | MIT |
+| [dbt-core](https://github.com/dbt-labs/dbt-core), dbt-duckdb, dbt-postgres | Warehouse models (a development dependency group, not installed with the package) | Apache 2.0 |
 
 ## Sample data
 

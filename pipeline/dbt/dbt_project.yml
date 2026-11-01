@@ -1,0 +1,28 @@
+# Warehouse models over the pipeline's tables: staging views, intermediate views, mart tables.
+#   uv sync --group dbt
+#   uv run dbt build --project-dir pipeline/dbt --profiles-dir pipeline/dbt                    # DuckDB
+#   uv run dbt build --project-dir pipeline/dbt --profiles-dir pipeline/dbt --target postgres  # the stack
+name: prohori
+version: "1.0.0"
+config-version: 2
+profile: prohori
+
+model-paths: ["models"]
+macro-paths: ["macros"]
+test-paths: ["tests"]
+clean-targets: ["target", "logs"]
+
+flags:
+  send_anonymous_usage_stats: false
+
+models:
+  prohori:
+    staging:
+      +schema: staging
+      +materialized: view
+    intermediate:
+      +schema: intermediate
+      +materialized: view
+    marts:
+      +schema: marts
+      +materialized: table

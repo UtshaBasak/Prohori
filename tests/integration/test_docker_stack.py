@@ -10,6 +10,7 @@ starts about 3 GB of containers and **deletes the stack's data volumes** before 
 import os
 import shutil
 import subprocess
+import sys
 import time
 from datetime import timedelta
 from pathlib import Path
@@ -43,6 +44,12 @@ pytestmark = [
 
 ROOT = Path(__file__).resolve().parents[2]
 COMPOSE = ROOT / "pipeline" / "docker-compose.yml"
+DBT_PATHS = [
+    "--project-dir",
+    str(ROOT / "pipeline" / "dbt"),
+    "--profiles-dir",
+    str(ROOT / "pipeline" / "dbt"),
+]
 RULES = [r.rule for r in load_rules([builtin_rules_dir()]) if r.rule is not None]
 runner = CliRunner(env={"COLUMNS": "200", "NO_COLOR": "1"})
 
@@ -63,6 +70,19 @@ def _incident_ids(dsn: str) -> set[str]:
 
     with psycopg.connect(dsn, connect_timeout=5) as connection:
         return {row[0] for row in connection.execute("SELECT id FROM raw.incidents").fetchall()}
+
+
+def _dbt() -> str | None:
+    beside = Path(sys.executable).parent / ("dbt.exe" if os.name == "nt" else "dbt")
+    return str(beside) if beside.is_file() else shutil.which("dbt")
+
+
+def _precision(dsn: str) -> dict[str, float | None]:
+    import psycopg
+
+    with psycopg.connect(dsn, connect_timeout=5) as connection:
+        rows = connection.execute("SELECT detector_id, precision FROM marts.rule_precision")
+        return dict(rows.fetchall())
 
 
 def _memory_within_limits() -> list[str]:
@@ -130,6 +150,22 @@ def test_replay_reaches_postgres_once_and_matches_batch(
         assert status.exit_code == 0, status.output
         assert f"incidents {len(expected)}" in status.stdout, status.stdout
         assert _memory_within_limits() == []
+
+        # The warehouse models build on PostgreSQL (with the dbt group installed).
+        labels = runner.invoke(app, ["pipeline", "load-labels", str(log), "--postgres", dsn])
+        assert labels.exit_code == 0, labels.output
+        dbt = _dbt()
+        if dbt is not None:
+            built = subprocess.run(  # noqa: S603 - fixed arguments
+                [dbt, "build", "--target", "postgres", *DBT_PATHS],
+                cwd=ROOT,
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+            assert built.returncode == 0, built.stdout[-4000:]
+            precision = _precision(dsn)
+            assert precision["PRH-AUTH-002"] == 1.0, precision
 
         # A stage stops gracefully on SIGTERM: it finishes and reports its counters.
         stack.compose(["stop", "detect"], COMPOSE)

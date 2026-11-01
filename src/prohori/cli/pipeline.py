@@ -15,10 +15,11 @@ import sys
 import threading
 from collections.abc import Callable, Iterator
 from contextlib import contextmanager
+from datetime import UTC, datetime
 from enum import StrEnum
 from pathlib import Path
 from types import FrameType
-from typing import Annotated, Any
+from typing import TYPE_CHECKING, Annotated, Any
 
 import typer
 from rich.console import Console
@@ -45,6 +46,9 @@ from prohori.pipeline.runner import STAGES, LitePipeline, LiteSettings, make_sta
 from prohori.pipeline.stages import ParserSettings, Stage
 from prohori.pipeline.transport import FileTransport, Transport
 from prohori.rules.model import parse_duration
+
+if TYPE_CHECKING:
+    from prohori.pipeline.sink import Sink
 
 DEFAULT_STATE = Path(".prohori") / "pipeline"
 
@@ -616,6 +620,141 @@ def _print_status(compose_path: Path, *, counts: bool, dsn: str | None = None) -
                 "Warehouse rows: " + ", ".join(f"{k} {v:,}" for k, v in rows.items()) + "."
             )
     return all(s.ok for s in services)
+
+
+# ---------------------------------------------------------------------- warehouse loaders
+
+PostgresOption = Annotated[
+    str | None,
+    typer.Option(
+        "--postgres",
+        envvar="PROHORI_POSTGRES_DSN",
+        help="Load into this PostgreSQL warehouse instead of the DuckDB file.",
+        show_default=False,
+        show_envvar=True,
+    ),
+]
+
+
+def _warehouse(state: Path, database: Path | None, postgres: str | None) -> "Sink":
+    from prohori.pipeline.warehouse import open_warehouse
+
+    try:
+        return open_warehouse(database=database or state / "prohori.duckdb", postgres=postgres)
+    except ImportError as exc:
+        raise _fail(str(exc)) from None
+    except Exception as exc:  # the database is not reachable
+        raise _fail(f"cannot open the warehouse: {exc}") from None
+
+
+@pipeline_app.command("load-labels")
+def load_labels_command(
+    logs: Annotated[
+        list[Path],
+        typer.Argument(metavar="LOG...", help="Simulated log files.", show_default=False),
+    ],
+    labels: Annotated[
+        Path | None,
+        typer.Option(
+            help="Labels file (default: NAME.labels.jsonl next to the log; one log only).",
+            show_default=False,
+        ),
+    ] = None,
+    scenario: Annotated[
+        str | None,
+        typer.Option(
+            help="Scenario name (default: from manifest.json next to the log).", show_default=False
+        ),
+    ] = None,
+    state: StateOption = DEFAULT_STATE,
+    database: DatabaseOption = None,
+    postgres: PostgresOption = None,
+    parser_name: ParserOption = "auto",
+    year: YearOption = None,
+    timezone: TimezoneOption = "UTC",
+    mapping: MappingOption = None,
+    pattern: PatternOption = None,
+    keep_query: KeepQueryOption = False,
+) -> None:
+    """Load the simulator's ground truth for logs that were replayed into the pipeline.
+
+    Each line of a simulated log is matched to the event it became (same parser options as the
+    replay), so the warehouse models can measure rule precision and time to detection. Loading
+    the same labels again adds nothing. Exit 1 if the labels cannot be read or the warehouse
+    cannot be opened, 2 for invalid usage.
+    """
+    from prohori.pipeline.warehouse import LoadError, label_rows, load
+
+    if labels is not None and len(logs) > 1:
+        raise typer.BadParameter("--labels needs exactly one LOG", param_hint="--labels")
+    missing = [str(f) for f in logs if not f.is_file()]
+    if missing:
+        raise typer.BadParameter(f"not found: {', '.join(missing)}", param_hint="LOG")
+    parsers = ParserSettings(year, timezone, mapping, pattern, keep_query)
+    try:
+        batches = [
+            label_rows(log, labels, parser=parser_name, settings=parsers, scenario=scenario)
+            for log in logs
+        ]
+    except ProducerError as exc:
+        raise typer.BadParameter(str(exc), param_hint="LOG") from None
+    except LoadError as exc:
+        raise _fail(str(exc)) from None
+    sink = _warehouse(state, database, postgres)
+    try:
+        total = sum(load(sink, "labels", rows) for rows in batches)
+    finally:
+        sink.close()
+    attacks = sum(1 for rows in batches for row in rows if row[-1] is not None)
+    typer.echo(
+        f"Loaded labels for {total:,} event(s) ({attacks:,} attack) from {len(logs)} log(s)."
+    )
+
+
+@pipeline_app.command("load-results")
+def load_results_command(
+    results: Annotated[
+        list[Path],
+        typer.Argument(
+            metavar="RESULTS...",
+            help="Flow-model results such as results/ml_unsw-nb15.json.",
+            show_default=False,
+        ),
+    ],
+    evaluated_at: Annotated[
+        datetime | None,
+        typer.Option(
+            formats=["%Y-%m-%dT%H:%M:%S%z", "%Y-%m-%d"],
+            help="When the evaluation ran (default: each file's modification time), "
+            "such as 2026-10-31.",
+            show_default=False,
+        ),
+    ] = None,
+    state: StateOption = DEFAULT_STATE,
+    database: DatabaseOption = None,
+    postgres: PostgresOption = None,
+) -> None:
+    """Load flow-model evaluation results into the warehouse, for model performance over time.
+
+    One row per dataset, variant, model, seed and operating point (test split). Loading the same
+    file with the same time again adds nothing; a later evaluation adds new rows. Exit 1 if a
+    file is not a flow-model evaluation or the warehouse cannot be opened.
+    """
+    from prohori.pipeline.warehouse import LoadError, evaluation_rows, load
+
+    when = None
+    if evaluated_at is not None:
+        when = evaluated_at if evaluated_at.tzinfo else evaluated_at.replace(tzinfo=UTC)
+    try:
+        batches = [evaluation_rows(path, when) for path in results]
+    except LoadError as exc:
+        raise _fail(str(exc)) from None
+    sink = _warehouse(state, database, postgres)
+    try:
+        total = sum(load(sink, "model_evaluations", rows) for rows in batches)
+    finally:
+        sink.close()
+    typer.echo(f"Loaded {total:,} evaluation row(s) from {len(results)} file(s).")
 
 
 # ---------------------------------------------------------------------- helpers
