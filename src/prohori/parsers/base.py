@@ -180,26 +180,42 @@ class LineParser(ABC):
         stats = stats if stats is not None else ParseStats()
         self.reset()
         for raw in lines:
-            stats.lines += 1
-            if raw.decode_error:
-                stats.decode_errors += 1
-            if raw.too_long:
-                stats.record_error(raw.number, f"line longer than {MAX_LINE_LENGTH} characters")
-                continue
-            text = sanitize(raw.text)
-            if not text.strip():
-                stats.blank += 1
-                continue
             try:
-                event = self.parse_line(text, raw.number, source)
-            except ValueError as exc:  # ParseError and pydantic.ValidationError
-                stats.record_error(raw.number, _short_reason(exc))
+                event = self.parse_raw(raw, source=source, stats=stats)
+            except ParseError:
                 continue
-            if event is None:
-                stats.skipped += 1
-            else:
-                stats.events += 1
+            if event is not None:
                 yield event
+
+    def parse_raw(self, raw: RawLine, *, source: str, stats: ParseStats) -> Event | None:
+        """Parse one line without resetting the parser, updating ``stats``.
+
+        Returns the event, or ``None`` for a blank or irrelevant line. Raises :class:`ParseError`
+        with a short reason for a malformed line, after counting it. The streaming pipeline uses
+        this to keep one parser per source across many messages.
+        """
+        stats.lines += 1
+        if raw.decode_error:
+            stats.decode_errors += 1
+        if raw.too_long:
+            reason = f"line longer than {MAX_LINE_LENGTH} characters"
+            stats.record_error(raw.number, reason)
+            raise ParseError(reason)
+        text = sanitize(raw.text)
+        if not text.strip():
+            stats.blank += 1
+            return None
+        try:
+            event = self.parse_line(text, raw.number, source)
+        except ValueError as exc:  # ParseError and pydantic.ValidationError
+            reason = _short_reason(exc)
+            stats.record_error(raw.number, reason)
+            raise ParseError(reason) from exc
+        if event is None:
+            stats.skipped += 1
+        else:
+            stats.events += 1
+        return event
 
     def parse_file(self, path: Path, *, stats: ParseStats | None = None) -> Iterator[Event]:
         """Parse a file lazily. The file stays open until the generator is exhausted or closed."""
