@@ -115,9 +115,10 @@ if sys.platform == "win32":
 
     def _open_windows(path: Path) -> BinaryIO:
         import ctypes
+        import ctypes.wintypes
         import msvcrt
-        from ctypes import wintypes
 
+        wintypes = ctypes.wintypes
         kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
         create_file = kernel32.CreateFileW
         create_file.argtypes = [
