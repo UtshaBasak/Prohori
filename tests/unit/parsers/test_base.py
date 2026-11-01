@@ -10,6 +10,7 @@ from prohori.parsers import (
     MAX_LINE_LENGTH,
     AuthLogParser,
     LineParser,
+    ParseError,
     ParseStats,
     available,
     get_parser,
@@ -112,6 +113,17 @@ class TestParseStats:
         list(_EchoParser().parse(read_lines(io.BytesIO(b"skip \xff\n")), stats=stats))
         assert stats.decode_errors == 1
         assert stats.skipped == 1
+
+    def test_parse_raw_reports_the_reason_and_keeps_state(self) -> None:
+        stats = ParseStats()
+        parser = _EchoParser()
+        (skip, bad, long) = iter_text_lines(["skip", "bad", "z" * (MAX_LINE_LENGTH + 1)])
+        assert parser.parse_raw(skip, source="s", stats=stats) is None
+        with pytest.raises(ParseError, match="bad line 2"):
+            parser.parse_raw(bad, source="s", stats=stats)
+        with pytest.raises(ParseError, match="longer than"):
+            parser.parse_raw(long, source="s", stats=stats)
+        assert (stats.lines, stats.skipped, stats.errors) == (3, 1, 2)
 
 
 class TestRegistry:

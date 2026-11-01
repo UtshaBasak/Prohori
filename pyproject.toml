@@ -58,7 +58,9 @@ ml = [
     "pyarrow>=18.0",
     "joblib>=1.4",
 ]
-pipeline = []
+pipeline = [
+    "duckdb>=1.1",
+]
 llm = []
 all = ["prohori[geoip,ml,pipeline,llm]"]
 
@@ -88,6 +90,7 @@ dev = [
     "pandas-stubs>=2.2",
     "pyarrow>=18.0",
     "joblib>=1.4",
+    "duckdb>=1.1",
 ]
 
 # --------------------------------------------------------------------------- build

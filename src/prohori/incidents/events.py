@@ -34,10 +34,10 @@ class EventContext:
         self._events: OrderedDict[str, EventSummary] = OrderedDict()
 
     def add(self, event: Event) -> None:
+        if event.id in self._events:
+            return  # a replayed event must not count twice in the sign-in history
         summary = EventSummary.from_event(event)
         self.history.add(summary)
-        if summary.id in self._events:
-            return
         self._events[summary.id] = summary
         if len(self._events) > self.max_events:
             self._events.popitem(last=False)
