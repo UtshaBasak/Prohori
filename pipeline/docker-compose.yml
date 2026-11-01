@@ -1,12 +1,16 @@
-# The Prohori Docker stack: Redpanda (Kafka API), PostgreSQL and one container per pipeline stage.
+# The Prohori Docker stack: Redpanda (Kafka API), PostgreSQL, one container per pipeline stage
+# and Grafana with provisioned dashboards.
 #   prohori pipeline up        # or: docker compose -p prohori -f pipeline/docker-compose.yml up -d --wait
 #   prohori pipeline replay FILE --bootstrap 127.0.0.1:19092
 #   prohori pipeline status
+#   open http://127.0.0.1:13000
 #   prohori pipeline down      # --volumes also deletes the data
 #
-# Ports are published on 127.0.0.1 only. The PostgreSQL password defaults to a local-only value;
-# set PROHORI_POSTGRES_PASSWORD (and PROHORI_POSTGRES_PORT) in the environment to change it.
-# Memory limits add up to about 3.3 GB.
+# Ports are published on 127.0.0.1 only. Passwords default to local-only values; set
+# PROHORI_POSTGRES_PASSWORD, PROHORI_GRAFANA_PASSWORD (Grafana's admin) and
+# PROHORI_GRAFANA_DB_PASSWORD (Grafana's read-only database role) in the environment to change
+# them, and PROHORI_POSTGRES_PORT or PROHORI_GRAFANA_PORT to move the ports.
+# Memory limits add up to about 3.9 GB.
 
 name: prohori
 
@@ -22,6 +26,8 @@ x-stage: &stage
       condition: service_healthy
     postgres:
       condition: service_healthy
+    warehouse-init:
+      condition: service_completed_successfully
   environment:
     PROHORI_KAFKA_BOOTSTRAP: redpanda:9092
     PROHORI_POSTGRES_DSN: postgresql://prohori:${PROHORI_POSTGRES_PASSWORD:-prohori}@postgres:5432/prohori
@@ -76,10 +82,71 @@ services:
     volumes:
       - postgres:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U prohori -d prohori"]
+      # Over TCP: on the first start the image runs a temporary, socket-only server to initialise
+      # the database, and a socket check would pass before the real server is up.
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U prohori -d prohori"]
       interval: 5s
       timeout: 5s
       retries: 24
+    restart: unless-stopped
+    mem_limit: 512m
+
+  warehouse-init:
+    # Runs once per 'up' and exits: creates the schemas and Grafana's read-only role. Idempotent,
+    # so it also upgrades a database created by an earlier version of the stack.
+    image: postgres:17.11-alpine@sha256:266d3c257594e195b309ae9d1805e54c788f1d7b375f56bf6c367aac6c917e7b
+    user: postgres
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      PGHOST: postgres
+      PGUSER: prohori
+      PGDATABASE: prohori
+      PGPASSWORD: ${PROHORI_POSTGRES_PASSWORD:-prohori}
+    command:
+      - psql
+      - --quiet
+      - --set=ON_ERROR_STOP=1
+      - --set=reader_password=${PROHORI_GRAFANA_DB_PASSWORD:-grafana}
+      - --file=/init/warehouse-init.sql
+    volumes:
+      - ./postgres/warehouse-init.sql:/init/warehouse-init.sql:ro
+    mem_limit: 64m
+
+  grafana:
+    image: grafana/grafana:13.2.5@sha256:9f7aa1e1e3246aade5792d35a738049f7f32f89cd51d1956cf426a4e86268a84
+    depends_on:
+      warehouse-init:
+        condition: service_completed_successfully
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: ${PROHORI_GRAFANA_PASSWORD:-prohori}
+      # The dashboards open without a login, read-only.
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Viewer
+      GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH: /etc/grafana/dashboards/overview.json
+      # No calls home: usage reporting, update checks, news and plugin downloads are off.
+      GF_ANALYTICS_REPORTING_ENABLED: "false"
+      GF_ANALYTICS_CHECK_FOR_UPDATES: "false"
+      GF_ANALYTICS_CHECK_FOR_PLUGIN_UPDATES: "false"
+      GF_ANALYTICS_FEEDBACK_LINKS_ENABLED: "false"
+      GF_NEWS_NEWS_FEED_ENABLED: "false"
+      GF_PLUGINS_PREINSTALL_DISABLED: "true"
+      GF_LOG_LEVEL: warn
+      PROHORI_GRAFANA_DB_PASSWORD: ${PROHORI_GRAFANA_DB_PASSWORD:-grafana}
+    ports:
+      - "127.0.0.1:${PROHORI_GRAFANA_PORT:-13000}:3000"
+    volumes:
+      # Everything is provisioned from these files, so Grafana keeps no data volume.
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/etc/grafana/dashboards:ro
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:3000/api/health || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 24
+      start_period: 20s
     restart: unless-stopped
     mem_limit: 512m
 

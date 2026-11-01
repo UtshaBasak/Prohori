@@ -1,0 +1,19 @@
+# The stack's PostgreSQL, read with Grafana's own read-only role (see pipeline/postgres/).
+apiVersion: 1
+
+datasources:
+  - name: Prohori warehouse
+    uid: prohori-warehouse
+    type: grafana-postgresql-datasource
+    url: postgres:5432
+    user: grafana
+    isDefault: true
+    editable: false
+    jsonData:
+      database: prohori
+      sslmode: disable
+      postgresVersion: 1700
+      timescaledb: false
+      maxOpenConns: 4
+    secureJsonData:
+      password: $PROHORI_GRAFANA_DB_PASSWORD

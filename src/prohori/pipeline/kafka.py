@@ -84,6 +84,13 @@ def client() -> SimpleNamespace:
     )
 
 
+def _has_leader(metadata: Any) -> bool:  # noqa: ANN401 - confluent_kafka metadata
+    """Whether topic metadata from ``list_topics`` shows the topic ready to use."""
+    if metadata is None or metadata.error is not None or not metadata.partitions:
+        return False
+    return all(p.leader >= 0 for p in metadata.partitions.values())
+
+
 def decode_message(topic: Topic, position: int, key: bytes | None, value: bytes | None) -> Record:
     """Turn a Kafka message into a :class:`Record`, never raising on bad input."""
     text = (value or b"").decode("utf-8", errors="replace")
@@ -139,7 +146,11 @@ class KafkaTransport:
     # ------------------------------------------------------------------ topics
 
     def ensure_topics(self) -> None:
-        """Create every topic that does not exist yet: one partition, unlimited retention."""
+        """Create every topic that does not exist yet: one partition, unlimited retention.
+
+        Returns once every topic has a leader: a topic another stage has only just created can
+        still be unknown to the broker that answers the next request.
+        """
         admin = self.kafka.AdminClient({"bootstrap.servers": self.bootstrap})
         topics = [
             self.kafka.NewTopic(
@@ -161,6 +172,19 @@ class KafkaTransport:
             except Exception as exc:  # a timeout: the broker is not reachable
                 msg = f"cannot reach the Kafka broker at {self.bootstrap}: {exc}"
                 raise TransportError(msg) from exc
+        self._await_topics(admin, [t.value for t in Topic])
+
+    def _await_topics(self, admin: Any, names: list[str]) -> None:  # noqa: ANN401 - AdminClient
+        deadline = time.monotonic() + BROKER_TIMEOUT
+        while True:
+            topics = admin.list_topics(timeout=BROKER_TIMEOUT).topics
+            waiting = [name for name in names if not _has_leader(topics.get(name))]
+            if not waiting:
+                return
+            if time.monotonic() >= deadline:
+                msg = f"topics {', '.join(waiting)} have no leader on {self.bootstrap}"
+                raise TransportError(msg)
+            time.sleep(0.2)
 
     # ------------------------------------------------------------------ writing
 

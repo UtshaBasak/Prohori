@@ -1,8 +1,8 @@
 """The Docker stack: start, stop and inspect it with ``docker compose``.
 
-The stack (``pipeline/docker-compose.yml`` in the repository) runs Redpanda, PostgreSQL and one
-container per pipeline stage under the Compose project name ``prohori``. These helpers only build
-and run ``docker compose`` command lines; they never use a shell.
+The stack (``pipeline/docker-compose.yml`` in the repository) runs Redpanda, PostgreSQL, one
+container per pipeline stage and Grafana under the Compose project name ``prohori``. These helpers
+only build and run ``docker compose`` command lines; they never use a shell.
 """
 
 import json
@@ -18,10 +18,11 @@ PROJECT = "prohori"
 #: Where the compose file is in a clone of the repository.
 DEFAULT_COMPOSE_FILE = Path("pipeline") / "docker-compose.yml"
 #: Services that run once and exit (they are healthy when they exited with 0).
-ONE_SHOT = frozenset({"redpanda-init"})
-#: Host ports published by the compose file (both bound to 127.0.0.1 only).
+ONE_SHOT = frozenset({"warehouse-init"})
+#: Host ports published by the compose file (all bound to 127.0.0.1 only).
 KAFKA_PORT = 19092
 POSTGRES_PORT = 15432
+GRAFANA_PORT = 13000
 
 Runner = Callable[..., "subprocess.CompletedProcess[str]"]
 
@@ -139,3 +140,8 @@ def default_dsn() -> str:
 def default_bootstrap() -> str:
     """The broker address from the host: ``PROHORI_KAFKA_BOOTSTRAP`` or ``127.0.0.1:19092``."""
     return os.environ.get("PROHORI_KAFKA_BOOTSTRAP", f"127.0.0.1:{KAFKA_PORT}")
+
+
+def dashboard_url() -> str:
+    """Grafana from the host: ``http://127.0.0.1:13000`` or the ``PROHORI_GRAFANA_PORT`` port."""
+    return f"http://127.0.0.1:{os.environ.get('PROHORI_GRAFANA_PORT', str(GRAFANA_PORT))}"

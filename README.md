@@ -424,6 +424,19 @@ the simulator's eight scenarios, the models' rule precision equals the simulator
 evaluation alert for alert, which CI checks. Every attack was detected, the fastest in 0 s and
 the slowest (an admin acting at night) in 252 s. Details: [docs/WAREHOUSE.md](docs/WAREHOUSE.md).
 
+**Dashboards.** `prohori pipeline up` also starts Grafana on http://127.0.0.1:13000, with three
+dashboards provisioned from `pipeline/grafana/`. They open without a login or any setup:
+- **Overview**: events, alerts and incidents over time, rule hits and top sources. It reads the
+  raw tables, so it fills as soon as a replay is stored.
+- **Detection quality**: rule precision, time to detect, detection latency and flow-model
+  performance, from the dbt marts.
+- **Pipeline health**: time since the last stored event, rows per minute and dead letters.
+
+![Overview dashboard after replaying the eight simulator scenarios one day apart](docs/images/dashboard-overview.png)
+
+Grafana reads through its own database role, which can only `SELECT`. The smoke test runs every
+panel's query through Grafana after a replay. Details: [docs/DASHBOARD.md](docs/DASHBOARD.md).
+
 ## Privacy and safety
 
 - **Offline by default.** Nothing leaves the machine unless you configure API keys and, for
@@ -461,6 +474,7 @@ Third-party data terms (MITRE ATT&CK, GeoLite2, AbuseIPDB, VirusTotal) are summa
 | [Anomaly detection](docs/ANOMALY.md) | `--models`: features, detectors, comparison with the rules, false alerts |
 | [Streaming pipeline](docs/PIPELINE.md) | Lite mode and the Docker stack: topics, delivery guarantees, dead letters, tailing, the tables |
 | [Warehouse models](docs/WAREHOUSE.md) | dbt models, data-quality checks, labels and model results, results on the simulator |
+| [Dashboards](docs/DASHBOARD.md) | The Grafana dashboards: panels, set-up, access, time range, changing a dashboard |
 | [Decisions](docs/DECISIONS.md) | Architecture decision records |
 | [Releasing](docs/RELEASING.md) | How releases are built, tested and published |
 | [Third-party terms](docs/LICENSES.md) | Data and service licences |
@@ -493,7 +507,7 @@ Prohori is honest about what it does not do:
 |---------|----------|-------|
 | v0.1.0 | Batch core: parsers, rules, enrichment, incidents, reports, log simulator with rule evaluation, `triage` and `demo` commands | Released |
 | v0.2.0 | Machine learning: leakage-controlled intrusion detection on public flow datasets, log-derived anomaly detection, model cards | Released |
-| v0.3.0 | Pipeline: streaming core and lite mode (done), Redpanda and PostgreSQL in Docker (done), dbt models and data-quality checks (done), dashboard, orchestration | In progress |
+| v0.3.0 | Pipeline: streaming core and lite mode (done), Redpanda and PostgreSQL in Docker (done), dbt models and data-quality checks (done), Grafana dashboards (done), orchestration | In progress |
 | v1.0.0 | Optional LLM analyst (opt-in, redacted input, validated output), final polish | Planned |
 
 ## Development

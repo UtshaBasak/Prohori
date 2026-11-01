@@ -902,3 +902,49 @@ Docker stack's PostgreSQL.
 were identical between DuckDB and PostgreSQL for the same replay. Precision and time to detect
 exist only for labelled (simulated) logs. Model performance over time has one point per loaded
 evaluation until the nightly job of step 22 adds more.
+
+---
+
+## ADR-0026: Provisioned Grafana dashboards
+
+- **Date:** 2026-11-02
+- **Status:** Accepted
+
+**Context.** Step 21 adds dashboards to the Docker stack: incidents over time, top sources, rule
+hits, model metrics and pipeline health. They must load with data after `prohori pipeline up`
+and a replay, with no manual setup, and fit the memory budget beside the rest of the stack.
+
+**Decision.**
+- **Grafana** (open question 4, resolved) rather than Metabase. Its dashboards and data sources
+  are files that can be reviewed and tested, it reads PostgreSQL directly, and it is lighter
+  than Metabase's JVM. The image is `grafana/grafana:13.2.5`, pinned by digest. 13.2.5 was six
+  days old, newer than the two-week rule allows, but it fixes four CVEs that 13.2.4 has, so the
+  security fix wins.
+- **Live panels on the raw tables, analysis panels on the marts.** The stack does not run dbt,
+  so dashboards built only on the marts would be empty after `up` and a replay. The Overview and
+  Pipeline health dashboards query `raw.*`, so they fill as soon as the sink stores rows.
+  Detection quality reads the dbt marts and says how to build them. A dbt runner service was
+  rejected: it adds an image and memory for a job that step 22's scheduler will own.
+- **A read-only database role.** Grafana logs in as `grafana`, with `SELECT` on `raw` and `marts`
+  only. A one-shot `warehouse-init` service (the PostgreSQL image again, so nothing new is
+  pulled) creates it on every `up`. Default privileges give the role access to tables created
+  later, so it keeps working when dbt replaces the marts. The statements are idempotent and run
+  on every start, unlike an init script, which runs only on an empty volume. The stage
+  containers wait for it, so they never race it to create the `raw` schema.
+- **Local and quiet.** Grafana listens on 127.0.0.1:13000. Anonymous visitors get the Viewer
+  role, and the admin password comes from the environment. Usage reporting, update checks, news
+  and plugin pre-installation are off. There is no data volume: everything is provisioned, and
+  provisioned dashboards cannot be saved from the UI.
+- **Tested queries.** A unit test checks that every panel uses the provisioned data source and
+  reads only existing tables. The Docker smoke test runs every panel's SQL through Grafana's API
+  after a replay.
+- **Two start-up races fixed on the way.** PostgreSQL's health check now connects over TCP. On
+  the first start, the image initialises the database with a temporary server that only listens
+  on its socket, so a socket check reported healthy too early. The Kafka transport now waits
+  until every topic has a leader, because a topic another stage had just created could still be
+  unknown to the broker.
+
+**Consequences.** `up` starts eight services, with memory limits of about 3.9 GB in total.
+Grafana used about 250 MB of its 512 MB with the dashboards open. The Grafana image takes about
+2 GB on disk. Until a dbt build has run, the Detection quality dashboard shows that the marts
+are missing.

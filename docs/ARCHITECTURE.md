@@ -63,7 +63,7 @@ Both modes share the same core library.
 | `prohori.reports` | Report templates, renderers and redaction |
 | `prohori.simulate` | Labelled attack-scenario log generator |
 | `prohori.ml` | Dataset registry, chunked loading, leakage-controlled cleaning, flow models, training, SOC metrics, the cross-dataset test, flow scoring and log anomaly detection |
-| `prohori.pipeline` | Topics and messages, transports (memory, file, Kafka), producers (replay, rotation-aware tailer), consumers (normalise, detect, incidents), DuckDB and PostgreSQL sinks, the warehouse tables and loaders (labels, model results), the lite-mode runner, `serve` for one stage per container and the Docker stack helpers ([PIPELINE.md](PIPELINE.md)) |
+| `prohori.pipeline` | Topics and messages, transports (memory, file, Kafka), producers (replay, rotation-aware tailer), consumers (normalise, detect, incidents), DuckDB and PostgreSQL sinks, the warehouse tables and loaders (labels, model results), the lite-mode runner, `serve` for one stage per container and the Docker stack helpers ([PIPELINE.md](PIPELINE.md)); Grafana dashboards are provisioned from `pipeline/grafana/` ([DASHBOARD.md](DASHBOARD.md)) |
 | `prohori.llm` | Provider interface, retrieval, safeguards |
 
 ## Principles
