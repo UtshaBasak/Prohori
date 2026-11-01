@@ -1,25 +1,37 @@
-"""DuckDB sink: events, alerts, incidents and dead letters in one local database file.
+"""Sinks: events, alerts, incidents and dead letters in a database.
 
-Every table has the message id as its primary key and rows are written with ``INSERT OR IGNORE``,
-so a message delivered twice (a replay, a redelivery after a crash) is stored once. Each row keeps
-a few columns for querying and the whole message as JSON in ``record``.
+:class:`Sink` holds what every database sink shares; :class:`DuckDBSink` writes a local DuckDB
+file (lite mode) and :class:`~prohori.pipeline.postgres.PostgresSink` a PostgreSQL warehouse (the
+Docker stack). Every table has the message id as its primary key and rows that already exist are
+ignored, so a message delivered twice (a replay, a redelivery after a crash) is stored once. Each
+row keeps a few columns for querying and the whole message as JSON in ``record``.
+
+A batch is written in one transaction before the transport positions are committed. If the
+database rejects a batch because of its data, the rows are written one at a time and each row it
+still rejects becomes a dead letter; any other database error stops the stage, and the batch is
+delivered again after a restart.
 """
 
 import json
+import logging
+from abc import abstractmethod
 from collections.abc import Callable, Mapping, Sequence
+from dataclasses import dataclass
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 from pydantic import BaseModel
 
 from prohori.pipeline import MissingExtraError
-from prohori.pipeline.messages import DeadLetter, Topic
+from prohori.pipeline.messages import DeadLetter, Topic, dead_letter
 from prohori.pipeline.stages import Stage
 from prohori.pipeline.transport import Record, Transport
 from prohori.schema import Alert, Event, Incident
 
 if TYPE_CHECKING:
     import duckdb
+
+logger = logging.getLogger(__name__)
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS events (
@@ -137,21 +149,40 @@ _ROWS: dict[Topic, tuple[str, type[BaseModel], Callable[[Any, str], tuple[Any, .
 }
 
 
-class DuckDBSink(Stage):
-    """Writes every ``events``, ``alerts``, ``incidents`` and ``dead-letter`` message to DuckDB.
+def strip_nul(value: object) -> object:
+    """Replace NUL characters in every string of ``value``: PostgreSQL text cannot hold them."""
+    if isinstance(value, str):
+        return value.replace("\x00", "\ufffd")
+    if isinstance(value, dict):
+        return {strip_nul(k): strip_nul(v) for k, v in value.items()}
+    if isinstance(value, list):
+        return [strip_nul(v) for v in value]
+    return value
 
-    A batch is written in one transaction, committed to the database before the transport
-    positions are committed.
+
+@dataclass(frozen=True)
+class _Row:
+    topic: Topic
+    key: str | None
+    values: tuple[Any, ...]
+    record: str
+
+
+class Sink(Stage):
+    """Writes every ``events``, ``alerts``, ``incidents`` and ``dead-letter`` message.
+
+    Subclasses implement :meth:`write` (one transaction, rolled back and re-raised on error),
+    :meth:`counts` and :meth:`close`, and set :attr:`data_errors` to the database errors caused
+    by a row's content.
     """
 
     name = "sink"
     inputs = (Topic.EVENTS, Topic.ALERTS, Topic.INCIDENTS, Topic.DEAD_LETTER)
+    data_errors: tuple[type[Exception], ...] = ()
 
-    def __init__(self, transport: Transport, path: Path) -> None:
+    def __init__(self, transport: Transport) -> None:
         super().__init__(transport)
-        self.path = path
-        self.connection = connect(path)
-        self._rows: dict[str, list[tuple[Any, ...]]] = {}
+        self._rows: dict[str, list[_Row]] = {}
 
     def _process(self, batches: Sequence[tuple[Topic, list[Record]]]) -> int:
         self._rows = {}
@@ -159,9 +190,11 @@ class DuckDBSink(Stage):
 
     def handle(self, topic: Topic, value: Mapping[str, Any]) -> None:
         table, model, row = _ROWS[topic]
-        item = model.model_validate(value)
-        record = json.dumps(value, separators=(",", ":"))
-        self._rows.setdefault(table, []).append(row(item, record))
+        clean = cast(dict[str, Any], strip_nul(dict(value)))
+        item = model.model_validate(clean)
+        record = json.dumps(clean, separators=(",", ":"))
+        key = clean.get("id") if isinstance(clean.get("id"), str) else None
+        self._rows.setdefault(table, []).append(_Row(topic, key, row(item, record), record))
 
     def reject(self, record: Record, reason: str, payload: str) -> None:
         if record.topic is Topic.DEAD_LETTER:
@@ -173,26 +206,66 @@ class DuckDBSink(Stage):
     def tick(self) -> None:
         if not self._rows:
             return
+        try:
+            self.write({table: [r.values for r in rows] for table, rows in self._rows.items()})
+        except self.data_errors as exc:
+            logger.warning("the database rejected a batch (%s); writing it row by row", exc)
+            self._write_rows()
+        self.metrics.produced += sum(len(rows) for rows in self._rows.values())
+        self._rows = {}
+
+    def _write_rows(self) -> None:
+        for table, rows in self._rows.items():
+            for row in rows:
+                try:
+                    self.write({table: [row.values]})
+                except self.data_errors as exc:
+                    reason = f"database rejected the row: {type(exc).__name__}"
+                    if row.topic is Topic.DEAD_LETTER:
+                        self.metrics.dead_letters += 1
+                        continue
+                    letter = dead_letter(self.name, row.topic, row.key, reason, row.record)
+                    self.publish_dead_letter(letter)
+
+    @abstractmethod
+    def write(self, rows: Mapping[str, Sequence[tuple[Any, ...]]]) -> None:
+        """Insert ``rows`` (by table), ignoring existing ids, in one transaction."""
+
+    @abstractmethod
+    def counts(self) -> dict[str, int]:
+        """Rows in each table."""
+
+    @abstractmethod
+    def close(self) -> None:
+        """Close the database connection."""
+
+
+class DuckDBSink(Sink):
+    """Writes to a local DuckDB file (lite mode)."""
+
+    def __init__(self, transport: Transport, path: Path) -> None:
+        super().__init__(transport)
+        self.path = path
+        self.connection = connect(path)
+        import duckdb
+
+        self.data_errors = (duckdb.DataError, duckdb.IntegrityError)
+
+    def write(self, rows: Mapping[str, Sequence[tuple[Any, ...]]]) -> None:
         self.connection.execute("BEGIN TRANSACTION")
         try:
-            for table, rows in self._rows.items():
+            for table, table_rows in rows.items():
                 # One statement per table and batch, each column bound as one list parameter
                 # (executemany would run one statement per row, which is far slower).
-                columns = [list(column) for column in zip(*rows, strict=True)]
+                columns = [list(column) for column in zip(*table_rows, strict=True)]
                 unnest = ", ".join(["unnest(?)"] * len(columns))
-                self.connection.execute(
-                    f"INSERT OR IGNORE INTO {table} SELECT {unnest}",
-                    columns,
-                )
+                self.connection.execute(f"INSERT OR IGNORE INTO {table} SELECT {unnest}", columns)
             self.connection.execute("COMMIT")
         except Exception:
             self.connection.execute("ROLLBACK")
             raise
-        self.metrics.produced += sum(len(rows) for rows in self._rows.values())
-        self._rows = {}
 
     def counts(self) -> dict[str, int]:
-        """Rows in each table."""
         result: dict[str, int] = {}
         for table in TABLES:
             row = self.connection.execute(f"SELECT count(*) FROM {table}").fetchone()  # noqa: S608

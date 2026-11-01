@@ -13,7 +13,7 @@ The Kafka transport in the Docker stack implements the same protocol.
 
 import json
 import os
-from collections.abc import Mapping
+from collections.abc import Iterator, Mapping
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, BinaryIO, Protocol
@@ -55,11 +55,19 @@ class Transport(Protocol):
     def poll(self, topic: Topic, group: str, max_records: int) -> list[Record]:
         """Return up to ``max_records`` messages after the group's read position, advancing it."""
 
+    def batches_to_end(self, topic: Topic, group: str, max_records: int) -> Iterator[list[Record]]:
+        """Yield batches of messages up to the end of ``topic`` as it was when called.
+
+        Unlike an empty :meth:`poll`, which may only mean that nothing arrived in time, this
+        reaches every message published before the call. Batches are yielded one at a time, so
+        a long backlog is never held in memory at once.
+        """
+
     def commit(self, record: Record, group: str) -> None:
         """Record that ``group`` has processed everything up to and including ``record``."""
 
     def rewind(self, topic: Topic, group: str) -> None:
-        """Move the group's read position back to the start of the topic (and commit it)."""
+        """Move the group's read position back to the start of the topic."""
 
     def close(self) -> None:
         """Release files and other resources."""
@@ -81,6 +89,14 @@ def decode(topic: Topic, position: int, line: bytes) -> Record:
             topic, position, None, None, "not a keyed message", raw[:MAX_DEAD_LETTER_PAYLOAD]
         )
     return Record(topic, position, message["key"], message["value"])
+
+
+def drain(
+    transport: Transport, topic: Topic, group: str, max_records: int
+) -> Iterator[list[Record]]:
+    """Poll until nothing is left: enough for transports where an empty poll means the end."""
+    while batch := transport.poll(topic, group, max_records):
+        yield batch
 
 
 def encode(key: str, value: Mapping[str, Any]) -> bytes:
@@ -113,6 +129,9 @@ class MemoryTransport:
         return [
             decode(topic, start + index + 1, line.rstrip(b"\n")) for index, line in enumerate(lines)
         ]
+
+    def batches_to_end(self, topic: Topic, group: str, max_records: int) -> Iterator[list[Record]]:
+        return drain(self, topic, group, max_records)
 
     def commit(self, record: Record, group: str) -> None:
         self.committed[(group, record.topic)] = record.position
@@ -226,6 +245,9 @@ class FileTransport:
                 continue
             records.append(decode(topic, reader.tell(), line.rstrip(b"\n")))
         return records
+
+    def batches_to_end(self, topic: Topic, group: str, max_records: int) -> Iterator[list[Record]]:
+        return drain(self, topic, group, max_records)
 
     def commit(self, record: Record, group: str) -> None:
         self._write_offset(group, record.topic, record.position)

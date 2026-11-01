@@ -19,7 +19,7 @@ from abc import ABC, abstractmethod
 from collections import OrderedDict
 from collections.abc import Callable, Iterable, Mapping, Sequence
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any, ClassVar
 
@@ -67,7 +67,8 @@ class Stage(ABC):
     """A consumer group that reads ``inputs``, handles each message and commits.
 
     Subclasses implement :meth:`handle` and may override :meth:`finish` (end of input or
-    shutdown: release held state) and :meth:`tick` (called after every batch).
+    shutdown: release held state), :meth:`tick` (called after every batch) and :meth:`idle`
+    (called when the input has been quiet for a while).
     """
 
     name: ClassVar[str]
@@ -141,6 +142,9 @@ class Stage(ABC):
 
     def tick(self) -> None:  # noqa: B027 - optional hook, intentionally empty
         """Called after every batch, before the transport is flushed."""
+
+    def idle(self) -> None:  # noqa: B027 - optional hook, intentionally empty
+        """The inputs have been quiet for a while (live mode only)."""
 
     def finish(self) -> None:
         """End of input or shutdown: publish whatever is still held."""
@@ -249,7 +253,9 @@ class Detector(Stage):
     """``events`` -> ``alerts``: the rule engine over the event stream.
 
     Events seen before (a replay, or a redelivery) are dropped before they reach the engine, so
-    they cannot be counted twice by a threshold rule.
+    they cannot be counted twice by a threshold rule. With ``live`` (following live logs), events
+    timestamped more than a day after ``now()`` are rejected, and "now" moves on before every
+    batch, so a stage that runs for days keeps evaluating new events.
     """
 
     name = "detect"
@@ -262,21 +268,38 @@ class Detector(Stage):
         rules: Sequence[CompiledRule],
         *,
         lateness: timedelta,
-        reference_time: datetime | None = None,
+        live: bool = False,
+        now: Callable[[], datetime] = lambda: datetime.now(UTC),
     ) -> None:
         super().__init__(transport)
         self.rules = list(rules)
         self.lateness = lateness
-        self.reference_time = reference_time
-        self.engine = RuleEngine(rules, lateness=lateness, reference_time=reference_time)
+        self.live = live
+        self.now = now
+        self.engine = self._engine()
         self.seen = _Seen(MAX_SEEN_EVENTS)
+
+    def _engine(self) -> RuleEngine:
+        reference = self.now() if self.live else None
+        return RuleEngine(self.rules, lateness=self.lateness, reference_time=reference)
 
     def start(self) -> None:
         super().start()
-        self.engine = RuleEngine(
-            self.rules, lateness=self.lateness, reference_time=self.reference_time
-        )
+        self.engine = self._engine()
         self.seen = _Seen(MAX_SEEN_EVENTS)
+
+    def step(self, max_records: int) -> int:
+        if self.live:
+            self.engine.set_reference_time(self.now())
+        late = self.engine.stats.late_events
+        count = super().step(max_records)
+        if self.engine.stats.late_events > late:
+            logger.warning(
+                "%d event(s) arrived too late for the rules and were not evaluated (older than "
+                "events already processed); replay older logs first or start with fresh topics",
+                self.engine.stats.late_events - late,
+            )
+        return count
 
     def handle(self, topic: Topic, value: Mapping[str, Any]) -> None:
         event = Event.model_validate(value)
@@ -284,6 +307,11 @@ class Detector(Stage):
             self.metrics.duplicates += 1
             return
         self._emit(self.engine.process(event))
+
+    def idle(self) -> None:
+        """Release the events held for reordering, so a quiet log's last alerts are not held."""
+        self._emit(self.engine.flush())
+        self.transport.flush()
 
     def finish(self) -> None:
         self._emit(self.engine.flush())
@@ -321,9 +349,9 @@ class IncidentStage(Stage):
     """``events`` + ``alerts`` -> ``incidents``: group alerts once their group can no longer grow.
 
     The stage remembers the events (as the batch command does) and holds alerts until the newest
-    alert time has moved :func:`hold_time` past a group's last alert, or, when following live logs,
-    until that much wall-clock time has passed without new alerts. Then it builds the incidents
-    with the same :class:`IncidentBuilder` as ``prohori incidents``.
+    alert time has moved :func:`hold_time` past a group's last alert, or, with ``idle_close``
+    (live logs), until that many seconds have passed without new alerts. Then it builds the
+    incidents with the same :class:`IncidentBuilder` as ``prohori incidents``.
     """
 
     name = "incidents"
@@ -340,7 +368,7 @@ class IncidentStage(Stage):
         enricher: Enricher | None = None,
         enrichment: str = "none",
         clock: Callable[[], float] = time.monotonic,
-        idle_close: bool = False,
+        idle_close: float | None = None,
     ) -> None:
         super().__init__(transport)
         self.rules = list(rules)
@@ -364,13 +392,13 @@ class IncidentStage(Stage):
         self._reset()
 
     def step(self, max_records: int) -> int:
-        # Alerts first, then every event published so far: the events behind an alert are always
-        # published before the alert, so they are in the context when the alert is handled.
+        # Alerts first, then every event up to the end of the topic: the events behind an alert
+        # are always published before the alert, so they are in the context when it is handled.
         alerts = self.transport.poll(Topic.ALERTS, self.group, max_records)
-        events: list[Record] = []
-        while batch := self.transport.poll(Topic.EVENTS, self.group, max_records):
-            events.extend(batch)
-        return self._process([(Topic.EVENTS, events), (Topic.ALERTS, alerts)])
+        count = 0
+        for events in self.transport.batches_to_end(Topic.EVENTS, self.group, max_records):
+            count += self._process([(Topic.EVENTS, events)])
+        return count + self._process([(Topic.ALERTS, alerts)])
 
     def handle(self, topic: Topic, value: Mapping[str, Any]) -> None:
         if topic is Topic.EVENTS:
@@ -388,7 +416,8 @@ class IncidentStage(Stage):
     def tick(self) -> None:
         if not self.pending or self.watermark is None:
             return
-        if self.idle_close and self.clock() - self.last_alert_at >= self.hold.total_seconds():
+        quiet = self.clock() - self.last_alert_at
+        if self.idle_close is not None and quiet >= self.idle_close:
             self._close(self.pending.values())
             return
         horizon = self.watermark - self.hold

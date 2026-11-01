@@ -1,7 +1,7 @@
 """DuckDB sink: idempotent writes, one transaction per batch, dead letters stored."""
 
 import json
-from collections.abc import Iterator
+from collections.abc import Iterator, Mapping, Sequence
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -9,7 +9,7 @@ import duckdb
 import pytest
 
 from prohori.pipeline.messages import Topic, dead_letter
-from prohori.pipeline.sink import DuckDBSink, connect
+from prohori.pipeline.sink import DuckDBSink, connect, strip_nul
 from prohori.pipeline.transport import MemoryTransport
 from prohori.schema import Alert, Event, Severity
 
@@ -110,9 +110,8 @@ def test_failed_write_is_not_committed(
 
 def test_rollback_on_database_error(sink: tuple[MemoryTransport, DuckDBSink]) -> None:
     _, stage = sink
-    stage._rows = {"events": [("only-one-column",)]}
     with pytest.raises(duckdb.Error):
-        stage.tick()
+        stage.write({"events": [("only-one-column",)]})
     assert stage.counts()["events"] == 0
 
 
@@ -123,3 +122,46 @@ def test_connect_reopens_an_existing_database(tmp_path: Path) -> None:
     tables = {row[0] for row in connection.execute("SHOW TABLES").fetchall()}
     connection.close()
     assert tables == {"events", "alerts", "incidents", "dead_letters"}
+
+
+def test_strip_nul_cleans_nested_strings() -> None:
+    value = {"a\x00": ["x\x00y", {"z": "\x00"}], "n": 1}
+    assert strip_nul(value) == {"a\ufffd": ["x\ufffdy", {"z": "\ufffd"}], "n": 1}
+
+
+def test_nul_characters_are_stored_as_replacement_characters(
+    sink: tuple[MemoryTransport, DuckDBSink],
+) -> None:
+    transport, stage = sink
+    letter = dead_letter("normalise", "raw-logs", "f:1", "bad", "a\x00b")
+    transport.publish(Topic.DEAD_LETTER, letter.id, letter.model_dump(mode="json"))
+    stage.step(100)
+    row = stage.connection.execute("SELECT payload FROM dead_letters").fetchone()
+    assert row == ("a\ufffdb",)
+
+
+def test_rows_the_database_rejects_become_dead_letters(
+    sink: tuple[MemoryTransport, DuckDBSink], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    transport, stage = sink
+    good, bad = _event(1), _event(2)
+    for event in (good, bad):
+        transport.publish(Topic.EVENTS, event.id, event.model_dump(mode="json"))
+    broken = dead_letter("normalise", "raw-logs", "f:9", "user2", "x")
+    transport.publish(Topic.DEAD_LETTER, broken.id, broken.model_dump(mode="json"))
+    original = stage.write
+
+    def picky(rows: Mapping[str, Sequence[tuple[object, ...]]]) -> None:
+        if any("user2" in str(row) for table in rows.values() for row in table):
+            raise duckdb.DataError("the database does not like user2")
+        original(rows)
+
+    monkeypatch.setattr(stage, "write", picky)
+    stage.step(100)
+    assert stage.counts()["events"] == 1
+    letters = [r.value for r in transport.poll(Topic.DEAD_LETTER, "check", 10)]
+    from_sink = [v for v in letters if v is not None and v["stage"] == "sink"]
+    assert len(from_sink) == 1
+    assert from_sink[0]["key"] == bad.id
+    assert from_sink[0]["reason"] == "database rejected the row: DataError"
+    assert stage.metrics.dead_letters == 2  # the event, and the dead letter it could not store

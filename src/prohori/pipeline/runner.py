@@ -1,4 +1,6 @@
-"""The lite-mode runner: every stage in one process, taking turns.
+"""Running the stages: the lite-mode runner, and :func:`serve` for one stage per process.
+
+**Lite mode** (:class:`LitePipeline`) runs every stage in one process, taking turns.
 
 Each round, the producers publish new lines and every stage processes one batch, in pipeline
 order. :meth:`LitePipeline.drain` repeats rounds until nothing moves; :meth:`LitePipeline.finish`
@@ -7,26 +9,32 @@ incidents) and drains again, stage by stage, so the last incidents reach the dat
 
 Shutdown is graceful: :meth:`LitePipeline.follow` stops between rounds when its ``stop`` event is
 set (the command sets it on Ctrl+C or SIGTERM), finishes the stages and commits.
+
+**The Docker stack** runs each stage in its own container over Kafka with :func:`serve`, which
+loops until it is stopped and touches a heartbeat file the container's health check reads.
 """
 
 import threading
 import time
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
-from datetime import UTC, datetime, timedelta
+from datetime import timedelta
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 from prohori.enrich import Enricher
 from prohori.incidents import IncidentSettings
+from prohori.pipeline.postgres import PostgresSink
 from prohori.pipeline.producers import FileTailer
-from prohori.pipeline.sink import DuckDBSink
+from prohori.pipeline.sink import DuckDBSink, Sink
 from prohori.pipeline.stages import Detector, IncidentStage, Normaliser, ParserSettings, Stage
 from prohori.pipeline.transport import Transport
 from prohori.rules import CompiledRule
 
 #: Messages each stage reads per input and round.
 BATCH_SIZE = 500
+#: The stages, in pipeline order.
+STAGES = ("normalise", "detect", "incidents", "sink")
 
 
 @dataclass(frozen=True)
@@ -40,7 +48,93 @@ class LiteSettings:
     lateness: timedelta = timedelta(minutes=5)
     enricher: Enricher | None = None
     enrichment: str = "none"
-    follow: bool = False  # live logs: close incidents after a quiet spell too
+    follow: bool = False  # live logs: reject future timestamps, close incidents when quiet
+    #: Seconds without new alerts after which open incidents are written (default when
+    #: following: the incident hold time; never otherwise).
+    idle_close: float | None = None
+
+
+def make_stage(
+    name: str,
+    transport: Transport,
+    settings: LiteSettings,
+    *,
+    postgres: str | None = None,
+    clock: Callable[[], float] = time.monotonic,
+) -> Stage:
+    """Create the stage called ``name`` (see :data:`STAGES`).
+
+    The sink writes to PostgreSQL when ``postgres`` (a connection string) is given and to the
+    DuckDB file in ``settings.database`` otherwise.
+    """
+    if name == "normalise":
+        return Normaliser(transport, settings.parsers)
+    if name == "detect":
+        return Detector(transport, settings.rules, lateness=settings.lateness, live=settings.follow)
+    if name == "incidents":
+        stage = IncidentStage(
+            transport,
+            settings.rules,
+            settings=settings.incidents,
+            lateness=settings.lateness,
+            enricher=settings.enricher,
+            enrichment=settings.enrichment,
+            clock=clock,
+        )
+        if settings.idle_close is not None:
+            stage.idle_close = settings.idle_close
+        elif settings.follow:
+            stage.idle_close = stage.hold.total_seconds()
+        return stage
+    if name == "sink":
+        if postgres:
+            return PostgresSink(transport, postgres)
+        return DuckDBSink(transport, settings.database)
+    msg = f"unknown stage {name!r}; choose from {', '.join(STAGES)}"
+    raise ValueError(msg)
+
+
+def serve(
+    stages: Sequence[Stage],
+    stop: threading.Event,
+    *,
+    poll_interval: float = 0.5,
+    idle_after: float = 10.0,
+    heartbeat: Path | None = None,
+    clock: Callable[[], float] = time.monotonic,
+    batch_size: int = BATCH_SIZE,
+    max_rounds: int | None = None,
+) -> int:
+    """Run ``stages`` until ``stop`` is set, then finish them; return the number of rounds.
+
+    After ``idle_after`` quiet seconds each stage's :meth:`~Stage.idle` runs once (the detector
+    releases its reorder buffer). ``heartbeat`` is touched after every round, so a health check
+    can tell a stuck process from a quiet one. An error stops the loop without finishing or
+    committing, so the batch is delivered again after a restart.
+    """
+    for stage in stages:
+        stage.start()
+    quiet_since: float | None = None
+    rounds = 0
+    while not stop.is_set() and (max_rounds is None or rounds < max_rounds):
+        rounds += 1
+        moved = sum(stage.step(batch_size) for stage in stages)
+        if heartbeat is not None:
+            heartbeat.touch()
+        if moved:
+            quiet_since = None
+            continue
+        now = clock()
+        if quiet_since is None:
+            quiet_since = now
+        elif now - quiet_since >= idle_after:
+            for stage in stages:
+                stage.idle()
+            quiet_since = None
+        stop.wait(poll_interval)
+    for stage in stages:
+        stage.finish()
+    return rounds
 
 
 class LitePipeline:
@@ -65,22 +159,11 @@ class LitePipeline:
         self.settings = settings
         self.clock = clock
         self.batch_size = batch_size
-        reference = datetime.now(UTC) if settings.follow else None
-        self.normaliser = Normaliser(transport, settings.parsers)
-        self.detector = Detector(
-            transport, settings.rules, lateness=settings.lateness, reference_time=reference
-        )
-        self.incidents = IncidentStage(
-            transport,
-            settings.rules,
-            settings=settings.incidents,
-            lateness=settings.lateness,
-            enricher=settings.enricher,
-            enrichment=settings.enrichment,
-            clock=clock,
-            idle_close=settings.follow,
-        )
-        self.sink = DuckDBSink(transport, settings.database)
+        stages = {name: make_stage(name, transport, settings, clock=clock) for name in STAGES}
+        self.normaliser = cast(Normaliser, stages["normalise"])
+        self.detector = cast(Detector, stages["detect"])
+        self.incidents = cast(IncidentStage, stages["incidents"])
+        self.sink = cast(Sink, stages["sink"])
         self.stages: tuple[Stage, ...] = (self.normaliser, self.detector, self.incidents, self.sink)
         self.rounds = 0
         self.lines = 0
@@ -148,7 +231,8 @@ class LitePipeline:
             if quiet_since is None:
                 quiet_since = now
             elif now - quiet_since >= idle_flush:
-                self.detector.finish()
+                for stage in self.stages:
+                    stage.idle()
                 self.drain()
                 quiet_since = None
             stop.wait(poll_interval)

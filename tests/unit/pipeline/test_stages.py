@@ -157,6 +157,46 @@ class TestDetector:
         assert alerts
         assert len({a.id for a in alerts}) == len(alerts)
 
+    def test_a_live_detector_keeps_evaluating_after_a_day(self) -> None:
+        transport = MemoryTransport()
+        events = _events(transport, [_signin("alice", 0)])
+        clock = [T0]
+        detector = Detector(
+            transport, RULES, lateness=timedelta(0), live=True, now=lambda: clock[0]
+        )
+        detector.start()
+        detector.step(10)
+        assert detector.engine_counts["future_events"] == 0
+        # Two days later the stage is still running and a new event arrives.
+        clock[0] = T0 + timedelta(days=2)
+        later = events[0].model_copy(update={"timestamp": clock[0], "id": "evt-later"})
+        transport.publish(Topic.EVENTS, later.id, later.model_dump(mode="json"))
+        detector.step(10)
+        assert detector.engine_counts["future_events"] == 0
+        assert detector.engine_counts["events_in"] == 2
+
+    def test_late_events_are_logged(self, caplog: pytest.LogCaptureFixture) -> None:
+        transport = MemoryTransport()
+        _events(transport, [_signin("alice", 60), _signin("bob", 0)])
+        detector = Detector(transport, RULES, lateness=timedelta(0))
+        detector.idle()  # nothing held yet
+        detector.step(1)
+        detector.idle()  # alice's event is released: the watermark is minute 60
+        with caplog.at_level("WARNING"):
+            detector.step(10)
+        assert detector.engine_counts["late_events"] == 1
+        assert "1 event(s) arrived too late" in caplog.text
+
+    def test_idle_releases_the_reorder_buffer(self) -> None:
+        transport = MemoryTransport()
+        _events(transport, [_signin("alice", m // 2) for m in range(12)])
+        detector = Detector(transport, RULES, lateness=timedelta(minutes=5))
+        detector.step(10_000)
+        held = detector.engine.state_size()["buffered_events"]
+        assert held > 0
+        detector.idle()
+        assert detector.engine.state_size()["buffered_events"] == 0
+
 
 class TestIncidentStage:
     def test_hold_time_covers_gap_windows_and_lateness(self) -> None:
@@ -217,11 +257,11 @@ class TestIncidentStage:
             settings=IncidentSettings(),
             lateness=timedelta(0),
             clock=lambda: now[0],
-            idle_close=True,
+            idle_close=30.0,
         )
         stage.step(10_000)
         assert stage.pending
-        now[0] += stage.hold.total_seconds()
+        now[0] += 30.0
         stage.step(10_000)
         assert not stage.pending
         assert stage.metrics.produced == 1

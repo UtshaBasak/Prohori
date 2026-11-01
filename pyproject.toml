@@ -59,7 +59,9 @@ ml = [
     "joblib>=1.4",
 ]
 pipeline = [
+    "confluent-kafka>=2.6",
     "duckdb>=1.1",
+    "psycopg[binary]>=3.2",
 ]
 llm = []
 all = ["prohori[geoip,ml,pipeline,llm]"]
@@ -91,6 +93,8 @@ dev = [
     "pyarrow>=18.0",
     "joblib>=1.4",
     "duckdb>=1.1",
+    "confluent-kafka>=2.6",
+    "psycopg[binary]>=3.2",
 ]
 
 # --------------------------------------------------------------------------- build
@@ -186,6 +190,7 @@ addopts = [
 markers = [
     "slow: long-running tests, deselect with -m 'not slow'",
     "integration: end-to-end tests across several components",
+    "docker: needs a running Docker engine; run with PROHORI_DOCKER_TESTS=1",
 ]
 filterwarnings = ["error"]
 

@@ -7,7 +7,8 @@ from pathlib import Path
 import pytest
 
 from prohori.pipeline.producers import FileTailer, replay
-from prohori.pipeline.runner import LitePipeline, LiteSettings
+from prohori.pipeline.runner import LitePipeline, LiteSettings, make_stage, serve
+from prohori.pipeline.stages import IncidentStage
 from prohori.pipeline.transport import FileTransport, MemoryTransport
 from prohori.rules import builtin_rules_dir, load_rules
 from prohori.simulate import simulate, write
@@ -60,16 +61,15 @@ def test_follow_flushes_the_engine_when_the_logs_go_quiet(
     live.write_bytes(web_log.read_bytes())
     tailer = FileTailer(live, pipeline.transport, parser="access_log")
     calls: list[int] = []
-    original = pipeline.detector.finish
+    original = pipeline.detector.idle
 
-    def counting_finish() -> None:
+    def counting_idle() -> None:
         calls.append(1)
         original()
 
-    pipeline.detector.finish = counting_finish  # type: ignore[method-assign]
+    pipeline.detector.idle = counting_idle  # type: ignore[method-assign]
     pipeline.follow([tailer], threading.Event(), poll_interval=0, idle_flush=10, max_rounds=6)
-    # Quiet rounds flush the engine; finishing at the end flushes it once more.
-    assert len(calls) >= 2
+    assert calls  # quiet rounds released the engine's reorder buffer
 
 
 def test_follow_stops_when_the_event_is_set(pipeline: LitePipeline, tmp_path: Path) -> None:
@@ -95,3 +95,27 @@ def test_replay_state_survives_a_restart(web_log: Path, tmp_path: Path) -> None:
     second.close()
     assert after["tables"] == before
     assert after["stages"]["detect"]["duplicates"] > 0
+
+
+def test_serve_finishes_the_stages_when_stopped(tmp_path: Path) -> None:
+    transport = MemoryTransport()
+    settings = LiteSettings(rules=RULES, database=tmp_path / "p.duckdb")
+    detector = make_stage("detect", transport, settings)
+    finished: list[str] = []
+    detector.finish = lambda: finished.append("detect")  # type: ignore[method-assign]
+    stop = threading.Event()
+    stop.set()
+    assert serve([detector], stop, poll_interval=0) == 0
+    assert finished == ["detect"]
+
+
+def test_make_stage_choices(tmp_path: Path) -> None:
+    transport = MemoryTransport()
+    settings = LiteSettings(rules=RULES, database=tmp_path / "p.duckdb", follow=True)
+    incidents = make_stage("incidents", transport, settings)
+    assert isinstance(incidents, IncidentStage)
+    assert incidents.idle_close == incidents.hold.total_seconds()
+    quick = LiteSettings(rules=RULES, database=tmp_path / "p.duckdb", idle_close=5.0)
+    assert make_stage("incidents", transport, quick).idle_close == 5.0  # type: ignore[attr-defined]
+    with pytest.raises(ValueError, match="unknown stage"):
+        make_stage("nope", transport, settings)
