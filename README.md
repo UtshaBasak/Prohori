@@ -352,6 +352,7 @@ stores everything in a DuckDB file:
 
 ```bash
 pip install "prohori[pipeline]"
+prohori simulate web-scanning --seed 1 --out logs   # write a simulated log to replay
 prohori pipeline replay logs/web-scanning.log --times 2   # replay twice: each row stored once
 prohori pipeline tail /var/log/auth.log --year 2026       # follow a live log until Ctrl+C
 # query the results with the DuckDB command-line tool (a separate download):
@@ -387,6 +388,7 @@ Kafka-compatible broker), with a PostgreSQL warehouse, from a clone of the repos
 
 ```bash
 uv run prohori pipeline up                    # build, start and wait until every service is healthy
+uv run prohori simulate web-scanning --seed 1 --out logs   # write a simulated log to replay
 uv run prohori pipeline replay logs/web-scanning.log --bootstrap 127.0.0.1:19092
 uv run prohori pipeline status                # services, health and rows in the warehouse
 uv run prohori pipeline down                  # --volumes also deletes the data

@@ -223,6 +223,7 @@ PostgreSQL warehouse. This is the shape of a production deployment, on one machi
 ```bash
 git clone https://github.com/UtshaBasak/Prohori.git && cd Prohori && uv sync
 uv run prohori pipeline up                    # build the image, start everything, wait until healthy
+uv run prohori simulate web-scanning --seed 1 --out logs   # write a simulated log to replay
 uv run prohori pipeline replay logs/web-scanning.log --bootstrap 127.0.0.1:19092
 uv run prohori pipeline status                # services, health and warehouse row counts
 # dashboards at http://127.0.0.1:13000 (docs/DASHBOARD.md)

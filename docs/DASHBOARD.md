@@ -6,6 +6,7 @@ nothing to click through, no login and no import:
 
 ```bash
 uv run prohori pipeline up
+uv run prohori simulate web-scanning --seed 1 --out logs   # write a simulated log to replay
 uv run prohori pipeline replay logs/web-scanning.log --bootstrap 127.0.0.1:19092
 # open http://127.0.0.1:13000
 ```
