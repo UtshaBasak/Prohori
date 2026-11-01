@@ -1,0 +1,60 @@
+name: Docker stack
+
+# Builds the image, starts Redpanda, PostgreSQL and the four stage containers, replays a
+# simulated log and checks the warehouse (tests/integration/test_docker_stack.py).
+on:
+  push:
+    branches: [main]
+    paths:
+      - "src/**"
+      - "pipeline/**"
+      - "pyproject.toml"
+      - "uv.lock"
+      - ".dockerignore"
+      - "tests/integration/test_docker_stack.py"
+      - ".github/workflows/docker.yml"
+  pull_request:
+    paths:
+      - "src/**"
+      - "pipeline/**"
+      - "pyproject.toml"
+      - "uv.lock"
+      - ".dockerignore"
+      - "tests/integration/test_docker_stack.py"
+      - ".github/workflows/docker.yml"
+  schedule:
+    - cron: "17 4 * * 1"  # weekly, so the badge reflects the pinned images still working
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  UV_FROZEN: "1"
+  PYTHONUTF8: "1"
+
+jobs:
+  smoke:
+    name: Docker stack smoke test
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+        with:
+          python-version: "3.13"
+          enable-cache: true
+      - run: uv sync
+      - name: Smoke test
+        env:
+          PROHORI_DOCKER_TESTS: "1"
+        run: uv run pytest tests/integration/test_docker_stack.py -v -p no:cacheprovider
+      - name: Stack logs
+        if: failure()
+        run: docker compose -p prohori -f pipeline/docker-compose.yml logs --no-color --tail 200
