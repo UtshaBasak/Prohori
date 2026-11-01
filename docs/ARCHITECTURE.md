@@ -63,7 +63,7 @@ Both modes share the same core library.
 | `prohori.reports` | Report templates, renderers and redaction |
 | `prohori.simulate` | Labelled attack-scenario log generator |
 | `prohori.ml` | Dataset registry, chunked loading, leakage-controlled cleaning, flow models, training, SOC metrics, the cross-dataset test, flow scoring and log anomaly detection |
-| `prohori.pipeline` | Topics and messages, transports (memory, file), producers (replay, rotation-aware tailer), consumers (normalise, detect, incidents), the DuckDB sink and the lite-mode runner ([PIPELINE.md](PIPELINE.md)) |
+| `prohori.pipeline` | Topics and messages, transports (memory, file, Kafka), producers (replay, rotation-aware tailer), consumers (normalise, detect, incidents), DuckDB and PostgreSQL sinks, the lite-mode runner, `serve` for one stage per container and the Docker stack helpers ([PIPELINE.md](PIPELINE.md)) |
 | `prohori.llm` | Provider interface, retrieval, safeguards |
 
 ## Principles

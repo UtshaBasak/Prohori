@@ -14,6 +14,7 @@
 [![Downloads](https://img.shields.io/pypi/dm/prohori)](https://pypistats.org/packages/prohori)
 [![GitHub release](https://img.shields.io/github/v/release/UtshaBasak/Prohori)](https://github.com/UtshaBasak/Prohori/releases)
 [![Release workflow](https://github.com/UtshaBasak/Prohori/actions/workflows/release.yml/badge.svg)](https://github.com/UtshaBasak/Prohori/actions/workflows/release.yml)
+[![Docker stack](https://github.com/UtshaBasak/Prohori/actions/workflows/docker.yml/badge.svg)](https://github.com/UtshaBasak/Prohori/actions/workflows/docker.yml)
 ![Status: alpha](https://img.shields.io/badge/status-alpha-yellow)
 ![Platforms](https://img.shields.io/badge/platform-Linux%20%7C%20Windows%20%7C%20macOS-lightgrey)
 [![License: MIT](https://img.shields.io/github/license/UtshaBasak/Prohori)](LICENSE)
@@ -98,7 +99,7 @@ flowchart LR
 | **Incidents** | Related alerts (same IP, account, request or session within a time gap) become one incident with a points-based score you can read line by line, severity, confidence, MITRE ATT&CK v20.0 mapping, a timeline, recommended actions and stated limitations. Detects sign-ins from an IP or app new to the account. |
 | **Simulate** | Eight labelled attack scenarios (SSH brute force, password spraying, credential stuffing, token reuse, account takeover, web scanning, injection, admin misuse) hidden in realistic background activity, byte-identical for a seed, documentation IP addresses only. Used to measure every rule's precision and recall. |
 | **Report** | Markdown, a self-contained HTML page, JSON or a CSV timeline, with an appendix of input and rule-file SHA-256 hashes. `--redact` replaces account names, ids and emails (and optionally IPs) with keyed pseudonyms, and refuses to write a report that would still leak one. |
-| **Stream** | Lite mode runs the same parsers, rules and incident builder continuously, without Docker: follow live logs through rotation or replay files, with at-least-once delivery, dead letters and results in DuckDB, each row once. |
+| **Stream** | The same parsers, rules and incident builder, continuously: lite mode in one process with DuckDB (no Docker), or a Docker stack with Redpanda, one container per stage and a PostgreSQL warehouse. Follow live logs through rotation or replay files, with at-least-once delivery, dead letters and each row stored once. |
 
 Prohori only **recommends** actions. It never blocks addresses, disables accounts or touches
 remote systems.
@@ -112,7 +113,7 @@ not tested.
   `pip install prohori` works in any virtual environment. Optional parts are extras:
   `pip install "prohori[geoip]"` for local GeoLite2 files, `pip install "prohori[ml]"` for the
   machine-learning code (scikit-learn, pandas, pyarrow) and `pip install "prohori[pipeline]"` for
-  the streaming pipeline (DuckDB). The base install never needs them.
+  the streaming pipeline (DuckDB, confluent-kafka, psycopg). The base install never needs them.
 - **From source:** install [uv](https://docs.astral.sh/uv/), then
   `git clone https://github.com/UtshaBasak/Prohori.git && cd Prohori && uv sync`, and run
   commands as `uv run prohori ...`. The sample files used below are in the repository.
@@ -190,7 +191,8 @@ recommended actions from the runbooks and the limitations, such as "single log s
 | `prohori report INCIDENT` | Render an incident as `md`, `html`, `json` or `csv`; `--redact`, `--redact-ips` | [REPORTS.md](docs/REPORTS.md) |
 | `prohori simulate SCENARIO --out DIR` | Write a labelled attack scenario (`--list`, `--seed`, `--variant heldout`, `--set`) | [SIMULATOR.md](docs/SIMULATOR.md) |
 | `prohori score FLOWS --model NAME` | Score a CSV of network flows with a saved model; needs the `ml` extra (`--fpr`, `--top`, `-f json`) | [CLI.md](docs/CLI.md#prohori-score) |
-| `prohori pipeline replay FILE...` / `tail FILE...` | Stream log files through the lite pipeline into DuckDB; `tail` follows live logs until Ctrl+C; needs the `pipeline` extra | [PIPELINE.md](docs/PIPELINE.md) |
+| `prohori pipeline replay FILE...` / `tail FILE...` | Stream log files through the lite pipeline into DuckDB, or with `--bootstrap` into the Docker stack; `tail` follows live logs until Ctrl+C; needs the `pipeline` extra | [PIPELINE.md](docs/PIPELINE.md) |
+| `prohori pipeline up` / `status` / `down` | Start, check and stop the Docker stack (Redpanda, PostgreSQL, one container per stage); needs Docker and a clone | [PIPELINE.md](docs/PIPELINE.md#the-docker-stack) |
 | `prohori version` | The version, ATT&CK release and built-in rule set | |
 
 Commands that take a file also read standard input with `-`, and every command has `--help`.
@@ -378,7 +380,28 @@ flowchart LR
   finishes cleanly.
 - **Honest limits.** Lite mode handles about 2,800 lines a second on a laptop, a single host's
   logs, against about 14,000 for the batch command. Its topics are not trimmed, and `--models`
-  stays a batch feature. Redpanda and PostgreSQL in Docker come next (v0.3.0).
+  stays a batch feature.
+
+**The Docker stack** runs the same stages as separate containers over Redpanda (a
+Kafka-compatible broker), with a PostgreSQL warehouse, from a clone of the repository:
+
+```bash
+uv run prohori pipeline up                    # build, start and wait until every service is healthy
+uv run prohori pipeline replay logs/web-scanning.log --bootstrap 127.0.0.1:19092
+uv run prohori pipeline status                # services, health and rows in the warehouse
+uv run prohori pipeline down                  # --volumes also deletes the data
+```
+
+| Service | What it is | Memory limit |
+|---------|------------|-------------:|
+| `redpanda` | Kafka-compatible broker, one node | 1.5 GB |
+| `postgres` | Warehouse (`raw` schema) | 512 MB |
+| `normalise`, `detect`, `incidents`, `sink` | One Prohori container per stage | 256-384 MB each |
+
+Replaying a 50,700-line log, the whole stack peaked at about 700 MB. A smoke test in CI starts it from empty
+volumes, replays a simulated attack twice and checks that the warehouse holds each event once
+and exactly the incidents of the batch command. Images are pinned by digest, the containers run
+unprivileged, and the ports are bound to 127.0.0.1 only.
 
 Details: [docs/PIPELINE.md](docs/PIPELINE.md).
 
@@ -427,9 +450,9 @@ Third-party data terms (MITRE ATT&CK, GeoLite2, AbuseIPDB, VirusTotal) are summa
 
 Prohori is honest about what it does not do:
 
-- **Live monitoring is lite only so far.** `prohori pipeline tail` follows a single host's logs
-  into DuckDB; the Docker stack with a message queue, warehouse and dashboard is planned for
-  v0.3.0. Prohori never blocks, disables or changes anything.
+- **The streaming stack runs on one machine.** It is a single-node broker with no
+  authentication, built from a clone; dashboards and scheduled jobs come later in v0.3.0.
+  Prohori never blocks, disables or changes anything.
 - **Rules see only what the logs say.** Request bodies, headers and encrypted traffic are not
   inspected; the web rules use the request line only.
 - **Thresholds can be evaded.** The held-out evaluation shows that slow or widely distributed
@@ -450,7 +473,7 @@ Prohori is honest about what it does not do:
 |---------|----------|-------|
 | v0.1.0 | Batch core: parsers, rules, enrichment, incidents, reports, log simulator with rule evaluation, `triage` and `demo` commands | Released |
 | v0.2.0 | Machine learning: leakage-controlled intrusion detection on public flow datasets, log-derived anomaly detection, model cards | Released |
-| v0.3.0 | Pipeline: streaming core and lite mode (done), Redpanda and PostgreSQL in Docker, dbt models, dashboard, orchestration | In progress |
+| v0.3.0 | Pipeline: streaming core and lite mode (done), Redpanda and PostgreSQL in Docker (done), dbt models, dashboard, orchestration | In progress |
 | v1.0.0 | Optional LLM analyst (opt-in, redacted input, validated output), final polish | Planned |
 
 ## Development

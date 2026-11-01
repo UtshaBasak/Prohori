@@ -15,7 +15,7 @@ file is `-`. Nothing uses the network unless you configure API keys and ask for 
 | [`prohori enrich IP...`](#prohori-enrich) | Look up IP addresses |
 | [`prohori simulate SCENARIO`](#prohori-simulate) | Write a labelled attack scenario |
 | [`prohori score FLOWS --model NAME`](#prohori-score) | Score a CSV of network flows with a saved model (`ml` extra) |
-| [`prohori pipeline replay` / `tail`](#prohori-pipeline) | Run the streaming pipeline in lite mode into DuckDB (`pipeline` extra) |
+| [`prohori pipeline ...`](#prohori-pipeline) | The streaming pipeline: `replay` / `tail` in lite mode (DuckDB) or into the Docker stack, `up` / `status` / `down` for the stack, `run` for one stage (`pipeline` extra) |
 | `prohori rules list` / `validate` / `test` | Show, check and test detection rules ([RULES.md](RULES.md)) |
 | `prohori version` | Version, ATT&CK release and built-in rule set |
 
@@ -32,7 +32,7 @@ Tables never interpret text from logs as markup, and every report format escapes
 | Code | Meaning |
 |------|---------|
 | `0` | Success, nothing found (or `--exit-zero`) |
-| `1` | Nothing could be processed: every line failed to parse, a rule file is invalid, redaction could not hide every value (nothing is written), `score` lacks the `ml` extra, a loadable model or a scorable file, or `pipeline` lacks the `pipeline` extra or every replayed line was rejected |
+| `1` | Nothing could be processed: every line failed to parse, a rule file is invalid, redaction could not hide every value (nothing is written), `score` lacks the `ml` extra, a loadable model or a scorable file, or `pipeline` lacks the `pipeline` extra, cannot reach the broker, Docker or the database, found an unhealthy stack, or every replayed line was rejected |
 | `2` | Invalid usage, input or setting |
 | `3` | Findings: `detect`, `incidents` and `triage` found alerts or incidents; `score` flagged flows |
 
@@ -184,3 +184,28 @@ with `1`. See [PIPELINE.md](PIPELINE.md).
   enrichment options (`--online`, `--no-enrich`, `--env-file`) work as for `prohori incidents`.
   When the command stops it prints a table of counters per stage; `-f json` prints them as JSON,
   with the parser and rule engine counters and the row count of each table.
+
+The Docker stack (needs Docker and a clone of the repository):
+
+```bash
+prohori pipeline up                                          # build, start, wait until healthy
+prohori pipeline replay logs/web-scanning.log --bootstrap 127.0.0.1:19092
+prohori pipeline status                                      # services, health, warehouse rows
+prohori pipeline down --volumes                              # stop and delete the data
+```
+
+- **`up`** runs `docker compose up --wait` on `pipeline/docker-compose.yml` (`--file` for
+  another), building the image first unless `--no-build`. `--timeout` (default 300 seconds)
+  bounds the wait. Exits `1` if a service does not become healthy.
+- **`status`** lists the services with their state and health, and the row counts in the
+  warehouse's `raw` schema (`--postgres DSN`; default: the stack's). `-f json` gives the same as
+  JSON. Exits `1` unless every service is healthy.
+- **`down`** stops the stack and removes its containers and network; `--volumes` also deletes
+  the topics and the warehouse.
+- **`replay --bootstrap HOST:PORT`** and **`tail --bootstrap HOST:PORT`** only publish raw lines
+  to the stack's broker; its containers do the rest.
+- **`run --stage normalise|detect|incidents|sink|all`** runs one stage over Kafka until SIGTERM
+  or Ctrl+C. It is what each container runs. The broker comes from `--bootstrap` or
+  `PROHORI_KAFKA_BOOTSTRAP`, and the warehouse from `--postgres` or `PROHORI_POSTGRES_DSN`
+  (without one, the sink writes DuckDB). `--idle-close SECONDS` writes open incidents after that
+  much quiet; `--heartbeat FILE` is touched after every round for a health check.
