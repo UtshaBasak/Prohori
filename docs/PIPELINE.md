@@ -225,12 +225,13 @@ git clone https://github.com/UtshaBasak/Prohori.git && cd Prohori && uv sync
 uv run prohori pipeline up                    # build the image, start everything, wait until healthy
 uv run prohori pipeline replay logs/web-scanning.log --bootstrap 127.0.0.1:19092
 uv run prohori pipeline status                # services, health and warehouse row counts
+# dashboards at http://127.0.0.1:13000 (docs/DASHBOARD.md)
 uv run prohori pipeline down                  # stop; add --volumes to delete the data too
 ```
 
 It needs Docker (Docker Desktop with the WSL 2 engine on Windows) and a clone of the repository,
 because the image is built from the checkout with the versions pinned in `uv.lock`. The first
-`up` builds the image and pulls Redpanda and PostgreSQL, which takes a few minutes. Later starts
+`up` builds the image and pulls Redpanda, PostgreSQL and Grafana, which takes a few minutes. Later starts
 take about a minute.
 
 | Service | Image | Role | Memory limit |
@@ -241,25 +242,29 @@ take about a minute.
 | `detect` | `prohori:local` | `... --stage detect` | 384 MB |
 | `incidents` | `prohori:local` | `... --stage incidents --idle-close 60` | 384 MB |
 | `sink` | `prohori:local` | `... --stage sink`, into PostgreSQL | 256 MB |
+| `warehouse-init` | PostgreSQL 17.11 (Alpine) | Runs once per `up`: schemas and Grafana's read-only role | 64 MB |
+| `grafana` | Grafana 13.2.5 (Alpine) | Provisioned dashboards ([DASHBOARD.md](DASHBOARD.md)) | 512 MB |
 
-The limits add up to about 3.3 GB. Measured with `docker stats` on the development laptop:
+The limits add up to about 3.9 GB. Measured with `docker stats` on the development laptop:
 
 | Situation | Whole stack | Highest single container |
 |-----------|------------:|--------------------------|
 | Idle after a 622-line replay | about 440 MB | Redpanda, about 200 MB |
 | During a 50,700-line replay | about 700 MB at peak | Redpanda 267 MB of 1.5 GB; sink 102 MB of 256 MB |
 | Restarting detect and incidents with that backlog (they rebuild from the start) | | incidents about 100 MB of 384 MB |
+| Idle after replaying all eight simulator scenarios (7,498 events), dashboards open | about 720 MB | Grafana about 250 MB of 512 MB |
 
 - **Images** are pinned by digest. The Prohori image runs as an unprivileged user, and its build
   context holds only `pyproject.toml`, `uv.lock`, the README, licence, changelog and `src/`
   (see `.dockerignore`), never `data/`.
-- **Ports** are published on 127.0.0.1 only: the broker on 19092 and PostgreSQL on 15432, chosen
-  so they do not clash with a local PostgreSQL. The PostgreSQL password defaults to a local-only
+- **Ports** are published on 127.0.0.1 only: the broker on 19092, PostgreSQL on 15432 and
+  Grafana on 13000, chosen so they do not clash with local services. The PostgreSQL password defaults to a local-only
   value. To change it, set `PROHORI_POSTGRES_PASSWORD` (and `PROHORI_POSTGRES_PORT`) in the
   environment of both `prohori pipeline up` and `prohori pipeline status`. Compose also reads
   them from `pipeline/.env` (git-ignored), but `status` reads only the environment. The broker
   has no authentication or TLS, which is fine on one machine and not anywhere else.
-- **Health.** Redpanda and PostgreSQL have their own health checks. Each stage container touches
+- **Health.** Redpanda, PostgreSQL and Grafana have their own health checks (PostgreSQL's
+  connects over TCP, so it does not pass during the first start's initialisation). Each stage container touches
   a heartbeat file after every round and is healthy while the file is less than a minute old, so
   a stuck stage shows up even when its process is still alive. `up` waits until every service is
   healthy; `status` shows the state and exits 1 if anything is not.
@@ -301,7 +306,9 @@ matters more than speed.
 `Docker stack` workflow on Linux) starts the real stack from empty volumes. It replays a
 simulated attack twice and waits for the warehouse. It then checks that each event is stored
 once, that there are no dead letters, and that the incident ids equal those of
-`prohori incidents` on the same file. It also checks that a stage stops gracefully on SIGTERM
+`prohori incidents` on the same file. It runs every dashboard panel's query through Grafana's
+API: the raw-table panels must return rows with no dbt run, and the mart panels must run after
+`dbt build`. It also checks that a stage stops gracefully on SIGTERM
 and that `down` removes every container. Locally, run it with
 `PROHORI_DOCKER_TESTS=1 uv run pytest tests/integration/test_docker_stack.py`. It deletes the
 stack's data volumes.
@@ -313,7 +320,8 @@ The `raw` schema has the same four tables as the DuckDB file (`events`, `alerts`
 `ON CONFLICT (id) DO NOTHING`. NUL characters, which PostgreSQL text cannot hold, are replaced
 with U+FFFD before writing. If the database rejects a batch because of its data, the rows are
 written one by one and the rejected ones become dead letters. Any other database error stops the
-stage, and the batch is delivered again. A later step builds dbt models on this schema.
+stage, and the batch is delivered again. The dbt models in [WAREHOUSE.md](WAREHOUSE.md) build
+on this schema, and the dashboards in [DASHBOARD.md](DASHBOARD.md) read it.
 
 ```bash
 docker exec -it prohori-postgres-1 psql -U prohori -d prohori

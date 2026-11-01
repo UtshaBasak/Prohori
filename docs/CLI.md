@@ -191,15 +191,17 @@ The Docker stack (needs Docker and a clone of the repository):
 prohori pipeline up                                          # build, start, wait until healthy
 prohori pipeline replay logs/web-scanning.log --bootstrap 127.0.0.1:19092
 prohori pipeline status                                      # services, health, warehouse rows
+# dashboards: http://127.0.0.1:13000
 prohori pipeline down --volumes                              # stop and delete the data
 ```
 
 - **`up`** runs `docker compose up --wait` on `pipeline/docker-compose.yml` (`--file` for
   another), building the image first unless `--no-build`. `--timeout` (default 300 seconds)
-  bounds the wait. Exits `1` if a service does not become healthy.
+  bounds the wait. Exits `1` if a service does not become healthy. Prints where the dashboards
+  are ([DASHBOARD.md](DASHBOARD.md)); `PROHORI_GRAFANA_PORT` moves them.
 - **`status`** lists the services with their state and health, and the row counts in the
   warehouse's `raw` schema (`--postgres DSN`; default: the stack's). `-f json` gives the same as
-  JSON. Exits `1` unless every service is healthy.
+  JSON, with the dashboards' address. Exits `1` unless every service is healthy.
 - **`down`** stops the stack and removes its containers and network; `--volumes` also deletes
   the topics and the warehouse.
 - **`replay --bootstrap HOST:PORT`** and **`tail --bootstrap HOST:PORT`** only publish raw lines

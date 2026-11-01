@@ -9,6 +9,19 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- Grafana dashboards in the Docker stack (`pipeline/grafana/`, `docs/DASHBOARD.md`, ADR-0026),
+  provisioned from files and open without a login at http://127.0.0.1:13000:
+  - **Overview**: events, alerts and incidents over time, rule hits, top source addresses and the
+    latest incidents, from the raw tables, so it fills right after a replay;
+  - **Detection quality**: rule precision, time to detect each simulated attack, detection
+    latency, top sources and flow-model performance, from the dbt marts;
+  - **Pipeline health**: time since the last stored event, rows stored per minute, table sizes
+    and dead letters;
+  - a read-only `grafana` database role, created by a new one-shot `warehouse-init` service;
+  - `prohori pipeline up` and `status` print the dashboards' address;
+  - tests for the dashboard definitions, and Docker smoke-test checks that run every panel's
+    query through Grafana.
+
 - Warehouse models with dbt (`pipeline/dbt/`, `docs/WAREHOUSE.md`, ADR-0025), built on the
   lite-mode DuckDB file and on the Docker stack's PostgreSQL:
   - staging and intermediate views and nine marts: daily attack counts, alerts per rule and day,
@@ -63,6 +76,12 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 - The incident builder's event memory ignores an event it has already seen before updating the
   sign-in history, so a replayed event cannot count twice.
+
+### Fixed
+
+- Docker stack start-up: PostgreSQL's health check connects over TCP, so it no longer passes
+  while the first start is still initialising the database, and the Kafka transport waits until
+  every topic has a leader before using it.
 
 ## [0.2.0] - 2026-10-31
 
