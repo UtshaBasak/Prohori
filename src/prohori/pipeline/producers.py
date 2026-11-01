@@ -104,33 +104,41 @@ def open_shared(path: Path) -> BinaryIO:
     On Windows a file opened by Python's ``open`` cannot be renamed, which would break the log
     rotation of the program writing it; this opens it with every sharing flag instead.
     """
-    if sys.platform != "win32":
+    # if/else (not an early return) so mypy checks each branch only for its own platform.
+    if sys.platform == "win32":
+        return _open_windows(path)
+    else:
         return path.open("rb")
-    import ctypes
-    import msvcrt
-    from ctypes import wintypes
 
-    kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
-    create_file = kernel32.CreateFileW
-    create_file.argtypes = [
-        wintypes.LPCWSTR,
-        wintypes.DWORD,
-        wintypes.DWORD,
-        wintypes.LPVOID,
-        wintypes.DWORD,
-        wintypes.DWORD,
-        wintypes.HANDLE,
-    ]
-    create_file.restype = wintypes.HANDLE
-    generic_read = 0x80000000
-    share_all = 0x1 | 0x2 | 0x4  # FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE
-    open_existing = 3
-    normal = 0x80
-    handle = create_file(str(path), generic_read, share_all, None, open_existing, normal, None)
-    if handle is None or handle == wintypes.HANDLE(-1).value:
-        raise ctypes.WinError(ctypes.get_last_error())
-    fd = msvcrt.open_osfhandle(handle, os.O_RDONLY | os.O_BINARY)
-    return os.fdopen(fd, "rb")
+
+if sys.platform == "win32":
+
+    def _open_windows(path: Path) -> BinaryIO:
+        import ctypes
+        import msvcrt
+        from ctypes import wintypes
+
+        kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+        create_file = kernel32.CreateFileW
+        create_file.argtypes = [
+            wintypes.LPCWSTR,
+            wintypes.DWORD,
+            wintypes.DWORD,
+            wintypes.LPVOID,
+            wintypes.DWORD,
+            wintypes.DWORD,
+            wintypes.HANDLE,
+        ]
+        create_file.restype = wintypes.HANDLE
+        generic_read = 0x80000000
+        share_all = 0x1 | 0x2 | 0x4  # FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE
+        open_existing = 3
+        normal = 0x80
+        handle = create_file(str(path), generic_read, share_all, None, open_existing, normal, None)
+        if handle is None or handle == wintypes.HANDLE(-1).value:
+            raise ctypes.WinError(ctypes.get_last_error())
+        fd = msvcrt.open_osfhandle(handle, os.O_RDONLY | os.O_BINARY)
+        return os.fdopen(fd, "rb")
 
 
 def _identity(stat: os.stat_result) -> tuple[int, int]:
