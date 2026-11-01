@@ -5,6 +5,7 @@ import sys
 import threading
 from datetime import timedelta
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
@@ -35,6 +36,21 @@ def test_topics_are_created_once_with_unlimited_retention(broker: Broker) -> Non
     assert set(broker.topics) == {t.value for t in Topic}
     assert broker.configs["events"] == TOPIC_CONFIG
     KafkaTransport("broker:9092", kafka=fake_kafka(broker))  # already there: fine
+
+
+def test_topics_are_awaited_until_they_have_a_leader(
+    broker: Broker, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr("prohori.pipeline.kafka.time.sleep", lambda seconds: None)
+    broker.leaderless_lookups = 3
+    KafkaTransport("broker:9092", kafka=fake_kafka(broker))
+    assert broker.leaderless_lookups < 0
+    broker.leaderless_lookups = 10**9
+    monkeypatch.setattr("prohori.pipeline.kafka.BROKER_TIMEOUT", 0.0)
+    with pytest.raises(TransportError, match="have no leader"):
+        KafkaTransport("broker:9092", kafka=fake_kafka(broker))
+    assert not kafka_module._has_leader(None)
+    assert not kafka_module._has_leader(SimpleNamespace(error="unknown", partitions={}))
 
 
 def test_unreachable_broker_and_refused_topics_are_errors(broker: Broker) -> None:

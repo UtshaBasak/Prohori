@@ -66,6 +66,7 @@ class Broker:
     unreachable: bool = False
     undelivered: int = 0
     create_error: int | None = None
+    leaderless_lookups: int = 0  # list_topics calls that still report no leader
 
     def append(self, topic: str, key: bytes | None, value: bytes | None) -> None:
         self.topics.setdefault(topic, []).append((key, value))
@@ -115,6 +116,19 @@ def fake_kafka(broker: Broker) -> SimpleNamespace:
                     broker.configs[topic.topic] = topic.config
                     futures[topic.topic] = _Future(None)
             return futures
+
+        def list_topics(self, timeout: float) -> SimpleNamespace:
+            del timeout
+            leader = -1 if broker.leaderless_lookups > 0 else 1
+            broker.leaderless_lookups -= 1
+            return SimpleNamespace(
+                topics={
+                    name: SimpleNamespace(
+                        error=None, partitions={0: SimpleNamespace(leader=leader)}
+                    )
+                    for name in broker.topics
+                }
+            )
 
     class Producer:
         def __init__(self, config: dict[str, Any]) -> None:
