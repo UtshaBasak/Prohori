@@ -1,7 +1,8 @@
-"""``prohori pipeline replay`` and ``prohori pipeline tail``."""
+"""``prohori pipeline``: lite mode, publishing to Kafka, ``run`` and the Docker stack commands."""
 
 import json
 import re
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -11,8 +12,10 @@ from typer.testing import CliRunner
 
 from prohori.cli import app
 from prohori.cli.exit_codes import ExitCode
+from prohori.pipeline import kafka as kafka_module
 from prohori.simulate import simulate, write
 from tests.unit.enrich.conftest import isolated_settings, no_network
+from tests.unit.pipeline.fake_kafka import Broker, fake_kafka
 
 __all__ = ["isolated_settings", "no_network"]  # autouse: no network, no real cache or keys
 
@@ -127,10 +130,11 @@ def test_tail_with_an_unknown_parser_is_a_usage_error(tmp_path: Path) -> None:
 
 
 def test_pipeline_without_the_extra(web_log: Path, tmp_path: Path) -> None:
-    """Without duckdb, --help works and the commands explain how to install the extra."""
+    """Without the extra, --help works and the commands explain how to install it."""
     code = f"""
 import sys
-sys.modules["duckdb"] = None
+for name in ("duckdb", "confluent_kafka", "psycopg"):
+    sys.modules[name] = None
 from typer.testing import CliRunner
 from prohori.cli import app
 runner = CliRunner()
@@ -140,6 +144,8 @@ result = runner.invoke(
 )
 print(result.exit_code)
 print(result.stderr)
+kafka = runner.invoke(app, ["pipeline", "replay", {str(web_log)!r}, "--bootstrap", "x:1"])
+print(kafka.exit_code, kafka.stderr)
 """
     done = subprocess.run(  # noqa: S603 - fixed arguments
         [sys.executable, "-c", code], cwd=ROOT, capture_output=True, text=True, check=False
@@ -148,3 +154,169 @@ print(result.stderr)
     lines = done.stdout.splitlines()
     assert lines[:2] == ["0", "1"]
     assert "needs the 'pipeline' extra" in done.stdout
+    assert "1 error: the Kafka transport needs the 'pipeline' extra" in done.stdout
+
+
+# ---------------------------------------------------------------------- Kafka and run
+
+
+@pytest.fixture
+def broker(monkeypatch: pytest.MonkeyPatch) -> Broker:
+    fake = Broker()
+    monkeypatch.setattr(kafka_module, "client", lambda: fake_kafka(fake))
+    return fake
+
+
+def test_replay_and_tail_publish_to_kafka(broker: Broker, web_log: Path, tmp_path: Path) -> None:
+    result = runner.invoke(
+        app, ["pipeline", "replay", str(web_log), "--bootstrap", "b:9092", "--times", "2"]
+    )
+    assert result.exit_code == 0, result.output
+    assert "Published 3,380 line(s)" in result.stdout
+    assert len(broker.topics["raw-logs"]) == 3380
+    live = tmp_path / "live.log"
+    live.write_bytes(web_log.read_bytes())
+    args = ["pipeline", "tail", str(live), "--bootstrap", "b:9092", "--state", str(tmp_path)]
+    tail = runner.invoke(app, [*args, "--poll", "0", "--max-rounds", "2"])
+    assert tail.exit_code == 0, tail.output
+    assert "Published 1,690 line(s)" in tail.stdout
+
+
+def test_replay_to_an_unreachable_broker_exits_1(broker: Broker, web_log: Path) -> None:
+    broker.unreachable = True
+    result = runner.invoke(app, ["pipeline", "replay", str(web_log), "--bootstrap", "b:9092"])
+    assert result.exit_code == ExitCode.NO_EVENTS
+    assert "cannot reach the Kafka broker at b:9092" in result.stderr
+
+
+def test_run_every_stage_over_kafka(broker: Broker, web_log: Path, tmp_path: Path) -> None:
+    runner.invoke(app, ["pipeline", "replay", str(web_log), "--bootstrap", "b:9092"])
+    database = tmp_path / "k.duckdb"
+    args = ["pipeline", "run", "--stage", "all", "--bootstrap", "b:9092", "--db", str(database)]
+    args += ["--idle-close", "0", "--poll", "0", "--max-rounds", "10", "--no-enrich"]
+    result = runner.invoke(app, args, env={"PROHORI_POSTGRES_DSN": ""})
+    assert result.exit_code == 0, result.output
+    stopped = json.loads(result.stderr.strip().splitlines()[-1])
+    assert stopped["stopped"] == ["normalise", "detect", "incidents", "sink"]
+    assert stopped["stages"]["sink"]["produced"] > 1690
+    assert broker.committed[("prohori-sink", "events")] == 1690
+
+
+def test_run_without_a_reachable_database_exits_1(
+    broker: Broker, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    import psycopg
+
+    def refuse(*args: object, **kwargs: object) -> None:
+        raise psycopg.OperationalError("connection refused")
+
+    monkeypatch.setattr(psycopg, "connect", refuse)
+    result = runner.invoke(
+        app,
+        ["pipeline", "run", "--stage", "sink", "--bootstrap", "b:9092", "--no-enrich"],
+        env={"PROHORI_POSTGRES_DSN": "postgresql://u@127.0.0.1:1/db"},
+    )
+    assert result.exit_code == ExitCode.NO_EVENTS
+    assert "cannot start the sink stage: connection refused" in result.stderr
+
+
+# ---------------------------------------------------------------------- the Docker stack
+
+
+class Compose:
+    """Records docker compose calls and answers ``ps`` with ``services``."""
+
+    def __init__(self, services: list[dict[str, object]], returncode: int = 0) -> None:
+        self.services = services
+        self.returncode = returncode
+        self.calls: list[list[str]] = []
+
+    def __call__(self, command: list[str], **options: object) -> "subprocess.CompletedProcess[str]":
+        self.calls.append(command)
+        stdout = "\n".join(json.dumps(s) for s in self.services) if "ps" in command else ""
+        return subprocess.CompletedProcess(command, self.returncode, stdout, "")
+
+
+HEALTHY: list[dict[str, object]] = [
+    {"Service": name, "State": "running", "Health": "healthy"}
+    for name in ("detect", "incidents", "normalise", "postgres", "redpanda", "sink")
+]
+
+
+@pytest.fixture
+def compose(monkeypatch: pytest.MonkeyPatch) -> Compose:
+    recorder = Compose(HEALTHY)
+    monkeypatch.setattr(shutil, "which", lambda name: f"/usr/bin/{name}")
+    monkeypatch.setattr(subprocess, "run", recorder)
+    monkeypatch.chdir(ROOT)
+    monkeypatch.setenv("PROHORI_POSTGRES_DSN", "postgresql://u@127.0.0.1:1/db")
+    return recorder
+
+
+def test_up_status_and_down(compose: Compose, monkeypatch: pytest.MonkeyPatch) -> None:
+    import psycopg
+
+    def refuse(*args: object, **kwargs: object) -> None:
+        raise psycopg.OperationalError("refused")
+
+    monkeypatch.setattr(psycopg, "connect", refuse)
+    up = runner.invoke(app, ["pipeline", "up", "--no-build", "--timeout", "30"])
+    assert up.exit_code == 0, up.output
+    assert "--wait" in compose.calls[0]
+    assert "--build" not in compose.calls[0]
+    assert "redpanda" in up.stdout
+    assert "--bootstrap 127.0.0.1:19092" in up.stdout
+    status = runner.invoke(app, ["pipeline", "status"])
+    assert status.exit_code == 0, status.output
+    assert "Warehouse: not reachable." in status.stdout
+    as_json = runner.invoke(app, ["pipeline", "status", "-f", "json"])
+    payload = json.loads(as_json.stdout)
+    assert payload["healthy"] is True
+    assert payload["rows"] is None
+    assert len(payload["services"]) == 6
+    down = runner.invoke(app, ["pipeline", "down", "--volumes"])
+    assert down.exit_code == 0
+    assert compose.calls[-1][-2:] == ["--remove-orphans", "--volumes"]
+    assert "data deleted" in down.stdout
+
+
+def test_status_counts_rows_in_the_warehouse(
+    compose: Compose, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from tests.unit.pipeline.test_postgres import FakeConnection
+
+    fake = FakeConnection()
+    fake.tables["raw.events"] = {"e1": ("e1",), "e2": ("e2",)}
+    monkeypatch.setattr("psycopg.connect", lambda *a, **k: fake)
+    status = runner.invoke(app, ["pipeline", "status"])
+    assert "Warehouse rows: events 2, alerts 0, incidents 0, dead_letters 0." in status.stdout
+    assert fake.closed
+
+
+def test_unhealthy_or_stopped_stack(compose: Compose) -> None:
+    compose.services = [{"Service": "sink", "State": "restarting", "Health": ""}]
+    status = runner.invoke(app, ["pipeline", "status", "-f", "json"])
+    assert status.exit_code == ExitCode.NO_EVENTS
+    up = runner.invoke(app, ["pipeline", "up"])
+    assert up.exit_code == ExitCode.NO_EVENTS
+    assert "did not become healthy" in up.stderr
+    compose.services = []
+    stopped = runner.invoke(app, ["pipeline", "status"])
+    assert stopped.exit_code == ExitCode.NO_EVENTS
+    assert "not running" in stopped.stdout
+    compose.returncode = 1
+    assert runner.invoke(app, ["pipeline", "down"]).exit_code == ExitCode.NO_EVENTS
+    assert runner.invoke(app, ["pipeline", "status"]).exit_code == ExitCode.NO_EVENTS
+
+
+def test_stack_commands_need_docker_and_the_compose_file(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    monkeypatch.setattr(shutil, "which", lambda name: None)
+    no_docker = runner.invoke(app, ["pipeline", "status"])
+    assert no_docker.exit_code == ExitCode.NO_EVENTS
+    assert "Docker is not installed" in no_docker.stderr
+    monkeypatch.setattr(shutil, "which", lambda name: f"/usr/bin/{name}")
+    monkeypatch.chdir(tmp_path)
+    no_file = runner.invoke(app, ["pipeline", "up"])
+    assert "clone of the Prohori repository" in no_file.stderr
