@@ -7,6 +7,31 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- Streaming pipeline in lite mode (`prohori.pipeline`, `pipeline` extra with DuckDB), running
+  the batch core continuously without Docker:
+  - topics `raw-logs`, `events`, `alerts`, `incidents` and `dead-letter` with keyed JSON
+    messages, and a transport protocol with in-memory and file (JSON Lines) implementations;
+  - consumers normalise -> detect -> incidents and a DuckDB sink, with at-least-once delivery,
+    writes keyed by content-derived ids (a replay or redelivery adds no rows), duplicate events
+    dropped before the rule engine, and dead letters for unparseable lines and malformed
+    messages, with counters;
+  - incidents close once their alert group can no longer grow; the stream's incidents equal
+    those of `prohori incidents` for every simulator scenario (integration test, replayed
+    twice);
+  - a rotation-aware file tailer (rename and truncate rotation, saved positions, Windows file
+    sharing so writers can still rotate) and a file replayer;
+  - `prohori pipeline replay FILE...` and `prohori pipeline tail FILE...`, with graceful
+    shutdown and a table of counters;
+  - `docs/PIPELINE.md` and ADR-0023.
+- `LineParser.parse_raw` parses one line without resetting the parser.
+
+### Changed
+
+- The incident builder's event memory ignores an event it has already seen before updating the
+  sign-in history, so a replayed event cannot count twice.
+
 ## [0.2.0] - 2026-10-31
 
 Machine learning, evaluated honestly: anomaly detection on your own logs, and intrusion-detection

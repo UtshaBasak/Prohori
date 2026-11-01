@@ -15,6 +15,7 @@ file is `-`. Nothing uses the network unless you configure API keys and ask for 
 | [`prohori enrich IP...`](#prohori-enrich) | Look up IP addresses |
 | [`prohori simulate SCENARIO`](#prohori-simulate) | Write a labelled attack scenario |
 | [`prohori score FLOWS --model NAME`](#prohori-score) | Score a CSV of network flows with a saved model (`ml` extra) |
+| [`prohori pipeline replay` / `tail`](#prohori-pipeline) | Run the streaming pipeline in lite mode into DuckDB (`pipeline` extra) |
 | `prohori rules list` / `validate` / `test` | Show, check and test detection rules ([RULES.md](RULES.md)) |
 | `prohori version` | Version, ATT&CK release and built-in rule set |
 
@@ -31,7 +32,7 @@ Tables never interpret text from logs as markup, and every report format escapes
 | Code | Meaning |
 |------|---------|
 | `0` | Success, nothing found (or `--exit-zero`) |
-| `1` | Nothing could be processed: every line failed to parse, a rule file is invalid, redaction could not hide every value (nothing is written), or `score` lacks the `ml` extra, a loadable model or a scorable file |
+| `1` | Nothing could be processed: every line failed to parse, a rule file is invalid, redaction could not hide every value (nothing is written), `score` lacks the `ml` extra, a loadable model or a scorable file, or `pipeline` lacks the `pipeline` extra or every replayed line was rejected |
 | `2` | Invalid usage, input or setting |
 | `3` | Findings: `detect`, `incidents` and `triage` found alerts or incidents; `score` flagged flows |
 
@@ -39,7 +40,7 @@ Code `3` lets scripts and CI pipelines react to findings; add `--exit-zero` to g
 
 ## Options shared by the log commands
 
-`parse`, `detect`, `incidents` and `triage` accept:
+`parse`, `detect`, `incidents`, `triage` and `pipeline replay` / `tail` accept:
 
 | Option | Meaning |
 |--------|---------|
@@ -158,3 +159,28 @@ To try it on the repository's synthetic fixtures:
 uv run python -m prohori.ml.train --dataset cicids2017 --data-dir tests/fixtures/ml --seeds 0 --variants cleaned --no-cache --out tmp/results.json --models-dir tmp/models
 uv run prohori score tests/fixtures/flows.csv --model cicids2017/iforest-seed0 --models-dir tmp/models --fpr 0.01
 ```
+
+## `prohori pipeline`
+
+```bash
+prohori pipeline replay logs/web-scanning.log --times 2      # replay, then stop
+prohori pipeline tail /var/log/auth.log --year 2026          # follow until Ctrl+C
+```
+
+Runs the streaming pipeline in lite mode, one process without Docker: lines go to the `raw-logs`
+topic and are parsed, run through the rules and grouped into incidents. Events, alerts,
+incidents and rejected messages (dead letters) are written to DuckDB, each id once. It needs the
+`pipeline` extra (`pip install "prohori[pipeline]"`); without it the command says so and exits
+with `1`. See [PIPELINE.md](PIPELINE.md).
+
+- **`replay FILE...`** publishes whole files and stops when everything is written. `--times N`
+  publishes each file N times; the database still gets each row once. Exits `1` if every line
+  was rejected.
+- **`tail FILE...`** follows growing files through log rotation (rename or truncation) and
+  continues where it stopped when run again. `--poll SECONDS` sets how often it checks (default
+  1). Ctrl+C finishes the current batch, writes the incidents still open and exits `0`.
+- **Both:** `--state DIR` (default `.prohori/pipeline`) holds the topics, positions and, unless
+  `--db FILE` says otherwise, `prohori.duckdb`. Rule, parser, `--lateness`, `--gap` and
+  enrichment options (`--online`, `--no-enrich`, `--env-file`) work as for `prohori incidents`.
+  When the command stops it prints a table of counters per stage; `-f json` prints them as JSON,
+  with the parser and rule engine counters and the row count of each table.

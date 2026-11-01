@@ -72,6 +72,7 @@ sends nothing over the network. Sample reports: [Markdown](docs/examples/account
 - [Built-in detection rules](#built-in-detection-rules)
 - [How well the rules work](#how-well-the-rules-work)
 - [Machine learning](#machine-learning)
+- [Streaming pipeline](#streaming-pipeline)
 - [Privacy and safety](#privacy-and-safety)
 - [Documentation](#documentation)
 - [Limitations](#limitations)
@@ -97,6 +98,7 @@ flowchart LR
 | **Incidents** | Related alerts (same IP, account, request or session within a time gap) become one incident with a points-based score you can read line by line, severity, confidence, MITRE ATT&CK v20.0 mapping, a timeline, recommended actions and stated limitations. Detects sign-ins from an IP or app new to the account. |
 | **Simulate** | Eight labelled attack scenarios (SSH brute force, password spraying, credential stuffing, token reuse, account takeover, web scanning, injection, admin misuse) hidden in realistic background activity, byte-identical for a seed, documentation IP addresses only. Used to measure every rule's precision and recall. |
 | **Report** | Markdown, a self-contained HTML page, JSON or a CSV timeline, with an appendix of input and rule-file SHA-256 hashes. `--redact` replaces account names, ids and emails (and optionally IPs) with keyed pseudonyms, and refuses to write a report that would still leak one. |
+| **Stream** | Lite mode runs the same parsers, rules and incident builder continuously, without Docker: follow live logs through rotation or replay files, with at-least-once delivery, dead letters and results in DuckDB, each row once. |
 
 Prohori only **recommends** actions. It never blocks addresses, disables accounts or touches
 remote systems.
@@ -108,8 +110,9 @@ not tested.
 
 - **From PyPI:** `pipx install prohori` puts the `prohori` command in its own environment;
   `pip install prohori` works in any virtual environment. Optional parts are extras:
-  `pip install "prohori[geoip]"` for local GeoLite2 files and `pip install "prohori[ml]"` for the
-  machine-learning code (scikit-learn, pandas, pyarrow). The base install never needs them.
+  `pip install "prohori[geoip]"` for local GeoLite2 files, `pip install "prohori[ml]"` for the
+  machine-learning code (scikit-learn, pandas, pyarrow) and `pip install "prohori[pipeline]"` for
+  the streaming pipeline (DuckDB). The base install never needs them.
 - **From source:** install [uv](https://docs.astral.sh/uv/), then
   `git clone https://github.com/UtshaBasak/Prohori.git && cd Prohori && uv sync`, and run
   commands as `uv run prohori ...`. The sample files used below are in the repository.
@@ -187,6 +190,7 @@ recommended actions from the runbooks and the limitations, such as "single log s
 | `prohori report INCIDENT` | Render an incident as `md`, `html`, `json` or `csv`; `--redact`, `--redact-ips` | [REPORTS.md](docs/REPORTS.md) |
 | `prohori simulate SCENARIO --out DIR` | Write a labelled attack scenario (`--list`, `--seed`, `--variant heldout`, `--set`) | [SIMULATOR.md](docs/SIMULATOR.md) |
 | `prohori score FLOWS --model NAME` | Score a CSV of network flows with a saved model; needs the `ml` extra (`--fpr`, `--top`, `-f json`) | [CLI.md](docs/CLI.md#prohori-score) |
+| `prohori pipeline replay FILE...` / `tail FILE...` | Stream log files through the lite pipeline into DuckDB; `tail` follows live logs until Ctrl+C; needs the `pipeline` extra | [PIPELINE.md](docs/PIPELINE.md) |
 | `prohori version` | The version, ATT&CK release and built-in rule set | |
 
 Commands that take a file also read standard input with `-`, and every command has `--help`.
@@ -338,6 +342,45 @@ prohori score flows.csv --model cicids2017/hgb-seed0              # score your o
 `prohori score` reads a CSV of flows in the layout the model was trained on (CICFlowMeter output
 for a CIC-IDS-2017 model) and lists the flagged flows; see [docs/CLI.md](docs/CLI.md#prohori-score).
 
+## Streaming pipeline
+
+The batch commands read a file and stop. `prohori pipeline` keeps going. Lite mode runs the same
+parsers, rules and incident builder as a chain of consumers in one process, without Docker, and
+stores everything in a DuckDB file:
+
+```bash
+pip install "prohori[pipeline]"
+prohori pipeline replay logs/web-scanning.log --times 2   # replay twice: each row stored once
+prohori pipeline tail /var/log/auth.log --year 2026       # follow a live log until Ctrl+C
+duckdb .prohori/pipeline/prohori.duckdb "SELECT severity, score, title FROM incidents"
+```
+
+```mermaid
+flowchart LR
+    T[tail / replay] -->|raw-logs| N[normalise]
+    N -->|events| D[detect]
+    D -->|alerts| I[incidents]
+    N & D & I --> S[(DuckDB)]
+    N -.->|dead-letter| S
+```
+
+- **Same answers as batch.** For every simulator scenario, the incidents the stream writes are
+  exactly those of `prohori incidents` on the same file. That holds even when the file is
+  replayed twice, which CI tests on Linux and Windows.
+- **Nothing lost, nothing doubled.** Delivery is at least once (publish, fsync, then commit).
+  Every id is a hash of its content, so a replay, a redelivery or a crash mid-run adds no rows.
+  Duplicate events are dropped before the rules, so they cannot push a threshold over its limit.
+- **Bad input is set aside.** Lines no parser accepts and malformed messages go to a dead-letter
+  table with the reason, and are counted.
+- **Live logs.** The tailer survives rotation by rename or truncation (on Windows too, without
+  blocking the writer's rotation) and continues where it stopped after a restart. Ctrl+C
+  finishes cleanly.
+- **Honest limits.** Lite mode handles about 2,800 lines a second on a laptop, a single host's
+  logs, against about 14,000 for the batch command. Its topics are not trimmed, and `--models`
+  stays a batch feature. Redpanda and PostgreSQL in Docker come next (v0.3.0).
+
+Details: [docs/PIPELINE.md](docs/PIPELINE.md).
+
 ## Privacy and safety
 
 - **Offline by default.** Nothing leaves the machine unless you configure API keys and, for
@@ -373,6 +416,7 @@ Third-party data terms (MITRE ATT&CK, GeoLite2, AbuseIPDB, VirusTotal) are summa
 | [Datasets](docs/DATASETS.md) | UNSW-NB15 and CIC-IDS-2017: getting them, licences, leakage controls |
 | [Model card](docs/MODEL_CARD.md) | Flow detectors: intended use, evaluation, results, failure cases |
 | [Anomaly detection](docs/ANOMALY.md) | `--models`: features, detectors, comparison with the rules, false alerts |
+| [Streaming pipeline](docs/PIPELINE.md) | Lite mode: topics, delivery guarantees, dead letters, tailing, the DuckDB tables |
 | [Decisions](docs/DECISIONS.md) | Architecture decision records |
 | [Releasing](docs/RELEASING.md) | How releases are built, tested and published |
 | [Third-party terms](docs/LICENSES.md) | Data and service licences |
@@ -382,8 +426,9 @@ Third-party data terms (MITRE ATT&CK, GeoLite2, AbuseIPDB, VirusTotal) are summa
 
 Prohori is honest about what it does not do:
 
-- **It reads logs after the fact.** There is no live monitoring yet (the streaming pipeline is
-  planned for v0.3.0), and it never blocks, disables or changes anything.
+- **Live monitoring is lite only so far.** `prohori pipeline tail` follows a single host's logs
+  into DuckDB; the Docker stack with a message queue, warehouse and dashboard is planned for
+  v0.3.0. Prohori never blocks, disables or changes anything.
 - **Rules see only what the logs say.** Request bodies, headers and encrypted traffic are not
   inspected; the web rules use the request line only.
 - **Thresholds can be evaded.** The held-out evaluation shows that slow or widely distributed
@@ -404,7 +449,7 @@ Prohori is honest about what it does not do:
 |---------|----------|-------|
 | v0.1.0 | Batch core: parsers, rules, enrichment, incidents, reports, log simulator with rule evaluation, `triage` and `demo` commands | Released |
 | v0.2.0 | Machine learning: leakage-controlled intrusion detection on public flow datasets, log-derived anomaly detection, model cards | Released |
-| v0.3.0 | Pipeline: streaming core, Redpanda and PostgreSQL in Docker, dbt models, dashboard, orchestration | Planned |
+| v0.3.0 | Pipeline: streaming core and lite mode (done), Redpanda and PostgreSQL in Docker, dbt models, dashboard, orchestration | In progress |
 | v1.0.0 | Optional LLM analyst (opt-in, redacted input, validated output), final polish | Planned |
 
 ## Development
@@ -419,6 +464,7 @@ uv run mypy                    # strict type check
 uv run pytest --cov            # tests with coverage (kept at 85 % or more)
 uv run prohori rules test      # run every rule against its fixtures
 uv run pytest tests/unit/ml -q # dataset and leakage tests (synthetic fixtures, no downloads)
+uv run pytest tests/integration # end to end, including lite mode against the batch command
 ```
 
 CI runs on Linux and Windows with Python 3.11 to 3.14, plus CodeQL, secret scanning, parser

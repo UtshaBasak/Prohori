@@ -47,7 +47,8 @@ Both modes share the same core library.
 - **Batch / CLI mode** (no Docker): file in, incidents and report out.
 - **Pipeline mode** (Docker Compose): producers -> Kafka-compatible message queue -> consumers
   (normalise -> detect -> alert -> incident) -> warehouse, with scheduled jobs and a dashboard.
-  A file-based **lite mode** runs the same consumers without Docker.
+  A file-based **lite mode** (`prohori pipeline replay` / `tail`) runs the same consumers in one
+  process without Docker, storing results in DuckDB; see [PIPELINE.md](PIPELINE.md).
 
 ## Package layout
 
@@ -62,7 +63,7 @@ Both modes share the same core library.
 | `prohori.reports` | Report templates, renderers and redaction |
 | `prohori.simulate` | Labelled attack-scenario log generator |
 | `prohori.ml` | Dataset registry, chunked loading, leakage-controlled cleaning, flow models, training, SOC metrics, the cross-dataset test, flow scoring and log anomaly detection |
-| `prohori.pipeline` | Producers, consumers, sinks, lite-mode runner |
+| `prohori.pipeline` | Topics and messages, transports (memory, file), producers (replay, rotation-aware tailer), consumers (normalise, detect, incidents), the DuckDB sink and the lite-mode runner ([PIPELINE.md](PIPELINE.md)) |
 | `prohori.llm` | Provider interface, retrieval, safeguards |
 
 ## Principles

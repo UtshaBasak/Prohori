@@ -731,3 +731,62 @@ attacks and its held-out variants.
 **Consequences.** On the held-out variants the detectors catch no attack the rules miss, with far
 fewer false alerts. They are positioned as a quiet second signal. Without `--models` nothing
 changes, and all golden files are unchanged.
+
+---
+
+## ADR-0023: Streaming core and lite mode
+
+- **Date:** 2026-11-01
+- **Status:** Accepted
+
+**Context.** The pipeline track runs the batch core continuously: producers, a message queue,
+consumers (normalise -> detect -> incident) and a warehouse. Step 19 adds Redpanda and PostgreSQL
+in Docker; before that, the same consumers must run without Docker, on Windows and Linux, and be
+tested end to end in CI.
+
+**Decision.**
+- **Topics and messages:** `raw-logs`, `events`, `alerts`, `incidents` and `dead-letter`, carrying
+  keyed JSON objects. Events, alerts and incidents are the schema models unchanged; `RawLog` and
+  `DeadLetter` are new payloads with a schema version. Raw lines are keyed by source file (order
+  within a file), the rest by id. `events` is one partition, because the rule engine needs the
+  whole stream in time order.
+- **Transport protocol** (`publish`, `flush`, `poll`, `commit`, `rewind`) with an in-memory and a
+  file implementation. The file transport keeps one JSON Lines file per topic and committed byte
+  offsets replaced atomically; a torn final line is skipped by readers and terminated by the next
+  writer. The Kafka transport in step 19 implements the same protocol.
+- **At-least-once delivery, idempotent storage:** publish, flush (fsync), then commit. Ids are
+  content hashes, so redelivery and replay produce the same ids, and the DuckDB sink writes with
+  `INSERT OR IGNORE`. The detector drops event ids it has seen (bounded at 100,000) before the
+  engine, so duplicates cannot inflate thresholds; the incident stage drops alerts it has already
+  used.
+- **Stateful stages rebuild rather than checkpoint:** the detector and the incident stage read
+  their topics from the start when the pipeline starts. Checkpointing the engine's windows and
+  open alert groups would need a serialisation format for every evaluator; rebuilding is
+  deterministic and reuses the tested code paths. The cost (start-up time grows with the topics)
+  is documented.
+- **Incidents in a stream:** an alert group is final once the newest alert time is past its end by
+  gap + longest aggregate or sequence window + lateness, or, when following live logs, after that
+  much wall-clock time without new alerts. Final groups go through the unchanged
+  `IncidentBuilder`. The integration tests require the stream's incidents to equal the batch
+  command's for every simulator scenario, replayed twice.
+- **Parsing:** `LineParser.parse_raw` parses one line without resetting the parser, so the
+  normaliser keeps one parser per source and `auth_log` year inference carries across messages.
+  Each raw message carries its line number (part of the event id) and the time it was read (the
+  file's modification time for a replay, as in batch mode).
+- **Dead letters, never retries:** unparseable lines, malformed messages, schema failures and
+  processing errors go to `dead-letter` with a reason and a truncated payload, and are counted.
+- **Tailing:** follows a path through rename and truncate rotation, with a saved position keyed
+  by file identity. On Windows the file is opened through `CreateFileW` with read, write and
+  delete sharing, because Python's `open` would block the writer's rotation. Clock and polling
+  are injected so tests have no sleeps.
+- **Lite-mode runner:** all stages in one process, taking turns in rounds; graceful shutdown on
+  SIGINT, SIGTERM (and SIGBREAK on Windows) between rounds. `prohori pipeline replay` and
+  `prohori pipeline tail`; DuckDB behind the new `pipeline` extra.
+- **Scope:** the "dataset replayer" replays log files (such as the simulator's labelled logs);
+  the flow datasets are tabular and have their own tooling. `--models` stays batch-only, because
+  the anomaly detectors judge a whole log against itself.
+
+**Consequences.** Lite mode reaches about 2,800 lines a second on the development laptop, against
+about 14,000 for the batch command; each stage validates and serialises every message and every
+batch is made durable. DuckDB 2.0 ships abi3 wheels for Python 3.12+ and cp311 wheels on Windows
+and Linux, so the whole CI matrix runs the end-to-end test. No change to the batch outputs.
