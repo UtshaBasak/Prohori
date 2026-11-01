@@ -25,6 +25,7 @@ from pydantic import BaseModel
 from prohori.pipeline import MissingExtraError
 from prohori.pipeline.messages import DeadLetter, Topic, dead_letter
 from prohori.pipeline.stages import Stage
+from prohori.pipeline.tables import STREAM_TABLES, column_names, ddl
 from prohori.pipeline.transport import Record, Transport
 from prohori.schema import Alert, Event, Incident
 
@@ -33,52 +34,9 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-SCHEMA = """
-CREATE TABLE IF NOT EXISTS events (
-    id VARCHAR PRIMARY KEY,
-    timestamp TIMESTAMPTZ NOT NULL,
-    log_source VARCHAR NOT NULL,
-    action VARCHAR NOT NULL,
-    category VARCHAR NOT NULL,
-    outcome VARCHAR NOT NULL,
-    source_ip VARCHAR,
-    user_name VARCHAR,
-    http_status INTEGER,
-    record JSON NOT NULL
-);
-CREATE TABLE IF NOT EXISTS alerts (
-    id VARCHAR PRIMARY KEY,
-    detector_id VARCHAR NOT NULL,
-    detector_kind VARCHAR NOT NULL,
-    severity VARCHAR NOT NULL,
-    first_seen TIMESTAMPTZ NOT NULL,
-    last_seen TIMESTAMPTZ NOT NULL,
-    title VARCHAR NOT NULL,
-    event_count INTEGER NOT NULL,
-    record JSON NOT NULL
-);
-CREATE TABLE IF NOT EXISTS incidents (
-    id VARCHAR PRIMARY KEY,
-    severity VARCHAR NOT NULL,
-    score DOUBLE NOT NULL,
-    confidence VARCHAR NOT NULL,
-    first_seen TIMESTAMPTZ NOT NULL,
-    last_seen TIMESTAMPTZ NOT NULL,
-    title VARCHAR NOT NULL,
-    alert_count INTEGER NOT NULL,
-    record JSON NOT NULL
-);
-CREATE TABLE IF NOT EXISTS dead_letters (
-    id VARCHAR PRIMARY KEY,
-    stage VARCHAR NOT NULL,
-    topic VARCHAR NOT NULL,
-    key VARCHAR,
-    reason VARCHAR NOT NULL,
-    payload VARCHAR NOT NULL
-);
-"""
+SCHEMA = ddl("duckdb")
 
-TABLES = ("events", "alerts", "incidents", "dead_letters")
+TABLES = STREAM_TABLES
 
 
 def connect(path: Path) -> "duckdb.DuckDBPyConnection":
@@ -258,8 +216,11 @@ class DuckDBSink(Sink):
                 # One statement per table and batch, each column bound as one list parameter
                 # (executemany would run one statement per row, which is far slower).
                 columns = [list(column) for column in zip(*table_rows, strict=True)]
+                names = ", ".join(column_names(table))
                 unnest = ", ".join(["unnest(?)"] * len(columns))
-                self.connection.execute(f"INSERT OR IGNORE INTO {table} SELECT {unnest}", columns)
+                self.connection.execute(
+                    f"INSERT OR IGNORE INTO {table} ({names}) SELECT {unnest}", columns
+                )
             self.connection.execute("COMMIT")
         except Exception:
             self.connection.execute("ROLLBACK")

@@ -10,70 +10,23 @@ from typing import TYPE_CHECKING, Any
 
 from prohori.pipeline import MissingExtraError
 from prohori.pipeline.sink import TABLES, Sink
+from prohori.pipeline.tables import column_names, ddl, json_columns
 from prohori.pipeline.transport import Transport
 
 if TYPE_CHECKING:
     import psycopg
 
-SCHEMA = """
-CREATE SCHEMA IF NOT EXISTS raw;
-CREATE TABLE IF NOT EXISTS raw.events (
-    id TEXT PRIMARY KEY,
-    timestamp TIMESTAMPTZ NOT NULL,
-    log_source TEXT NOT NULL,
-    action TEXT NOT NULL,
-    category TEXT NOT NULL,
-    outcome TEXT NOT NULL,
-    source_ip TEXT,
-    user_name TEXT,
-    http_status INTEGER,
-    record JSONB NOT NULL
-);
-CREATE TABLE IF NOT EXISTS raw.alerts (
-    id TEXT PRIMARY KEY,
-    detector_id TEXT NOT NULL,
-    detector_kind TEXT NOT NULL,
-    severity TEXT NOT NULL,
-    first_seen TIMESTAMPTZ NOT NULL,
-    last_seen TIMESTAMPTZ NOT NULL,
-    title TEXT NOT NULL,
-    event_count INTEGER NOT NULL,
-    record JSONB NOT NULL
-);
-CREATE TABLE IF NOT EXISTS raw.incidents (
-    id TEXT PRIMARY KEY,
-    severity TEXT NOT NULL,
-    score DOUBLE PRECISION NOT NULL,
-    confidence TEXT NOT NULL,
-    first_seen TIMESTAMPTZ NOT NULL,
-    last_seen TIMESTAMPTZ NOT NULL,
-    title TEXT NOT NULL,
-    alert_count INTEGER NOT NULL,
-    record JSONB NOT NULL
-);
-CREATE TABLE IF NOT EXISTS raw.dead_letters (
-    id TEXT PRIMARY KEY,
-    stage TEXT NOT NULL,
-    topic TEXT NOT NULL,
-    key TEXT,
-    reason TEXT NOT NULL,
-    payload TEXT NOT NULL
-);
-"""
-
-#: Placeholders per table; ``record`` is cast to JSONB.
-_COLUMNS = {
-    "events": 9,
-    "alerts": 8,
-    "incidents": 8,
-    "dead_letters": 6,
-}
+SCHEMA = "CREATE SCHEMA IF NOT EXISTS raw;\n" + ddl("postgres", prefix="raw.")
 
 
 def _insert(table: str) -> str:
-    plain = ", ".join(["%s"] * _COLUMNS[table])
-    values = plain if table == "dead_letters" else f"{plain}, %s::jsonb"
-    return f"INSERT INTO raw.{table} VALUES ({values}) ON CONFLICT (id) DO NOTHING"  # noqa: S608
+    names = column_names(table)
+    json = json_columns(table)
+    marks = ", ".join("%s::jsonb" if n in json else "%s" for n in names)
+    return (
+        f"INSERT INTO raw.{table} ({', '.join(names)}) VALUES ({marks}) "  # noqa: S608
+        "ON CONFLICT (id) DO NOTHING"
+    )
 
 
 def connect(dsn: str) -> "psycopg.Connection[Any]":

@@ -36,7 +36,7 @@ prohori.local.*
 data/*
 !data/README.md
 results/checkpoints/
-models/
+/models/
 *.joblib
 *.pkl
 *.pickle
@@ -58,6 +58,7 @@ pipeline/.volumes/
 pipeline/dbt/target/
 pipeline/dbt/logs/
 pipeline/dbt/dbt_packages/
+pipeline/dbt/.user.yml
 pipeline/airflow/logs/
 
 # --- Editors and OS

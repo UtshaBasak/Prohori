@@ -10,6 +10,7 @@ import pytest
 
 from prohori.pipeline.messages import Topic, dead_letter
 from prohori.pipeline.sink import DuckDBSink, connect, strip_nul
+from prohori.pipeline.tables import TABLES as ALL_TABLES
 from prohori.pipeline.transport import MemoryTransport
 from prohori.schema import Alert, Event, Severity
 
@@ -121,7 +122,7 @@ def test_connect_reopens_an_existing_database(tmp_path: Path) -> None:
     connection = connect(path)
     tables = {row[0] for row in connection.execute("SHOW TABLES").fetchall()}
     connection.close()
-    assert tables == {"events", "alerts", "incidents", "dead_letters"}
+    assert tables == set(ALL_TABLES)
 
 
 def test_strip_nul_cleans_nested_strings() -> None:
