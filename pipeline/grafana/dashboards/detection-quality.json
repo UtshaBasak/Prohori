@@ -1,0 +1,670 @@
+{
+  "uid": "prohori-detection-quality",
+  "title": "Prohori - Detection quality",
+  "description": "Rule precision, time to detect, detection latency and flow-model performance from the dbt marts.",
+  "tags": [
+    "prohori",
+    "dbt"
+  ],
+  "timezone": "utc",
+  "editable": false,
+  "graphTooltip": 1,
+  "refresh": "5m",
+  "time": {
+    "from": "now-30d",
+    "to": "now"
+  },
+  "timepicker": {},
+  "templating": {
+    "list": []
+  },
+  "annotations": {
+    "list": []
+  },
+  "links": [
+    {
+      "title": "Prohori",
+      "type": "dashboards",
+      "tags": [
+        "prohori"
+      ],
+      "asDropdown": true,
+      "includeVars": false,
+      "keepTime": true
+    }
+  ],
+  "panels": [
+    {
+      "type": "text",
+      "title": "About this dashboard",
+      "options": {
+        "mode": "markdown",
+        "content": "Built from the dbt marts (`marts.*`), not from the raw tables. They exist after a dbt build on the\nstack's database, and rule precision and attack detection need the simulator's labels:\n\n```\nprohori pipeline load-labels LOG --postgres postgresql://prohori:prohori@127.0.0.1:15432/prohori\nuv run dbt build --project-dir pipeline/dbt --profiles-dir pipeline/dbt --target postgres\n```\n\nFlow-model rows come from `prohori pipeline load-results results/ml_*.json`. See docs/WAREHOUSE.md."
+      },
+      "id": 1,
+      "gridPos": {
+        "h": 5,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      }
+    },
+    {
+      "type": "table",
+      "title": "Rule precision",
+      "description": "Per rule: alerts, how many could be judged against the simulator's labels, and the share that were attacks (marts.rule_precision). Empty precision: no labelled alerts.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "prohori-warehouse"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "prohori-warehouse"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT detector_id AS \"Rule\",\n       alerts AS \"Alerts\",\n       judged_alerts AS \"Judged\",\n       true_positives AS \"True positives\",\n       false_positives AS \"False positives\",\n       precision AS \"Precision\"\nFROM marts.rule_precision\nORDER BY alerts DESC, detector_id"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "minWidth": 70,
+            "cellOptions": {
+              "type": "auto"
+            }
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Precision"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "percentunit"
+              },
+              {
+                "id": "min",
+                "value": 0
+              },
+              {
+                "id": "max",
+                "value": 1
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "gauge",
+                  "mode": "basic",
+                  "valueDisplayMode": "text"
+                }
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "continuous-RdYlGr"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false,
+          "reducer": [
+            "sum"
+          ],
+          "fields": ""
+        }
+      },
+      "id": 2,
+      "gridPos": {
+        "h": 11,
+        "w": 12,
+        "x": 0,
+        "y": 5
+      }
+    },
+    {
+      "type": "table",
+      "title": "Attack detection",
+      "description": "Each simulated attack: whether a rule caught it and how long after it started (marts.attack_detection).",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "prohori-warehouse"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "prohori-warehouse"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT scenario AS \"Scenario\",\n       attack_id AS \"Attack\",\n       started_at AS \"Started\",\n       detected AS \"Detected\",\n       time_to_detect_seconds AS \"Time to detect\",\n       alerts AS \"Alerts\",\n       rules AS \"Rules\"\nFROM marts.attack_detection\nORDER BY started_at, attack_id"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "minWidth": 70,
+            "cellOptions": {
+              "type": "auto"
+            }
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Time to detect"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "s"
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false,
+          "reducer": [
+            "sum"
+          ],
+          "fields": ""
+        }
+      },
+      "id": 3,
+      "gridPos": {
+        "h": 11,
+        "w": 12,
+        "x": 12,
+        "y": 5
+      }
+    },
+    {
+      "type": "table",
+      "title": "Detection latency",
+      "description": "Per rule: how long the activity ran before the rule fired (log time) and how long the pipeline took to store the alert (wall-clock time) (marts.detection_latency).",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "prohori-warehouse"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "prohori-warehouse"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT detector_id AS \"Rule\",\n       alerts AS \"Alerts\",\n       median_activity_seconds AS \"Median activity\",\n       max_activity_seconds AS \"Max activity\",\n       median_pipeline_seconds AS \"Median pipeline\",\n       max_pipeline_seconds AS \"Max pipeline\"\nFROM marts.detection_latency\nORDER BY alerts DESC, detector_id"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "minWidth": 70,
+            "cellOptions": {
+              "type": "auto"
+            }
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Median activity"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "s"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Max activity"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "s"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Median pipeline"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "s"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Max pipeline"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "s"
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false,
+          "reducer": [
+            "sum"
+          ],
+          "fields": ""
+        }
+      },
+      "id": 4,
+      "gridPos": {
+        "h": 11,
+        "w": 12,
+        "x": 0,
+        "y": 16
+      }
+    },
+    {
+      "type": "table",
+      "title": "Top source addresses",
+      "description": "All-time ranking by alerts, then events (marts.top_source_ips).",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "prohori-warehouse"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "prohori-warehouse"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT rank AS \"Rank\",\n       source_ip AS \"Source\",\n       events AS \"Events\",\n       failed_events AS \"Failures\",\n       accounts AS \"Accounts\",\n       alerts AS \"Alerts\",\n       incidents AS \"Incidents\"\nFROM marts.top_source_ips\nORDER BY rank\nLIMIT 15"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "minWidth": 70,
+            "cellOptions": {
+              "type": "auto"
+            }
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false,
+          "reducer": [
+            "sum"
+          ],
+          "fields": ""
+        }
+      },
+      "id": 5,
+      "gridPos": {
+        "h": 11,
+        "w": 12,
+        "x": 12,
+        "y": 16
+      }
+    },
+    {
+      "type": "table",
+      "title": "Flow models: latest evaluation",
+      "description": "The latest evaluation of each flow model and operating point, averaged over seeds, with the change in recall since the evaluation before (marts.model_performance).",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "prohori-warehouse"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "prohori-warehouse"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT DISTINCT ON (dataset, variant, model, operating_point)\n       evaluated_at AS \"Evaluated\",\n       dataset AS \"Dataset\",\n       variant AS \"Variant\",\n       model AS \"Model\",\n       operating_point AS \"Operating point\",\n       recall AS \"Recall\",\n       precision AS \"Precision\",\n       false_alerts_per_10k AS \"False alerts per 10k\",\n       pr_auc AS \"PR AUC\",\n       recall_change AS \"Recall change\"\nFROM marts.model_performance\nORDER BY dataset, variant, model, operating_point, evaluated_at DESC"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "minWidth": 70,
+            "cellOptions": {
+              "type": "auto"
+            }
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Recall"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "percentunit"
+              },
+              {
+                "id": "min",
+                "value": 0
+              },
+              {
+                "id": "max",
+                "value": 1
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "gauge",
+                  "mode": "basic",
+                  "valueDisplayMode": "text"
+                }
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "continuous-RdYlGr"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Precision"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "percentunit"
+              },
+              {
+                "id": "min",
+                "value": 0
+              },
+              {
+                "id": "max",
+                "value": 1
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "gauge",
+                  "mode": "basic",
+                  "valueDisplayMode": "text"
+                }
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "continuous-RdYlGr"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "PR AUC"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "percentunit"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Recall change"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "percentunit"
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false,
+          "reducer": [
+            "sum"
+          ],
+          "fields": ""
+        }
+      },
+      "id": 6,
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 27
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Flow-model recall over time",
+      "description": "Recall per model and operating point at each evaluation in the time range.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "prohori-warehouse"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "prohori-warehouse"
+          },
+          "editorMode": "code",
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "SELECT evaluated_at AS time, model || ' ' || operating_point || ' (' || variant || ')' AS metric, recall AS value\nFROM marts.model_performance\nWHERE $__timeFilter(evaluated_at)\nORDER BY 1"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "lineWidth": 1,
+            "showPoints": "auto",
+            "pointSize": 5,
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            },
+            "axisSoftMin": 0,
+            "spanNulls": false
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "id": 7,
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 35
+      }
+    },
+    {
+      "type": "table",
+      "title": "Daily summary",
+      "description": "Per UTC day: events, failures, alerts and incidents (marts.daily_attack_counts).",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "prohori-warehouse"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "prohori-warehouse"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT day AS \"Day\",\n       events AS \"Events\",\n       failed_events AS \"Failures\",\n       source_ips AS \"Sources\",\n       alerts AS \"Alerts\",\n       high_alerts AS \"High alerts\",\n       rules_fired AS \"Rules fired\",\n       incidents AS \"Incidents\"\nFROM marts.daily_attack_counts\nWHERE $__timeFilter(day)\nORDER BY day DESC"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "minWidth": 70,
+            "cellOptions": {
+              "type": "auto"
+            }
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false,
+          "reducer": [
+            "sum"
+          ],
+          "fields": ""
+        }
+      },
+      "id": 8,
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 35
+      }
+    },
+    {
+      "type": "histogram",
+      "title": "Incident durations",
+      "description": "How long incidents lasted, from first to last alert, in minutes (marts.incident_durations).",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "prohori-warehouse"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "prohori-warehouse"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT duration_seconds / 60.0 AS \"Minutes\"\nFROM marts.incident_durations\nWHERE $__timeFilter(first_seen)"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "m",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "fillOpacity": 80,
+            "lineWidth": 1
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "bucketCount": 20,
+        "combine": false,
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": false
+        }
+      },
+      "id": 9,
+      "gridPos": {
+        "h": 7,
+        "w": 24,
+        "x": 0,
+        "y": 43
+      }
+    }
+  ],
+  "schemaVersion": 41,
+  "version": 1
+}

@@ -61,14 +61,14 @@ def test_parse_ps_formats(as_array: bool) -> None:
     items = [
         {"Service": "redpanda", "State": "running", "Health": "healthy", "ExitCode": 0},
         {"Service": "detect", "State": "running", "Health": "starting", "ExitCode": 0},
-        {"Service": "redpanda-init", "State": "exited", "Health": "", "ExitCode": 0},
+        {"Service": "warehouse-init", "State": "exited", "Health": "", "ExitCode": 0},
         {"Service": "sink", "State": "exited", "Health": "", "ExitCode": 1},
     ]
     text = json.dumps(items) if as_array else "\n".join(json.dumps(i) for i in items)
     services = {s.name: s for s in stack.parse_ps(text)}
     assert services["redpanda"].ok
     assert not services["detect"].ok
-    assert services["redpanda-init"].ok
+    assert services["warehouse-init"].ok
     assert not services["sink"].ok
     assert stack.parse_ps("  ") == []
 
@@ -84,8 +84,12 @@ def test_default_addresses(monkeypatch: pytest.MonkeyPatch) -> None:
     for name in ("PROHORI_POSTGRES_DSN", "PROHORI_POSTGRES_PASSWORD", "PROHORI_POSTGRES_PORT"):
         monkeypatch.delenv(name, raising=False)
     monkeypatch.delenv("PROHORI_KAFKA_BOOTSTRAP", raising=False)
+    monkeypatch.delenv("PROHORI_GRAFANA_PORT", raising=False)
     assert stack.default_dsn().endswith("@127.0.0.1:15432/prohori")
     assert stack.default_bootstrap() == "127.0.0.1:19092"
+    assert stack.dashboard_url() == "http://127.0.0.1:13000"
+    monkeypatch.setenv("PROHORI_GRAFANA_PORT", "3001")
+    assert stack.dashboard_url() == "http://127.0.0.1:3001"
     monkeypatch.setenv("PROHORI_POSTGRES_PORT", "5433")
     assert stack.default_dsn().endswith(":5433/prohori")
     monkeypatch.setenv("PROHORI_POSTGRES_DSN", "postgresql://elsewhere/db")
@@ -95,7 +99,7 @@ def test_default_addresses(monkeypatch: pytest.MonkeyPatch) -> None:
 def test_compose_file_publishes_on_localhost_only_and_pins_images() -> None:
     services = yaml.safe_load(COMPOSE.read_text(encoding="utf-8"))["services"]
     ports = [p for s in services.values() for p in s.get("ports", [])]
-    assert len(ports) == 2
+    assert len(ports) == 3
     assert all(p.startswith("127.0.0.1:") for p in ports)
     images = {s["image"] for s in services.values()}
     assert all("@sha256:" in i for i in images - {"prohori:local"})

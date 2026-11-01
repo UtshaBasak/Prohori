@@ -1,7 +1,7 @@
 name: Docker stack
 
-# Builds the image, starts Redpanda, PostgreSQL and the four stage containers, replays a
-# simulated log, checks the warehouse and builds the dbt models on it
+# Builds the image, starts Redpanda, PostgreSQL, the four stage containers and Grafana, replays a
+# simulated log, checks the warehouse and every dashboard panel, and builds the dbt models on it
 # (tests/integration/test_docker_stack.py).
 on:
   push:

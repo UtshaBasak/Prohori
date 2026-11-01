@@ -1,4 +1,4 @@
-"""Docker smoke test: the real stack (Redpanda, PostgreSQL, one container per stage).
+"""Docker smoke test: the real stack (Redpanda, PostgreSQL, one container per stage, Grafana).
 
 Skipped unless ``PROHORI_DOCKER_TESTS=1`` and Docker is running, because it builds an image,
 starts about 3 GB of containers and **deletes the stack's data volumes** before and after. The
@@ -7,13 +7,17 @@ starts about 3 GB of containers and **deletes the stack's data volumes** before 
     PROHORI_DOCKER_TESTS=1 uv run pytest tests/integration/test_docker_stack.py -v
 """
 
+import json
 import os
 import shutil
 import subprocess
 import sys
 import time
+import urllib.error
+import urllib.request
 from datetime import timedelta
 from pathlib import Path
+from typing import Any
 
 import pytest
 from typer.testing import CliRunner
@@ -50,6 +54,7 @@ DBT_PATHS = [
     "--profiles-dir",
     str(ROOT / "pipeline" / "dbt"),
 ]
+DASHBOARDS = ROOT / "pipeline" / "grafana" / "dashboards"
 RULES = [r.rule for r in load_rules([builtin_rules_dir()]) if r.rule is not None]
 runner = CliRunner(env={"COLUMNS": "200", "NO_COLOR": "1"})
 
@@ -83,6 +88,34 @@ def _precision(dsn: str) -> dict[str, float | None]:
     with psycopg.connect(dsn, connect_timeout=5) as connection:
         rows = connection.execute("SELECT detector_id, precision FROM marts.rule_precision")
         return dict(rows.fetchall())
+
+
+def _grafana(path: str, body: object | None = None) -> Any:
+    """A Grafana API call without credentials (the dashboards are open to anonymous viewers)."""
+    data = json.dumps(body).encode() if body is not None else None
+    request = urllib.request.Request(  # noqa: S310 - fixed http://127.0.0.1 URL
+        stack.dashboard_url() + path, data, {"Content-Type": "application/json"}
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=30) as response:  # noqa: S310
+            return json.load(response)
+    except urllib.error.HTTPError as exc:
+        return json.loads(exc.read() or b"{}")
+
+
+def _panel_results(board: str) -> dict[str, tuple[int, str]]:
+    """Every panel of a provisioned dashboard through Grafana's query API: (rows, error)."""
+    results = {}
+    for panel in json.loads((DASHBOARDS / board).read_text(encoding="utf-8"))["panels"]:
+        for target in panel.get("targets", []):
+            query = dict(target, intervalMs=60000, maxDataPoints=1000)
+            body = {"from": "now-3650d", "to": "now", "queries": [query]}
+            answer = _grafana("/api/ds/query", body)
+            result = answer.get("results", {}).get("A", {}) if isinstance(answer, dict) else {}
+            frames = result.get("frames", [])
+            rows = sum(len((f["data"].get("values") or [[]])[0]) for f in frames)
+            results[panel["title"]] = (rows, result.get("error", "" if result else str(answer)))
+    return results
 
 
 def _memory_within_limits() -> list[str]:
@@ -151,6 +184,20 @@ def test_replay_reaches_postgres_once_and_matches_batch(
         assert f"incidents {len(expected)}" in status.stdout, status.stdout
         assert _memory_within_limits() == []
 
+        # The provisioned dashboards fill without any setup: every panel on the raw tables
+        # returns rows (dead letters excepted: there are none).
+        assert _grafana("/api/health")["database"] == "ok"
+        found = _grafana("/api/search?type=dash-db&tag=prohori")
+        assert {d["uid"] for d in found} == {
+            "prohori-overview",
+            "prohori-detection-quality",
+            "prohori-pipeline-health",
+        }
+        for board in ("overview.json", "pipeline-health.json"):
+            for title, (count, error) in _panel_results(board).items():
+                assert not error, (board, title, error)
+                assert count > 0 or "Dead letters by" in title, (board, title)
+
         # The warehouse models build on PostgreSQL (with the dbt group installed).
         labels = runner.invoke(app, ["pipeline", "load-labels", str(log), "--postgres", dsn])
         assert labels.exit_code == 0, labels.output
@@ -166,6 +213,9 @@ def test_replay_reaches_postgres_once_and_matches_batch(
             assert built.returncode == 0, built.stdout[-4000:]
             precision = _precision(dsn)
             assert precision["PRH-AUTH-002"] == 1.0, precision
+            # Grafana's read-only role can read the marts dbt just replaced.
+            for title, (_, error) in _panel_results("detection-quality.json").items():
+                assert not error, (title, error)
 
         # A stage stops gracefully on SIGTERM: it finishes and reports its counters.
         stack.compose(["stop", "detect"], COMPOSE)

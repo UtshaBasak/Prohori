@@ -1,0 +1,13 @@
+# The dashboards in pipeline/grafana/dashboards/, loaded read-only into the "Prohori" folder.
+apiVersion: 1
+
+providers:
+  - name: prohori
+    folder: Prohori
+    type: file
+    disableDeletion: true
+    allowUiUpdates: false
+    updateIntervalSeconds: 30
+    options:
+      path: /etc/grafana/dashboards
+      foldersFromFilesStructure: false

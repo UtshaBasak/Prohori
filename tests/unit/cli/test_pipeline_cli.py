@@ -250,6 +250,7 @@ def compose(monkeypatch: pytest.MonkeyPatch) -> Compose:
     monkeypatch.setattr(subprocess, "run", recorder)
     monkeypatch.chdir(ROOT)
     monkeypatch.setenv("PROHORI_POSTGRES_DSN", "postgresql://u@127.0.0.1:1/db")
+    monkeypatch.delenv("PROHORI_GRAFANA_PORT", raising=False)
     return recorder
 
 
@@ -266,6 +267,7 @@ def test_up_status_and_down(compose: Compose, monkeypatch: pytest.MonkeyPatch) -
     assert "--build" not in compose.calls[0]
     assert "redpanda" in up.stdout
     assert "--bootstrap 127.0.0.1:19092" in up.stdout
+    assert "Dashboards: http://127.0.0.1:13000" in up.stdout
     status = runner.invoke(app, ["pipeline", "status"])
     assert status.exit_code == 0, status.output
     assert "Warehouse: not reachable." in status.stdout
@@ -273,6 +275,7 @@ def test_up_status_and_down(compose: Compose, monkeypatch: pytest.MonkeyPatch) -
     payload = json.loads(as_json.stdout)
     assert payload["healthy"] is True
     assert payload["rows"] is None
+    assert payload["dashboards"] == "http://127.0.0.1:13000"
     assert len(payload["services"]) == 6
     down = runner.invoke(app, ["pipeline", "down", "--volumes"])
     assert down.exit_code == 0

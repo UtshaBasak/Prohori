@@ -504,7 +504,7 @@ def up_command(
         int, typer.Option(min=10, help="Seconds to wait for every service to be healthy.")
     ] = 300,
 ) -> None:
-    """Start the Docker stack (Redpanda, PostgreSQL, one container per stage) and wait for it.
+    """Start the Docker stack (Redpanda, PostgreSQL, the stages, Grafana) and wait for it.
 
     Needs Docker and a clone of the repository (the compose file and the image's sources).
     Exit codes: 0 every service is healthy, 1 Docker or the compose file is missing or a service
@@ -518,6 +518,7 @@ def up_command(
     typer.echo(
         f"Publish logs with: prohori pipeline replay FILE --bootstrap {stack.default_bootstrap()}"
     )
+    typer.echo(f"Dashboards: {stack.dashboard_url()}")
 
 
 @pipeline_app.command("down")
@@ -563,6 +564,7 @@ def status_command(
             "healthy": healthy,
             "services": [s.__dict__ | {"ok": s.ok} for s in services],
             "rows": counts,
+            "dashboards": stack.dashboard_url(),
         }
         typer.echo(json.dumps(payload, indent=2))
     else:
@@ -619,6 +621,7 @@ def _print_status(compose_path: Path, *, counts: bool, dsn: str | None = None) -
             console.print(
                 "Warehouse rows: " + ", ".join(f"{k} {v:,}" for k, v in rows.items()) + "."
             )
+        console.print(f"Dashboards: {stack.dashboard_url()}")
     return all(s.ok for s in services)
 
 
