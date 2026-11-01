@@ -51,6 +51,9 @@ models/
 .ipynb_checkpoints/
 
 # --- Pipeline runtime state
+.prohori/
+*.duckdb
+*.duckdb.wal
 pipeline/.volumes/
 pipeline/dbt/target/
 pipeline/dbt/logs/
