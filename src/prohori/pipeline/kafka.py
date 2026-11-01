@@ -37,15 +37,28 @@ class _Partition(Protocol):
 class _Consumer(Protocol):
     """The ``confluent_kafka.Consumer`` methods the transport calls."""
 
-    def assign(self, partitions: list[object], /) -> None: ...
-    def consume(self, num_messages: int = 1, timeout: float = -1) -> list[Any]: ...
+    def assign(self, partitions: list[object], /) -> None:
+        """Read these partitions, from the given offsets or the committed ones."""
+
+    def consume(self, num_messages: int = 1, timeout: float = -1) -> list[Any]:
+        """Up to ``num_messages`` messages, waiting at most ``timeout`` seconds."""
+
     def get_watermark_offsets(
         self, partition: object, timeout: float = -1, cached: bool = False
-    ) -> tuple[int, int]: ...
-    def position(self, partitions: list[object], /) -> list[_Partition]: ...
-    def committed(self, partitions: list[object], timeout: float = -1) -> list[_Partition]: ...
-    def commit(self, *, offsets: list[object], asynchronous: bool = True) -> object: ...
-    def close(self) -> None: ...
+    ) -> tuple[int, int]:
+        """The first and the next offset of a partition."""
+
+    def position(self, partitions: list[object], /) -> list[_Partition]:
+        """The offsets the next reads start from."""
+
+    def committed(self, partitions: list[object], timeout: float = -1) -> list[_Partition]:
+        """The group's committed offsets."""
+
+    def commit(self, *, offsets: list[object], asynchronous: bool = True) -> object:
+        """Commit offsets for the group."""
+
+    def close(self) -> None:
+        """Leave and release the connection."""
 
 
 class TransportError(RuntimeError):
