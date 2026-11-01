@@ -177,7 +177,8 @@ JSON.
 | `dead_letters` | `id`, `stage`, `topic`, `key`, `reason`, `payload` |
 
 ```sql
--- with the DuckDB command-line tool: duckdb .prohori/pipeline/prohori.duckdb
+-- with the DuckDB command-line tool (a separate download from duckdb.org):
+-- duckdb .prohori/pipeline/prohori.duckdb
 SELECT detector_id, count(*) FROM alerts GROUP BY 1 ORDER BY 2 DESC;
 SELECT id, severity, score, title FROM incidents ORDER BY score DESC;
 SELECT source_ip, count(*) FROM events WHERE outcome = 'failure' GROUP BY 1 ORDER BY 2 DESC;
@@ -221,5 +222,7 @@ scalable one.
   two checks, the truncation is not noticed. If an old file's inode number is reused by a new
   file that is at least as long, the tailer resumes in the middle of it. Common tailers share
   both limits.
-- **Incidents open at shutdown are written as they are.** If the same attack continues after a
-  restart, its later alerts form a second incident.
+- **Incidents open at shutdown are written as they are.** On the next start the incident stage
+  rebuilds its state from the topics, so if the same attack continues, the rebuilt incident holds
+  the earlier alerts and the new ones under a new id. It is stored next to the partial incident
+  written at shutdown, and the two overlap.

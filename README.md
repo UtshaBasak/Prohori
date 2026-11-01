@@ -352,6 +352,7 @@ stores everything in a DuckDB file:
 pip install "prohori[pipeline]"
 prohori pipeline replay logs/web-scanning.log --times 2   # replay twice: each row stored once
 prohori pipeline tail /var/log/auth.log --year 2026       # follow a live log until Ctrl+C
+# query the results with the DuckDB command-line tool (a separate download):
 duckdb .prohori/pipeline/prohori.duckdb "SELECT severity, score, title FROM incidents"
 ```
 
