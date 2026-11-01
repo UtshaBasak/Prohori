@@ -4,7 +4,9 @@ name: Release
 # it to TestPyPI, and then waits: publishing to PyPI needs a maintainer's approval of the "pypi"
 # environment. After PyPI, the published package is installed from PyPI and run once more.
 # Uploads use trusted publishing (OIDC); no API tokens are stored, and no job can write to the
-# repository. The maintainer creates the GitHub release afterwards (docs/RELEASING.md).
+# repository. After PyPI, the Docker image (pipeline/Dockerfile) is published to GitHub Packages
+# as ghcr.io/utshabasak/prohori, for linux/amd64 and linux/arm64, with a provenance attestation.
+# The maintainer creates the GitHub release afterwards (docs/RELEASING.md).
 # Run by hand (workflow_dispatch) or on a packaging pull request it only builds and tests.
 
 on:
@@ -16,6 +18,8 @@ on:
       - ".github/workflows/release.yml"
       - "pyproject.toml"
       - "src/prohori/version.py"
+      - "pipeline/Dockerfile"
+      - ".dockerignore"
   workflow_dispatch:
 
 permissions:
@@ -28,6 +32,8 @@ concurrency:
 env:
   UV_FROZEN: "1"
   PYTHONUTF8: "1"
+  # Image names must be lower case; the account name is not.
+  IMAGE: ghcr.io/utshabasak/prohori
 
 jobs:
   build:
@@ -161,3 +167,96 @@ jobs:
           done
           "$bin/prohori" version
           "$bin/prohori" demo --out demo-out
+
+  image:
+    name: Container image (build and check)
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: docker/setup-qemu-action@99012661954931238ded8c8b007157a8430204e1 # v4.4.0
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+      - name: Build for linux/amd64 and load it
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: .
+          file: pipeline/Dockerfile
+          platforms: linux/amd64
+          load: true
+          tags: prohori:check
+      - name: Run it, and check it holds only the package
+        env:
+          VERSION: ${{ needs.build.outputs.version }}
+        run: |
+          docker run --rm prohori:check --version | grep -F "$VERSION"
+          docker run --rm prohori:check demo --out /tmp/demo > /dev/null
+          # The build context is an allow-list (.dockerignore); nothing else may reach the image.
+          docker run --rm --entrypoint sh prohori:check -c \
+            'test "$(id -u)" = 10001 && test ! -e /src && ls -A /home/prohori /opt/prohori'
+          if docker history --no-trunc prohori:check --format '{{.CreatedBy}}' \
+              | grep -qiE 'secret|token|password'; then
+            echo "::error::a build step mentions a secret"
+            exit 1
+          fi
+      - name: Build for linux/arm64 too (not published here)
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: .
+          file: pipeline/Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: false
+
+  publish-image:
+    name: Publish the container image
+    if: github.event_name == 'push'
+    needs: [build, image, pypi]
+    runs-on: ubuntu-latest
+    permissions:
+      packages: write # push to ghcr.io
+      attestations: write
+      id-token: write # sign the provenance attestation
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: docker/setup-qemu-action@99012661954931238ded8c8b007157a8430204e1 # v4.4.0
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+      - name: Sign in to GitHub Packages
+        uses: docker/login-action@81c6f93d4bc991e510b342a00b419b3bb4efc5c6 # v4.7.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Tags and labels
+        id: meta
+        uses: docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302 # v6.2.0
+        with:
+          images: ${{ env.IMAGE }}
+          tags: |
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=raw,value=latest
+          labels: |
+            org.opencontainers.image.title=Prohori
+            org.opencontainers.image.description=Security log analysis: parsing, detection rules, incidents and the streaming pipeline's stage containers.
+            org.opencontainers.image.licenses=MIT
+            org.opencontainers.image.documentation=https://github.com/UtshaBasak/Prohori/blob/main/docs/PIPELINE.md
+      - name: Build and push (linux/amd64, linux/arm64)
+        id: push
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: .
+          file: pipeline/Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+      # A signed record of how and where the image was built: gh attestation verify.
+      - name: Attest provenance
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-name: ${{ env.IMAGE }}
+          subject-digest: ${{ steps.push.outputs.digest }}
+          push-to-registry: true
