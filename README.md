@@ -405,6 +405,25 @@ unprivileged, and the ports are bound to 127.0.0.1 only.
 
 Details: [docs/PIPELINE.md](docs/PIPELINE.md).
 
+**Warehouse models.** A dbt project (`pipeline/dbt/`) turns the stored rows into tested tables
+on either database:
+- daily attack counts, alerts per rule, top source addresses and incident durations;
+- rule precision and detection latency, and time to detect each simulated attack (from the
+  simulator's labels);
+- flow-model performance over time.
+
+```bash
+uv sync --group dbt
+uv run python scripts/build_lite_warehouse.py --db .prohori/pipeline/prohori.duckdb
+uv run dbt build --project-dir pipeline/dbt --profiles-dir pipeline/dbt    # --target postgres for the stack
+```
+
+`dbt build` runs 68 data-quality checks: keys, nulls, accepted values, ranges, duplicates,
+cross-table consistency and future timestamps. A separate freshness check covers the inputs. On
+the simulator's eight scenarios, the models' rule precision equals the simulator's own
+evaluation alert for alert, which CI checks. Every attack was detected, the fastest in 0 s and
+the slowest (an admin acting at night) in 252 s. Details: [docs/WAREHOUSE.md](docs/WAREHOUSE.md).
+
 ## Privacy and safety
 
 - **Offline by default.** Nothing leaves the machine unless you configure API keys and, for
@@ -440,7 +459,8 @@ Third-party data terms (MITRE ATT&CK, GeoLite2, AbuseIPDB, VirusTotal) are summa
 | [Datasets](docs/DATASETS.md) | UNSW-NB15 and CIC-IDS-2017: getting them, licences, leakage controls |
 | [Model card](docs/MODEL_CARD.md) | Flow detectors: intended use, evaluation, results, failure cases |
 | [Anomaly detection](docs/ANOMALY.md) | `--models`: features, detectors, comparison with the rules, false alerts |
-| [Streaming pipeline](docs/PIPELINE.md) | Lite mode: topics, delivery guarantees, dead letters, tailing, the DuckDB tables |
+| [Streaming pipeline](docs/PIPELINE.md) | Lite mode and the Docker stack: topics, delivery guarantees, dead letters, tailing, the tables |
+| [Warehouse models](docs/WAREHOUSE.md) | dbt models, data-quality checks, labels and model results, results on the simulator |
 | [Decisions](docs/DECISIONS.md) | Architecture decision records |
 | [Releasing](docs/RELEASING.md) | How releases are built, tested and published |
 | [Third-party terms](docs/LICENSES.md) | Data and service licences |
@@ -473,7 +493,7 @@ Prohori is honest about what it does not do:
 |---------|----------|-------|
 | v0.1.0 | Batch core: parsers, rules, enrichment, incidents, reports, log simulator with rule evaluation, `triage` and `demo` commands | Released |
 | v0.2.0 | Machine learning: leakage-controlled intrusion detection on public flow datasets, log-derived anomaly detection, model cards | Released |
-| v0.3.0 | Pipeline: streaming core and lite mode (done), Redpanda and PostgreSQL in Docker (done), dbt models, dashboard, orchestration | In progress |
+| v0.3.0 | Pipeline: streaming core and lite mode (done), Redpanda and PostgreSQL in Docker (done), dbt models and data-quality checks (done), dashboard, orchestration | In progress |
 | v1.0.0 | Optional LLM analyst (opt-in, redacted input, validated output), final polish | Planned |
 
 ## Development
@@ -489,6 +509,7 @@ uv run pytest --cov            # tests with coverage (kept at 85 % or more)
 uv run prohori rules test      # run every rule against its fixtures
 uv run pytest tests/unit/ml -q # dataset and leakage tests (synthetic fixtures, no downloads)
 uv run pytest tests/integration # end to end, including lite mode against the batch command
+uv sync --group dbt && uv run pytest tests/integration/test_dbt.py  # the dbt models
 ```
 
 CI runs on Linux and Windows with Python 3.11 to 3.14, plus CodeQL, secret scanning, parser

@@ -9,6 +9,21 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- Warehouse models with dbt (`pipeline/dbt/`, `docs/WAREHOUSE.md`, ADR-0025), built on the
+  lite-mode DuckDB file and on the Docker stack's PostgreSQL:
+  - staging and intermediate views and nine marts: daily attack counts, alerts per rule and day,
+    top source addresses, incident durations, rule precision, per-alert and per-rule detection
+    latency, time to detect each simulated attack, and flow-model performance over time;
+  - 68 data-quality checks (keys, nulls, accepted values, ranges, duplicates, cross-table
+    consistency, future timestamps, dead letters) and source freshness on `stored_at`;
+  - `prohori pipeline load-labels` (simulator ground truth per event) and
+    `prohori pipeline load-results` (flow-model evaluations), both idempotent;
+  - `scripts/build_lite_warehouse.py` and a `dbt (DuckDB)` CI job that checks rule precision
+    against the simulator's own evaluation; the Docker smoke test builds the models on
+    PostgreSQL;
+  - a `stored_at` column on every warehouse table, and the table definitions shared by both
+    databases in `prohori.pipeline.tables`.
+
 - The Docker stack (`pipeline/docker-compose.yml`): Redpanda, PostgreSQL and one container per
   pipeline stage, with digest-pinned images, health checks, memory limits (about 3.3 GB) and
   ports on 127.0.0.1 only:

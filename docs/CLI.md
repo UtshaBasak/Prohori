@@ -204,6 +204,13 @@ prohori pipeline down --volumes                              # stop and delete t
   the topics and the warehouse.
 - **`replay --bootstrap HOST:PORT`** and **`tail --bootstrap HOST:PORT`** only publish raw lines
   to the stack's broker; its containers do the rest.
+- **`load-labels LOG...`** loads the simulator's ground truth for logs that were replayed
+  (`NAME.labels.jsonl` next to each log unless `--labels`; the scenario from `manifest.json`
+  unless `--scenario`; the same parser options as the replay). **`load-results RESULTS...`**
+  loads flow-model results (`results/ml_*.json`), stamped with each file's time or
+  `--evaluated-at`. Both write to the DuckDB file (`--state`, `--db`) or to PostgreSQL
+  (`--postgres` or `PROHORI_POSTGRES_DSN`) and add nothing when loaded twice. They feed the dbt
+  models in [WAREHOUSE.md](WAREHOUSE.md).
 - **`run --stage normalise|detect|incidents|sink|all`** runs one stage over Kafka until SIGTERM
   or Ctrl+C. It is what each container runs. The broker comes from `--bootstrap` or
   `PROHORI_KAFKA_BOOTSTRAP`, and the warehouse from `--postgres` or `PROHORI_POSTGRES_DSN`

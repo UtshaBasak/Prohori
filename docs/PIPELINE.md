@@ -174,7 +174,9 @@ are not dead letters.
 ## The database
 
 DuckDB file, four tables, each keyed by the message id. `record` holds the whole message as
-JSON.
+JSON, and `stored_at` is when the row was first written. Two more tables, `labels` and
+`model_evaluations`, are filled by `prohori pipeline load-labels` and `load-results`. The dbt
+models in [WAREHOUSE.md](WAREHOUSE.md) build on all six.
 
 | Table | Columns |
 |-------|---------|
