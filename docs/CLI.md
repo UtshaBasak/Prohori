@@ -163,6 +163,7 @@ uv run prohori score tests/fixtures/flows.csv --model cicids2017/iforest-seed0 -
 ## `prohori pipeline`
 
 ```bash
+prohori simulate web-scanning --seed 1 --out logs   # write a simulated log to replay
 prohori pipeline replay logs/web-scanning.log --times 2      # replay, then stop
 prohori pipeline tail /var/log/auth.log --year 2026          # follow until Ctrl+C
 ```
@@ -189,6 +190,7 @@ The Docker stack (needs Docker and a clone of the repository):
 
 ```bash
 prohori pipeline up                                          # build, start, wait until healthy
+prohori simulate web-scanning --seed 1 --out logs   # write a simulated log to replay
 prohori pipeline replay logs/web-scanning.log --bootstrap 127.0.0.1:19092
 prohori pipeline status                                      # services, health, warehouse rows
 # dashboards: http://127.0.0.1:13000

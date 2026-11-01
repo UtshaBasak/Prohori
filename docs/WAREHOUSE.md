@@ -36,6 +36,7 @@ uv run dbt source freshness --project-dir pipeline/dbt --profiles-dir pipeline/d
 
 # The Docker stack: the same models in PostgreSQL.
 uv run prohori pipeline up
+uv run prohori simulate web-scanning --seed 1 --out logs   # write a simulated log to replay
 uv run prohori pipeline replay logs/web-scanning.log --bootstrap 127.0.0.1:19092
 uv run dbt build --project-dir pipeline/dbt --profiles-dir pipeline/dbt --target postgres
 ```

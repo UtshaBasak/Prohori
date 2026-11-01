@@ -37,6 +37,8 @@ data/*
 !data/README.md
 results/checkpoints/
 /models/
+# Simulated logs written by the documentation's examples.
+/logs/
 *.joblib
 *.pkl
 *.pickle
