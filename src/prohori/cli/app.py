@@ -13,6 +13,7 @@ from prohori.cli.detect import detect_command
 from prohori.cli.enrich import enrich_command
 from prohori.cli.incidents import incidents_command
 from prohori.cli.parse import parse_command
+from prohori.cli.pipeline import pipeline_app
 from prohori.cli.report import report_command
 from prohori.cli.rules import rules_app
 from prohori.cli.score import score_command
@@ -76,6 +77,7 @@ app.command("score")(score_command)
 app.command("triage")(triage_command)
 app.command("demo")(demo_command)
 app.add_typer(rules_app)
+app.add_typer(pipeline_app)
 
 
 def main() -> None:
