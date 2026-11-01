@@ -7,7 +7,26 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-11-02
+
 ### Added
+
+- Scheduled jobs with Apache Airflow 3.3.2 (`pipeline/airflow/`, `docs/ORCHESTRATION.md`,
+  ADR-0027), in the stack's new `orchestration` profile (`prohori pipeline up --orchestration`,
+  Airflow on http://127.0.0.1:18080):
+  - `prohori_backfill`: replays the eight simulated scenarios with their labels and builds the
+    marts;
+  - `prohori_data_quality`: hourly `dbt build` and a freshness check on the events;
+  - `prohori_nightly_evaluation`: retrains the flow models and fails if recall drops below the
+    minimum;
+  - `prohori_incident_digest`: a daily digest of incidents, rules and dead letters;
+  - `prohori_enrichment_refresh`: keeps the incident stage's enrichment cache current, offline
+    unless API keys are configured.
+- `prohori pipeline digest`, `check-recall` and `refresh-enrichment`, the commands the jobs run.
+- DAG integrity tests (imports, cycles, settings) in a Linux CI job with Airflow installed, and
+  a Docker smoke test that runs every DAG in the stack.
+- The Docker image on GitHub Packages, `ghcr.io/utshabasak/prohori`, for linux/amd64 and
+  linux/arm64 with a provenance attestation, published by the release workflow.
 
 - Grafana dashboards in the Docker stack (`pipeline/grafana/`, `docs/DASHBOARD.md`, ADR-0026),
   provisioned from files and open without a login at http://127.0.0.1:13000:
@@ -292,6 +311,7 @@ offline by default.
 - Contributor, security and code-of-conduct documents.
 - OpenSSF Scorecard workflow, README status badges and a project wiki.
 
-[Unreleased]: https://github.com/UtshaBasak/Prohori/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/UtshaBasak/Prohori/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/UtshaBasak/Prohori/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/UtshaBasak/Prohori/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/UtshaBasak/Prohori/releases/tag/v0.1.0

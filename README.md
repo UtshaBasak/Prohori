@@ -15,6 +15,7 @@
 [![GitHub release](https://img.shields.io/github/v/release/UtshaBasak/Prohori)](https://github.com/UtshaBasak/Prohori/releases)
 [![Release workflow](https://github.com/UtshaBasak/Prohori/actions/workflows/release.yml/badge.svg)](https://github.com/UtshaBasak/Prohori/actions/workflows/release.yml)
 [![Docker stack](https://github.com/UtshaBasak/Prohori/actions/workflows/docker.yml/badge.svg)](https://github.com/UtshaBasak/Prohori/actions/workflows/docker.yml)
+[![Docker image](https://img.shields.io/badge/ghcr.io-utshabasak%2Fprohori-2496ED?logo=docker&logoColor=white)](https://github.com/UtshaBasak/Prohori/pkgs/container/prohori)
 ![Status: alpha](https://img.shields.io/badge/status-alpha-yellow)
 ![Platforms](https://img.shields.io/badge/platform-Linux%20%7C%20Windows%20%7C%20macOS-lightgrey)
 [![License: MIT](https://img.shields.io/github/license/UtshaBasak/Prohori)](LICENSE)
@@ -114,6 +115,9 @@ not tested.
   `pip install "prohori[geoip]"` for local GeoLite2 files, `pip install "prohori[ml]"` for the
   machine-learning code (scikit-learn, pandas, pyarrow) and `pip install "prohori[pipeline]"` for
   the streaming pipeline (DuckDB, confluent-kafka, psycopg). The base install never needs them.
+- **As a Docker image:** `docker run --rm ghcr.io/utshabasak/prohori:latest demo` runs the same
+  command line with the pipeline extra, for linux/amd64 and linux/arm64. Mount a folder to read
+  your own logs: `docker run --rm -v "$PWD:/data" ghcr.io/utshabasak/prohori triage /data/auth.log`.
 - **From source:** install [uv](https://docs.astral.sh/uv/), then
   `git clone https://github.com/UtshaBasak/Prohori.git && cd Prohori && uv sync`, and run
   commands as `uv run prohori ...`. The sample files used below are in the repository.
@@ -439,6 +443,21 @@ dashboards provisioned from `pipeline/grafana/`. They open without a login or an
 Grafana reads through its own database role, which can only `SELECT`. The smoke test runs every
 panel's query through Grafana after a replay. Details: [docs/DASHBOARD.md](docs/DASHBOARD.md).
 
+**Scheduled jobs.** `prohori pipeline up --orchestration` adds Airflow (http://127.0.0.1:18080)
+with five DAGs:
+
+| Job | When | What it does |
+|-----|------|--------------|
+| Backfill | By hand | Replays all eight simulated scenarios with their labels, then builds the marts |
+| Data quality | Hourly | `dbt build` with its 68 checks, and a freshness check on the events |
+| Nightly evaluation | 02:00 UTC | Retrains the flow models; the run fails if recall drops below 0.75 |
+| Incident digest | 06:00 UTC | The last day's incidents, rules and dead letters, as Markdown and JSON |
+| Enrichment refresh | 03:30 UTC | Keeps the incident stage's enrichment cache current (offline without API keys) |
+
+Each task runs a `prohori` command (`pipeline digest`, `check-recall`, `refresh-enrichment`) or
+dbt, so every job also works without Airflow. CI imports the DAGs with Airflow on Linux and runs
+each one in the stack. Details: [docs/ORCHESTRATION.md](docs/ORCHESTRATION.md).
+
 ## Privacy and safety
 
 - **Offline by default.** Nothing leaves the machine unless you configure API keys and, for
@@ -477,6 +496,7 @@ Third-party data terms (MITRE ATT&CK, GeoLite2, AbuseIPDB, VirusTotal) are summa
 | [Streaming pipeline](docs/PIPELINE.md) | Lite mode and the Docker stack: topics, delivery guarantees, dead letters, tailing, the tables |
 | [Warehouse models](docs/WAREHOUSE.md) | dbt models, data-quality checks, labels and model results, results on the simulator |
 | [Dashboards](docs/DASHBOARD.md) | The Grafana dashboards: panels, set-up, access, time range, changing a dashboard |
+| [Scheduled jobs](docs/ORCHESTRATION.md) | The Airflow DAGs: backfill, data quality, nightly evaluation, digest, enrichment refresh |
 | [Decisions](docs/DECISIONS.md) | Architecture decision records |
 | [Releasing](docs/RELEASING.md) | How releases are built, tested and published |
 | [Third-party terms](docs/LICENSES.md) | Data and service licences |
@@ -509,7 +529,7 @@ Prohori is honest about what it does not do:
 |---------|----------|-------|
 | v0.1.0 | Batch core: parsers, rules, enrichment, incidents, reports, log simulator with rule evaluation, `triage` and `demo` commands | Released |
 | v0.2.0 | Machine learning: leakage-controlled intrusion detection on public flow datasets, log-derived anomaly detection, model cards | Released |
-| v0.3.0 | Pipeline: streaming core and lite mode (done), Redpanda and PostgreSQL in Docker (done), dbt models and data-quality checks (done), Grafana dashboards (done), orchestration | In progress |
+| v0.3.0 | Pipeline: streaming core and lite mode, Redpanda and PostgreSQL in Docker, dbt models and data-quality checks, Grafana dashboards, Airflow jobs; Docker image on GitHub Packages | Released |
 | v1.0.0 | Optional LLM analyst (opt-in, redacted input, validated output), final polish | Planned |
 
 ## Development

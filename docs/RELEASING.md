@@ -32,7 +32,12 @@ The workflow is [`.github/workflows/release.yml`](../.github/workflows/release.y
    5. **waits for approval** of the `pypi` environment: open the run under *Actions*, review it
       and click *Approve and deploy*;
    6. publishes to **PyPI** (with build attestations);
-   7. installs the release from PyPI on Linux and Windows and runs `prohori demo`.
+   7. installs the release from PyPI on Linux and Windows and runs `prohori demo`;
+   8. publishes the Docker image to GitHub Packages as `ghcr.io/utshabasak/prohori:X.Y.Z`,
+      `:X.Y` and `:latest`, for linux/amd64 and linux/arm64, with a provenance attestation
+      (`gh attestation verify oci://ghcr.io/utshabasak/prohori:X.Y.Z --owner UtshaBasak`).
+      Before PyPI, a job builds the image, runs it and checks it holds only the package; pull
+      requests that change `pipeline/Dockerfile` run that job too.
 
 5. **Create the GitHub release** from the same files, with the changelog section as notes
    (`<run-id>` is the release run's id, shown in its URL):
@@ -56,6 +61,9 @@ changes packaging, only builds and tests; it never publishes.
   the next patch version.
 - **Yanking, not deleting:** a broken release is *yanked* on PyPI (it stays installable when pinned
   but is skipped otherwise), and a fixed version follows.
+- **The image's visibility:** a package that is pushed for the first time can be private.
+  Make it public once under the package's *Package settings > Change visibility*; later
+  versions keep that setting.
 - **One-time setup** (done for this repository): pending publishers on PyPI and TestPyPI for
   project `prohori`, owner `UtshaBasak`, repository `Prohori`, workflow `release.yml`, and GitHub
   environments `testpypi` and `pypi`, the latter with a required reviewer.
