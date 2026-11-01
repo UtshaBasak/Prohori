@@ -338,6 +338,16 @@ class TestOrdering:
         assert engine.stats.future_events == 1
         assert engine.stats.late_events == 0
 
+    def test_reference_time_can_move_forward(self) -> None:
+        engine = RuleEngine([count_rule()], reference_time=T0)
+        later = ev(0).model_copy(update={"timestamp": T0 + timedelta(days=2), "id": "later"})
+        engine.process(later)
+        assert engine.stats.future_events == 1
+        engine.set_reference_time(T0 + timedelta(days=2))
+        engine.process(later)
+        assert engine.stats.future_events == 1
+        assert engine.stats.events_in == 2
+
     def test_negative_lateness_rejected(self) -> None:
         with pytest.raises(ValueError, match="lateness"):
             RuleEngine([], lateness=timedelta(seconds=-1))
