@@ -7,7 +7,7 @@ The orchestrator (``pipeline/airflow/``) runs these through ``prohori pipeline d
 import json
 from collections.abc import Sequence
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import UTC, datetime
 from ipaddress import ip_address
 from pathlib import Path
 from statistics import fmean
@@ -90,6 +90,10 @@ class Digest:
         }
 
 
+def _utc(epoch: object) -> datetime:
+    return datetime.fromtimestamp(float(str(epoch)), tz=UTC)
+
+
 def build_digest(sink: Sink, since: datetime, until: datetime, *, limit: int = 20) -> Digest:
     """Summarise the rows stored in ``[since, until)``: counts, rules and the top incidents."""
     window = (since, until)
@@ -108,7 +112,9 @@ def build_digest(sink: Sink, since: datetime, until: datetime, *, limit: int = 2
     )
     rows = _query(
         sink,
-        "SELECT id, severity, score, confidence, first_seen, last_seen, alert_count, title "  # noqa: S608
+        # Times as epoch seconds: DuckDB needs pytz to return TIMESTAMPTZ values to Python.
+        "SELECT id, severity, score, confidence, extract(epoch FROM first_seen), "  # noqa: S608
+        "extract(epoch FROM last_seen), alert_count, title "
         f"FROM {{t}}incidents {where} ORDER BY score DESC, first_seen, id LIMIT {int(limit)}",
         window,
     )
@@ -119,7 +125,8 @@ def build_digest(sink: Sink, since: datetime, until: datetime, *, limit: int = 2
         alerts=count("alerts"),
         dead_letters=count("dead_letters"),
         incidents=[
-            DigestIncident(r[0], r[1], float(r[2]), r[3], r[4], r[5], int(r[6]), r[7]) for r in rows
+            DigestIncident(r[0], r[1], float(r[2]), r[3], _utc(r[4]), _utc(r[5]), int(r[6]), r[7])
+            for r in rows
         ],
         severities={s: int(severities[s]) for s in SEVERITIES if s in severities},
         rules=[(str(r[0]), int(r[1])) for r in rules],

@@ -117,7 +117,7 @@ class _Recorder:
 
 def test_queries_use_the_raw_schema_and_placeholders_on_postgres() -> None:
     recorder = _Recorder()
-    sink = cast("Sink", SimpleNamespace(connection=recorder))
+    sink = cast(Sink, SimpleNamespace(connection=recorder))
     assert jobs._query(sink, "SELECT x FROM {t}events WHERE a = ?", (1,)) == [("a", 1)]
     assert recorder.calls == [("SELECT x FROM raw.events WHERE a = %s", [1])]
 
