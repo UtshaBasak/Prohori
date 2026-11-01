@@ -1,16 +1,19 @@
 # The Prohori Docker stack: Redpanda (Kafka API), PostgreSQL, one container per pipeline stage
-# and Grafana with provisioned dashboards.
+# and Grafana with provisioned dashboards; Airflow with the scheduled jobs in the "orchestration"
+# profile.
 #   prohori pipeline up        # or: docker compose -p prohori -f pipeline/docker-compose.yml up -d --wait
+#   prohori pipeline up --orchestration     # also Airflow (about 2 GB more)
 #   prohori pipeline replay FILE --bootstrap 127.0.0.1:19092
 #   prohori pipeline status
-#   open http://127.0.0.1:13000
+#   open http://127.0.0.1:13000 (dashboards) and http://127.0.0.1:18080 (Airflow)
 #   prohori pipeline down      # --volumes also deletes the data
 #
 # Ports are published on 127.0.0.1 only. Passwords default to local-only values; set
-# PROHORI_POSTGRES_PASSWORD, PROHORI_GRAFANA_PASSWORD (Grafana's admin) and
-# PROHORI_GRAFANA_DB_PASSWORD (Grafana's read-only database role) in the environment to change
-# them, and PROHORI_POSTGRES_PORT or PROHORI_GRAFANA_PORT to move the ports.
-# Memory limits add up to about 3.9 GB.
+# PROHORI_POSTGRES_PASSWORD, PROHORI_GRAFANA_PASSWORD (Grafana's admin),
+# PROHORI_GRAFANA_DB_PASSWORD (Grafana's read-only database role) and PROHORI_AIRFLOW_DB_PASSWORD
+# in the environment to change them, and PROHORI_POSTGRES_PORT, PROHORI_GRAFANA_PORT or
+# PROHORI_AIRFLOW_PORT to move the ports.
+# Memory limits add up to about 3.9 GB, or 6.9 GB with the orchestration profile.
 
 name: prohori
 
@@ -109,6 +112,7 @@ services:
       - --quiet
       - --set=ON_ERROR_STOP=1
       - --set=reader_password=${PROHORI_GRAFANA_DB_PASSWORD:-grafana}
+      - --set=airflow_password=${PROHORI_AIRFLOW_DB_PASSWORD:-airflow}
       - --file=/init/warehouse-init.sql
     volumes:
       - ./postgres/warehouse-init.sql:/init/warehouse-init.sql:ro
@@ -165,12 +169,81 @@ services:
     # detector releases its last held alerts after 10 quiet seconds; the minute leaves room.
     command:
       ["pipeline", "run", "--stage", "incidents", "--idle-close", "60", "--heartbeat", "/tmp/heartbeat"]
+    volumes:
+      # The enrichment cache, which the orchestration profile's refresh job keeps current.
+      - enrichment:/home/prohori/.cache/prohori
     mem_limit: 384m
 
   sink:
     <<: *stage
     command: ["pipeline", "run", "--stage", "sink", "--heartbeat", "/tmp/heartbeat"]
 
+  airflow:
+    # Scheduled jobs (pipeline/airflow/dags). Started only with the orchestration profile:
+    # prohori pipeline up --orchestration.
+    profiles: [orchestration]
+    build:
+      context: ..
+      dockerfile: pipeline/airflow/Dockerfile
+    image: prohori-airflow:local
+    depends_on:
+      warehouse-init:
+        condition: service_completed_successfully
+      sink:
+        condition: service_healthy
+    # One container runs the scheduler, the DAG processor, the triggerer and the API server. The
+    # secret that signs their internal tokens is new on every start and never written down.
+    command:
+      - bash
+      - -c
+      - >-
+        export AIRFLOW__API_AUTH__JWT_SECRET="$$(python -c 'import secrets; print(secrets.token_urlsafe(32))')"
+        && exec airflow standalone
+    environment:
+      AIRFLOW__CORE__EXECUTOR: LocalExecutor
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:${PROHORI_AIRFLOW_DB_PASSWORD:-airflow}@postgres:5432/airflow
+      AIRFLOW__CORE__LOAD_EXAMPLES: "False"
+      AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: "False"
+      AIRFLOW__CORE__PARALLELISM: "4"
+      AIRFLOW__API__WORKERS: "1"
+      # Local use: everyone who can reach 127.0.0.1:18080 is an admin, without a login.
+      AIRFLOW__CORE__SIMPLE_AUTH_MANAGER_ALL_ADMINS: "True"
+      # No usage data is sent.
+      AIRFLOW__USAGE_DATA_COLLECTION__ENABLED: "False"
+      SCARF_ANALYTICS: "false"
+      # What the jobs use (pipeline/airflow/dags/prohori_jobs.py).
+      PROHORI_KAFKA_BOOTSTRAP: redpanda:9092
+      PROHORI_POSTGRES_DSN: postgresql://prohori:${PROHORI_POSTGRES_PASSWORD:-prohori}@postgres:5432/prohori
+      PROHORI_POSTGRES_HOST: postgres
+      PROHORI_POSTGRES_PORT: "5432"
+      PROHORI_POSTGRES_PASSWORD: ${PROHORI_POSTGRES_PASSWORD:-prohori}
+      PROHORI_CACHE_PATH: /opt/prohori-cache/enrichment.sqlite
+      DBT_PROFILES_DIR: /opt/prohori-dbt
+      DBT_TARGET_PATH: /tmp/dbt/target
+      DBT_LOG_PATH: /tmp/dbt/logs
+      # Only if you set them: enrichment then looks addresses up online.
+      ABUSEIPDB_API_KEY: ${ABUSEIPDB_API_KEY:-}
+      VIRUSTOTAL_API_KEY: ${VIRUSTOTAL_API_KEY:-}
+    ports:
+      - "127.0.0.1:${PROHORI_AIRFLOW_PORT:-18080}:8080"
+    volumes:
+      - ./airflow/dags:/opt/airflow/dags:ro
+      - ./dbt:/opt/prohori-dbt:ro
+      # The datasets for the nightly evaluation, if you downloaded them; never copied anywhere.
+      - ../data:/opt/prohori-data:ro
+      - airflow-output:/opt/prohori-output
+      - enrichment:/opt/prohori-cache
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:8080/api/v2/monitor/health > /dev/null || exit 1"]
+      interval: 10s
+      timeout: 10s
+      retries: 30
+      start_period: 120s
+    restart: unless-stopped
+    mem_limit: 3g
+
 volumes:
   redpanda:
   postgres:
+  enrichment:
+  airflow-output:

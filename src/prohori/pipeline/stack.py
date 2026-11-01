@@ -19,10 +19,13 @@ PROJECT = "prohori"
 DEFAULT_COMPOSE_FILE = Path("pipeline") / "docker-compose.yml"
 #: Services that run once and exit (they are healthy when they exited with 0).
 ONE_SHOT = frozenset({"warehouse-init"})
+#: The compose profile that adds Airflow and the scheduled jobs.
+ORCHESTRATION = "orchestration"
 #: Host ports published by the compose file (all bound to 127.0.0.1 only).
 KAFKA_PORT = 19092
 POSTGRES_PORT = 15432
 GRAFANA_PORT = 13000
+AIRFLOW_PORT = 18080
 
 Runner = Callable[..., "subprocess.CompletedProcess[str]"]
 
@@ -76,17 +79,31 @@ def compose(
     return runner(command, check=False, text=True, capture_output=capture)
 
 
-def up(file: Path, *, build: bool = True, timeout: int = 300, run: Runner | None = None) -> int:
-    """Start the stack and wait until every service is healthy; return the exit code."""
-    args = ["up", "--detach", "--wait", "--wait-timeout", str(timeout)]
+def up(
+    file: Path,
+    *,
+    build: bool = True,
+    timeout: int = 300,
+    orchestration: bool = False,
+    run: Runner | None = None,
+) -> int:
+    """Start the stack and wait until every service is healthy; return the exit code.
+
+    ``orchestration`` also starts the services of the orchestration profile (Airflow).
+    """
+    args = ["--profile", ORCHESTRATION] if orchestration else []
+    args += ["up", "--detach", "--wait", "--wait-timeout", str(timeout)]
     if build:
         args.append("--build")
     return compose(args, file, run=run).returncode
 
 
 def down(file: Path, *, volumes: bool = False, run: Runner | None = None) -> int:
-    """Stop and remove the containers and network (and the data volumes with ``volumes``)."""
-    args = ["down", "--remove-orphans"]
+    """Stop and remove the containers and network (and the data volumes with ``volumes``).
+
+    Profiled services are always included, so Airflow stops too if it was started.
+    """
+    args = ["--profile", ORCHESTRATION, "down", "--remove-orphans"]
     if volumes:
         args.append("--volumes")
     return compose(args, file, run=run).returncode
@@ -140,6 +157,11 @@ def default_dsn() -> str:
 def default_bootstrap() -> str:
     """The broker address from the host: ``PROHORI_KAFKA_BOOTSTRAP`` or ``127.0.0.1:19092``."""
     return os.environ.get("PROHORI_KAFKA_BOOTSTRAP", f"127.0.0.1:{KAFKA_PORT}")
+
+
+def airflow_url() -> str:
+    """Airflow from the host: ``http://127.0.0.1:18080`` or the ``PROHORI_AIRFLOW_PORT`` port."""
+    return f"http://127.0.0.1:{os.environ.get('PROHORI_AIRFLOW_PORT', str(AIRFLOW_PORT))}"
 
 
 def dashboard_url() -> str:
