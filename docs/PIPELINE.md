@@ -2,10 +2,15 @@
 
 The batch commands read a whole file and stop. The pipeline runs the same parsers, rules and
 incident builder continuously. It takes log lines as they are written, sends them through a chain
-of consumers, and stores events, alerts, incidents and rejected messages in a database. The same
-consumers can run over a Kafka-compatible queue in Docker (step 19); **lite mode** runs them in
-one process over files, without Docker. This page describes lite mode. Design decisions are in
-[ADR-0023](DECISIONS.md#adr-0023-streaming-core-and-lite-mode).
+of consumers, and stores events, alerts, incidents and rejected messages in a database. It runs
+in two ways:
+
+- **Lite mode** runs every stage in one process over files and writes to DuckDB, without Docker.
+- **The Docker stack** runs each stage in its own container over Redpanda, a Kafka-compatible
+  broker, and writes to a PostgreSQL warehouse.
+
+Design decisions are in [ADR-0023](DECISIONS.md#adr-0023-streaming-core-and-lite-mode) (lite
+mode) and [ADR-0024](DECISIONS.md#adr-0024-docker-stack-kafka-and-postgresql) (the stack).
 
 ## Contents
 
@@ -18,11 +23,13 @@ one process over files, without Docker. This page describes lite mode. Design de
 - [The database](#the-database)
 - [Counters](#counters)
 - [Performance](#performance)
+- [The Docker stack](#the-docker-stack)
 - [Limitations](#limitations)
 
 ## Quick start
 
-Lite mode needs the `pipeline` extra, which adds DuckDB:
+Both modes need the `pipeline` extra: DuckDB, the Kafka client (confluent-kafka) and the
+PostgreSQL client (psycopg). Lite mode:
 
 ```bash
 pip install "prohori[pipeline]"          # or, from a clone: uv sync --extra pipeline
@@ -206,15 +213,132 @@ every batch) took 18 s, about 2,800 lines a second. `prohori incidents` on the s
 before it is committed. Lite mode is for a single host's logs; the Docker stack (step 19) is the
 scalable one.
 
+## The Docker stack
+
+The same four stages also run as separate containers over a real message broker, with a
+PostgreSQL warehouse. This is the shape of a production deployment, on one machine.
+
+```bash
+git clone https://github.com/UtshaBasak/Prohori.git && cd Prohori && uv sync
+uv run prohori pipeline up                    # build the image, start everything, wait until healthy
+uv run prohori pipeline replay logs/web-scanning.log --bootstrap 127.0.0.1:19092
+uv run prohori pipeline status                # services, health and warehouse row counts
+uv run prohori pipeline down                  # stop; add --volumes to delete the data too
+```
+
+It needs Docker (Docker Desktop with the WSL 2 engine on Windows) and a clone of the repository,
+because the image is built from the checkout with the versions pinned in `uv.lock`. The first
+`up` builds the image and pulls Redpanda and PostgreSQL, which takes a few minutes. Later starts
+take about a minute.
+
+| Service | Image | Role | Memory limit |
+|---------|-------|------|-------------:|
+| `redpanda` | Redpanda v26.2.4, one node, one core | Kafka-compatible broker | 1.5 GB |
+| `postgres` | PostgreSQL 17.11 (Alpine) | Warehouse, `raw` schema | 512 MB |
+| `normalise` | `prohori:local` | `prohori pipeline run --stage normalise` | 256 MB |
+| `detect` | `prohori:local` | `... --stage detect` | 384 MB |
+| `incidents` | `prohori:local` | `... --stage incidents --idle-close 60` | 384 MB |
+| `sink` | `prohori:local` | `... --stage sink`, into PostgreSQL | 256 MB |
+
+The limits add up to about 3.3 GB. Measured with `docker stats` on the development laptop:
+
+| Situation | Whole stack | Highest single container |
+|-----------|------------:|--------------------------|
+| Idle after a 622-line replay | about 440 MB | Redpanda, about 200 MB |
+| During a 50,700-line replay | about 700 MB at peak | Redpanda 267 MB of 1.5 GB; sink 102 MB of 256 MB |
+| Restarting detect and incidents with that backlog (they rebuild from the start) | | incidents about 100 MB of 384 MB |
+
+- **Images** are pinned by digest. The Prohori image runs as an unprivileged user, and its build
+  context holds only `pyproject.toml`, `uv.lock`, the README, licence, changelog and `src/`
+  (see `.dockerignore`), never `data/`.
+- **Ports** are published on 127.0.0.1 only: the broker on 19092 and PostgreSQL on 15432, chosen
+  so they do not clash with a local PostgreSQL. The PostgreSQL password defaults to a local-only
+  value. To change it, set `PROHORI_POSTGRES_PASSWORD` (and `PROHORI_POSTGRES_PORT`) in the
+  environment of both `prohori pipeline up` and `prohori pipeline status`. Compose also reads
+  them from `pipeline/.env` (git-ignored), but `status` reads only the environment. The broker
+  has no authentication or TLS, which is fine on one machine and not anywhere else.
+- **Health.** Redpanda and PostgreSQL have their own health checks. Each stage container touches
+  a heartbeat file after every round and is healthy while the file is less than a minute old, so
+  a stuck stage shows up even when its process is still alive. `up` waits until every service is
+  healthy; `status` shows the state and exits 1 if anything is not.
+- **Shutdown.** The containers run with an init process, so `down` (or `docker compose stop`)
+  sends SIGTERM to Prohori. The stage finishes its batch, releases what it holds, commits and
+  prints its counters. The stack stops in a few seconds.
+- **Containers restart** unless stopped. A stage that hits a database or broker error stops
+  without committing, restarts, and processes the same batch again.
+
+### Over Kafka
+
+`prohori.pipeline.kafka.KafkaTransport` implements the same transport as lite mode:
+
+- Every topic has one partition and unlimited retention. Topics are created with those settings
+  by whichever client starts first, before anything is published.
+- Each consumer group is assigned the partition directly, without rebalancing. A stage commits
+  the offset after its output has been flushed. The producer is idempotent and waits for every
+  replica, and a message that was not delivered makes the flush fail, so input is never
+  committed when its output was lost.
+- The incident stage reads the `events` topic up to its end offset before handling the alerts it
+  polled, so the events behind an alert are always in its memory, even though another container
+  produced them.
+- The detector and the incident stage rebuild their state from the start of their topics when
+  they start, exactly as in lite mode.
+
+`replay --bootstrap` and `tail --bootstrap` only publish raw lines. The stage containers do the
+rest. `prohori pipeline run --stage NAME` is what each container runs. It takes the broker from
+`--bootstrap` or `PROHORI_KAFKA_BOOTSTRAP`, and the warehouse from `--postgres` or
+`PROHORI_POSTGRES_DSN`.
+
+**Incidents in a long-running stack.** The containers never reach the end of their input, so an
+incident is written when its group can no longer grow (65 minutes past its end in alert time)
+or, in the stack, after 60 seconds without new alerts. Without that, the last incident of a
+replay would wait for the next attack. The cost is that an attack slower than one alert every
+minute can be split into two incidents. Raise `--idle-close` in the compose file if that
+matters more than speed.
+
+**Same answers as batch.** The smoke test (`tests/integration/test_docker_stack.py`, run by the
+`Docker stack` workflow on Linux) starts the real stack from empty volumes. It replays a
+simulated attack twice and waits for the warehouse. It then checks that each event is stored
+once, that there are no dead letters, and that the incident ids equal those of
+`prohori incidents` on the same file. It also checks that a stage stops gracefully on SIGTERM
+and that `down` removes every container. Locally, run it with
+`PROHORI_DOCKER_TESTS=1 uv run pytest tests/integration/test_docker_stack.py`. It deletes the
+stack's data volumes.
+
+### The warehouse
+
+The `raw` schema has the same four tables as the DuckDB file (`events`, `alerts`, `incidents`,
+`dead_letters`), with `JSONB` for the full message in `record`. Rows are inserted with
+`ON CONFLICT (id) DO NOTHING`. NUL characters, which PostgreSQL text cannot hold, are replaced
+with U+FFFD before writing. If the database rejects a batch because of its data, the rows are
+written one by one and the rejected ones become dead letters. Any other database error stops the
+stage, and the batch is delivered again. A later step builds dbt models on this schema.
+
+```bash
+docker exec -it prohori-postgres-1 psql -U prohori -d prohori
+```
+```sql
+SELECT severity, score, title FROM raw.incidents ORDER BY score DESC;
+SELECT record->>'detector_id' AS rule, count(*) FROM raw.alerts GROUP BY 1 ORDER BY 2 DESC;
+```
+
 ## Limitations
 
-- **One process, one writer.** A state directory and its database belong to one running
-  pipeline.
-- **Topics are not trimmed.** Lite-mode topics grow with every line. The stateful stages
-  re-read them at start-up, so start-up time grows too. Delete the state directory to start
-  over.
+- **One process, one writer (lite mode).** A state directory and its database belong to one
+  running pipeline.
+- **One broker, one partition (stack).** The stack is a single-node Redpanda with one partition
+  per topic, because the rule engine needs every event in order. It runs on one machine, with no
+  broker authentication; it is not a cluster.
+- **Topics are not trimmed.** Topics grow with every line, in lite mode and in the stack. The
+  stateful stages re-read them at start-up, so start-up time grows too. To start over, delete
+  the state directory (lite mode) or run `prohori pipeline down --volumes` (the stack).
 - **Anomaly detectors are not in the pipeline.** `--models` compares a whole log with itself,
   which does not fit a stream; it stays a batch feature.
+- **One timeline.** The rule engine sees everything as one stream in time order, in lite mode
+  (across runs that share a state directory) and in the stack. A log that is older than what has
+  already been processed is stored, but its events arrive too late for the rules: they are
+  counted as late events (in the counters, and as a warning in the detect container's log) and
+  raise no alerts. Replay older logs first, or start from fresh topics (a new state directory,
+  or `prohori pipeline down --volumes`), or use the batch commands for archived logs.
 - **Year inference when tailing.** Without `--year`, syslog timestamps that carry no year get
   one from the time the tailer first reads the file. That is right for a live log, but not for
   an old file tailed from its start in the next year.

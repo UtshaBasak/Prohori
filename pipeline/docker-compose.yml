@@ -1,0 +1,109 @@
+# The Prohori Docker stack: Redpanda (Kafka API), PostgreSQL and one container per pipeline stage.
+#   prohori pipeline up        # or: docker compose -p prohori -f pipeline/docker-compose.yml up -d --wait
+#   prohori pipeline replay FILE --bootstrap 127.0.0.1:19092
+#   prohori pipeline status
+#   prohori pipeline down      # --volumes also deletes the data
+#
+# Ports are published on 127.0.0.1 only. The PostgreSQL password defaults to a local-only value;
+# set PROHORI_POSTGRES_PASSWORD (and PROHORI_POSTGRES_PORT) in the environment to change it.
+# Memory limits add up to about 3.3 GB.
+
+name: prohori
+
+x-stage: &stage
+  build:
+    context: ..
+    dockerfile: pipeline/Dockerfile
+  image: prohori:local
+  init: true  # SIGTERM reaches Python, so a stage finishes its batch on 'down'
+  restart: unless-stopped
+  depends_on:
+    redpanda:
+      condition: service_healthy
+    postgres:
+      condition: service_healthy
+  environment:
+    PROHORI_KAFKA_BOOTSTRAP: redpanda:9092
+    PROHORI_POSTGRES_DSN: postgresql://prohori:${PROHORI_POSTGRES_PASSWORD:-prohori}@postgres:5432/prohori
+  healthcheck:
+    # Healthy while the stage loop keeps touching its heartbeat file.
+    test:
+      - CMD
+      - python
+      - -c
+      - "import os, sys, time; sys.exit(time.time() - os.path.getmtime('/tmp/heartbeat') > 60)"
+    interval: 10s
+    timeout: 5s
+    retries: 6
+    start_period: 60s
+  mem_limit: 256m
+
+services:
+  redpanda:
+    image: redpandadata/redpanda:v26.2.4@sha256:c98c2f04a751e6646012cc701bac5183252cee44c88ba1dfa412e4c7124f2e89
+    command:
+      - redpanda
+      - start
+      - --mode=dev-container
+      - --smp=1
+      - --memory=1G
+      - --reserve-memory=0M
+      - --overprovisioned
+      - --kafka-addr=internal://0.0.0.0:9092,external://0.0.0.0:19092
+      - --advertise-kafka-addr=internal://redpanda:9092,external://127.0.0.1:19092
+      - --default-log-level=warn
+    ports:
+      - "127.0.0.1:19092:19092"
+    volumes:
+      - redpanda:/var/lib/redpanda/data
+    healthcheck:
+      test: ["CMD-SHELL", "rpk cluster health | grep -E 'Healthy:.+true' || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 24
+      start_period: 10s
+    restart: unless-stopped
+    mem_limit: 1536m
+
+  postgres:
+    image: postgres:17.11-alpine@sha256:266d3c257594e195b309ae9d1805e54c788f1d7b375f56bf6c367aac6c917e7b
+    environment:
+      POSTGRES_USER: prohori
+      POSTGRES_PASSWORD: ${PROHORI_POSTGRES_PASSWORD:-prohori}
+      POSTGRES_DB: prohori
+    ports:
+      - "127.0.0.1:${PROHORI_POSTGRES_PORT:-15432}:5432"
+    volumes:
+      - postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U prohori -d prohori"]
+      interval: 5s
+      timeout: 5s
+      retries: 24
+    restart: unless-stopped
+    mem_limit: 512m
+
+  normalise:
+    <<: *stage
+    command: ["pipeline", "run", "--stage", "normalise", "--heartbeat", "/tmp/heartbeat"]
+
+  detect:
+    <<: *stage
+    command: ["pipeline", "run", "--stage", "detect", "--heartbeat", "/tmp/heartbeat"]
+    mem_limit: 384m
+
+  incidents:
+    <<: *stage
+    # Write open incidents after a quiet minute, so a replay's last incident appears soon. The
+    # detector releases its last held alerts after 10 quiet seconds; the minute leaves room.
+    command:
+      ["pipeline", "run", "--stage", "incidents", "--idle-close", "60", "--heartbeat", "/tmp/heartbeat"]
+    mem_limit: 384m
+
+  sink:
+    <<: *stage
+    command: ["pipeline", "run", "--stage", "sink", "--heartbeat", "/tmp/heartbeat"]
+
+volumes:
+  redpanda:
+  postgres:

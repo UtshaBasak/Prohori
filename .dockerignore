@@ -1,0 +1,10 @@
+# Only pyproject.toml, uv.lock, README.md, LICENSE, CHANGELOG.md and src/ go into the image.
+*
+!pyproject.toml
+!uv.lock
+!README.md
+!LICENSE
+!CHANGELOG.md
+!src/
+**/__pycache__
+**/*.py[cod]

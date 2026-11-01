@@ -81,6 +81,19 @@ so check them again before relying on them.
 - **Prohori ships:** nothing from the dataset. `scripts/download_datasets.py fetch cicids2017`
   downloads it from the distributor when a user asks; the fixtures copy only its column names.
 
+## Pipeline software (Docker stack and the `pipeline` extra)
+
+Checked on **2026-11-01**. Prohori ships none of this software: the `pipeline` extra installs the
+Python packages from PyPI, and `prohori pipeline up` pulls the container images.
+
+| Software | Used for | Licence |
+|----------|----------|---------|
+| [Redpanda](https://github.com/redpanda-data/redpanda/tree/dev/licenses) Community Edition (container image) | Kafka-compatible message broker | Business Source License 1.1 for the core (it converts to Apache 2.0 four years after each release); enterprise features under the Redpanda Community License. Running it yourself, as the stack does, is allowed; offering it as a hosted streaming service is not. |
+| [PostgreSQL](https://www.postgresql.org/about/licence/) (container image) | The warehouse | PostgreSQL Licence (permissive, BSD-style) |
+| [confluent-kafka](https://github.com/confluentinc/confluent-kafka-python) and librdkafka | Kafka client | Apache 2.0; librdkafka BSD 2-Clause |
+| [psycopg 3](https://www.psycopg.org/) | PostgreSQL client | LGPL 3.0 (used unmodified as a library, which the LGPL permits from MIT code) |
+| [DuckDB](https://duckdb.org/) | Lite-mode database | MIT |
+
 ## Sample data
 
 All sample logs and the offline enrichment fixture are synthetic and use documentation address

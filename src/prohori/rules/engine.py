@@ -463,6 +463,7 @@ class RuleEngine:
             msg = "lateness must not be negative"
             raise ValueError(msg)
         self.lateness = lateness
+        self.max_future = max_future
         self.limit = reference_time + max_future if reference_time is not None else None
         self.max_buffered = max_buffered
         self.stats = EngineStats()
@@ -477,6 +478,10 @@ class RuleEngine:
                 self._evaluators.append(_SequenceEvaluator(rule, self.stats, max_groups))
             else:
                 self._evaluators.append(_StatelessEvaluator(rule, self.stats, max_groups))
+
+    def set_reference_time(self, reference_time: datetime) -> None:
+        """Move "now" forward, for an engine that runs for longer than ``max_future``."""
+        self.limit = reference_time + self.max_future
 
     def process(self, event: Event) -> list[Alert]:
         """Accept one event; return the alerts raised by events released from the buffer."""

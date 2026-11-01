@@ -9,6 +9,23 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- The Docker stack (`pipeline/docker-compose.yml`): Redpanda, PostgreSQL and one container per
+  pipeline stage, with digest-pinned images, health checks, memory limits (about 3.3 GB) and
+  ports on 127.0.0.1 only:
+  - a Kafka transport (confluent-kafka) with one partition per topic, synchronous commits, an
+    idempotent producer whose flush fails on any delivery error, and topics created with
+    unlimited retention;
+  - a PostgreSQL sink (psycopg 3) writing a `raw` schema with `ON CONFLICT DO NOTHING`; both
+    sinks now replace NUL characters and retry a rejected batch row by row, turning rows the
+    database still rejects into dead letters;
+  - `prohori pipeline up`, `status` and `down`; `prohori pipeline run --stage` for one stage per
+    container, with a heartbeat file and `--idle-close`; `replay --bootstrap` and
+    `tail --bootstrap` to publish into the stack;
+  - a Docker smoke test (`PROHORI_DOCKER_TESTS=1`) and a `Docker stack` workflow that runs it on
+    Linux;
+  - ADR-0024, the Docker section of `docs/PIPELINE.md` and the pipeline software licences in
+    `docs/LICENSES.md`.
+
 - Streaming pipeline in lite mode (`prohori.pipeline`, `pipeline` extra with DuckDB), running
   the batch core continuously without Docker:
   - topics `raw-logs`, `events`, `alerts`, `incidents` and `dead-letter` with keyed JSON

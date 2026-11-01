@@ -1,9 +1,12 @@
-"""``prohori pipeline``: run the streaming pipeline in lite mode (no Docker).
+"""``prohori pipeline``: the streaming pipeline, in lite mode or as a Docker stack.
 
-``replay`` pushes whole log files through the pipeline and stops when everything is written;
-``tail`` follows growing log files until Ctrl+C. Both keep their topics and positions under
-``--state`` (so a later run continues) and write events, alerts, incidents and dead letters to a
-DuckDB file. They need the ``pipeline`` extra.
+Lite mode (no Docker): ``replay`` pushes whole log files through every stage in this process and
+stops when everything is written; ``tail`` follows growing log files until Ctrl+C. Both keep their
+topics and positions under ``--state`` and write to a DuckDB file.
+
+Docker stack: ``up``, ``status`` and ``down`` manage Redpanda, PostgreSQL and one container per
+stage (``prohori pipeline run``); ``replay --bootstrap`` and ``tail --bootstrap`` then only
+publish lines to the stack's Kafka topics. Everything here needs the ``pipeline`` extra.
 """
 
 import json
@@ -12,6 +15,7 @@ import sys
 import threading
 from collections.abc import Callable, Iterator
 from contextlib import contextmanager
+from enum import StrEnum
 from pathlib import Path
 from types import FrameType
 from typing import Annotated, Any
@@ -19,6 +23,7 @@ from typing import Annotated, Any
 import typer
 from rich.console import Console
 from rich.table import Table
+from rich.text import Text
 
 from prohori.cli.detect import load_detection_rules, parse_lateness
 from prohori.cli.exit_codes import ExitCode
@@ -34,20 +39,30 @@ from prohori.cli.parse import (
 )
 from prohori.incidents import IncidentSettings
 from prohori.parsers import sanitize
-from prohori.pipeline.producers import FileTailer, ProducerError, replay
-from prohori.pipeline.runner import LitePipeline, LiteSettings
-from prohori.pipeline.stages import ParserSettings
-from prohori.pipeline.transport import FileTransport
+from prohori.pipeline import stack
+from prohori.pipeline.producers import FileTailer, ProducerError, follow_files, replay
+from prohori.pipeline.runner import STAGES, LitePipeline, LiteSettings, make_stage, serve
+from prohori.pipeline.stages import ParserSettings, Stage
+from prohori.pipeline.transport import FileTransport, Transport
 from prohori.rules.model import parse_duration
 
 DEFAULT_STATE = Path(".prohori") / "pipeline"
 
 pipeline_app = typer.Typer(
     name="pipeline",
-    help="Run the streaming pipeline in lite mode: no Docker, DuckDB storage.",
+    help="Run the streaming pipeline: lite mode (no Docker, DuckDB) or the Docker stack.",
     no_args_is_help=True,
     add_completion=False,
 )
+
+
+class StageName(StrEnum):
+    NORMALISE = "normalise"
+    DETECT = "detect"
+    INCIDENTS = "incidents"
+    SINK = "sink"
+    ALL = "all"
+
 
 FilesArgument = Annotated[
     list[Path], typer.Argument(metavar="FILE...", help="Log files.", show_default=False)
@@ -59,6 +74,14 @@ DatabaseOption = Annotated[
     Path | None,
     typer.Option(
         "--db", help="DuckDB file (default: prohori.duckdb in --state).", show_default=False
+    ),
+]
+BootstrapOption = Annotated[
+    str | None,
+    typer.Option(
+        "--bootstrap",
+        help="Kafka broker (host:port): publish to the Docker stack instead of running lite mode.",
+        show_default=False,
     ),
 ]
 RulesOption = Annotated[
@@ -89,6 +112,15 @@ FormatOption = Annotated[
 EnvOption = Annotated[
     Path, typer.Option(help="Enrichment settings file read under the environment variables.")
 ]
+ComposeOption = Annotated[
+    Path | None,
+    typer.Option(
+        "--file",
+        help="Compose file (default: pipeline/docker-compose.yml under the current directory).",
+        show_default=False,
+    ),
+]
+MaxRoundsOption = Annotated[int | None, typer.Option(hidden=True)]
 
 
 def _settings(
@@ -104,6 +136,7 @@ def _settings(
     env_file: Path,
     parsers: ParserSettings,
     follow: bool,
+    idle_close: float | None = None,
 ) -> LiteSettings:
     allowed_lateness = parse_lateness(lateness)
     try:
@@ -120,7 +153,13 @@ def _settings(
         enricher=None if no_enrich else make_enricher(env_file, online=online),
         enrichment="none" if no_enrich else ("online" if online else "offline"),
         follow=follow,
+        idle_close=idle_close,
     )
+
+
+def _fail(message: str) -> typer.Exit:
+    typer.echo(f"error: {sanitize(message)}", err=True)
+    return typer.Exit(ExitCode.NO_EVENTS)
 
 
 def _pipeline(state: Path, settings: LiteSettings) -> LitePipeline:
@@ -131,8 +170,22 @@ def _pipeline(state: Path, settings: LiteSettings) -> LitePipeline:
         transport.close()
         if settings.enricher is not None:
             settings.enricher.close()
-        typer.echo(f"error: {exc}", err=True)
-        raise typer.Exit(ExitCode.NO_EVENTS) from None
+        raise _fail(str(exc)) from None
+
+
+def _kafka(bootstrap: str) -> Transport:
+    """Connect to the broker, creating the topics; exit 1 with a message if that fails."""
+    try:
+        from prohori.pipeline.kafka import KafkaTransport, TransportError
+    except ImportError as exc:  # pragma: no cover - the module itself imports nothing optional
+        raise _fail(str(exc)) from None
+    try:
+        return KafkaTransport(bootstrap)
+    except (ImportError, TransportError) as exc:
+        raise _fail(str(exc)) from None
+
+
+# ---------------------------------------------------------------------- replay and tail
 
 
 @pipeline_app.command("replay")
@@ -140,6 +193,7 @@ def replay_command(
     files: FilesArgument,
     state: StateOption = DEFAULT_STATE,
     database: DatabaseOption = None,
+    bootstrap: BootstrapOption = None,
     times: Annotated[
         int, typer.Option(min=1, help="Publish each file this many times (to test duplicates).")
     ] = 1,
@@ -158,16 +212,20 @@ def replay_command(
     pattern: PatternOption = None,
     keep_query: KeepQueryOption = False,
 ) -> None:
-    """Replay log files through the lite pipeline until everything is in the database.
+    """Replay log files through the pipeline.
 
-    Lines go to the raw-logs topic, are parsed, run through the rules and grouped into incidents;
-    events, alerts, incidents and dead letters are written to DuckDB, each id once, so replaying
-    the same file again adds no rows. Exit codes: 0 done, 1 the pipeline extra is missing or
-    every line was a dead letter, 2 invalid usage.
+    Lite mode (default): every stage runs here until everything is in the DuckDB file; events,
+    alerts, incidents and dead letters are stored once per id, so replaying the same file again
+    adds no rows. With --bootstrap the lines are only published to the Docker stack's Kafka
+    topics, where its containers process them. Exit codes: 0 done, 1 the pipeline extra is
+    missing, the broker is unreachable or every line was a dead letter, 2 invalid usage.
     """
     missing = [str(f) for f in files if not f.is_file()]
     if missing:
         raise typer.BadParameter(f"not found: {', '.join(missing)}", param_hint="FILE")
+    if bootstrap:
+        _publish(files, bootstrap, times=times, parser=parser_name, has_mapping=bool(mapping))
+        return
     parsers = ParserSettings(year, timezone, mapping, pattern, keep_query)
     settings = _settings(
         state=state,
@@ -206,11 +264,29 @@ def replay_command(
         raise typer.Exit(ExitCode.NO_EVENTS)
 
 
+def _publish(
+    files: list[Path], bootstrap: str, *, times: int, parser: str, has_mapping: bool
+) -> None:
+    transport = _kafka(bootstrap)
+    lines = 0
+    try:
+        for _ in range(times):
+            for file in files:
+                try:
+                    lines += replay(file, transport, parser=parser, has_mapping=has_mapping)
+                except ProducerError as exc:
+                    raise typer.BadParameter(str(exc), param_hint="FILE") from None
+    finally:
+        transport.close()
+    typer.echo(f"Published {lines:,} line(s) to the raw-logs topic on {sanitize(bootstrap)}.")
+
+
 @pipeline_app.command("tail")
 def tail_command(
     files: FilesArgument,
     state: StateOption = DEFAULT_STATE,
     database: DatabaseOption = None,
+    bootstrap: BootstrapOption = None,
     poll: Annotated[
         float, typer.Option(min=0.0, help="Seconds between checks for new lines.")
     ] = 1.0,
@@ -228,14 +304,27 @@ def tail_command(
     mapping: MappingOption = None,
     pattern: PatternOption = None,
     keep_query: KeepQueryOption = False,
-    max_rounds: Annotated[int | None, typer.Option(hidden=True)] = None,
+    max_rounds: MaxRoundsOption = None,
 ) -> None:
-    """Follow growing log files (like tail -F) until Ctrl+C, writing to DuckDB as lines arrive.
+    """Follow growing log files (like tail -F) until Ctrl+C.
 
     Survives log rotation by rename or truncation, and continues where it stopped when run again
-    with the same --state. On Ctrl+C it finishes the current batch, writes the incidents still
-    open and exits 0. Needs the pipeline extra (exit 1 without it); 2 for invalid usage.
+    with the same --state. In lite mode (default) every stage runs here and writes to DuckDB; on
+    Ctrl+C it finishes the current batch, writes the incidents still open and exits 0. With
+    --bootstrap it only publishes the lines to the Docker stack. Needs the pipeline extra (exit 1
+    without it, or if the broker is unreachable); 2 for invalid usage.
     """
+    stop = threading.Event()
+    if bootstrap:
+        transport = _kafka(bootstrap)
+        try:
+            tailers = _tailers(files, transport, parser_name, mapping, state)
+            with _stop_on_signals(stop):
+                lines = follow_files(tailers, stop, poll_interval=poll, max_rounds=max_rounds)
+        finally:
+            transport.close()
+        typer.echo(f"Published {lines:,} line(s) to the raw-logs topic on {sanitize(bootstrap)}.")
+        return
     parsers = ParserSettings(year, timezone, mapping, pattern, keep_query)
     settings = _settings(
         state=state,
@@ -251,26 +340,285 @@ def tail_command(
         follow=True,
     )
     pipeline = _pipeline(state, settings)
-    stop = threading.Event()
+    try:
+        tailers = _tailers(files, pipeline.transport, parser_name, mapping, state)
+        with _stop_on_signals(stop):
+            metrics = pipeline.follow(tailers, stop, poll_interval=poll, max_rounds=max_rounds)
+    finally:
+        pipeline.close()
+    _report(metrics, output, settings.database)
+
+
+def _tailers(
+    files: list[Path], transport: Transport, parser: str, mapping: Path | None, state: Path
+) -> list[FileTailer]:
     try:
         tailers = [
             FileTailer(
                 file,
-                pipeline.transport,
-                parser=parser_name,
+                transport,
+                parser=parser,
                 has_mapping=mapping is not None,
                 state_dir=state / "tail",
             )
             for file in files
         ]
-        typer.echo(f"Following {len(tailers)} file(s); press Ctrl+C to stop.", err=True)
-        with _stop_on_signals(stop):
-            metrics = pipeline.follow(tailers, stop, poll_interval=poll, max_rounds=max_rounds)
     except ProducerError as exc:
         raise typer.BadParameter(str(exc), param_hint="FILE") from None
+    typer.echo(f"Following {len(tailers)} file(s); press Ctrl+C to stop.", err=True)
+    return tailers
+
+
+# ---------------------------------------------------------------------- one stage (containers)
+
+
+@pipeline_app.command("run")
+def run_command(
+    stage_name: Annotated[
+        StageName, typer.Option("--stage", help="The stage to run, or all of them.")
+    ],
+    bootstrap: Annotated[
+        str,
+        typer.Option(
+            "--bootstrap",
+            envvar="PROHORI_KAFKA_BOOTSTRAP",
+            help="Kafka broker (host:port).",
+            show_default=False,
+        ),
+    ],
+    postgres: Annotated[
+        str | None,
+        typer.Option(
+            "--postgres",
+            envvar="PROHORI_POSTGRES_DSN",
+            help="PostgreSQL connection string for the sink (otherwise DuckDB, see --db).",
+            show_default=False,
+            show_envvar=True,
+        ),
+    ] = None,
+    state: StateOption = DEFAULT_STATE,
+    database: DatabaseOption = None,
+    idle_close: Annotated[
+        float | None,
+        typer.Option(
+            min=0.0,
+            help="incidents: write open incidents after this many seconds without new alerts "
+            "(default: the incident hold time, 65 minutes with the built-in rules).",
+            show_default=False,
+        ),
+    ] = None,
+    heartbeat: Annotated[
+        Path | None,
+        typer.Option(
+            help="File touched after every round, for a health check.", show_default=False
+        ),
+    ] = None,
+    poll: Annotated[
+        float, typer.Option(min=0.0, help="Seconds to wait when there is nothing to read.")
+    ] = 0.5,
+    rules_paths: RulesOption = None,
+    no_builtin: NoBuiltinOption = False,
+    lateness: LatenessOption = "5m",
+    gap: GapOption = "30m",
+    online: OnlineOption = False,
+    no_enrich: NoEnrichOption = False,
+    env_file: EnvOption = Path(".env"),
+    parser_name: ParserOption = "auto",
+    year: YearOption = None,
+    timezone: TimezoneOption = "UTC",
+    mapping: MappingOption = None,
+    pattern: PatternOption = None,
+    keep_query: KeepQueryOption = False,
+    max_rounds: MaxRoundsOption = None,
+) -> None:
+    """Run one pipeline stage (or all) over Kafka until stopped: what each container runs.
+
+    Stateful stages (detect, incidents) rebuild their state from the start of their topics when
+    they start. SIGTERM or Ctrl+C finishes the current batch, releases what the stage holds and
+    exits 0. Exit 1 if the pipeline extra is missing or the broker or database is unreachable.
+    """
+    del parser_name  # each raw line names its parser
+    parsers = ParserSettings(year, timezone, mapping, pattern, keep_query)
+    settings = _settings(
+        state=state,
+        database=database,
+        rules_paths=rules_paths,
+        no_builtin=no_builtin,
+        lateness=lateness,
+        gap=gap,
+        online=online,
+        no_enrich=no_enrich,
+        env_file=env_file,
+        parsers=parsers,
+        follow=True,
+        idle_close=idle_close,
+    )
+    names = STAGES if stage_name is StageName.ALL else (stage_name.value,)
+    transport = _kafka(bootstrap)
+    stages: list[Stage] = []
+    try:
+        try:
+            stages = [make_stage(n, transport, settings, postgres=postgres) for n in names]
+        except ImportError as exc:
+            raise _fail(str(exc)) from None
+        except Exception as exc:  # the database is not reachable
+            raise _fail(f"cannot start the {', '.join(names)} stage: {exc}") from None
+        typer.echo(f"Running {', '.join(names)} on {sanitize(bootstrap)}.", err=True)
+        stop = threading.Event()
+        with _stop_on_signals(stop):
+            serve(stages, stop, poll_interval=poll, heartbeat=heartbeat, max_rounds=max_rounds)
+        metrics = {stage.name: stage.metrics.as_dict() for stage in stages}
+        typer.echo(json.dumps({"stopped": list(names), "stages": metrics}), err=True)
     finally:
-        pipeline.close()
-    _report(metrics, output, settings.database)
+        for stage in stages:
+            close = getattr(stage, "close", None)
+            if close is not None:
+                close()
+        transport.close()
+        if settings.enricher is not None:
+            settings.enricher.close()
+
+
+# ---------------------------------------------------------------------- the Docker stack
+
+
+def _compose(file: Path | None) -> Path:
+    try:
+        stack.docker_executable()
+        return stack.compose_file(file)
+    except stack.StackError as exc:
+        raise _fail(str(exc)) from None
+
+
+@pipeline_app.command("up")
+def up_command(
+    file: ComposeOption = None,
+    build: Annotated[
+        bool, typer.Option("--build/--no-build", help="Build the Prohori image first.")
+    ] = True,
+    timeout: Annotated[
+        int, typer.Option(min=10, help="Seconds to wait for every service to be healthy.")
+    ] = 300,
+) -> None:
+    """Start the Docker stack (Redpanda, PostgreSQL, one container per stage) and wait for it.
+
+    Needs Docker and a clone of the repository (the compose file and the image's sources).
+    Exit codes: 0 every service is healthy, 1 Docker or the compose file is missing or a service
+    did not become healthy.
+    """
+    compose_path = _compose(file)
+    code = stack.up(compose_path, build=build, timeout=timeout)
+    healthy = _print_status(compose_path, counts=False)
+    if code != 0 or not healthy:
+        raise _fail("the stack did not become healthy; see 'docker compose -p prohori logs'")
+    typer.echo(
+        f"Publish logs with: prohori pipeline replay FILE --bootstrap {stack.default_bootstrap()}"
+    )
+
+
+@pipeline_app.command("down")
+def down_command(
+    file: ComposeOption = None,
+    volumes: Annotated[
+        bool, typer.Option("--volumes", help="Also delete the data (topics and the database).")
+    ] = False,
+) -> None:
+    """Stop the Docker stack and remove its containers and network (data is kept)."""
+    compose_path = _compose(file)
+    if stack.down(compose_path, volumes=volumes) != 0:
+        raise _fail("docker compose down failed")
+    typer.echo("Stack stopped" + (" and its data deleted." if volumes else "; data kept."))
+
+
+@pipeline_app.command("status")
+def status_command(
+    file: ComposeOption = None,
+    dsn: Annotated[
+        str | None,
+        typer.Option(
+            "--postgres",
+            help="PostgreSQL to count rows in (default: the stack's).",
+            show_default=False,
+        ),
+    ] = None,
+    output: Annotated[OutputFormat, typer.Option("--format", "-f", help="table or json.")] = (
+        OutputFormat.TABLE
+    ),
+) -> None:
+    """Show the Docker stack's services, their health and the rows in the warehouse.
+
+    Exit codes: 0 every service is healthy, 1 a service is missing, stopped or unhealthy (or
+    Docker or the compose file is missing).
+    """
+    compose_path = _compose(file)
+    if output is OutputFormat.JSON:
+        services = _services(compose_path)
+        counts = _counts(dsn or stack.default_dsn())
+        healthy = bool(services) and all(s.ok for s in services)
+        payload = {
+            "healthy": healthy,
+            "services": [s.__dict__ | {"ok": s.ok} for s in services],
+            "rows": counts,
+        }
+        typer.echo(json.dumps(payload, indent=2))
+    else:
+        healthy = _print_status(compose_path, counts=True, dsn=dsn)
+    if not healthy:
+        raise typer.Exit(ExitCode.NO_EVENTS)
+
+
+def _services(compose_path: Path) -> list[stack.Service]:
+    try:
+        return stack.services(compose_path)
+    except stack.StackError as exc:
+        raise _fail(str(exc)) from None
+
+
+def _counts(dsn: str) -> dict[str, int] | None:
+    """Row counts in the warehouse, or None if it cannot be reached."""
+    try:
+        from prohori.pipeline.postgres import connect
+        from prohori.pipeline.sink import TABLES
+
+        connection = connect(dsn)
+    except Exception:  # not running, wrong password, extra missing: the table says so
+        return None
+    try:
+        result: dict[str, int] = {}
+        for table in TABLES:
+            row = connection.execute(f"SELECT count(*) FROM raw.{table}").fetchone()  # noqa: S608
+            result[table] = int(row[0]) if row is not None else 0
+        return result
+    finally:
+        connection.close()
+
+
+def _print_status(compose_path: Path, *, counts: bool, dsn: str | None = None) -> bool:
+    services = _services(compose_path)
+    console = Console(highlight=False)
+    if not services:
+        console.print("The stack is not running; start it with: prohori pipeline up")
+        return False
+    table = Table(title="Prohori stack")
+    for column in ("service", "state", "health", ""):
+        table.add_column(column)
+    for service in services:
+        mark = "ok" if service.ok else "PROBLEM"
+        health = service.health or ("exit 0" if service.ok and service.state == "exited" else "-")
+        table.add_row(Text(service.name), Text(service.state), Text(health), mark)
+    console.print(table)
+    if counts:
+        rows = _counts(dsn or stack.default_dsn())
+        if rows is None:
+            console.print("Warehouse: not reachable.")
+        else:
+            console.print(
+                "Warehouse rows: " + ", ".join(f"{k} {v:,}" for k, v in rows.items()) + "."
+            )
+    return all(s.ok for s in services)
+
+
+# ---------------------------------------------------------------------- helpers
 
 
 @contextmanager

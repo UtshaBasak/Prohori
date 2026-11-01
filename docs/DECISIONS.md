@@ -790,3 +790,68 @@ tested end to end in CI.
 about 14,000 for the batch command; each stage validates and serialises every message and every
 batch is made durable. DuckDB 2.0 ships abi3 wheels for Python 3.12+ and cp311 wheels on Windows
 and Linux, so the whole CI matrix runs the end-to-end test. No change to the batch outputs.
+
+---
+
+## ADR-0024: Docker stack, Kafka and PostgreSQL
+
+- **Date:** 2026-11-01
+- **Status:** Accepted
+
+**Context.** Step 19 runs the lite-mode consumers over a Kafka-compatible queue with a PostgreSQL
+warehouse in Docker. It has to fit next to other work on a 15.7 GB laptop where Docker has 6 GB,
+and it has to be testable in CI.
+
+**Decision.**
+- **Broker:** Redpanda v26.2.4 Community Edition, a single node with one core and `--memory 1G`
+  in a 1.5 GB container (Seastar needs headroom above its own limit). It has no ZooKeeper and no
+  JVM and starts in seconds. Its Business Source License allows running it ourselves (see
+  LICENSES.md).
+- **Warehouse:** PostgreSQL 17.11 (Alpine), as assumed in the plan and confirmed by the owner
+  when step 19 was started. Tables live in a `raw` schema mirroring the DuckDB tables, with
+  `JSONB` records and `ON CONFLICT (id) DO NOTHING`.
+- **Clients:** confluent-kafka (librdkafka) and psycopg 3 (binary), both with wheels for Python
+  3.11 to 3.14 on Windows, Linux and macOS, in the `pipeline` extra. confluent-kafka is locked
+  to 2.16.0 rather than 2.16.1, which was four days old.
+- **Kafka transport, same protocol:**
+  - one partition per topic, assigned directly to each consumer group (no rebalancing), with
+    offsets committed synchronously after the output is flushed;
+  - an idempotent producer with `acks=all`, whose `flush` raises on any delivery error;
+  - topics created by the clients with unlimited retention, because stateful stages rebuild from
+    the start.
+
+  A new protocol method, `batches_to_end`, reads a topic up to its end offset, one batch at a
+  time so a long backlog is never held in memory at once. Across processes an empty poll does
+  not mean the end, and the incident stage needs every event behind the alerts it has polled.
+- **One container per stage**, all from one image built from the checkout with `uv sync
+  --frozen` (versions from `uv.lock`):
+  - images pinned by digest, an unprivileged user, and `init: true` so SIGTERM reaches Python;
+  - health from a heartbeat file each stage touches after every round;
+  - memory limits adding up to about 3.3 GB;
+  - ports on 127.0.0.1 only (19092 and 15432, so they do not clash with a local PostgreSQL).
+  The PostgreSQL password defaults to a local-only value and can be set through
+  `PROHORI_POSTGRES_PASSWORD`.
+- **Incidents in a stack that never ends:** `run --idle-close SECONDS` writes open incidents after
+  that much quiet. The stack uses 60 seconds, so a replay's last incident appears within a minute
+  or two; the detector releases its held alerts after 10 quiet seconds, well inside that. The
+  documented cost is that a very slow attack can split into two incidents.
+- **Sinks share one base class.** NUL characters are replaced before writing, because PostgreSQL
+  text cannot hold them. If the database rejects a batch for data reasons, it is retried row by
+  row and the rows still rejected become dead letters. Any other database error stops the stage
+  without committing, so one bad row can neither stall the warehouse nor be lost silently.
+- **Commands:** `prohori pipeline up` (`docker compose up --wait`), `status` (services, health,
+  warehouse rows; exit 1 unless all healthy), `down` (`--volumes` deletes data), `run --stage`,
+  and `replay` / `tail --bootstrap` to publish into the stack. Compose runs as project `prohori`
+  from `pipeline/docker-compose.yml`, and no shell is involved.
+- **Smoke test:** marked `slow` and `docker`. It runs only with `PROHORI_DOCKER_TESTS=1`,
+  because it builds an image and deletes the stack's volumes. A separate `Docker stack` workflow
+  runs it on Ubuntu for changes to the pipeline and weekly; GitHub's Windows runners have no
+  Linux containers. Unit tests cover the Kafka transport, the PostgreSQL sink and the compose
+  helpers with fakes on both operating systems.
+
+**Consequences.** During a 50,700-line replay the stack peaked at about 700 MB of its 3.3 GB of
+limits; the incident stage reads its backlog one batch at a time, which brought its rebuild peak
+from 279 MB to about 100 MB. A replay
+into the stack gives the same incident ids as `prohori incidents`, with each event stored once
+when the file is replayed twice. The stack needs a clone of the repository; a published image is
+out of scope until the v0.3.0 release.

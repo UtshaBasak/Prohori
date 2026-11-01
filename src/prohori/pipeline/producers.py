@@ -14,6 +14,7 @@ import io
 import json
 import os
 import sys
+import threading
 from collections.abc import Callable, Iterator, Sequence
 from dataclasses import dataclass
 from datetime import UTC, datetime
@@ -328,3 +329,27 @@ class FileTailer:
                 return False  # wait for more lines before deciding
             raise
         return True
+
+
+def follow_files(
+    tailers: Sequence[FileTailer],
+    stop: threading.Event,
+    *,
+    poll_interval: float = 1.0,
+    max_rounds: int | None = None,
+) -> int:
+    """Poll ``tailers`` until ``stop`` is set; return the number of lines published.
+
+    Used when the consumers run elsewhere (the Docker stack): this only produces.
+    """
+    lines = 0
+    rounds = 0
+    while not stop.is_set() and (max_rounds is None or rounds < max_rounds):
+        rounds += 1
+        published = sum(tailer.poll() for tailer in tailers)
+        lines += published
+        if not published:
+            stop.wait(poll_interval)
+    for tailer in tailers:
+        tailer.close()
+    return lines
