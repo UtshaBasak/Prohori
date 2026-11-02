@@ -29,7 +29,9 @@ In-scope issues include, for example:
   spreadsheet formulas), or a `--redact` report that still contains an account name or address.
 - Private, reserved or documentation IP addresses being sent to external enrichment services
   (they must never leave the machine; see `docs/ENRICHMENT.md`).
-- Prompt injection that makes the optional LLM analyst misreport an incident.
+- Prompt injection that makes the optional LLM analyst misreport an incident, in particular
+  an answer that cites a value or link not in the incident or its sources and is still shown
+  (see `docs/LLM_ANALYST.md`).
 
 A full threat model will be published in `docs/THREAT_MODEL.md`.
 

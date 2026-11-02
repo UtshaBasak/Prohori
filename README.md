@@ -195,6 +195,7 @@ recommended actions from the runbooks and the limitations, such as "single log s
 | `prohori incidents FILE` | Parse, detect and group alerts into scored incidents; offline enrichment unless `--online` | [INCIDENTS.md](docs/INCIDENTS.md) |
 | `prohori report INCIDENT` | Render an incident as `md`, `html`, `json` or `csv`; `--redact`, `--redact-ips` | [REPORTS.md](docs/REPORTS.md) |
 | `prohori explain INCIDENT` | Explain an incident with an LLM; off by default, redacted before sending, `--show-payload` to check first; `llm` extra | [LLM_ANALYST.md](docs/LLM_ANALYST.md) |
+| `prohori ask "QUESTION"` | Answer from ATT&CK and the runbooks (and an incident with `-f`); offline it shows the best sources; answers citing unknown values are rejected | [LLM_ANALYST.md](docs/LLM_ANALYST.md#sources-and-tools) |
 | `prohori simulate SCENARIO --out DIR` | Write a labelled attack scenario (`--list`, `--seed`, `--variant heldout`, `--set`) | [SIMULATOR.md](docs/SIMULATOR.md) |
 | `prohori score FLOWS --model NAME` | Score a CSV of network flows with a saved model; needs the `ml` extra (`--fpr`, `--top`, `-f json`) | [CLI.md](docs/CLI.md#prohori-score) |
 | `prohori pipeline replay FILE...` / `tail FILE...` | Stream log files through the lite pipeline into DuckDB, or with `--bootstrap` into the Docker stack; `tail` follows live logs until Ctrl+C; needs the `pipeline` extra | [PIPELINE.md](docs/PIPELINE.md) |
@@ -502,7 +503,7 @@ Third-party data terms (MITRE ATT&CK, GeoLite2, AbuseIPDB, VirusTotal, the Gemin
 | [Warehouse models](docs/WAREHOUSE.md) | dbt models, data-quality checks, labels and model results, results on the simulator |
 | [Dashboards](docs/DASHBOARD.md) | The Grafana dashboards: panels, set-up, access, time range, changing a dashboard |
 | [Scheduled jobs](docs/ORCHESTRATION.md) | The Airflow DAGs: backfill, data quality, nightly evaluation, digest, enrichment refresh |
-| [LLM analyst](docs/LLM_ANALYST.md) | `prohori explain`: what is sent and what is not, redaction, providers, settings, limits, data-use terms |
+| [LLM analyst](docs/LLM_ANALYST.md) | `prohori explain` and `ask`: what is sent, redaction, sources and tools, prompt-injection defences and answer checks, providers, limits, data-use terms |
 | [Decisions](docs/DECISIONS.md) | Architecture decision records |
 | [Releasing](docs/RELEASING.md) | How releases are built, tested and published |
 | [Third-party terms](docs/LICENSES.md) | Data and service licences |
@@ -536,7 +537,7 @@ Prohori is honest about what it does not do:
 | v0.1.0 | Batch core: parsers, rules, enrichment, incidents, reports, log simulator with rule evaluation, `triage` and `demo` commands | Released |
 | v0.2.0 | Machine learning: leakage-controlled intrusion detection on public flow datasets, log-derived anomaly detection, model cards | Released |
 | v0.3.0 | Pipeline: streaming core and lite mode, Redpanda and PostgreSQL in Docker, dbt models and data-quality checks, Grafana dashboards, Airflow jobs; Docker image on GitHub Packages | Released |
-| v1.0.0 | Optional LLM analyst: providers, redaction and `explain` (done), retrieval and output validation, evaluation; final polish | In progress |
+| v1.0.0 | Optional LLM analyst: providers, redaction and `explain` (done), retrieval, injection defences, answer validation and `ask` (done), evaluation; final polish | In progress |
 
 ## Development
 
