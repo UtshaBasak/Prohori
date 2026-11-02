@@ -69,19 +69,40 @@ class NoneProvider:
 
 @dataclass
 class MockProvider:
-    """Answers offline from the payload in the prompt; ``requests`` keeps what it was sent."""
+    """Answers offline; ``requests`` keeps what it was sent.
+
+    With ``script``, it returns those answers in order (tests use this to play a model that
+    calls tools or obeys an injected instruction). Without one, it writes a short answer from the
+    incident payload and the first source in the prompt, citing only what it was given.
+    """
 
     name: ClassVar[str] = "mock"
     sends_data: ClassVar[bool] = False
     requests: list[Request] = field(default_factory=list)
+    script: list[str] = field(default_factory=list)
 
     def generate(self, request: Request) -> Response:
         self.requests.append(request)
-        start, end = request.prompt.find("{"), request.prompt.rfind("}")
-        data = json.loads(request.prompt[start : end + 1])
+        text = self.script.pop(0) if self.script else _mock_answer(request.prompt)
+        return Response(
+            text=text,
+            model="mock",
+            input_tokens=len(request.prompt) // 4,
+            output_tokens=len(text) // 4,
+        )
+
+
+_UNFENCE = re.compile(r"⟦/?u:[0-9a-f]{8}⟧")
+
+
+def _mock_answer(prompt: str) -> str:
+    lines: list[str] = []
+    start, end = prompt.find("<incident>"), prompt.find("</incident>")
+    if start >= 0 and end > start:
+        data = json.loads(_UNFENCE.sub("", prompt[start + len("<incident>") : end]))
         rules = ", ".join(sorted({a["rule"] for a in data["alerts"]}))
         accounts = sorted({v for k, vs in data["entities"].items() if "user" in k for v in vs})
-        lines = [
+        lines += [
             "## Summary",
             f"{data['title']} ({data['severity']}, score {data['score']:g}).",
             "",
@@ -94,13 +115,10 @@ class MockProvider:
             "## Next steps",
             *(f"- {a}" for a in data["recommended_actions"][:3]),
         ]
-        text = "\n".join(lines)
-        return Response(
-            text=text,
-            model="mock",
-            input_tokens=len(request.prompt) // 4,
-            output_tokens=len(text) // 4,
-        )
+    source = re.search(r"^\[S1\] \(([^)]+)\) (.+)$", prompt, re.MULTILINE)
+    if source:
+        lines += ["", "## Sources", f"- [S1] {source.group(2)}"]
+    return "\n".join(lines) or "No incident or source was given."
 
 
 class GeminiProvider:

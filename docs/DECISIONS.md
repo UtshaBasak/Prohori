@@ -1057,3 +1057,57 @@ sending deliberate, minimal and redacted, and must work fully without a model.
 free-tier data use is printed on every free-tier request. `--show-payload` shows what would be
 sent. Prompt-injection defences beyond the instruction (field delimiting, output validation)
 are step 24.
+
+---
+
+## ADR-0029: Grounded answers: retrieval, fencing, answer validation and `ask`
+
+- **Date:** 2026-11-02
+- **Status:** Accepted
+
+**Context.** Step 24 makes the LLM analyst's answers grounded and resistant to prompt injection.
+Logs are attacker-controlled; an incident can quote a user agent, a username or a path written
+to instruct the model.
+
+**Decision.**
+- **Retrieval with BM25 in pure Python** (`prohori.llm.knowledge`), with no new dependency.
+  - The ATT&CK corpus is built from the pinned Enterprise ATT&CK v20.0 STIX bundle (SHA-256
+    checked) by `scripts/build_attack_corpus.py`. It covers the 706 active techniques: id, name,
+    tactics, and the first paragraph of each description without citations, capped at 600
+    characters.
+  - It ships as `src/prohori/llm/data/attack.jsonl` (about 350 KB) with MITRE's notice. ATT&CK's
+    terms allow reproduction and derivative works with the copyright designation.
+  - Runbooks are indexed by section.
+  - A technique id in a query is matched exactly first.
+- **Fences instead of escaping.** Every value that can carry log content is wrapped in
+  `⟦u:NONCE⟧...⟦/u:NONCE⟧` with a per-request random nonce, after the fence characters are
+  stripped from the value, so the value cannot forge or close a fence.
+  - Most attacker text is still never sent: event descriptions are dropped (ADR-0028) and
+    usernames are pseudonyms.
+  - A scanner's user agent stays, fenced, as an indicator, because it is evidence.
+- **Conservative output validation** (`prohori.llm.guard`). The answer is rejected, and the local
+  answer shown, if it cites any of the following that is unknown:
+  - an IP address, email address or pseudonym;
+  - an incident, rule or ATT&CK technique id;
+  - a link anywhere but attack.mitre.org.
+
+  Citable values come only from the incident's identity fields (addresses, pseudonymised
+  accounts), its rules and techniques, and the sources and tool results, never from free text,
+  so an injected address cannot make itself citable.
+- **Tools through a plain-text protocol** (`CALL tool {json}`), so they work with every provider,
+  including the mock.
+  - The three tools are read-only: knowledge search, one technique, one alert.
+  - At most three calls (0 to 5 with `--max-tool-calls`), with a 200-character argument cap and
+    a 4,000-character result cap. Misuse ends the conversation with a local answer.
+  - Each round counts against the daily budget. Native function calling would tie the design to
+    one provider.
+- **`prohori ask "..."`**, optionally about an incident (`-f`). With the provider `none` it shows
+  the best-matching sources locally.
+- **Tests:** an injection fixture suite builds incidents from real logs, with instructions in a
+  user agent, a username and a path. It runs with the mock provider: the instruction must stay
+  fenced, seven kinds of compromised answers are rejected for each vector, and an honest answer
+  is accepted.
+
+**Consequences.** Answers can cite only what Prohori gave the model. A judgement built from real
+values but wrong (an injected "this is benign") is not detectable by these checks; the docs say
+so. Step 25 measures the analyst.

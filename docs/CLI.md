@@ -13,6 +13,7 @@ file is `-`. Nothing uses the network unless you configure API keys and ask for 
 | [`prohori incidents FILE`](#prohori-incidents) | Group alerts into scored incidents |
 | [`prohori report INCIDENT`](#prohori-report) | Render an incident report |
 | [`prohori explain INCIDENT`](#prohori-explain) | Explain an incident with an LLM (opt-in, redacted; `llm` extra) |
+| [`prohori ask "QUESTION"`](#prohori-ask) | Answer a question from ATT&CK and the runbooks, optionally about an incident |
 | [`prohori enrich IP...`](#prohori-enrich) | Look up IP addresses |
 | [`prohori simulate SCENARIO`](#prohori-simulate) | Write a labelled attack scenario |
 | [`prohori score FLOWS --model NAME`](#prohori-score) | Score a CSV of network flows with a saved model (`ml` extra) |
@@ -126,7 +127,7 @@ See [ENRICHMENT.md](ENRICHMENT.md).
 
 ```bash
 prohori explain INCIDENT [--incident ID] [--provider none|mock|gemini] [--model NAME]
-                [--mask-ips] [--show-payload] [--keep-pseudonyms]
+                [--mask-ips] [--show-payload] [--keep-pseudonyms] [--max-tool-calls N]
 ```
 
 Explains an incident in plain language with an LLM: summary, why it matters, evidence, next
@@ -142,10 +143,28 @@ the key from `GEMINI_API_KEY`.
   was sent.
 - **`--keep-pseudonyms`** shows the answer as the model wrote it. By default the real values
   are put back locally.
+- **Sources and checks.** The incident's ATT&CK techniques and its rules' runbooks are given as
+  sources, and the model may make up to `--max-tool-calls` (default 3) read-only lookups. An
+  answer that cites an address, account, id, technique or link not found in the incident or the
+  sources is rejected, and the local summary is shown.
 
 Exit codes: `0` explained, summarised or off; `1` redaction could not remove every personal value
 (nothing was sent); `2` invalid usage, input or setting. Details:
 [LLM_ANALYST.md](LLM_ANALYST.md).
+
+## `prohori ask`
+
+```bash
+prohori ask "QUESTION" [--incident-file INCIDENT [--incident ID]] [--provider ...] [--model NAME]
+            [--mask-ips] [--show-payload] [--keep-pseudonyms] [--max-tool-calls N]
+```
+
+Answers a question from the best-matching ATT&CK techniques and runbook sections, found locally
+with BM25, and about an incident if you pass `--incident-file` (`-f`). The model cites the
+sources as `[S1]`, `[S2]`, which are listed after the answer. It is subject to the same
+redaction, fencing, tool limits and answer checks as `explain`. With the provider `none` it
+prints the best-matching sources and sends nothing. `--show-payload` needs `--incident-file`.
+Exit codes as for `explain`.
 
 ## `prohori simulate`
 

@@ -49,7 +49,7 @@ def test_long_text_is_capped_and_big_incidents_are_trimmed() -> None:
     assert payload.trimmed
     assert json.loads(payload.text)["trimmed"] == list(payload.trimmed)
     assert payload.estimated_tokens == estimate_tokens(payload.text)
-    assert len(json.loads(build_payload(incident).text)["title"]) <= payload_module.MAX_TEXT
+    assert len(build_payload(incident).data["title"]) <= payload_module.MAX_TEXT
     many = incident.model_copy(
         update={
             "alerts": incident.alerts * 8,
@@ -58,7 +58,7 @@ def test_long_text_is_capped_and_big_incidents_are_trimmed() -> None:
         }
     )
     trimmed = build_payload(many, max_input_tokens=500)
-    data = json.loads(trimmed.text)
+    data = trimmed.data
     assert len(data["alerts"]) == 20
     assert len(data["indicators"]) == 5
     assert data["title"].endswith("…")

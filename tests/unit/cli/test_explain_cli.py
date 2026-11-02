@@ -61,7 +61,7 @@ def test_mock_provider_answers(incident_file: Path) -> None:
 def test_gemini_without_a_key_falls_back(incident_file: Path) -> None:
     result = runner.invoke(app, ["explain", str(incident_file), "--provider", "gemini"])
     assert result.exit_code == 0, result.output
-    assert "Local summary" in result.stderr
+    assert "local, without the model" in result.stderr
     assert "nothing was sent: GEMINI_API_KEY is not set" in result.stderr
     assert "## Summary" in result.stdout
 
@@ -110,3 +110,42 @@ def test_bad_settings_and_input(tmp_path: Path, monkeypatch: pytest.MonkeyPatch)
     monkeypatch.delenv("PROHORI_LLM_PROVIDER")
     missing = runner.invoke(app, ["explain", str(tmp_path / "none.json")])
     assert missing.exit_code == ExitCode.USAGE
+
+
+def test_ask_offline_shows_the_matching_sources() -> None:
+    result = runner.invoke(app, ["ask", "how do I respond to password spraying?"])
+    assert result.exit_code == 0, result.output
+    assert "nothing was sent: the LLM analyst is off" in result.stderr
+    assert "## Best matching sources" in result.stdout
+    assert "Password Spraying" in result.stdout
+
+
+def test_ask_with_mock_about_an_incident(incident_file: Path) -> None:
+    result = runner.invoke(
+        app, ["ask", "what happened?", "--provider", "mock", "-f", str(incident_file)]
+    )
+    assert result.exit_code == 0, result.output
+    assert "Answer by mock" in result.stderr
+    assert "Sources:" in result.stdout
+    assert "[S1]" in result.stdout
+    preview = runner.invoke(app, ["ask", "q", "-f", str(incident_file), "--show-payload"])
+    assert preview.exit_code == 0
+    assert USER not in preview.stdout
+    assert runner.invoke(app, ["ask", "q", "--show-payload"]).exit_code == ExitCode.USAGE
+    assert runner.invoke(app, ["ask", "  "]).exit_code == ExitCode.USAGE
+
+
+def test_explain_reports_a_rejected_answer(
+    incident_file: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from prohori.cli import explain as explain_cli
+    from prohori.llm.provider import MockProvider
+
+    monkeypatch.setattr(
+        explain_cli, "MockProvider", lambda: MockProvider(script=["Block 198.51.100.250 now."])
+    )
+    result = runner.invoke(app, ["explain", str(incident_file), "--provider", "mock"])
+    assert result.exit_code == 0, result.output
+    assert "the answer was rejected" in result.stderr
+    assert "198.51.100.250" in result.stderr
+    assert "## Summary" in result.stdout

@@ -21,6 +21,20 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   - A daily request budget, a timeout and no automatic retries. A local summary is shown
     whenever the provider cannot answer, saying why and whether anything was sent.
   - A reminder on every free-tier request that Google may use what is sent.
+- Grounded answers and prompt-injection defences for the LLM analyst (ADR-0029):
+  - `prohori ask "QUESTION"` answers from ATT&CK and the runbooks, optionally about an incident
+    (`-f`); offline it shows the best-matching sources;
+  - BM25 retrieval over every active Enterprise ATT&CK v20.0 technique (shortened descriptions
+    built from the pinned STIX bundle by `scripts/build_attack_corpus.py`) and the runbooks;
+    `explain` now gives the model the incident's techniques and runbook actions as sources;
+  - values that can carry log content are fenced with a random nonce, and the fence cannot be
+    forged or closed from inside;
+  - answers citing an address, email, pseudonym, incident, rule or technique not in the
+    incident's identity fields or the sources, or linking anywhere but attack.mitre.org, are
+    rejected in favour of the local answer;
+  - read-only tools (knowledge search, one technique, one alert) with a call limit
+    (`--max-tool-calls`);
+  - an injection fixture suite with instructions hidden in user agents, usernames and paths.
 
 ### Fixed
 

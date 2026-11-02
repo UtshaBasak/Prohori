@@ -14,8 +14,11 @@ so check them again before relying on them.
   purposes; copies must reproduce MITRE's copyright designation and the licence.
 - **Notice:** © 2026 The MITRE Corporation. This work is reproduced and distributed with the
   permission of The MITRE Corporation.
-- **Prohori ships:** technique ids, names and tactic names only (in
-  `src/prohori/rules/attack.py`, which carries the same notice), not the STIX bundle.
+- **Prohori ships:** technique ids, names and tactic names for the rules
+  (`src/prohori/rules/attack.py`), and, for the LLM analyst's retrieval, every active technique's
+  id, name, tactics and the first paragraph of its description, shortened and without citations
+  (`src/prohori/llm/data/attack.jsonl`, built by `scripts/build_attack_corpus.py`). Both carry
+  the notice above. The STIX bundle itself is not shipped.
 
 ## MaxMind GeoLite2
 

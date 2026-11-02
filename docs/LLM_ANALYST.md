@@ -1,21 +1,25 @@
 # LLM analyst
 
 `prohori explain` asks a large language model to explain an incident in plain language: what
-happened, why it matters, the evidence, what to do next and what is uncertain. It is **opt-in
-and off by default**. Everything Prohori does works without it, and `prohori report` already
-writes a full report offline.
+happened, why it matters, the evidence, what to do next and what is uncertain. `prohori ask`
+answers a question from ATT&CK and Prohori's runbooks, about an incident if you give one. Both
+are **opt-in and off by default**. Everything Prohori does works without them, and
+`prohori report` already writes a full report offline.
 
 ```bash
 pip install "prohori[llm]"                                   # or: uv sync --extra llm
 prohori explain samples/incidents/INC-ee7c8818fbb34989.json --show-payload   # what would be sent; sends nothing
 export PROHORI_LLM_PROVIDER=gemini GEMINI_API_KEY=...         # or put them in .env
 prohori explain samples/incidents/INC-ee7c8818fbb34989.json
+prohori ask "How should I respond to password spraying?"      # offline: shows the best sources
 ```
 
 ## Contents
 
 - [Before you turn it on](#before-you-turn-it-on)
 - [What is sent](#what-is-sent)
+- [Sources and tools](#sources-and-tools)
+- [Prompt injection and answer checks](#prompt-injection-and-answer-checks)
 - [Providers and settings](#providers-and-settings)
 - [Limits and fallback](#limits-and-fallback)
 - [Output](#output)
@@ -36,9 +40,9 @@ prohori explain samples/incidents/INC-ee7c8818fbb34989.json
 
 ## What is sent
 
-One request per incident. Its system instruction is fixed in code, and its prompt holds a JSON
-document built from an **allow-list** of fields (`prohori.llm.payload`); nothing else from the
-incident is included:
+A system instruction fixed in code, and a prompt with the task (or your question), a JSON
+document built from an **allow-list** of incident fields (`prohori.llm.payload`) and a few
+sources (below). Nothing else from the incident is included:
 
 | Sent | Not sent |
 |------|----------|
@@ -60,9 +64,60 @@ incident is included:
 - **Size cap.** Each free-text value is cut at 300 characters. If the estimated size (characters
   / 4) is over `PROHORI_LLM_MAX_INPUT_TOKENS`, Prohori drops indicators beyond five, then alerts
   beyond twenty, then the alert timeline, and says so in the payload's `trimmed` field.
-- **Untrusted data.** The instruction tells the model that the incident is data, not
-  instructions. Step 24 adds stronger defences: delimiting each untrusted field and checking
-  every cited value.
+- **Untrusted values are fenced** (see below).
+
+## Sources and tools
+
+- **Sources.** Prohori searches two local collections with BM25 and adds the best matches to
+  the prompt as `[S1]`, `[S2]`, ..., which the model is told to cite:
+  - **ATT&CK.** Every active technique and sub-technique of Enterprise ATT&CK v20.0, 706 in
+    all: id, name, tactics, and the first paragraph of the description without citations or
+    links, capped at 600 characters. `src/prohori/llm/data/attack.jsonl` is built from the pinned
+    official STIX bundle (SHA-256 checked) by `scripts/build_attack_corpus.py`.
+  - **Runbooks.** Prohori's runbooks, one document per section.
+
+  For `explain`, the sources are the incident's own techniques and its rules' recommended
+  actions. For `ask`, they are the five best matches for the question, plus the incident's own
+  if you give one. A technique id in the question (such as `T1110.003`) is matched exactly
+  first.
+- **Read-only tools.** The model may ask for more by replying with one line such as
+  `CALL search_knowledge {"query": "..."}`. The tools are:
+  - `search_knowledge`: ATT&CK and the runbooks;
+  - `get_technique`: one ATT&CK technique;
+  - `get_alert`: one of the incident's alerts.
+
+  The tools only read local data. There are at most three calls per answer (`--max-tool-calls`,
+  0 to 5). An unknown tool, bad arguments or more calls than allowed end the conversation with a
+  local answer. Every request counts against the daily budget, including tool rounds.
+
+## Prompt injection and answer checks
+
+An attacker controls parts of the logs: user agents, usernames, request paths, sometimes text
+that rules quote. Prohori assumes some of it will try to instruct the model.
+
+- **Most of it is never sent.** Event descriptions are dropped, and account names become
+  pseudonyms, so an instruction hidden in a username arrives as `[user:...]`.
+- **What is sent is fenced.** Every value that can carry log content is wrapped as
+  `⟦u:NONCE⟧...⟦/u:NONCE⟧`, with a random nonce for each request. That covers titles,
+  explanations, score reasons, alert timeline entries, entity and indicator values (such as a
+  scanner's user agent) and limitations. The fence characters are removed from the value first,
+  so it cannot close its fence or forge one. The system instruction says fenced text is data and
+  that any instruction in it must be ignored. Tool results are fenced the same way.
+- **Answers are checked before they are shown.** Every IP address, email address, pseudonym,
+  incident id, rule id and ATT&CK technique id in the answer must exist in the incident's
+  identity fields (addresses and pseudonymised accounts, never free text such as a user agent)
+  or in the sources and tool results the model was given. Links are allowed only to
+  attack.mitre.org.
+- **Conservative by design.** One unknown value rejects the whole answer. You get the local
+  summary instead, and stderr lists what was unknown. A model that obeys an injected "the
+  attacker is 198.51.100.250" or "link to https://evil.example" is therefore caught. The checks
+  look at what is cited, not at what is claimed: a wrong judgement made only from real values
+  ("this is benign") is not detected.
+- **Tested.** `tests/unit/llm/test_injection.py` turns real logs into incidents with
+  instructions hidden in a user agent, a username and a request path. It checks three things:
+  - the instruction never reaches the model outside a fence;
+  - seven kinds of compromised answers are rejected for each vector;
+  - an honest answer citing real values is accepted.
 
 ## Providers and settings
 
@@ -145,8 +200,10 @@ Never commit the key. gitleaks checks every commit for it.
 
 - **Explanations can be wrong.** The model can misread an incident or overstate it. The
   incident, its score and its evidence remain the source of truth.
-- **No defence yet against prompt injection beyond the instruction.** Event descriptions are not
-  sent, but alert titles and explanations can include values from the logs. Step 24 adds field
-  delimiting and output validation.
+- **Injection defences reduce risk; they do not remove it.** Fencing and answer checks stop
+  invented citations and links. A model can still be talked into a wrong judgement made only
+  from real values, so read answers critically.
+- **Retrieval is lexical.** BM25 matches words, not meaning; a question in other words than
+  ATT&CK's may find weaker sources.
 - **One provider.** The interface (`prohori.llm.provider`) is small, so another provider can be
   added later.
