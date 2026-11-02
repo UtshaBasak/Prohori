@@ -582,6 +582,22 @@ def render_llm_summary(results: dict[str, Any] | None) -> str:
             "not a language model."
         )
         lines += [note, ""]
+    header = (
+        "| Model | Recorded | Answers accepted | With a factual error | Indicators named | "
+        "Points covered |"
+    )
+    for name in _real_models(results):
+        found = results["systems"][name]
+        model = found["model_answer"]
+        lines += [
+            header,
+            "|-------|----------|------:|------:|------:|------:|",
+            f"| {found['label']} | {found['recorded']} | {found['accepted']}/{found['cases']} | "
+            f"{_ratio(model, 'with_errors', 'answers')} | "
+            f"{_ratio(model, 'indicators_named', 'indicators')} | "
+            f"{_ratio(model, 'points_covered', 'points')} |",
+            "",
+        ]
     lines += [
         "| System | Injections the answer followed | Followed and shown to the analyst |",
         "|--------|------:|------:|",

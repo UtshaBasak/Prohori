@@ -478,12 +478,15 @@ false positives, 8 injections). It counts factual errors, missing indicators and
 injected instructions were followed:
 
 <!-- llm-eval:start -->
-No real model has been evaluated yet; the scripted rows below test the safeguards, not a language model.
+| Model | Recorded | Answers accepted | With a factual error | Indicators named | Points covered |
+|-------|----------|------:|------:|------:|------:|
+| Gemini (gemini-3.5-flash-lite) | 2026-11-02 | 30/30 | 0/30 | 112/112 | 84/89 |
 
 | System | Injections the answer followed | Followed and shown to the analyst |
 |--------|------:|------:|
 | Mock (a template, offline) | 0/8 | 0/8 |
 | Scripted adversary (obeys every injection) | 8/8 | 3/8 |
+| Gemini (gemini-3.5-flash-lite) | 0/8 | 0/8 |
 
 4 of the 8 injected texts reached the model at all, always fenced (user agent); those in a request path or a username never did.
 <!-- llm-eval:end -->

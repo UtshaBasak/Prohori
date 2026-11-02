@@ -243,6 +243,7 @@ def test_command_line(
 def test_command_line_reports_a_stopped_recording(
     copy: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
+    (copy / "recordings" / "gemini.jsonl").unlink(missing_ok=True)
     budget = DailyBudget("llm:gemini", 1, EnrichmentCache(copy / "cache.sqlite"))
     monkeypatch.setattr(
         evaluate, "_gemini", lambda env_file, model: (SendingProvider(), "m", budget)
@@ -253,12 +254,18 @@ def test_command_line_reports_a_stopped_recording(
 
 def test_tables_with_a_real_model() -> None:
     results = json.loads(RESULTS.read_text(encoding="utf-8"))
-    assert "No real model" in generate_results_table.render_llm(results)
-    real = json.loads(json.dumps(results))
+    baselines = json.loads(json.dumps(results))
+    for part in ("systems", "per_case"):
+        baselines[part] = {k: v for k, v in results[part].items() if k in {"local", "mock"}}
+    assert "No real model" in generate_results_table.render_llm(baselines)
+    assert "No real model" in generate_results_table.render_llm_summary(baselines)
+    real = json.loads(json.dumps(baselines))
     real["systems"]["gemini"] = results["systems"]["mock"] | {"label": "Gemini (x)"}
     real["per_case"]["gemini"] = results["per_case"]["mock"]
     table = generate_results_table.render_llm(real)
     assert "No real model" not in table
     assert "| Gemini (x) |" in table
-    assert "No real model" not in generate_results_table.render_llm_summary(real)
+    summary = generate_results_table.render_llm_summary(real)
+    assert "No real model" not in summary
+    assert "| Gemini (x) |" in summary
     assert generate_results_table.render_llm_summary(None) == "No LLM evaluation results yet."
