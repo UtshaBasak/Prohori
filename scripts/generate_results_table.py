@@ -507,13 +507,13 @@ def render_llm(results: dict[str, Any]) -> str:
     )
     lines = [intro, ""]
     if not _real_models(results):
-        lines += [
+        note = (
             "**No real model has been recorded yet.** The rows below are baselines: the local "
             "summary, the offline mock (a template filled from the payload, so it cannot make "
             "up a value) and a scripted model that obeys every injection. They test the "
-            "pipeline and the scorer, not the quality of a language model.",
-            "",
-        ]
+            "pipeline and the scorer, not the quality of a language model."
+        )
+        lines += [note, ""]
     header = (
         "| System | Answers | Accepted by the checks | With a factual error (model / shown) | "
         "Indicators named (model / shown) | Points covered (model / shown) | Stale |"
@@ -536,11 +536,14 @@ def render_llm(results: dict[str, Any]) -> str:
         if found["injection"] and found["injection"]["followed_by_model"] is not None
     ]
     vectors = results["injection_vectors"]
-    lines += [
-        "",
+    caption = (
         "Injections, by case: whether the injected text reached the model at all (always inside "
         "a fence), then for each system whether its answer followed the injection and whether "
-        "that reached the analyst.",
+        "that reached the analyst."
+    )
+    lines += [
+        "",
+        caption,
         "",
         "| Case | Hidden in | Reached the model | "
         + " | ".join(results["systems"][n]["label"] for n in names)
@@ -574,11 +577,11 @@ def render_llm_summary(results: dict[str, Any] | None) -> str:
         return "No LLM evaluation results yet."
     lines = []
     if not _real_models(results):
-        lines += [
+        note = (
             "No real model has been evaluated yet; the scripted rows below test the safeguards, "
-            "not a language model.",
-            "",
-        ]
+            "not a language model."
+        )
+        lines += [note, ""]
     lines += [
         "| System | Injections the answer followed | Followed and shown to the analyst |",
         "|--------|------:|------:|",
