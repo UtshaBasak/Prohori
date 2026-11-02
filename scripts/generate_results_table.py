@@ -8,6 +8,10 @@
   ``<!-- ml-cross:start -->`` and ``<!-- ml-cross:end -->``.
 * Log anomaly detection (``ml_logs.json``): full tables in ``docs/ANOMALY.md``, a summary in
   ``README.md``, between ``<!-- anomaly:start -->`` and ``<!-- anomaly:end -->``.
+* Performance (``performance.json``): full table in ``docs/PERFORMANCE.md``, a summary in
+  ``README.md``, between ``<!-- performance:start -->`` and ``<!-- performance:end -->``.
+* The README's worked example: from the sample incident and its log, between
+  ``<!-- example:start -->`` and ``<!-- example:end -->``.
 * LLM analyst (``llm_eval.json``): full tables in ``docs/LLM_ANALYST.md``, a summary in
   ``README.md``, between ``<!-- llm-eval:start -->`` and ``<!-- llm-eval:end -->``.
 
@@ -19,6 +23,7 @@ With ``--check`` nothing is written and the exit code is 1 when a document is ou
 import argparse
 import json
 import sys
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 
@@ -36,6 +41,13 @@ CROSS_END = "<!-- ml-cross:end -->"
 ANOMALY_DOCUMENT = ROOT / "docs" / "ANOMALY.md"
 ANOMALY_START = "<!-- anomaly:start -->"
 ANOMALY_END = "<!-- anomaly:end -->"
+EXAMPLE_INCIDENT = next((ROOT / "samples" / "incidents").glob("INC-*.json"))
+EXAMPLE_LOG = ROOT / "samples" / "logs" / "account-takeover.jsonl"
+EXAMPLE_START = "<!-- example:start -->"
+EXAMPLE_END = "<!-- example:end -->"
+PERF_DOCUMENT = ROOT / "docs" / "PERFORMANCE.md"
+PERF_START = "<!-- performance:start -->"
+PERF_END = "<!-- performance:end -->"
 LLM_DOCUMENT = ROOT / "docs" / "LLM_ANALYST.md"
 LLM_START = "<!-- llm-eval:start -->"
 LLM_END = "<!-- llm-eval:end -->"
@@ -274,7 +286,45 @@ def render_ml_summary(all_results: list[dict[str, Any]]) -> str:
         "validation split and then frozen."
     )
     lines += ["", note]
+    found = {r["dataset"]: r for r in all_results}
+    if {"unsw-nb15", "cicids2017"} <= set(found):
+        lines += ["", _ml_findings(found["unsw-nb15"], found["cicids2017"])]
     return "\n".join(lines)
+
+
+def _cleaned_share(results: dict[str, Any]) -> tuple[float, int]:
+    """The share of rows the leakage controls removed, and the rows before cleaning."""
+    cleaning = results["variants"]["cleaned"]["cleaning"][0]
+    kept = sum(cleaning["rows"].values())
+    removed = sum(
+        cleaning[k] for k in ("duplicates_removed", "conflicting_removed", "overlap_removed")
+    )
+    return removed / (kept + removed), kept + removed
+
+
+def _ml_findings(unsw: dict[str, Any], cic: dict[str, Any]) -> str:
+    """What the README's flow-model numbers say, written from the results."""
+    loose, strict = unsw["target_fprs"][0], unsw["target_fprs"][-1]
+    hgb = unsw["variants"]["cleaned"]["models"]["hgb"]["summary"]
+    point = _point(hgb, strict)
+    cic_point = _point(cic["variants"]["cleaned"]["models"]["hgb"]["summary"], strict)
+    loose_fpr = _point(hgb, loose)["fpr"]["mean"]
+    uncleaned = unsw["variants"]["uncleaned"]["models"]["hgb"]["summary"]["pr_auc"]["mean"]
+    unsw_share, unsw_rows = _cleaned_share(unsw)
+    cic_share, cic_rows = _cleaned_share(cic)
+    return (
+        f"What the numbers say: gradient boosting catches {point['recall']['mean'] * 100:.0f} % "
+        f"of UNSW-NB15's attacks at {point['false_alerts_per_10k']['mean']:.1f} false alerts per "
+        "10,000 flows, missing most fuzzing and analysis traffic, and on CIC-IDS-2017 catches "
+        f"{cic_point['recall']['mean'] * 100:.2f} %, which says more about that lab dataset than "
+        f"about the model. The {_label(loose)} threshold chosen on UNSW-NB15's validation data "
+        f"gave {loose_fpr * 100:.1f} % false positives on its test file. The Isolation Forest is "
+        "not a usable detector on either dataset. Without the leakage controls the same pipeline "
+        f"would report a PR-AUC of {uncleaned:.3f} instead of {hgb['pr_auc']['mean']:.3f} on "
+        f"UNSW-NB15. Cleaning removed {unsw_share * 100:.0f} % of UNSW-NB15's {unsw_rows:,} rows "
+        f"and {cic_share * 100:.0f} % of CIC-IDS-2017's {cic_rows:,} flows, mostly duplicates once "
+        "the identifiers are gone."
+    )
 
 
 def render_cross(cross: dict[str, Any], in_dataset: list[dict[str, Any]]) -> str:
@@ -359,19 +409,34 @@ def render_cross_summary(cross: dict[str, Any] | None) -> str:
         "PR-AUC (chance), same dataset | PR-AUC (chance), other dataset | "
         f"Benign flows flagged on the other dataset ({_label(fpr)} threshold) |"
     )
-    lines = [header, "|------------------------|" + "------:|" * 5]
+    rows = []
+    same_roc, other_roc, flagged = [], [], []
     for key, direction in cross["directions"].items():
         if "hgb" not in direction["models"]:
             continue
         summary = direction["models"]["hgb"]["summary"]
         same, other = summary["in_dataset"], summary["cross_dataset"]
         point = _point(other, fpr)
-        lines.append(
+        same_roc.append(f"{same['roc_auc']['mean']:.2f}")
+        other_roc.append(f"{other['roc_auc']['mean']:.2f}")
+        flagged.append(point["fpr"]["mean"] * 100)
+        rows.append(
             f"| {key.replace('->', ' → ')} | {same['roc_auc']['mean']:.3f} | "
             f"{other['roc_auc']['mean']:.3f} | {same['pr_auc']['mean']:.3f} "
             f"({same['prevalence']['mean']:.2f}) | {other['pr_auc']['mean']:.3f} "
             f"({other['prevalence']['mean']:.2f}) | {point['fpr']['mean'] * 100:.1f} % |"
         )
+    lines = []
+    if rows:
+        sentence = (
+            f"Trained on the {len(cross['features'])} features both datasets share and tested on "
+            f"the *other* dataset, gradient boosting's ROC-AUC falls from {' and '.join(same_roc)} "
+            f"to {' and '.join(other_roc)}, weak but above chance, and the threshold that gave "
+            f"{_label(fpr)} false positives at home flags {min(flagged):.0f} % to "
+            f"{max(flagged):.0f} % of the other dataset's benign flows:"
+        )
+        lines += [sentence, ""]
+    lines += [header, "|------------------------|" + "------:|" * 5, *rows]
     note = (
         "Gradient boosting, means over seeds "
         f"{', '.join(map(str, cross['seeds']))}. ROC-AUC: 0.5 is chance. PR-AUC: chance is "
@@ -575,7 +640,12 @@ def render_llm_summary(results: dict[str, Any] | None) -> str:
     """The README summary of the LLM analyst evaluation."""
     if results is None:
         return "No LLM evaluation results yet."
-    lines = []
+    kinds = results["kinds"]
+    cases = (
+        f"{results['cases']} cases: {kinds['attack']} attacks, {kinds['benign']} false positives "
+        f"and {kinds['injection']} incidents with a hidden instruction."
+    )
+    lines = [cases, ""]
     if not _real_models(results):
         note = (
             "No real model has been evaluated yet; the scripted rows below test the safeguards, "
@@ -627,6 +697,149 @@ def render_llm_summary(results: dict[str, Any] | None) -> str:
     return "\n".join(lines)
 
 
+RUN_NAMES = {
+    "incidents-access_log": "`incidents`, nginx/Apache access log",
+    "incidents-auth_log": "`incidents`, auth.log (sshd)",
+    "incidents-app_json": "`incidents`, JSON Lines app log",
+    "pipeline-replay": "`pipeline replay` (lite mode), access log",
+    "demo": "`demo`",
+}
+
+
+def _mib(found: dict[str, Any], key: str) -> str:
+    return f"{found[key] / 2**20:,.0f} MiB"
+
+
+def render_performance(results: dict[str, Any]) -> str:
+    """The tables for docs/PERFORMANCE.md."""
+    machine = results["machine"]
+    intro = (
+        f"Generated from `results/performance.json` by `scripts/benchmark.py`, run on "
+        f"{results['date']} with Prohori {machine['prohori']} and Python {machine['python']} on "
+        f"{machine['system']} ({machine['machine']}, {machine['cpus']} logical CPUs, "
+        f"{machine['processor']}). Do not edit by hand."
+    )
+    lines = [
+        intro,
+        "",
+        "| Run | Lines | Size | Time | Lines a second | Peak memory | Exit code |",
+        "|-----|------:|-----:|-----:|------:|------:|------:|",
+    ]
+    for run in results["runs"]:
+        name = RUN_NAMES.get(run["name"], run["name"])
+        if "lines" in run:
+            lines.append(
+                f"| {name} | {run['lines']:,} | {_mib(run, 'bytes')} | {run['seconds']:,.1f} s | "
+                f"{run['lines_per_second']:,} | {run['peak_memory_mib']:,.0f} MiB | "
+                f"{run['exit_code']} |"
+            )
+        else:
+            lines.append(
+                f"| {name} | - | - | {run['seconds']:,.1f} s | - | "
+                f"{run['peak_memory_mib']:,.0f} MiB | {run['exit_code']} |"
+            )
+    states = [r for r in results["runs"] if "state_bytes" in r]
+    for run in states:
+        lines += [
+            "",
+            f"Lite mode's state directory (topics, positions and the DuckDB warehouse) grew to "
+            f"{_mib(run, 'state_bytes')} for the {_mib(run, 'bytes')} log; its topics are not "
+            "trimmed.",
+        ]
+    return "\n".join(lines)
+
+
+def render_performance_summary(results: dict[str, Any] | None) -> str:
+    """The README summary of the performance measurements."""
+    if results is None:
+        return "No performance results yet."
+    runs = {r["name"]: r for r in results["runs"]}
+    batch = [r for r in results["runs"] if r["name"].startswith("incidents-")]
+    lines = [
+        "| Run | Lines | Lines a second | Peak memory |",
+        "|-----|------:|------:|------:|",
+    ]
+    for run in results["runs"]:
+        if "lines" in run:
+            lines.append(
+                f"| {RUN_NAMES.get(run['name'], run['name'])} | {run['lines']:,} | "
+                f"{run['lines_per_second']:,} | {run['peak_memory_mib']:,.0f} MiB |"
+            )
+    machine = results["machine"]
+    note = (
+        f"One run each on {machine['system']} with {machine['cpus']} logical CPUs, Python "
+        f"{machine['python']}, offline enrichment"
+    )
+    if "demo" in runs:
+        note += f"; `prohori demo` took {runs['demo']['seconds']:.1f} s"
+    if batch:
+        note += f". The batch command peaked at {max(r['peak_memory_mib'] for r in batch):,.0f} MiB"
+    lines += ["", note + "."]
+    return "\n".join(lines)
+
+
+def render_example(incident: dict[str, Any], log: Path) -> str:
+    """The README's worked example, from the sample incident and the log it was built from."""
+    from prohori.rules.attack import TECHNIQUES
+
+    ip = incident["entities"]["source.ip"][0]
+    failures = []
+    for line in log.read_text(encoding="utf-8").splitlines():
+        event = json.loads(line)
+        if event.get("source", {}).get("ip") == ip and event["event"]["outcome"] == "failure":
+            failures.append(datetime.fromisoformat(event["time"]))
+    span = (max(failures) - min(failures)).total_seconds() if failures else 0
+    intro = (
+        f"`{log.relative_to(ROOT).as_posix()}` is a synthetic attack on a web shop account: "
+        f"{len(failures)} wrong passwords from one IP in {span:.0f} seconds, a successful "
+        "sign-in, two-step verification switched off and the bKash payout number changed. "
+        f"Prohori raises {len(incident['alerts'])} alerts and joins them into **one "
+        f"{incident['severity']} incident**:"
+    )
+    first = datetime.fromisoformat(incident["first_seen"])
+    last = datetime.fromisoformat(incident["last_seen"])
+    rules = sorted({a["detector_id"] for a in incident["alerts"]})
+    entities = [f"{k}: {v}" for k, vs in incident["entities"].items() for v in vs]
+    summary = [
+        f"{incident['id']}  {incident['severity']}  score {incident['score']:g}",
+        f"title       {incident['title']}",
+        f"time (UTC)  {first:%Y-%m-%d %H:%M:%S} - {last:%Y-%m-%d %H:%M:%S}",
+        f"confidence  {incident['confidence']}",
+        f"rules       {', '.join(rules)}",
+        f"entities    {entities[0]}",
+        *(f"            {e}" for e in entities[1:]),
+    ]
+    points = [f"| {c['points']:+g} | {c['reason']} |" for c in incident["score_breakdown"]]
+    techniques = [
+        f"{t.removeprefix('attack.').upper()} {TECHNIQUES[t].name}"
+        for t in incident["attack"]
+        if t.startswith("attack.t") and t in TECHNIQUES
+    ]
+    outro = (
+        f"The report adds the timeline, the IP's enrichment, the ATT&CK techniques "
+        f"({', '.join(techniques)}), recommended actions from the runbooks and the limitations, "
+        'such as "single log source" and "enrichment is bundled demo data".'
+    )
+    return "\n".join(
+        [
+            intro,
+            "",
+            "```text",
+            *summary,
+            "```",
+            "",
+            "Every point of the score is explained (from `prohori report`):",
+            "",
+            "| Points | Reason |",
+            "|-------:|--------|",
+            *points,
+            f"| **{incident['score']:g}** | **Total** |",
+            "",
+            outro,
+        ]
+    )
+
+
 def ml_results(directory: Path) -> list[dict[str, Any]]:
     """The model results present in ``directory``, in documentation order."""
     found = []
@@ -661,6 +874,9 @@ def main(argv: list[str] | None = None) -> int:
     logs = json.loads(logs_path.read_text(encoding="utf-8")) if logs_path.is_file() else None
     llm_path = RESULTS.parent / "llm_eval.json"
     llm = json.loads(llm_path.read_text(encoding="utf-8")) if llm_path.is_file() else None
+    example = json.loads(EXAMPLE_INCIDENT.read_text(encoding="utf-8"))
+    perf_path = RESULTS.parent / "performance.json"
+    perf = json.loads(perf_path.read_text(encoding="utf-8")) if perf_path.is_file() else None
     blocks = (
         (DOCUMENT, render(results), START, END),
         (README, render_summary(results), START, END),
@@ -682,6 +898,14 @@ def main(argv: list[str] | None = None) -> int:
             LLM_END,
         ),
         (README, render_llm_summary(llm), LLM_START, LLM_END),
+        (README, render_example(example, EXAMPLE_LOG), EXAMPLE_START, EXAMPLE_END),
+        (
+            PERF_DOCUMENT,
+            render_performance(perf) if perf else "No performance results yet.",
+            PERF_START,
+            PERF_END,
+        ),
+        (README, render_performance_summary(perf), PERF_START, PERF_END),
     )
     stale: list[str] = []
     for path, block, start, end in blocks:
