@@ -1,0 +1,3 @@
+# Findings gitleaks may ignore, one fingerprint per line (commit:file:rule:line).
+# A made-up test key in an earlier commit of the step 23 branch; replaced by a low-entropy value.
+27205abe2c5025133f2fbacde18d9e58b428b798:tests/unit/llm/conftest.py:generic-api-key:20

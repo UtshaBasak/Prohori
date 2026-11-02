@@ -90,6 +90,7 @@ Python packages from PyPI, and `prohori pipeline up` pulls the container images.
 |----------|----------|---------|
 | [Redpanda](https://github.com/redpanda-data/redpanda/tree/dev/licenses) Community Edition (container image) | Kafka-compatible message broker | Business Source License 1.1 for the core (it converts to Apache 2.0 four years after each release); enterprise features under the Redpanda Community License. Running it yourself, as the stack does, is allowed; offering it as a hosted streaming service is not. |
 | [PostgreSQL](https://www.postgresql.org/about/licence/) (container image) | The warehouse | PostgreSQL Licence (permissive, BSD-style) |
+| [google-genai](https://github.com/googleapis/python-genai) | Gemini provider for the opt-in LLM analyst (`llm` extra) | Apache 2.0. Use of the Gemini API itself is under the [Gemini API Additional Terms](https://ai.google.dev/gemini-api/terms): on the free tier, content sent may be used to improve Google's products ([LLM_ANALYST.md](LLM_ANALYST.md)) |
 | [Apache Airflow](https://github.com/apache/airflow/blob/main/LICENSE) (container image) | Scheduled jobs (orchestration profile) | Apache 2.0 |
 | [Grafana](https://github.com/grafana/grafana/blob/main/LICENSE) OSS (container image) | Dashboards | AGPL 3.0. The stack runs the official image unmodified; the dashboards and provisioning files are Prohori's own (MIT). |
 | [confluent-kafka](https://github.com/confluentinc/confluent-kafka-python) and librdkafka | Kafka client | Apache 2.0; librdkafka BSD 2-Clause |

@@ -11,6 +11,7 @@ import typer
 from prohori.cli.demo import demo_command
 from prohori.cli.detect import detect_command
 from prohori.cli.enrich import enrich_command
+from prohori.cli.explain import explain_command
 from prohori.cli.incidents import incidents_command
 from prohori.cli.parse import parse_command
 from prohori.cli.pipeline import pipeline_app
@@ -72,6 +73,7 @@ app.command("detect")(detect_command)
 app.command("enrich")(enrich_command)
 app.command("incidents")(incidents_command)
 app.command("report")(report_command)
+app.command("explain")(explain_command)
 app.command("simulate")(simulate_command)
 app.command("score")(score_command)
 app.command("triage")(triage_command)

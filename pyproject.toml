@@ -63,7 +63,9 @@ pipeline = [
     "duckdb>=1.1",
     "psycopg[binary]>=3.2",
 ]
-llm = []
+llm = [
+    "google-genai>=2.31",
+]
 all = ["prohori[geoip,ml,pipeline,llm]"]
 
 [project.urls]
@@ -214,6 +216,11 @@ exclude_also = [
     "if __name__ == .__main__.:",
     "raise NotImplementedError",
 ]
+
+[[tool.mypy.overrides]]
+# google-genai (the llm extra) is imported only inside prohori.llm.provider._client.
+module = ["google", "google.genai", "google.genai.*"]
+ignore_missing_imports = true
 
 [[tool.mypy.overrides]]
 # Apache Airflow is not a dependency: only tests/dags imports it, in a Linux CI job.

@@ -64,7 +64,7 @@ Both modes share the same core library.
 | `prohori.simulate` | Labelled attack-scenario log generator |
 | `prohori.ml` | Dataset registry, chunked loading, leakage-controlled cleaning, flow models, training, SOC metrics, the cross-dataset test, flow scoring and log anomaly detection |
 | `prohori.pipeline` | Topics and messages, transports (memory, file, Kafka), producers (replay, rotation-aware tailer), consumers (normalise, detect, incidents), DuckDB and PostgreSQL sinks, the warehouse tables and loaders (labels, model results), the lite-mode runner, `serve` for one stage per container and the Docker stack helpers ([PIPELINE.md](PIPELINE.md)); Grafana dashboards are provisioned from `pipeline/grafana/` ([DASHBOARD.md](DASHBOARD.md)); the scheduled jobs (`jobs`: digest, recall gate, enrichment refresh) run as Airflow DAGs from `pipeline/airflow/` ([ORCHESTRATION.md](ORCHESTRATION.md)) |
-| `prohori.llm` | Provider interface, retrieval, safeguards |
+| `prohori.llm` | The opt-in LLM analyst: providers (`none`, `mock`, `gemini`), settings, the redacted allow-list payload and `explain` with its local fallback ([LLM_ANALYST.md](LLM_ANALYST.md)); retrieval and output validation follow |
 
 ## Principles
 
