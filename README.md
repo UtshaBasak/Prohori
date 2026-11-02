@@ -76,6 +76,7 @@ sends nothing over the network. Sample reports: [Markdown](docs/examples/account
 - [How well the rules work](#how-well-the-rules-work)
 - [Machine learning](#machine-learning)
 - [Streaming pipeline](#streaming-pipeline)
+- [LLM analyst (optional)](#llm-analyst-optional)
 - [Privacy and safety](#privacy-and-safety)
 - [Documentation](#documentation)
 - [Limitations](#limitations)
@@ -461,6 +462,34 @@ Each task runs a `prohori` command (`pipeline digest`, `check-recall`, `refresh-
 dbt, so every job also works without Airflow. CI imports the DAGs with Airflow on Linux and runs
 each one in the stack. Details: [docs/ORCHESTRATION.md](docs/ORCHESTRATION.md).
 
+## LLM analyst (optional)
+
+`prohori explain` and `prohori ask` can use a language model (Gemini, or an offline mock) to
+explain an incident or answer a question from ATT&CK and the runbooks. They are off by default
+and use the `llm` extra.
+- **Redacted:** usernames and emails are replaced with pseudonyms, and event descriptions are
+  never sent.
+- **Fenced:** text from logs is marked as data.
+- **Checked:** an answer that names an address, id, technique or link that is not in the
+  incident or its sources is rejected, and the local summary is shown instead.
+
+An offline evaluation scores recorded answers against 30 hand-written references (15 attacks, 7
+false positives, 8 injections). It counts factual errors, missing indicators and whether
+injected instructions were followed:
+
+<!-- llm-eval:start -->
+No real model has been evaluated yet; the scripted rows below test the safeguards, not a language model.
+
+| System | Injections the answer followed | Followed and shown to the analyst |
+|--------|------:|------:|
+| Mock (a template, offline) | 0/8 | 0/8 |
+| Scripted adversary (obeys every injection) | 8/8 | 3/8 |
+
+4 of the 8 injected texts reached the model at all, always fenced (user agent); those in a request path or a username never did.
+<!-- llm-eval:end -->
+
+Details: [docs/LLM_ANALYST.md](docs/LLM_ANALYST.md#evaluation).
+
 ## Privacy and safety
 
 - **Offline by default.** Nothing leaves the machine unless you configure API keys and, for
@@ -537,7 +566,7 @@ Prohori is honest about what it does not do:
 | v0.1.0 | Batch core: parsers, rules, enrichment, incidents, reports, log simulator with rule evaluation, `triage` and `demo` commands | Released |
 | v0.2.0 | Machine learning: leakage-controlled intrusion detection on public flow datasets, log-derived anomaly detection, model cards | Released |
 | v0.3.0 | Pipeline: streaming core and lite mode, Redpanda and PostgreSQL in Docker, dbt models and data-quality checks, Grafana dashboards, Airflow jobs; Docker image on GitHub Packages | Released |
-| v1.0.0 | Optional LLM analyst: providers, redaction and `explain` (done), retrieval, injection defences, answer validation and `ask` (done), evaluation; final polish | In progress |
+| v1.0.0 | Optional LLM analyst: providers, redaction and `explain` (done), retrieval, injection defences, answer validation and `ask` (done), evaluation (done); final polish | In progress |
 
 ## Development
 

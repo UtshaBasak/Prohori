@@ -8,6 +8,8 @@
   ``<!-- ml-cross:start -->`` and ``<!-- ml-cross:end -->``.
 * Log anomaly detection (``ml_logs.json``): full tables in ``docs/ANOMALY.md``, a summary in
   ``README.md``, between ``<!-- anomaly:start -->`` and ``<!-- anomaly:end -->``.
+* LLM analyst (``llm_eval.json``): full tables in ``docs/LLM_ANALYST.md``, a summary in
+  ``README.md``, between ``<!-- llm-eval:start -->`` and ``<!-- llm-eval:end -->``.
 
 With ``--check`` nothing is written and the exit code is 1 when a document is out of date.
 
@@ -34,6 +36,12 @@ CROSS_END = "<!-- ml-cross:end -->"
 ANOMALY_DOCUMENT = ROOT / "docs" / "ANOMALY.md"
 ANOMALY_START = "<!-- anomaly:start -->"
 ANOMALY_END = "<!-- anomaly:end -->"
+LLM_DOCUMENT = ROOT / "docs" / "LLM_ANALYST.md"
+LLM_START = "<!-- llm-eval:start -->"
+LLM_END = "<!-- llm-eval:end -->"
+#: The LLM baselines in the order they are shown; any other system is a real model.
+LLM_ORDER = ("local", "mock", "adversarial")
+LLM_BASELINES = frozenset(LLM_ORDER)
 DETECTOR_NAMES = {
     "rules": "Detection rules (any rule)",
     "zscore": "Robust z-score",
@@ -475,6 +483,131 @@ def render_anomaly_summary(results: dict[str, Any] | None) -> str:
     return "\n".join(lines)
 
 
+def _systems(results: dict[str, Any]) -> list[tuple[str, dict[str, Any]]]:
+    """The evaluated LLM systems: the baselines first, then any real model."""
+    order = {name: n for n, name in enumerate(LLM_ORDER)}
+    return sorted(results["systems"].items(), key=lambda s: (order.get(s[0], len(order)), s[0]))
+
+
+def _ratio(found: dict[str, int] | None, part: str, whole: str) -> str:
+    return "-" if found is None else f"{found[part]}/{found[whole]}"
+
+
+def _real_models(results: dict[str, Any]) -> list[str]:
+    return [s for s in results["systems"] if s not in LLM_BASELINES]
+
+
+def render_llm(results: dict[str, Any]) -> str:
+    """The tables for docs/LLM_ANALYST.md."""
+    kinds = results["kinds"]
+    intro = (
+        f"Generated from `results/llm_eval.json` by `python -m prohori.llm.evaluate score`: "
+        f"{results['cases']} cases ({kinds['attack']} attacks, {kinds['benign']} false positives, "
+        f"{kinds['injection']} injections). Do not edit by hand."
+    )
+    lines = [intro, ""]
+    if not _real_models(results):
+        lines += [
+            "**No real model has been recorded yet.** The rows below are baselines: the local "
+            "summary, the offline mock (a template filled from the payload, so it cannot make "
+            "up a value) and a scripted model that obeys every injection. They test the "
+            "pipeline and the scorer, not the quality of a language model.",
+            "",
+        ]
+    header = (
+        "| System | Answers | Accepted by the checks | With a factual error (model / shown) | "
+        "Indicators named (model / shown) | Points covered (model / shown) | Stale |"
+    )
+    lines += [header, "|--------|------:|------:|------:|------:|------:|------:|"]
+    for _, found in _systems(results):
+        model, shown = found["model_answer"], found["shown"]
+        accepted = "-" if found["accepted"] is None else f"{found['accepted']}/{found['cases']}"
+        lines.append(
+            f"| {found['label']} | {found['cases']} | {accepted} | "
+            f"{_ratio(model, 'with_errors', 'answers')} / {_ratio(shown, 'with_errors', 'answers')}"
+            f" | {_ratio(model, 'indicators_named', 'indicators')} / "
+            f"{_ratio(shown, 'indicators_named', 'indicators')} | "
+            f"{_ratio(model, 'points_covered', 'points')} / "
+            f"{_ratio(shown, 'points_covered', 'points')} | {found['stale']} |"
+        )
+    names = [
+        name
+        for name, found in _systems(results)
+        if found["injection"] and found["injection"]["followed_by_model"] is not None
+    ]
+    vectors = results["injection_vectors"]
+    lines += [
+        "",
+        "Injections, by case: whether the injected text reached the model at all (always inside "
+        "a fence), then for each system whether its answer followed the injection and whether "
+        "that reached the analyst.",
+        "",
+        "| Case | Hidden in | Reached the model | "
+        + " | ".join(results["systems"][n]["label"] for n in names)
+        + " |",
+        "|------|-----------|------|" + "------|" * len(names),
+    ]
+    for case, vector in vectors.items():
+        reached = None
+        cells = []
+        for name in names:
+            found = results["per_case"][name].get(case)
+            if found is None:
+                cells.append("not recorded")
+                continue
+            injection = found["injection"]
+            reached = injection["reached_model"]
+            followed, shown = injection["followed_by_model"], injection["shown_to_analyst"]
+            if followed is None:
+                cells.append("shown" if shown else "-")
+            elif not followed:
+                cells.append("ignored")
+            else:
+                cells.append("followed, **shown**" if shown else "followed, stopped")
+        lines.append(f"| {case} | {vector} | {'yes' if reached else 'no'} | {' | '.join(cells)} |")
+    return "\n".join(lines)
+
+
+def render_llm_summary(results: dict[str, Any] | None) -> str:
+    """The README summary of the LLM analyst evaluation."""
+    if results is None:
+        return "No LLM evaluation results yet."
+    lines = []
+    if not _real_models(results):
+        lines += [
+            "No real model has been evaluated yet; the scripted rows below test the safeguards, "
+            "not a language model.",
+            "",
+        ]
+    lines += [
+        "| System | Injections the answer followed | Followed and shown to the analyst |",
+        "|--------|------:|------:|",
+    ]
+    for _, found in _systems(results):
+        injection = found["injection"]
+        if injection is None or injection["followed_by_model"] is None:
+            continue
+        lines.append(
+            f"| {found['label']} | {injection['followed_by_model']}/{injection['cases']} | "
+            f"{injection['shown_to_analyst']}/{injection['cases']} |"
+        )
+    local = results["per_case"].get("local", {})
+    vectors = results["injection_vectors"]
+    reached = {
+        vectors[c] for c in vectors if local.get(c, {}).get("injection", {}).get("reached_model")
+    }
+    if local and vectors:
+        count = sum(bool(local[c]["injection"]["reached_model"]) for c in vectors if c in local)
+        never = sorted(set(vectors.values()) - reached)
+        sentence = f"{count} of the {len(vectors)} injected texts reached the model at all"
+        if reached:
+            sentence += f", always fenced ({', '.join(sorted(reached))})"
+        if never:
+            sentence += f"; those in a {' or a '.join(never)} never did"
+        lines += ["", sentence + "."]
+    return "\n".join(lines)
+
+
 def ml_results(directory: Path) -> list[dict[str, Any]]:
     """The model results present in ``directory``, in documentation order."""
     found = []
@@ -507,6 +640,8 @@ def main(argv: list[str] | None = None) -> int:
     cross_card = render_cross(cross, models) if cross else "No cross-dataset results yet."
     logs_path = RESULTS.parent / "ml_logs.json"
     logs = json.loads(logs_path.read_text(encoding="utf-8")) if logs_path.is_file() else None
+    llm_path = RESULTS.parent / "llm_eval.json"
+    llm = json.loads(llm_path.read_text(encoding="utf-8")) if llm_path.is_file() else None
     blocks = (
         (DOCUMENT, render(results), START, END),
         (README, render_summary(results), START, END),
@@ -521,6 +656,13 @@ def main(argv: list[str] | None = None) -> int:
             ANOMALY_END,
         ),
         (README, render_anomaly_summary(logs), ANOMALY_START, ANOMALY_END),
+        (
+            LLM_DOCUMENT,
+            render_llm(llm) if llm else "No LLM evaluation results yet.",
+            LLM_START,
+            LLM_END,
+        ),
+        (README, render_llm_summary(llm), LLM_START, LLM_END),
     )
     stale: list[str] = []
     for path, block, start, end in blocks:

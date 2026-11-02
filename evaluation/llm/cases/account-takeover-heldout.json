@@ -1,0 +1,156 @@
+{
+  "format": "prohori.llm-eval-case/1",
+  "case": "account-takeover-heldout",
+  "kind": "attack",
+  "truth": "attack",
+  "origin": {
+    "scenario": "account-takeover",
+    "variant": "heldout",
+    "seed": 1
+  },
+  "incident": {
+    "id": "INC-eb8e5113e4d5ba62",
+    "title": "Successful sign-in after many failures from one IP",
+    "status": "open",
+    "severity": "critical",
+    "score": 80.0,
+    "score_breakdown": [
+      {
+        "reason": "Most severe alert: PRH-AUTH-003 (critical)",
+        "points": 50.0
+      },
+      {
+        "reason": "A sign-in succeeded after failed attempts",
+        "points": 20.0
+      },
+      {
+        "reason": "Sign-in to u-1039 from 203.0.113.93, an IP not seen for this account before (1 earlier IP)",
+        "points": 10.0
+      }
+    ],
+    "first_seen": "2026-10-24T13:30:03.150000Z",
+    "last_seen": "2026-10-24T13:36:07.500000Z",
+    "entities": {
+      "source.ip": [
+        "203.0.113.93"
+      ],
+      "user.email_hash": [
+        "aa82a27d969a48a60e0df2bdfe316969"
+      ],
+      "user.id": [
+        "u-1039"
+      ]
+    },
+    "alerts": [
+      {
+        "id": "alr-97089b797e862f2d1087829d",
+        "detector_id": "PRH-AUTH-003",
+        "detector_kind": "rule",
+        "title": "Successful sign-in after many failures from one IP",
+        "severity": "critical",
+        "score": 100.0,
+        "event_ids": [
+          "evt-86a347962686026636660869",
+          "evt-1f16330c32a0ff9f0b45eb17",
+          "evt-dda95279925068c300fc4d0d",
+          "evt-13900f8cc02fce3878885f1f",
+          "evt-f3594ff4352f733e5aeb7f2e",
+          "evt-3f09d6afe85a3067add43185"
+        ],
+        "entities": {
+          "source.ip": "203.0.113.93"
+        },
+        "first_seen": "2026-10-24T13:30:03.150000Z",
+        "last_seen": "2026-10-24T13:36:07.500000Z",
+        "attack": [
+          "attack.credential_access",
+          "attack.initial_access",
+          "attack.t1110",
+          "attack.t1078"
+        ],
+        "explanation": "5 x failure then 1 x success for source.ip=203.0.113.93 within 15m"
+      }
+    ],
+    "timeline": [
+      {
+        "timestamp": "2026-10-24T13:30:03.150000Z",
+        "description": "[app-security] auth.signin.failure (failure), account u-1039, from 203.0.113.93, POST /api/auth/signin, client web",
+        "event_id": "evt-86a347962686026636660869",
+        "account": "u-1039",
+        "source_ip": "203.0.113.93"
+      },
+      {
+        "timestamp": "2026-10-24T13:30:39.016000Z",
+        "description": "[app-security] auth.signin.failure (failure), account u-1039, from 203.0.113.93, POST /api/auth/signin, client web",
+        "event_id": "evt-1f16330c32a0ff9f0b45eb17",
+        "account": "u-1039",
+        "source_ip": "203.0.113.93"
+      },
+      {
+        "timestamp": "2026-10-24T13:31:17.863000Z",
+        "description": "[app-security] auth.signin.failure (failure), account u-1039, from 203.0.113.93, POST /api/auth/signin, client web",
+        "event_id": "evt-dda95279925068c300fc4d0d",
+        "account": "u-1039",
+        "source_ip": "203.0.113.93"
+      },
+      {
+        "timestamp": "2026-10-24T13:31:58.771000Z",
+        "description": "[app-security] auth.signin.failure (failure), account u-1039, from 203.0.113.93, POST /api/auth/signin, client web",
+        "event_id": "evt-13900f8cc02fce3878885f1f",
+        "account": "u-1039",
+        "source_ip": "203.0.113.93"
+      },
+      {
+        "timestamp": "2026-10-24T13:32:33.419000Z",
+        "description": "[app-security] auth.signin.failure (failure), account u-1039, from 203.0.113.93, POST /api/auth/signin, client web",
+        "event_id": "evt-f3594ff4352f733e5aeb7f2e",
+        "account": "u-1039",
+        "source_ip": "203.0.113.93"
+      },
+      {
+        "timestamp": "2026-10-24T13:36:07.500000Z",
+        "description": "[app-security] auth.signin.success (success), account u-1039, from 203.0.113.93, POST /api/auth/signin, client web",
+        "event_id": "evt-3f09d6afe85a3067add43185",
+        "account": "u-1039",
+        "source_ip": "203.0.113.93"
+      },
+      {
+        "timestamp": "2026-10-24T13:36:07.500000Z",
+        "description": "Alert PRH-AUTH-003 (critical): Successful sign-in after many failures from one IP",
+        "alert_id": "alr-97089b797e862f2d1087829d"
+      }
+    ],
+    "indicators": [
+      {
+        "type": "ip",
+        "value": "203.0.113.93",
+        "enrichment": []
+      },
+      {
+        "type": "user_agent",
+        "value": "python-requests/2.32.3",
+        "enrichment": []
+      }
+    ],
+    "attack": [
+      "attack.initial_access",
+      "attack.credential_access",
+      "attack.t1078",
+      "attack.t1110"
+    ],
+    "attack_version": "20.0",
+    "recommended_actions": [
+      "End all sessions of the account and force a password reset.",
+      "Block the source IP.",
+      "Revert unauthorised changes, such as a changed payout number or disabled two-step verification.",
+      "Require two-step verification for the account."
+    ],
+    "confidence": "medium",
+    "limitations": [
+      "Enrichment not run: IP reputation and location were not considered",
+      "Single log source (app-security): no other log corroborates it",
+      "Possible benign cause for PRH-AUTH-003: A legitimate user who forgot their password and finally entered it correctly",
+      "Possible benign cause for PRH-AUTH-003: Several users behind one shared NAT, some failing and one succeeding"
+    ]
+  }
+}
