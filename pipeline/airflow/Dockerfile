@@ -7,11 +7,10 @@ FROM ghcr.io/astral-sh/uv:0.11.6@sha256:b1e699368d24c57cda93c338a57a8c5a119009ba
 
 FROM apache/airflow:slim-3.3.2-python3.13@sha256:881c35bfb1f6b76d233dd402b7228b5c37003702068b865db5db76061458b2bd
 
-# The PostgreSQL driver for Airflow's own database, at the versions Airflow 3.3.2 is tested with.
-RUN pip install --no-cache-dir \
-        "apache-airflow==3.3.2" \
-        "apache-airflow-providers-postgres==7.0.2" \
-        --constraint "https://raw.githubusercontent.com/apache/airflow/constraints-3.3.2/constraints-3.13.txt"
+# The PostgreSQL drivers for Airflow's own database, at the versions in Airflow 3.3.2's
+# constraints file, pinned by hash and installed without dependencies (they have none).
+COPY pipeline/airflow/requirements.txt /tmp/airflow-requirements.txt
+RUN pip install --no-cache-dir --no-deps --require-hashes -r /tmp/airflow-requirements.txt
 
 USER root
 COPY --from=uv /uv /usr/local/bin/uv
