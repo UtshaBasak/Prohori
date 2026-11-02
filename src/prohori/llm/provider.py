@@ -97,7 +97,8 @@ _UNFENCE = re.compile(r"⟦/?u:[0-9a-f]{8}⟧")
 
 def _mock_answer(prompt: str) -> str:
     lines: list[str] = []
-    start, end = prompt.find("<incident>"), prompt.find("</incident>")
+    # The last closing tag: a log value can contain "</incident>" (it stays inside its fence).
+    start, end = prompt.find("<incident>"), prompt.rfind("</incident>")
     if start >= 0 and end > start:
         data = json.loads(_UNFENCE.sub("", prompt[start + len("<incident>") : end]))
         rules = ", ".join(sorted({a["rule"] for a in data["alerts"]}))
