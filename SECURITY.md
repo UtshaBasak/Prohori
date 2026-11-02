@@ -2,11 +2,12 @@
 
 ## Supported versions
 
-Prohori is alpha software. Security fixes are applied to the latest release only.
+Security fixes are applied to the latest release only.
 
 | Version | Supported |
 |---------|-----------|
-| 0.1.x | Yes |
+| 1.0.x | Yes |
+| < 1.0 | No |
 
 ## Reporting a vulnerability
 
@@ -33,7 +34,8 @@ In-scope issues include, for example:
   an answer that cites a value or link not in the incident or its sources and is still shown
   (see `docs/LLM_ANALYST.md`).
 
-A full threat model will be published in `docs/THREAT_MODEL.md`.
+The threat model, with the controls for each boundary and the residual risks, is in
+[docs/THREAT_MODEL.md](docs/THREAT_MODEL.md).
 
 ## Intended use
 
