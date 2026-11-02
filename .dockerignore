@@ -1,4 +1,5 @@
-# Only pyproject.toml, uv.lock, README.md, LICENSE, CHANGELOG.md and src/ go into the image.
+# Only pyproject.toml, uv.lock, README.md, LICENSE, CHANGELOG.md and src/ go into the images,
+# and the Airflow image's hash-pinned driver list.
 *
 !pyproject.toml
 !uv.lock
@@ -6,5 +7,6 @@
 !LICENSE
 !CHANGELOG.md
 !src/
+!pipeline/airflow/requirements.txt
 **/__pycache__
 **/*.py[cod]
