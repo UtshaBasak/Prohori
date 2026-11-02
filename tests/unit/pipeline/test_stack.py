@@ -38,10 +38,13 @@ def test_up_and_down_command_lines() -> None:
     assert stack.up(COMPOSE, run=run, timeout=60) == 0
     assert stack.down(COMPOSE, volumes=True, run=run) == 0
     assert stack.up(COMPOSE, build=False, run=run) == 0
+    assert stack.up(COMPOSE, orchestration=True, run=run) == 0
     base = ["/usr/bin/docker", "compose", "-p", "prohori", "-f", str(COMPOSE)]
     assert run.calls[0] == [*base, "up", "--detach", "--wait", "--wait-timeout", "60", "--build"]
-    assert run.calls[1] == [*base, "down", "--remove-orphans", "--volumes"]
+    profile = ["--profile", "orchestration"]
+    assert run.calls[1] == [*base, *profile, "down", "--remove-orphans", "--volumes"]
     assert "--build" not in run.calls[2]
+    assert run.calls[3][len(base) : len(base) + 3] == [*profile, "up"]
 
 
 def test_docker_missing(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -88,6 +91,8 @@ def test_default_addresses(monkeypatch: pytest.MonkeyPatch) -> None:
     assert stack.default_dsn().endswith("@127.0.0.1:15432/prohori")
     assert stack.default_bootstrap() == "127.0.0.1:19092"
     assert stack.dashboard_url() == "http://127.0.0.1:13000"
+    monkeypatch.delenv("PROHORI_AIRFLOW_PORT", raising=False)
+    assert stack.airflow_url() == "http://127.0.0.1:18080"
     monkeypatch.setenv("PROHORI_GRAFANA_PORT", "3001")
     assert stack.dashboard_url() == "http://127.0.0.1:3001"
     monkeypatch.setenv("PROHORI_POSTGRES_PORT", "5433")
@@ -99,14 +104,18 @@ def test_default_addresses(monkeypatch: pytest.MonkeyPatch) -> None:
 def test_compose_file_publishes_on_localhost_only_and_pins_images() -> None:
     services = yaml.safe_load(COMPOSE.read_text(encoding="utf-8"))["services"]
     ports = [p for s in services.values() for p in s.get("ports", [])]
-    assert len(ports) == 3
+    assert len(ports) == 4
     assert all(p.startswith("127.0.0.1:") for p in ports)
     images = {s["image"] for s in services.values()}
-    assert all("@sha256:" in i for i in images - {"prohori:local"})
+    assert all("@sha256:" in i for i in images - {"prohori:local", "prohori-airflow:local"})
     limits = [s["mem_limit"] for s in services.values()]
     assert all(limits)
-    dockerfile = (ROOT / "pipeline" / "Dockerfile").read_text(encoding="utf-8")
-    froms = [line for line in dockerfile.splitlines() if line.startswith("FROM ")]
-    assert froms
-    assert all("@sha256:" in line for line in froms)
-    assert "USER prohori" in dockerfile
+    for path in ("Dockerfile", "airflow/Dockerfile"):
+        dockerfile = (ROOT / "pipeline" / path).read_text(encoding="utf-8")
+        froms = [line for line in dockerfile.splitlines() if line.startswith("FROM ")]
+        assert froms
+        assert all("@sha256:" in line for line in froms)
+        # The last USER is never root.
+        users = [line for line in dockerfile.splitlines() if line.startswith("USER ")]
+        assert users[-1] in {"USER prohori", "USER 10001:0"}
+    assert services["airflow"]["profiles"] == ["orchestration"]

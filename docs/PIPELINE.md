@@ -245,8 +245,9 @@ take about a minute.
 | `sink` | `prohori:local` | `... --stage sink`, into PostgreSQL | 256 MB |
 | `warehouse-init` | PostgreSQL 17.11 (Alpine) | Runs once per `up`: schemas and Grafana's read-only role | 64 MB |
 | `grafana` | Grafana 13.2.5 (Alpine) | Provisioned dashboards ([DASHBOARD.md](DASHBOARD.md)) | 512 MB |
+| `airflow` (orchestration profile) | Airflow 3.3.2 with Prohori and dbt | Scheduled jobs ([ORCHESTRATION.md](ORCHESTRATION.md)) | 3 GB |
 
-The limits add up to about 3.9 GB. Measured with `docker stats` on the development laptop:
+The limits add up to about 3.9 GB, or 6.9 GB with `--orchestration`. Measured with `docker stats` on the development laptop:
 
 | Situation | Whole stack | Highest single container |
 |-----------|------------:|--------------------------|
@@ -255,11 +256,13 @@ The limits add up to about 3.9 GB. Measured with `docker stats` on the developme
 | Restarting detect and incidents with that backlog (they rebuild from the start) | | incidents about 100 MB of 384 MB |
 | Idle after replaying all eight simulator scenarios (7,498 events), dashboards open | about 720 MB | Grafana about 250 MB of 512 MB |
 
+- **The stage image** is also published, for each release, as `ghcr.io/utshabasak/prohori`
+  (linux/amd64 and linux/arm64). The stack builds its own from the checkout.
 - **Images** are pinned by digest. The Prohori image runs as an unprivileged user, and its build
   context holds only `pyproject.toml`, `uv.lock`, the README, licence, changelog and `src/`
   (see `.dockerignore`), never `data/`.
-- **Ports** are published on 127.0.0.1 only: the broker on 19092, PostgreSQL on 15432 and
-  Grafana on 13000, chosen so they do not clash with local services. The PostgreSQL password defaults to a local-only
+- **Ports** are published on 127.0.0.1 only: the broker on 19092, PostgreSQL on 15432,
+  Grafana on 13000 and Airflow on 18080, chosen so they do not clash with local services. The PostgreSQL password defaults to a local-only
   value. To change it, set `PROHORI_POSTGRES_PASSWORD` (and `PROHORI_POSTGRES_PORT`) in the
   environment of both `prohori pipeline up` and `prohori pipeline status`. Compose also reads
   them from `pipeline/.env` (git-ignored), but `status` reads only the environment. The broker
