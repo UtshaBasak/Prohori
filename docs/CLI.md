@@ -12,6 +12,7 @@ file is `-`. Nothing uses the network unless you configure API keys and ask for 
 | [`prohori detect FILE`](#prohori-detect) | Run the detection rules over a log |
 | [`prohori incidents FILE`](#prohori-incidents) | Group alerts into scored incidents |
 | [`prohori report INCIDENT`](#prohori-report) | Render an incident report |
+| [`prohori explain INCIDENT`](#prohori-explain) | Explain an incident with an LLM (opt-in, redacted; `llm` extra) |
 | [`prohori enrich IP...`](#prohori-enrich) | Look up IP addresses |
 | [`prohori simulate SCENARIO`](#prohori-simulate) | Write a labelled attack scenario |
 | [`prohori score FLOWS --model NAME`](#prohori-score) | Score a CSV of network flows with a saved model (`ml` extra) |
@@ -120,6 +121,31 @@ See [REPORTS.md](REPORTS.md).
 
 Looks up IP addresses: `--offline`, `--format table|json`, `--no-cache`, `--env-file`.
 See [ENRICHMENT.md](ENRICHMENT.md).
+
+## `prohori explain`
+
+```bash
+prohori explain INCIDENT [--incident ID] [--provider none|mock|gemini] [--model NAME]
+                [--mask-ips] [--show-payload] [--keep-pseudonyms]
+```
+
+Explains an incident in plain language with an LLM: summary, why it matters, evidence, next
+steps and caveats. **Off by default**: with the provider `none` (the default) it prints that
+nothing was sent and exits 0. The provider comes from `--provider` or `PROHORI_LLM_PROVIDER`,
+the key from `GEMINI_API_KEY`.
+
+- **Redaction.** Account names, ids and emails are replaced with pseudonyms before anything is
+  sent, and IP addresses too with `--mask-ips`. Event descriptions from the logs are never sent.
+- **`--show-payload`** prints exactly what would be sent, and sends nothing.
+- **Fallback.** If the provider cannot answer (no key, the daily budget or a rate limit reached,
+  a timeout, a blocked answer), a local summary is shown. stderr says why and whether anything
+  was sent.
+- **`--keep-pseudonyms`** shows the answer as the model wrote it. By default the real values
+  are put back locally.
+
+Exit codes: `0` explained, summarised or off; `1` redaction could not remove every personal value
+(nothing was sent); `2` invalid usage, input or setting. Details:
+[LLM_ANALYST.md](LLM_ANALYST.md).
 
 ## `prohori simulate`
 

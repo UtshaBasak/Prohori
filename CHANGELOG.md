@@ -7,6 +7,21 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- The opt-in LLM analyst (`docs/LLM_ANALYST.md`, ADR-0028): `prohori explain INCIDENT` explains
+  an incident in plain language.
+  - Off by default (`PROHORI_LLM_PROVIDER=none`): nothing is sent and the command says so.
+  - Providers `none`, `mock` and `gemini`, the last through the official `google-genai` SDK in
+    the `llm` extra, with a configurable model (default `gemini-3.5-flash-lite`).
+  - What is sent is an allow-list of fields with account names, ids and emails replaced by
+    keyed pseudonyms (`--mask-ips` for addresses too), no event descriptions from the logs, and
+    a size cap. Nothing is sent if any replaced value would remain. `--show-payload` prints it
+    without sending.
+  - A daily request budget, a timeout and no automatic retries. A local summary is shown
+    whenever the provider cannot answer, saying why and whether anything was sent.
+  - A reminder on every free-tier request that Google may use what is sent.
+
 ### Fixed
 
 - Docker stack start-up: a stage whose new Kafka consumer still found a just-created topic

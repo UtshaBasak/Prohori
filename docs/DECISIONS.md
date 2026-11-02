@@ -1008,3 +1008,52 @@ publishes the Prohori image to GitHub Packages.
 and 1.84 GB at the peak of the nightly training. When Airflow first sees a scheduled DAG it runs
 it once, so a fresh stack builds the marts within a minute. Locally, the Airflow image takes
 about 2 GB of disk.
+
+---
+
+## ADR-0028: The LLM analyst: providers, redaction before sending, `explain`
+
+- **Date:** 2026-11-02
+- **Status:** Accepted
+
+**Context.** Step 23 adds opt-in incident explanations by a large language model. The free
+Gemini tier lets Google use what is sent to improve its products, so the design must make
+sending deliberate, minimal and redacted, and must work fully without a model.
+
+**Decision.**
+- **Off by default, three providers.**
+  - `none` (default) sends nothing; `explain` says so and exits 0.
+  - `mock` answers offline and records its requests; the tests assert on exactly what it
+    received.
+  - `gemini` uses the official `google-genai` SDK (2.31.0, Apache 2.0; 2.34.0 was four days old)
+    in the `llm` extra. It calls `models.generate_content`; the newer Interactions API adds
+    nothing for a single request.
+- **The client.** It gets an explicit key and `vertexai=False`, so environment variables cannot
+  redirect it. It has a timeout, and the SDK's retries are off, so one explanation is one
+  request against the daily budget.
+- **An allow-list payload, redacted, then checked.** Fields are chosen one by one
+  (`prohori.llm.payload`), never by dumping the incident.
+  - Account names, ids and emails become keyed pseudonyms through the report redactor (step 11),
+    with a random key per run. IP addresses become pseudonyms only with `--mask-ips`, because they
+    are usually the evidence.
+  - "Drop raw lines": incidents hold no log lines, but the timeline's event descriptions carry
+    attacker-controlled paths and user agents. Only their count and the alert entries, which
+    Prohori writes, are sent. Every free-text value is capped at 300 characters.
+  - The exact text to be sent is searched, decoded, for every replaced value. One hit means
+    nothing is sent (exit 1).
+  - Oversized payloads drop indicators, then alerts, then the alert timeline, and say so.
+- **Fallback, not failure.** A missing key or extra, the daily budget, HTTP 429, a timeout or an
+  empty or blocked answer each give a local summary written from the incident, with the reason
+  and whether anything was sent. The budget lives in the enrichment cache and is counted before
+  sending.
+- **The default model** is `gemini-3.5-flash-lite`, the newest stable Flash-Lite model with a free
+  tier on 2026-11-02. It is configurable; never a `-latest` alias.
+- **Untrusted output.** Control characters are stripped and the answer is never rendered as
+  markup. Pseudonyms are mapped back only locally, by exact token.
+- **Settings** have their own variable list (`PROHORI_LLM_*`, `GEMINI_API_KEY`). The `.env`
+  reader now takes the list of known keys.
+
+**Consequences.** Nothing about the analyst runs unless it is configured. A reminder about
+free-tier data use is printed on every free-tier request. `--show-payload` shows what would be
+sent. Prompt-injection defences beyond the instruction (field delimiting, output validation)
+are step 24.
