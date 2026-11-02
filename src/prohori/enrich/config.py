@@ -6,7 +6,7 @@ Environment variables win over ``.env``. Only the variables listed in :data:`ENV
 """
 
 import os
-from collections.abc import Mapping
+from collections.abc import Collection, Mapping
 from dataclasses import dataclass, field
 from datetime import timedelta
 from pathlib import Path
@@ -35,8 +35,8 @@ class ConfigError(ValueError):
     """A setting has an invalid value."""
 
 
-def read_env_file(path: Path) -> dict[str, str]:
-    """Read ``KEY=VALUE`` lines from ``path``; only known variables are returned."""
+def read_env_file(path: Path, known: Collection[str] = ENV_VARS) -> dict[str, str]:
+    """Read ``KEY=VALUE`` lines from ``path``; only the ``known`` variables are returned."""
     if not path.is_file() or path.stat().st_size > MAX_ENV_FILE_BYTES:
         return {}
     values: dict[str, str] = {}
@@ -48,7 +48,7 @@ def read_env_file(path: Path) -> dict[str, str]:
         key, value = key.strip(), value.strip()
         if len(value) >= 2 and value[0] == value[-1] and value[0] in "\"'":
             value = value[1:-1]
-        if key in ENV_VARS:
+        if key in known:
             values[key] = value
     return values
 
