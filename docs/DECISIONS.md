@@ -1160,3 +1160,44 @@ check them. Without a key, the published results measure the safeguards and the 
 language model. Recording Gemini once fills in that row without changing any code. The scripted
 adversary shows the known gap: claims made with real values ("no action needed") pass the
 answer checks.
+
+## ADR-0031: Release 1.0.0: what "stable" covers, and how its claims are checked
+
+- **Date:** 2026-11-02
+- **Status:** Accepted
+
+**Context.** Step 26 is the 1.0.0 release: documentation, a threat model, performance notes on
+logs of at least a million lines, every README number generated from result files, and the
+project's success criteria checked with evidence.
+
+**Decision.**
+- **Stable means the interfaces.** The command line, its exit codes, the output formats and the
+  rule format follow semantic versioning from 1.0.0. The classifier is Production/Stable. The
+  detections themselves are still evaluated on synthetic data, and the README says so.
+- **Measured numbers are generated; facts about the code are tested.**
+  - Results come from files in `results/`, through `scripts/generate_results_table.py`: the
+    rules, the flow models (including the findings sentences), the cross-dataset test, the
+    anomaly detectors, the LLM evaluation, performance, and the worked example (from the
+    sample incident and its log).
+  - Counts that describe the code (the number of built-in rules, scenarios, the ATT&CK version)
+    are pinned to the code by a test.
+  - Numbers with no result file were reworded instead: the warehouse's detection delays and the
+    Docker stack's memory now point to their documents.
+- **Performance** (`scripts/benchmark.py`): one log per format, built from the simulator in
+  chunks of a day (or three hours for SSH) with a seed each, every command in its own process.
+  - Peak memory is read from the operating system for that process: `wait4` on Linux and macOS,
+    `GetProcessMemoryInfo` on Windows. On Windows the virtual environment's launcher is skipped
+    (the base interpreter with `__PYVENV_LAUNCHER__`), so the measured process is Prohori itself.
+  - The million-line run is not part of CI; a small run is, so both measuring paths are tested.
+  - Nothing was tuned for speed in this step.
+- **Three operating systems.** macOS joins the CI test matrix (Python 3.13). The release's wheel
+  check and install-from-PyPI check run on Linux, Windows and macOS, time `prohori demo` and
+  fail if it takes more than a minute.
+- **Core coverage is checked**, not asserted: a CI step holds schema, parsers, rules, enrichment,
+  incidents, reports and the command line to at least 85 %.
+
+**Consequences.** The benchmark found a real Windows failure: lite mode's atomic rename of a
+consumer position failed with "access denied" while another process briefly had the file open.
+The rename is now retried for up to about two seconds. Two success criteria, the tagged release
+and `pip install prohori && prohori demo` from PyPI, can only be met when the release is
+published; the release workflow's checks are their evidence.

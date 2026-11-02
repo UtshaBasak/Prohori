@@ -7,8 +7,38 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-11-02
+
+The first stable release: the batch core, machine learning and the streaming pipeline from
+0.1 to 0.3, now with an opt-in LLM analyst, a threat model, performance measurements on a
+million-line log and macOS in CI. The command line, the output formats and the rule format follow
+semantic versioning from here on.
+
+### Highlights
+
+- An opt-in LLM analyst: `prohori explain` and `prohori ask`, with redaction before anything is
+  sent, prompt-injection defences, answer checks and an offline evaluation.
+- `docs/THREAT_MODEL.md`: assets, trust boundaries, threats, the control for each and the
+  residual risks.
+- `docs/PERFORMANCE.md`: throughput and peak memory on logs of more than a million lines.
+- Every measured number in the README is generated from a result file.
+
 ### Added
 
+- `scripts/benchmark.py` measures `incidents` on a million-line log in each format, lite mode and
+  the demo, each in its own process, and writes `results/performance.json`; the tables in
+  `docs/PERFORMANCE.md` and the README are generated from it.
+- `docs/THREAT_MODEL.md`, linked from `SECURITY.md`.
+- `docs/LICENSES.md` completed: the Gemini API terms, every Python dependency and extra with its
+  licence from the package metadata, Airflow's drivers, and what the container image on GitHub
+  Packages redistributes.
+- macOS in CI (Python 3.13), and the release's wheel check and install-from-PyPI check on Linux,
+  Windows and macOS. Both fail if `prohori demo` takes longer than a minute.
+- A CI check that the core packages (schema, parsers, rules, enrichment, incidents, reports,
+  command line) keep at least 85 % test coverage.
+- The README's worked example, the flow-model findings, the cross-dataset sentence and the LLM
+  evaluation's case counts are generated from the sample incident and the result files; a test
+  pins the README's rule and scenario counts to the code.
 - The opt-in LLM analyst (`docs/LLM_ANALYST.md`, ADR-0028): `prohori explain INCIDENT` explains
   an incident in plain language.
   - Off by default (`PROHORI_LLM_PROVIDER=none`): nothing is sent and the command says so.
@@ -51,8 +81,15 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
     no factual error by these measures, every reference indicator named, 84 of 89 points
     covered and no injection followed.
 
+### Changed
+
+- Development status: Production/Stable. `SECURITY.md` supports 1.0.x.
+
 ### Fixed
 
+- Lite mode on Windows: saving a consumer position could fail with "access denied" when another
+  process, such as a virus scanner, briefly had the file open, which stopped a long replay. The
+  rename is now retried for up to about two seconds.
 - The mock LLM provider failed on an incident whose user agent contained `</incident>`.
 
 - Docker stack start-up: a stage whose new Kafka consumer still found a just-created topic
@@ -363,7 +400,8 @@ offline by default.
 - Contributor, security and code-of-conduct documents.
 - OpenSSF Scorecard workflow, README status badges and a project wiki.
 
-[Unreleased]: https://github.com/UtshaBasak/Prohori/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/UtshaBasak/Prohori/compare/v1.0.0...HEAD
+[1.0.0]: https://github.com/UtshaBasak/Prohori/compare/v0.3.0...v1.0.0
 [0.3.0]: https://github.com/UtshaBasak/Prohori/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/UtshaBasak/Prohori/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/UtshaBasak/Prohori/releases/tag/v0.1.0
