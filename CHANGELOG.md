@@ -46,8 +46,10 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   - factual errors, indicators named, points covered and whether injections were followed,
     for the model's answer and for what the analyst is shown; the tables in the docs and the
     README are generated from the results;
-  - baselines: the local summary, the mock and a scripted model that obeys every injection.
-    No real model has been recorded yet.
+  - baselines: the local summary, the mock and a scripted model that obeys every injection;
+  - one recorded run of Gemini (gemini-3.5-flash-lite): all 30 answers passed the checks with
+    no factual error by these measures, every reference indicator named, 84 of 89 points
+    covered and no injection followed.
 
 ### Fixed
 
