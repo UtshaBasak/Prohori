@@ -125,6 +125,14 @@ def test_every_dag_runs_in_the_stack(monkeypatch: pytest.MonkeyPatch) -> None:
         nightly = _run("prohori_nightly_evaluation")
         if not (ROOT / "data" / "raw" / "unsw-nb15").is_dir():
             assert set(nightly.values()) == {"skipped"}
+    except BaseException:
+        logs = stack.compose(
+            ["--profile", stack.ORCHESTRATION, "logs", "--no-color", "--tail", "150"],
+            COMPOSE,
+            capture=True,
+        )
+        print(logs.stdout[-60000:], logs.stderr[-5000:])  # noqa: T201 - shown on failure
+        raise
     finally:
         down = runner.invoke(app, ["pipeline", "down", "--volumes"])
         assert down.exit_code == 0, down.output

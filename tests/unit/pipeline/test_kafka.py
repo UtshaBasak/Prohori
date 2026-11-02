@@ -53,6 +53,19 @@ def test_topics_are_awaited_until_they_have_a_leader(
     assert not kafka_module._has_leader(SimpleNamespace(error="unknown", partitions={}))
 
 
+def test_a_topic_still_unknown_to_a_new_consumer_is_retried(
+    broker: Broker, transport: KafkaTransport, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr("prohori.pipeline.kafka.time.sleep", lambda seconds: None)
+    broker.unknown_watermarks = 3
+    transport.rewind(Topic.EVENTS, "g")  # succeeds once the broker knows the topic
+    assert broker.unknown_watermarks == 0
+    broker.unknown_watermarks = 10**9
+    monkeypatch.setattr("prohori.pipeline.kafka.BROKER_TIMEOUT", 0.0)
+    with pytest.raises(TransportError, match="topic events is unknown"):
+        transport.rewind(Topic.EVENTS, "g2")
+
+
 def test_unreachable_broker_and_refused_topics_are_errors(broker: Broker) -> None:
     broker.unreachable = True
     with pytest.raises(TransportError, match="cannot reach the Kafka broker"):

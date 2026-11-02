@@ -255,10 +255,28 @@ class KafkaTransport:
         return records
 
     def _end(self, consumer: _Consumer, topic: Topic) -> tuple[int, int]:
-        low, high = consumer.get_watermark_offsets(
-            self._partition(topic), timeout=BROKER_TIMEOUT, cached=False
-        )
-        return int(low), int(high)
+        """The topic's first and next offsets.
+
+        A consumer that has just been created can still find the topic unknown for a moment
+        after another stage created it, so that answer is retried until the broker timeout.
+        """
+        deadline = time.monotonic() + BROKER_TIMEOUT
+        while True:
+            try:
+                low, high = consumer.get_watermark_offsets(
+                    self._partition(topic), timeout=BROKER_TIMEOUT, cached=False
+                )
+            except self.kafka.KafkaException as exc:
+                error = exc.args[0] if exc.args else None
+                code = error.code() if error is not None and hasattr(error, "code") else None
+                if code != self.kafka.KafkaError.UNKNOWN_TOPIC_OR_PART:
+                    raise
+                if time.monotonic() >= deadline:
+                    msg = f"topic {topic.value} is unknown to the broker at {self.bootstrap}"
+                    raise TransportError(msg) from exc
+                time.sleep(0.5)
+                continue
+            return int(low), int(high)
 
     def _position(self, consumer: _Consumer, topic: Topic, low: int) -> int:
         (current,) = consumer.position([self._partition(topic)])

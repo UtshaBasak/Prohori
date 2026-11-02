@@ -222,6 +222,14 @@ def test_replay_reaches_postgres_once_and_matches_batch(
         logs = stack.compose(["logs", "--no-color", "detect"], COMPOSE, capture=True)
         output = logs.stdout + logs.stderr
         assert '"stopped": ["detect"]' in output, output[-2000:]
+    except BaseException:
+        logs = stack.compose(
+            ["--profile", stack.ORCHESTRATION, "logs", "--no-color", "--tail", "150"],
+            COMPOSE,
+            capture=True,
+        )
+        print(logs.stdout[-60000:], logs.stderr[-5000:])  # noqa: T201 - shown on failure
+        raise
     finally:
         down = runner.invoke(app, ["pipeline", "down", "--volumes"])
         assert down.exit_code == 0, down.output
