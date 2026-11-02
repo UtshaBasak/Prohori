@@ -67,6 +67,7 @@ class Broker:
     undelivered: int = 0
     create_error: int | None = None
     leaderless_lookups: int = 0  # list_topics calls that still report no leader
+    unknown_watermarks: int = 0  # get_watermark_offsets calls that fail with an unknown topic
 
     def append(self, topic: str, key: bytes | None, value: bytes | None) -> None:
         self.topics.setdefault(topic, []).append((key, value))
@@ -193,6 +194,10 @@ def fake_kafka(broker: Broker) -> SimpleNamespace:
             self, partition: FakeTopicPartition, timeout: float = -1, cached: bool = False
         ) -> tuple[int, int]:
             del timeout, cached
+            if broker.unknown_watermarks > 0:
+                broker.unknown_watermarks -= 1
+                error = FakeKafkaError(FakeKafkaError.UNKNOWN_TOPIC_OR_PART)
+                raise FakeKafkaException(error)
             return 0, len(broker.topics.get(partition.topic, []))
 
         def position(self, partitions: list[FakeTopicPartition]) -> list[FakeTopicPartition]:

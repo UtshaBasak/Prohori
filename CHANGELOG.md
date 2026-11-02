@@ -7,6 +7,12 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed
+
+- Docker stack start-up: a stage whose new Kafka consumer still found a just-created topic
+  unknown crashed and restarted, which could make `prohori pipeline up` report the stack
+  unhealthy. The topic's offsets are now asked for again until the broker knows it.
+
 ## [0.3.0] - 2026-11-02
 
 ### Added
