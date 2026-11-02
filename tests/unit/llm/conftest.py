@@ -17,7 +17,7 @@ USER = "rahim.khan"
 BANGLA_USER = "রহিম"  # a non-ASCII account name
 EMAIL = "rahim.khan@example.com"
 RAW = "RAWLINE-7c1f"  # stands for log content an attacker controls
-SECRET_KEY = "AIzaTESTKEY-0123456789abcdef"  # noqa: S105 - a fake key for leak tests
+SECRET_KEY = "test-key-test-key-test-key"  # noqa: S105  # gitleaks:allow - fake, for leak tests
 
 
 def _blocked(*args: object, **kwargs: object) -> None:
