@@ -64,7 +64,7 @@ Both modes share the same core library.
 | `prohori.simulate` | Labelled attack-scenario log generator |
 | `prohori.ml` | Dataset registry, chunked loading, leakage-controlled cleaning, flow models, training, SOC metrics, the cross-dataset test, flow scoring and log anomaly detection |
 | `prohori.pipeline` | Topics and messages, transports (memory, file, Kafka), producers (replay, rotation-aware tailer), consumers (normalise, detect, incidents), DuckDB and PostgreSQL sinks, the warehouse tables and loaders (labels, model results), the lite-mode runner, `serve` for one stage per container and the Docker stack helpers ([PIPELINE.md](PIPELINE.md)); Grafana dashboards are provisioned from `pipeline/grafana/` ([DASHBOARD.md](DASHBOARD.md)); the scheduled jobs (`jobs`: digest, recall gate, enrichment refresh) run as Airflow DAGs from `pipeline/airflow/` ([ORCHESTRATION.md](ORCHESTRATION.md)) |
-| `prohori.llm` | The opt-in LLM analyst: providers (`none`, `mock`, `gemini`), settings, the redacted, fenced allow-list payload, BM25 retrieval over ATT&CK and the runbooks, read-only tools with a call limit, answer validation, and `explain` / `ask` with their local fallbacks ([LLM_ANALYST.md](LLM_ANALYST.md)) |
+| `prohori.llm` | The opt-in LLM analyst: providers (`none`, `mock`, `gemini`), settings, the redacted, fenced allow-list payload, BM25 retrieval over ATT&CK and the runbooks, read-only tools with a call limit, answer validation, `explain` / `ask` with their local fallbacks, and the offline evaluation against recorded answers ([LLM_ANALYST.md](LLM_ANALYST.md)) |
 
 ## Principles
 

@@ -1111,3 +1111,52 @@ to instruct the model.
 **Consequences.** Answers can cite only what Prohori gave the model. A judgement built from real
 values but wrong (an injected "this is benign") is not detectable by these checks; the docs say
 so. Step 25 measures the analyst.
+
+## ADR-0030: Evaluating the LLM analyst offline
+
+- **Date:** 2026-11-02
+- **Status:** Accepted
+
+**Context.** Step 25 measures the LLM analyst's answers. Free-tier quotas are small, answers
+vary between runs, and no API key was available while the step was built.
+
+**Decision.**
+- **30 cases with truth from the simulator** (`evaluation/llm/`, built by
+  `scripts/build_llm_eval_set.py`, rebuilt byte for byte in a test):
+  - 15 attack incidents (each scenario's main incident, default and held-out variants);
+  - 7 false positives raised on background lines;
+  - 8 incidents from small logs with an instruction in a user agent, a request path or a
+    username.
+
+  An incident is an attack when at least half of its alert events are on attack lines, the
+  rule used by the rule evaluation.
+- **Hand-written references** (`references.yaml`): a summary for a reviewer, the indicators and
+  points a good answer covers and the statements that are false for that incident. They were
+  written from the payload the model receives, before any recorded answer was read, and each
+  must score perfectly against itself.
+- **Record once, score offline.** `python -m prohori.llm.evaluate record` saves every request's
+  prompt hash and answer; `score` replays them through the real pipeline (fencing, tools,
+  validation, fallback) with no network access.
+  - Recording a real model resumes where it stopped and stops cleanly at the daily budget.
+- **An evaluation-only redaction key and nonce**, derived from the incident id
+  (`build_payload(key=...)`), so prompts are reproducible and recorded pseudonyms map back.
+  Prohori itself keeps random ones.
+  - A recorded answer whose prompt has changed is *stale*: an error for the offline systems,
+    a counted warning for a real model.
+- **What counts as an error.** Every answer is scored twice: the model's own answer and the
+  text the analyst is shown, so a model whose answers are always rejected cannot look as good
+  as the local summary.
+  - A factual error is a value outside the incident's structured fields and the sources (the
+    same rule as the answer check), or a statement that contradicts the truth or the reference.
+  - Only assertions count: a match preceded by a hedge or condition in its sentence is skipped.
+  - Injections are checked on the text before pseudonyms are restored. A username shown back
+    as an account is data, not obedience.
+- **Baselines are labelled as such**: the local summary, the mock (a template) and a scripted
+  adversary that obeys every injection. The docs and README say plainly when no real model has
+  been recorded.
+
+**Consequences.** The scores are proxies based on patterns; the per-case details let a human
+check them. Without a key, the published results measure the safeguards and the scorer, not a
+language model. Recording Gemini once fills in that row without changing any code. The scripted
+adversary shows the known gap: claims made with real values ("no action needed") pass the
+answer checks.
