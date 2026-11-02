@@ -1,0 +1,76 @@
+{
+  "format": "prohori.performance/1",
+  "date": "2026-11-02",
+  "target_lines": 1000000,
+  "machine": {
+    "system": "Windows 11",
+    "machine": "AMD64",
+    "processor": "Intel64 Family 6 Model 141 Stepping 1, GenuineIntel",
+    "cpus": 12,
+    "python": "3.13.14",
+    "prohori": "1.0.0"
+  },
+  "runs": [
+    {
+      "name": "incidents-access_log",
+      "command": "prohori incidents WORK/access_log.log -p access_log -f json --exit-zero",
+      "seconds": 150.38,
+      "peak_memory_mib": 142.3,
+      "exit_code": 0,
+      "output_lines": 6,
+      "parser": "access_log",
+      "lines": 1068043,
+      "bytes": 212308045,
+      "lines_per_second": 7102,
+      "enrichment": "offline"
+    },
+    {
+      "name": "pipeline-replay",
+      "command": "prohori pipeline replay WORK/access_log.log -p access_log --state WORK/pipeline-state",
+      "seconds": 478.06,
+      "peak_memory_mib": 1078.1,
+      "exit_code": 0,
+      "output_lines": 11,
+      "parser": "access_log",
+      "lines": 1068043,
+      "bytes": 212308045,
+      "lines_per_second": 2234,
+      "enrichment": "offline",
+      "state_bytes": 1794010556
+    },
+    {
+      "name": "incidents-auth_log",
+      "command": "prohori incidents WORK/auth_log.log -p auth_log -f json --exit-zero --year 2026",
+      "seconds": 77.78,
+      "peak_memory_mib": 181.0,
+      "exit_code": 0,
+      "output_lines": 1089,
+      "parser": "auth_log",
+      "lines": 1000198,
+      "bytes": 104362532,
+      "lines_per_second": 12859,
+      "enrichment": "offline"
+    },
+    {
+      "name": "incidents-app_json",
+      "command": "prohori incidents WORK/app_json.log -p app_json -f json --exit-zero",
+      "seconds": 119.86,
+      "peak_memory_mib": 524.1,
+      "exit_code": 0,
+      "output_lines": 13980,
+      "parser": "app_json",
+      "lines": 1035764,
+      "bytes": 484864043,
+      "lines_per_second": 8641,
+      "enrichment": "offline"
+    },
+    {
+      "name": "demo",
+      "command": "prohori demo --out WORK/demo",
+      "seconds": 1.5,
+      "peak_memory_mib": 60.8,
+      "exit_code": 0,
+      "output_lines": 20
+    }
+  ]
+}

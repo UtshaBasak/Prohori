@@ -26,13 +26,14 @@ The workflow is [`.github/workflows/release.yml`](../.github/workflows/release.y
 4. **The workflow then:**
    1. checks that the tag matches the package version and that the changelog has the section;
    2. builds the sdist and wheel and runs `twine check`;
-   3. installs the wheel alone in fresh environments on Linux and Windows and runs
-      `prohori demo` and `prohori rules test`;
+   3. installs the wheel alone in fresh environments on Linux, Windows and macOS and runs
+      `prohori demo` (which must finish within a minute) and `prohori rules test`;
    4. publishes to **TestPyPI**;
    5. **waits for approval** of the `pypi` environment: open the run under *Actions*, review it
       and click *Approve and deploy*;
    6. publishes to **PyPI** (with build attestations);
-   7. installs the release from PyPI on Linux and Windows and runs `prohori demo`;
+   7. installs the release from PyPI on Linux, Windows and macOS and runs `prohori demo`
+      (within a minute);
    8. publishes the Docker image to GitHub Packages as `ghcr.io/utshabasak/prohori:X.Y.Z`,
       `:X.Y` and `:latest`, for linux/amd64 and linux/arm64, with a provenance attestation
       (`gh attestation verify oci://ghcr.io/utshabasak/prohori:X.Y.Z --owner UtshaBasak`).

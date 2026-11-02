@@ -16,7 +16,7 @@
 [![Release workflow](https://github.com/UtshaBasak/Prohori/actions/workflows/release.yml/badge.svg)](https://github.com/UtshaBasak/Prohori/actions/workflows/release.yml)
 [![Docker stack](https://github.com/UtshaBasak/Prohori/actions/workflows/docker.yml/badge.svg)](https://github.com/UtshaBasak/Prohori/actions/workflows/docker.yml)
 [![Docker image](https://img.shields.io/badge/ghcr.io-utshabasak%2Fprohori-2496ED?logo=docker&logoColor=white)](https://github.com/UtshaBasak/Prohori/pkgs/container/prohori)
-![Status: alpha](https://img.shields.io/badge/status-alpha-yellow)
+![Status: stable](https://img.shields.io/badge/status-stable-brightgreen)
 ![Platforms](https://img.shields.io/badge/platform-Linux%20%7C%20Windows%20%7C%20macOS-lightgrey)
 [![License: MIT](https://img.shields.io/github/license/UtshaBasak/Prohori)](LICENSE)
 
@@ -43,12 +43,13 @@ reports, with honest machine-learning evaluation and a streaming data pipeline.*
 *Prohori* (প্রহরী) is Bengali for "guard". It is an open-source, defensive security-operations
 toolkit in Python that runs on a single laptop with free tools only, offline by default.
 
-> **Status: alpha (v0.3.0).** One command goes from a log file to scored incidents and
-> shareable reports, and a labelled attack simulator measures the rules. v0.2.0 added machine
-> learning (anomaly detectors over your own logs, flow models evaluated with leakage controls);
-> v0.3.0 adds the streaming pipeline, warehouse models, dashboards and scheduled jobs. The
-> opt-in LLM analyst is in progress for v1.0.0 (`prohori explain`, from source). See the
-> [CHANGELOG](CHANGELOG.md) and the [roadmap](#roadmap).
+> **Status: v1.0.0, stable.** One command goes from a log file to scored incidents and
+> shareable reports, and a labelled attack simulator measures the rules. Machine learning
+> (anomaly detectors over your own logs, flow models evaluated with leakage controls), a
+> streaming pipeline with warehouse models, dashboards and scheduled jobs, and an opt-in LLM
+> analyst build on that core. The command line and file formats follow semantic versioning from
+> here on. See the [CHANGELOG](CHANGELOG.md), the [threat model](docs/THREAT_MODEL.md) and the
+> [roadmap](#roadmap).
 
 ## 60-second demo
 
@@ -77,6 +78,7 @@ sends nothing over the network. Sample reports: [Markdown](docs/examples/account
 - [Machine learning](#machine-learning)
 - [Streaming pipeline](#streaming-pipeline)
 - [LLM analyst (optional)](#llm-analyst-optional)
+- [Performance](#performance)
 - [Privacy and safety](#privacy-and-safety)
 - [Documentation](#documentation)
 - [Limitations](#limitations)
@@ -109,8 +111,8 @@ remote systems.
 
 ## Install
 
-Prohori needs Python 3.11 or newer. CI tests it on Linux and Windows; macOS should work but is
-not tested.
+Prohori needs Python 3.11 or newer. CI tests it on Linux and Windows (Python 3.11 to 3.14) and
+on macOS (Python 3.13), and every release is installed and its demo run on all three.
 
 - **From PyPI:** `pipx install prohori` puts the `prohori` command in its own environment;
   `pip install prohori` works in any virtual environment. Optional parts are extras:
@@ -146,22 +148,18 @@ logs, `prohori triage /var/log/auth.log --year 2026 -o triage/` works the same w
 
 ## Example: an account takeover
 
-`samples/logs/account-takeover.jsonl` is a synthetic attack on a web shop account: twelve wrong
-passwords from one IP in 33 seconds, a successful sign-in, two-step verification switched off and
-the bKash payout number changed. Prohori raises four alerts and joins them into **one critical
-incident**:
+<!-- example:start -->
+`samples/logs/account-takeover.jsonl` is a synthetic attack on a web shop account: 12 wrong passwords from one IP in 33 seconds, a successful sign-in, two-step verification switched off and the bKash payout number changed. Prohori raises 4 alerts and joins them into **one critical incident**:
 
 ```text
-$ uv run prohori incidents samples/logs/account-takeover.jsonl     # first lines
 INC-ee7c8818fbb34989  critical  score 100
-+-------------------------------------------------------------------------------------------------+
-| title       | Successful sign-in after many failures from one IP and 3 related alerts           |
-| time (UTC)  | 2026-10-24 21:10:00 - 2026-10-24 21:13:10                                         |
-| confidence  | high                                                                              |
-| rules       | PRH-ACCT-001, PRH-AUTH-001, PRH-AUTH-003                                          |
-| entities    | source.ip: 203.0.113.7                                                            |
-|             | user.email_hash: 0cc175b9c0f1b6a831c399e269772661                                 |
-|             | user.id: u-2001                                                                   |
+title       Successful sign-in after many failures from one IP and 3 related alerts
+time (UTC)  2026-10-24 21:10:00 - 2026-10-24 21:13:10
+confidence  high
+rules       PRH-ACCT-001, PRH-AUTH-001, PRH-AUTH-003
+entities    source.ip: 203.0.113.7
+            user.email_hash: 0cc175b9c0f1b6a831c399e269772661
+            user.id: u-2001
 ```
 
 Every point of the score is explained (from `prohori report`):
@@ -178,10 +176,11 @@ Every point of the score is explained (from `prohori report`):
 | -40 | Capped at 100 |
 | **100** | **Total** |
 
-The report adds the timeline, the IP's enrichment, the ATT&CK techniques (T1110 Brute Force,
-T1078 Valid Accounts, T1098 Account Manipulation, T1556.006 Multi-Factor Authentication),
-recommended actions from the runbooks and the limitations, such as "single log source" and
-"enrichment is bundled demo data".
+The report adds the timeline, the IP's enrichment, the ATT&CK techniques (T1078 Valid Accounts, T1098 Account Manipulation, T1110 Brute Force, T1110.001 Password Guessing, T1556.006 Multi-Factor Authentication), recommended actions from the runbooks and the limitations, such as "single log source" and "enrichment is bundled demo data".
+<!-- example:end -->
+
+To see it yourself: `uv run prohori incidents samples/logs/account-takeover.jsonl` and
+`uv run prohori report samples/incidents/INC-ee7c8818fbb34989.json`.
 
 ## Commands
 
@@ -296,9 +295,8 @@ improved CIC-IDS-2017:
 
 - **Leakage-controlled data.** Identifier, address, port, time and label-derived columns are
   dropped; duplicates and contradictory rows are removed; test rows that also occur in training
-  are removed and counted; transforms are learned from training data only. On CIC-IDS-2017, 18 %
-  of the 2.1 million flows are duplicates once identifiers are gone, most of them port-scan
-  probes; on UNSW-NB15, 41 % of the rows. [DATASETS.md](docs/DATASETS.md) has the numbers.
+  are removed and counted; transforms are learned from training data only.
+  [DATASETS.md](docs/DATASETS.md) has the numbers.
 - **Two models:** gradient boosting (supervised) and an Isolation Forest trained on benign
   traffic only.
 - **Honest metrics.** Thresholds are chosen on a validation split for a 1 % or 0.1 %
@@ -315,22 +313,17 @@ improved CIC-IDS-2017:
 | cicids2017 | Isolation Forest (benign only) | 0.527 | 0.00 % | 0.10 % | 8.7 |
 
 Means over seeds 0, 1, 2 on the cleaned test splits, with thresholds chosen for a 0.1 % false-positive rate on the validation split and then frozen.
+
+What the numbers say: gradient boosting catches 46 % of UNSW-NB15's attacks at 4.2 false alerts per 10,000 flows, missing most fuzzing and analysis traffic, and on CIC-IDS-2017 catches 99.98 %, which says more about that lab dataset than about the model. The 1 % threshold chosen on UNSW-NB15's validation data gave 4.5 % false positives on its test file. The Isolation Forest is not a usable detector on either dataset. Without the leakage controls the same pipeline would report a PR-AUC of 0.989 instead of 0.952 on UNSW-NB15. Cleaning removed 41 % of UNSW-NB15's 257,673 rows and 18 % of CIC-IDS-2017's 2,099,976 flows, mostly duplicates once the identifiers are gone.
 <!-- ml-results:end -->
 
-What the numbers say: gradient boosting catches about half of UNSW-NB15's attacks at a
-false-alert rate a SOC could live with, misses most fuzzing and analysis traffic, and on
-CIC-IDS-2017 catches nearly everything, which says more about that lab dataset than about the
-model. The 1 % threshold chosen on UNSW-NB15's validation data gave 4.5 % false positives on its
-test file. The Isolation Forest is not a usable detector on either dataset. Without the leakage
-controls the same pipeline would report a PR-AUC of 0.989 instead of 0.952 on UNSW-NB15. Details,
-failure cases and limitations: [docs/MODEL_CARD.md](docs/MODEL_CARD.md).
+Details, failure cases and limitations: [docs/MODEL_CARD.md](docs/MODEL_CARD.md).
 
-**Do the models work on another network?** Not usefully. Trained on the twelve features both
-datasets share and tested on the *other* dataset, gradient boosting's ROC-AUC falls from 0.95 and
-1.00 to 0.64 and 0.61, weak but above chance, and the threshold that gave 1 % false positives at home
-flags 42 % to 60 % of the other dataset's benign flows:
+**Do the models work on another network?** Not usefully.
 
 <!-- ml-cross:start -->
+Trained on the 12 features both datasets share and tested on the *other* dataset, gradient boosting's ROC-AUC falls from 0.95 and 1.00 to 0.64 and 0.61, weak but above chance, and the threshold that gave 1 % false positives at home flags 42 % to 60 % of the other dataset's benign flows:
+
 | Trained on → tested on | ROC-AUC, same dataset | ROC-AUC, other dataset | PR-AUC (chance), same dataset | PR-AUC (chance), other dataset | Benign flows flagged on the other dataset (1 % threshold) |
 |------------------------|------:|------:|------:|------:|------:|
 | unsw-nb15 → cicids2017 | 0.952 | 0.639 | 0.918 (0.33) | 0.323 (0.16) | 42.2 % |
@@ -387,9 +380,9 @@ flowchart LR
 - **Live logs.** The tailer survives rotation by rename or truncation (on Windows too, without
   blocking the writer's rotation) and continues where it stopped after a restart. Ctrl+C
   finishes cleanly.
-- **Honest limits.** Lite mode handles about 2,800 lines a second on a laptop, a single host's
-  logs, against about 14,000 for the batch command. Its topics are not trimmed, and `--models`
-  stays a batch feature.
+- **Honest limits.** Lite mode is slower than the batch command (see
+  [Performance](#performance)) and handles a single host's logs. Its topics are not trimmed, and
+  `--models` stays a batch feature.
 
 **The Docker stack** runs the same stages as separate containers over Redpanda (a
 Kafka-compatible broker), with a PostgreSQL warehouse, from a clone of the repository:
@@ -408,7 +401,7 @@ uv run prohori pipeline down                  # --volumes also deletes the data
 | `postgres` | Warehouse (`raw` schema) | 512 MB |
 | `normalise`, `detect`, `incidents`, `sink` | One Prohori container per stage | 256-384 MB each |
 
-Replaying a 50,700-line log, the whole stack peaked at about 700 MB. A smoke test in CI starts it from empty
+The measured memory use is in [docs/PIPELINE.md](docs/PIPELINE.md). A smoke test in CI starts it from empty
 volumes, replays a simulated attack twice and checks that the warehouse holds each event once
 and exactly the incidents of the batch command. Images are pinned by digest, the containers run
 unprivileged, and the ports are bound to 127.0.0.1 only.
@@ -431,8 +424,8 @@ uv run dbt build --project-dir pipeline/dbt --profiles-dir pipeline/dbt    # --t
 `dbt build` runs 68 data-quality checks: keys, nulls, accepted values, ranges, duplicates,
 cross-table consistency and future timestamps. A separate freshness check covers the inputs. On
 the simulator's eight scenarios, the models' rule precision equals the simulator's own
-evaluation alert for alert, which CI checks. Every attack was detected, the fastest in 0 s and
-the slowest (an admin acting at night) in 252 s. Details: [docs/WAREHOUSE.md](docs/WAREHOUSE.md).
+evaluation alert for alert, which CI checks. Every attack was detected; the detection delay per
+scenario is in [docs/WAREHOUSE.md](docs/WAREHOUSE.md#results-on-the-simulator).
 
 **Dashboards.** `prohori pipeline up` also starts Grafana on http://127.0.0.1:13000, with three
 dashboards provisioned from `pipeline/grafana/`. They open without a login or any setup:
@@ -473,11 +466,12 @@ and use the `llm` extra.
 - **Checked:** an answer that names an address, id, technique or link that is not in the
   incident or its sources is rejected, and the local summary is shown instead.
 
-An offline evaluation scores recorded answers against 30 hand-written references (15 attacks, 7
-false positives, 8 injections). It counts factual errors, missing indicators and whether
-injected instructions were followed:
+An offline evaluation scores recorded answers against hand-written references. It counts factual
+errors, missing indicators and whether injected instructions were followed:
 
 <!-- llm-eval:start -->
+30 cases: 15 attacks, 7 false positives and 8 incidents with a hidden instruction.
+
 | Model | Recorded | Answers accepted | With a factual error | Indicators named | Points covered |
 |-------|----------|------:|------:|------:|------:|
 | Gemini (gemini-3.5-flash-lite) | 2026-11-02 | 30/30 | 0/30 | 112/112 | 84/89 |
@@ -492,6 +486,23 @@ injected instructions were followed:
 <!-- llm-eval:end -->
 
 Details: [docs/LLM_ANALYST.md](docs/LLM_ANALYST.md#evaluation).
+
+## Performance
+
+Measured on logs of more than a million lines each, one process per run:
+
+<!-- performance:start -->
+| Run | Lines | Lines a second | Peak memory |
+|-----|------:|------:|------:|
+| `incidents`, nginx/Apache access log | 1,068,043 | 7,102 | 142 MiB |
+| `pipeline replay` (lite mode), access log | 1,068,043 | 2,234 | 1,078 MiB |
+| `incidents`, auth.log (sshd) | 1,000,198 | 12,859 | 181 MiB |
+| `incidents`, JSON Lines app log | 1,035,764 | 8,641 | 524 MiB |
+
+One run each on Windows 11 with 12 logical CPUs, Python 3.13.14, offline enrichment; `prohori demo` took 1.5 s. The batch command peaked at 524 MiB.
+<!-- performance:end -->
+
+How it is measured and what the numbers mean: [docs/PERFORMANCE.md](docs/PERFORMANCE.md).
 
 ## Privacy and safety
 
@@ -536,6 +547,8 @@ Third-party data terms (MITRE ATT&CK, GeoLite2, AbuseIPDB, VirusTotal, the Gemin
 | [Dashboards](docs/DASHBOARD.md) | The Grafana dashboards: panels, set-up, access, time range, changing a dashboard |
 | [Scheduled jobs](docs/ORCHESTRATION.md) | The Airflow DAGs: backfill, data quality, nightly evaluation, digest, enrichment refresh |
 | [LLM analyst](docs/LLM_ANALYST.md) | `prohori explain` and `ask`: what is sent, redaction, sources and tools, prompt-injection defences and answer checks, providers, limits, data-use terms |
+| [Performance](docs/PERFORMANCE.md) | Throughput and peak memory on logs of a million lines, and how they are measured |
+| [Threat model](docs/THREAT_MODEL.md) | Assets, trust boundaries, threats, the controls for each and the residual risks |
 | [Decisions](docs/DECISIONS.md) | Architecture decision records |
 | [Releasing](docs/RELEASING.md) | How releases are built, tested and published |
 | [Third-party terms](docs/LICENSES.md) | Data and service licences |
@@ -569,7 +582,7 @@ Prohori is honest about what it does not do:
 | v0.1.0 | Batch core: parsers, rules, enrichment, incidents, reports, log simulator with rule evaluation, `triage` and `demo` commands | Released |
 | v0.2.0 | Machine learning: leakage-controlled intrusion detection on public flow datasets, log-derived anomaly detection, model cards | Released |
 | v0.3.0 | Pipeline: streaming core and lite mode, Redpanda and PostgreSQL in Docker, dbt models and data-quality checks, Grafana dashboards, Airflow jobs; Docker image on GitHub Packages | Released |
-| v1.0.0 | Optional LLM analyst: providers, redaction and `explain` (done), retrieval, injection defences, answer validation and `ask` (done), evaluation (done); final polish | In progress |
+| v1.0.0 | Optional LLM analyst: providers, redaction, `explain` and `ask`, retrieval, prompt-injection defences, answer validation and an evaluation; threat model, performance notes, completed licence notes, macOS in CI | Ready for release |
 
 ## Development
 
@@ -587,8 +600,8 @@ uv run pytest tests/integration # end to end, including lite mode against the ba
 uv sync --group dbt && uv run pytest tests/integration/test_dbt.py  # the dbt models
 ```
 
-CI runs on Linux and Windows with Python 3.11 to 3.14, plus CodeQL, secret scanning, parser
-fuzzing and the OpenSSF Scorecard. All GitHub Actions are pinned to commit SHAs. See
+CI runs on Linux and Windows with Python 3.11 to 3.14 and on macOS with 3.13, plus CodeQL,
+secret scanning, parser fuzzing and the OpenSSF Scorecard. All GitHub Actions are pinned to commit SHAs. See
 [CONTRIBUTING.md](CONTRIBUTING.md) for conventions.
 
 ## Security

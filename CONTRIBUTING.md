@@ -18,7 +18,7 @@ uv run mypy
 uv run pytest --cov
 ```
 
-All four must pass; CI runs the same checks on Linux and Windows.
+All four must pass; CI runs the same checks on Linux, Windows and macOS.
 
 ## Conventions
 

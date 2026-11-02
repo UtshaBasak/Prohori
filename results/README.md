@@ -9,6 +9,7 @@ by `scripts/generate_results_table.py`.
 | `ml_unsw-nb15.json`, `ml_cicids2017.json` | Flow-model metrics per seed, variant and model, with seed summaries ([MODEL_CARD.md](../docs/MODEL_CARD.md)) | `python -m prohori.ml.train` |
 | `ml_cross.json` | Cross-dataset test: both directions, in-dataset and cross-dataset metrics ([MODEL_CARD.md](../docs/MODEL_CARD.md#cross-dataset-test)) | `python -m prohori.ml.transfer` |
 | `ml_logs.json` | Log anomaly detectors against the rules on the simulated scenarios ([ANOMALY.md](../docs/ANOMALY.md)) | `python -m prohori.ml.logeval` |
+| `performance.json` | Throughput and peak memory on logs of a million lines, with the machine ([PERFORMANCE.md](../docs/PERFORMANCE.md)) | `scripts/benchmark.py` |
 | `llm_eval.json` | LLM analyst: factual errors, indicators, points and injections per system and case, from recorded answers ([LLM_ANALYST.md](../docs/LLM_ANALYST.md#evaluation)) | `python -m prohori.llm.evaluate score` |
 
 Trained models are not kept here: they go to the git-ignored `models/` directory.

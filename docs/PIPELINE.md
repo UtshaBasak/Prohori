@@ -209,10 +209,10 @@ table.
 
 ## Performance
 
-On the development laptop, replaying a 50,700-line access log through lite mode (fsync after
-every batch) took 18 s, about 2,800 lines a second. `prohori incidents` on the same file took
-3.6 s. Each event is validated and serialised once per stage, and each batch is made durable
-before it is committed. Lite mode is for a single host's logs; the Docker stack (step 19) is the
+Lite mode is several times slower than `prohori incidents` on the same file: each event is
+validated and serialised once per stage, and each batch is made durable (fsync) before it is
+committed. The measured throughput and memory on a log of a million lines are in
+[PERFORMANCE.md](PERFORMANCE.md). Lite mode is for a single host's logs; the Docker stack is the
 scalable one.
 
 ## The Docker stack
