@@ -2,7 +2,8 @@ name: Docker stack
 
 # Builds the image, starts Redpanda, PostgreSQL, the four stage containers and Grafana, replays a
 # simulated log, checks the warehouse and every dashboard panel, and builds the dbt models on it
-# (tests/integration/test_docker_stack.py).
+# (tests/integration/test_docker_stack.py). A second job adds Airflow (the orchestration profile)
+# and runs every DAG in the stack (tests/integration/test_airflow_stack.py).
 on:
   push:
     branches: [main]
@@ -13,6 +14,7 @@ on:
       - "uv.lock"
       - ".dockerignore"
       - "tests/integration/test_docker_stack.py"
+      - "tests/integration/test_airflow_stack.py"
       - ".github/workflows/docker.yml"
   pull_request:
     paths:
@@ -22,6 +24,7 @@ on:
       - "uv.lock"
       - ".dockerignore"
       - "tests/integration/test_docker_stack.py"
+      - "tests/integration/test_airflow_stack.py"
       - ".github/workflows/docker.yml"
   schedule:
     - cron: "17 4 * * 1"  # weekly, so the badge reflects the pinned images still working
@@ -59,3 +62,27 @@ jobs:
       - name: Stack logs
         if: failure()
         run: docker compose -p prohori -f pipeline/docker-compose.yml logs --no-color --tail 200
+
+  airflow:
+    name: Airflow in the Docker stack
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+        with:
+          python-version: "3.13"
+          enable-cache: true
+      - run: uv sync
+      - name: Run every DAG in the stack
+        env:
+          PROHORI_DOCKER_TESTS: "1"
+        run: uv run pytest tests/integration/test_airflow_stack.py -v -p no:cacheprovider
+      - name: Stack and task logs
+        if: failure()
+        run: |
+          docker compose -p prohori -f pipeline/docker-compose.yml --profile orchestration logs --no-color --tail 200
+          docker compose -p prohori -f pipeline/docker-compose.yml --profile orchestration exec -T airflow \
+            sh -c 'tail -n 60 /opt/airflow/logs/dag_id=*/run_id=*/task_id=*/attempt=*.log' || true

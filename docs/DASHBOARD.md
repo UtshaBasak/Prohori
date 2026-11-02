@@ -68,8 +68,10 @@ uv run dbt build --project-dir pipeline/dbt --profiles-dir pipeline/dbt --target
 ```
 
 Rule precision and attack detection need the simulator's labels (`load-labels`). The flow-model
-panels need evaluation results (`load-results`). On real logs, precision stays empty. Step 22's
-scheduled jobs will run the dbt build regularly.
+panels need evaluation results (`load-results`). On real logs, precision stays empty. With
+`prohori pipeline up --orchestration`, Airflow does all of this for you: the data-quality job
+rebuilds the marts every hour, the backfill loads labelled scenarios and the nightly evaluation
+adds model results ([ORCHESTRATION.md](ORCHESTRATION.md)).
 
 ## Pipeline health
 
@@ -140,7 +142,7 @@ with no dbt run, the Overview and Pipeline health panels must all return rows. A
 ## Limitations
 
 - **The marts need a dbt build.** The Detection quality dashboard is empty until one has run
-  (see above). The live panels use the raw tables so the dashboard works without it.
+  (see above), or until the orchestration profile's hourly job has. The live panels use the raw tables so the dashboard works without it.
 - **Local use only.** Anonymous viewing and default passwords are meant for one machine. Before
   exposing Grafana anywhere else, turn off anonymous access and set real passwords.
 - **Grafana's licence** is AGPL-3.0. The stack runs the official image unmodified

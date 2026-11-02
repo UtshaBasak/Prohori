@@ -276,6 +276,7 @@ def test_up_status_and_down(compose: Compose, monkeypatch: pytest.MonkeyPatch) -
     assert payload["healthy"] is True
     assert payload["rows"] is None
     assert payload["dashboards"] == "http://127.0.0.1:13000"
+    assert payload["airflow"] is None
     assert len(payload["services"]) == 6
     down = runner.invoke(app, ["pipeline", "down", "--volumes"])
     assert down.exit_code == 0

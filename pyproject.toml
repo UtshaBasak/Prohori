@@ -216,6 +216,11 @@ exclude_also = [
 ]
 
 [[tool.mypy.overrides]]
+# Apache Airflow is not a dependency: only tests/dags imports it, in a Linux CI job.
+module = ["airflow", "airflow.*"]
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
 # google-re2 ships no type hints; it is used only in prohori.rules.regex_safety.
 module = ["re2"]
 ignore_missing_imports = true

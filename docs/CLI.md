@@ -190,6 +190,7 @@ The Docker stack (needs Docker and a clone of the repository):
 
 ```bash
 prohori pipeline up                                          # build, start, wait until healthy
+prohori pipeline up --orchestration                          # ... and Airflow with the scheduled jobs
 prohori simulate web-scanning --seed 1 --out logs   # write a simulated log to replay
 prohori pipeline replay logs/web-scanning.log --bootstrap 127.0.0.1:19092
 prohori pipeline status                                      # services, health, warehouse rows
@@ -200,7 +201,9 @@ prohori pipeline down --volumes                              # stop and delete t
 - **`up`** runs `docker compose up --wait` on `pipeline/docker-compose.yml` (`--file` for
   another), building the image first unless `--no-build`. `--timeout` (default 300 seconds)
   bounds the wait. Exits `1` if a service does not become healthy. Prints where the dashboards
-  are ([DASHBOARD.md](DASHBOARD.md)); `PROHORI_GRAFANA_PORT` moves them.
+  are ([DASHBOARD.md](DASHBOARD.md)); `PROHORI_GRAFANA_PORT` moves them. `--orchestration` also
+  starts Airflow on http://127.0.0.1:18080 with the scheduled jobs
+  ([ORCHESTRATION.md](ORCHESTRATION.md)); `down` always stops it too.
 - **`status`** lists the services with their state and health, and the row counts in the
   warehouse's `raw` schema (`--postgres DSN`; default: the stack's). `-f json` gives the same as
   JSON, with the dashboards' address. Exits `1` unless every service is healthy.
@@ -215,6 +218,18 @@ prohori pipeline down --volumes                              # stop and delete t
   `--evaluated-at`. Both write to the DuckDB file (`--state`, `--db`) or to PostgreSQL
   (`--postgres` or `PROHORI_POSTGRES_DSN`) and add nothing when loaded twice. They feed the dbt
   models in [WAREHOUSE.md](WAREHOUSE.md).
+- **`digest`** summarises what was stored in the last `--hours` (default 24): incidents by
+  severity, the top `--limit` incidents by score, alerts per rule and dead letters, as Markdown
+  or `-f json`, printed or written to `--out FILE`.
+- **`check-recall RESULTS`** exits 1 when a flow model's mean test recall in a results file is
+  below `--min-recall` (default 0.75), for `--model` (hgb), `--variant` (cleaned) and
+  `--operating-point` (fpr_0.01); 2 if the file has no such runs.
+- **`refresh-enrichment`** removes expired enrichment cache entries and looks up again the
+  public source addresses of events stored in the last `--days` (default 7, at most `--limit`
+  addresses). Offline unless `--online`, which uses the API keys you configured.
+
+  All three read the DuckDB file (`--state`, `--db`) or PostgreSQL (`--postgres` or
+  `PROHORI_POSTGRES_DSN`); the scheduled jobs run them ([ORCHESTRATION.md](ORCHESTRATION.md)).
 - **`run --stage normalise|detect|incidents|sink|all`** runs one stage over Kafka until SIGTERM
   or Ctrl+C. It is what each container runs. The broker comes from `--bootstrap` or
   `PROHORI_KAFKA_BOOTSTRAP`, and the warehouse from `--postgres` or `PROHORI_POSTGRES_DSN`

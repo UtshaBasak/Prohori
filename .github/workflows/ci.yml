@@ -74,6 +74,26 @@ jobs:
       - name: Build a lite warehouse, the dbt models and their checks
         run: uv run pytest tests/integration/test_dbt.py -v -p no:cacheprovider
 
+  dags:
+    name: Airflow DAGs
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+        with:
+          python-version: "3.13"
+      - name: Install Airflow 3.3.2 (its own environment, with Airflow's constraints)
+        run: |
+          uv venv --python 3.13 /tmp/airflow-env
+          uv pip install --python /tmp/airflow-env "apache-airflow==3.3.2" pytest \
+            --constraint https://raw.githubusercontent.com/apache/airflow/constraints-3.3.2/constraints-3.13.txt
+      - name: DAG integrity (imports, no cycles, settings)
+        env:
+          AIRFLOW_HOME: /tmp/airflow-home
+        run: /tmp/airflow-env/bin/python -m pytest tests/dags -v -p no:cacheprovider -o addopts= --confcutdir tests/dags
+
   fuzz:
     name: Fuzz parsers (Atheris)
     runs-on: ubuntu-latest

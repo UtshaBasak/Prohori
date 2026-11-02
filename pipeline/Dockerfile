@@ -16,7 +16,9 @@ COPY src ./src
 RUN uv sync --frozen --no-dev --extra pipeline --no-editable
 
 FROM python:3.13.18-slim@sha256:76baad6037690d6e8c4397fbcaef17bca6f19eecef822b708fe8fa3417d30bb5
-RUN useradd --create-home --uid 10001 prohori
+# The enrichment cache directory exists in the image so a volume mounted on it is owned by prohori.
+RUN useradd --create-home --uid 10001 prohori \
+    && install -d -o prohori -g prohori /home/prohori/.cache/prohori
 COPY --from=build /opt/prohori /opt/prohori
 ENV PATH=/opt/prohori/bin:$PATH \
     PYTHONUNBUFFERED=1 \

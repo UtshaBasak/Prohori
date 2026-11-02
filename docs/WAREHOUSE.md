@@ -77,7 +77,8 @@ Every table has a `stored_at` column, set by the database when the row is first 
   pipeline stored. Pass the same `--year` and other parser options you used for the replay.
 - **Model results.** `load-results` stamps each file with its modification time, or with
   `--evaluated-at`. A later evaluation adds new rows, which is what "over time" is built from.
-  The nightly retraining job in step 22 will append one evaluation a night.
+  The nightly evaluation job ([ORCHESTRATION.md](ORCHESTRATION.md)) appends one evaluation a
+  night, and the hourly data-quality job rebuilds the models on the stack.
 - **Idempotent.** Loading the same labels or results again adds nothing.
 
 ## Models

@@ -503,6 +503,12 @@ def up_command(
     timeout: Annotated[
         int, typer.Option(min=10, help="Seconds to wait for every service to be healthy.")
     ] = 300,
+    orchestration: Annotated[
+        bool,
+        typer.Option(
+            "--orchestration", help="Also start Airflow and the scheduled jobs (about 2 GB more)."
+        ),
+    ] = False,
 ) -> None:
     """Start the Docker stack (Redpanda, PostgreSQL, the stages, Grafana) and wait for it.
 
@@ -511,7 +517,7 @@ def up_command(
     did not become healthy.
     """
     compose_path = _compose(file)
-    code = stack.up(compose_path, build=build, timeout=timeout)
+    code = stack.up(compose_path, build=build, timeout=timeout, orchestration=orchestration)
     healthy = _print_status(compose_path, counts=False)
     if code != 0 or not healthy:
         raise _fail("the stack did not become healthy; see 'docker compose -p prohori logs'")
@@ -519,6 +525,8 @@ def up_command(
         f"Publish logs with: prohori pipeline replay FILE --bootstrap {stack.default_bootstrap()}"
     )
     typer.echo(f"Dashboards: {stack.dashboard_url()}")
+    if orchestration:
+        typer.echo(f"Airflow: {stack.airflow_url()}")
 
 
 @pipeline_app.command("down")
@@ -565,6 +573,7 @@ def status_command(
             "services": [s.__dict__ | {"ok": s.ok} for s in services],
             "rows": counts,
             "dashboards": stack.dashboard_url(),
+            "airflow": stack.airflow_url() if any(s.name == "airflow" for s in services) else None,
         }
         typer.echo(json.dumps(payload, indent=2))
     else:
@@ -622,6 +631,8 @@ def _print_status(compose_path: Path, *, counts: bool, dsn: str | None = None) -
                 "Warehouse rows: " + ", ".join(f"{k} {v:,}" for k, v in rows.items()) + "."
             )
         console.print(f"Dashboards: {stack.dashboard_url()}")
+        if any(s.name == "airflow" for s in services):
+            console.print(f"Airflow: {stack.airflow_url()}")
     return all(s.ok for s in services)
 
 
@@ -758,6 +769,168 @@ def load_results_command(
     finally:
         sink.close()
     typer.echo(f"Loaded {total:,} evaluation row(s) from {len(results)} file(s).")
+
+
+# ---------------------------------------------------------------------- scheduled jobs
+
+WarehouseOption = Annotated[
+    str | None,
+    typer.Option(
+        "--postgres",
+        envvar="PROHORI_POSTGRES_DSN",
+        help="Use this PostgreSQL warehouse instead of the DuckDB file.",
+        show_default=False,
+        show_envvar=True,
+    ),
+]
+
+
+class DigestFormat(StrEnum):
+    MARKDOWN = "markdown"
+    JSON = "json"
+
+
+@pipeline_app.command("digest")
+def digest_command(
+    hours: Annotated[
+        float, typer.Option(min=0.1, help="Cover the rows stored in the last HOURS hours.")
+    ] = 24.0,
+    out: Annotated[
+        Path | None,
+        typer.Option(
+            help="Write the digest to this file instead of printing it.", show_default=False
+        ),
+    ] = None,
+    output: Annotated[
+        DigestFormat, typer.Option("--format", "-f", help="markdown or json.")
+    ] = DigestFormat.MARKDOWN,
+    limit: Annotated[int, typer.Option(min=1, help="Incidents to list, highest score first.")] = 20,
+    state: StateOption = DEFAULT_STATE,
+    database: DatabaseOption = None,
+    postgres: WarehouseOption = None,
+) -> None:
+    """Summarise what the pipeline stored recently: incidents, alerts per rule, dead letters.
+
+    The period is by when rows were stored, so a replay of old logs shows up in the next digest.
+    Exit 1 if the warehouse cannot be opened.
+    """
+    from datetime import timedelta
+
+    from prohori.pipeline.jobs import build_digest, digest_json, render_digest
+
+    until = datetime.now(UTC)
+    sink = _warehouse(state, database, postgres)
+    try:
+        digest = build_digest(sink, until - timedelta(hours=hours), until, limit=limit)
+    finally:
+        sink.close()
+    text = digest_json(digest) if output is DigestFormat.JSON else render_digest(digest)
+    if out is None:
+        typer.echo(text, nl=False)
+        return
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(text, encoding="utf-8", newline="\n")
+    typer.echo(f"Wrote {out} ({len(digest.incidents)} incident(s) listed).")
+
+
+@pipeline_app.command("check-recall")
+def check_recall_command(
+    results: Annotated[
+        Path,
+        typer.Argument(
+            metavar="RESULTS",
+            help="A flow-model results file (prohori.ml-eval/1).",
+            show_default=False,
+        ),
+    ],
+    minimum: Annotated[
+        float, typer.Option("--min-recall", min=0.0, max=1.0, help="Fail below this mean recall.")
+    ] = 0.75,
+    model: Annotated[str, typer.Option(help="Model to check.")] = "hgb",
+    variant: Annotated[str, typer.Option(help="Variant to check.")] = "cleaned",
+    operating_point: Annotated[
+        str, typer.Option(help="Operating point (false-positive target) to check.")
+    ] = "fpr_0.01",
+) -> None:
+    """Fail when a flow model's mean test recall drops below a threshold.
+
+    The nightly evaluation job runs this after training, so a model that got worse stops the run.
+    Exit codes: 0 at or above the threshold, 1 below it or the file cannot be read, 2 invalid usage
+    (such as a model or operating point that is not in the file).
+    """
+    from prohori.pipeline.jobs import check_recall
+    from prohori.pipeline.warehouse import LoadError
+
+    if not results.is_file():
+        raise typer.BadParameter(f"not found: {results}", param_hint="RESULTS")
+    try:
+        check = check_recall(
+            results, minimum=minimum, model=model, variant=variant, operating_point=operating_point
+        )
+    except LoadError as exc:
+        raise _fail(str(exc)) from None
+    except ValueError as exc:
+        raise typer.BadParameter(
+            str(exc), param_hint="--model/--variant/--operating-point"
+        ) from None
+    summary = (
+        f"{check.dataset} {check.model}/{check.variant} at {check.operating_point}: mean recall "
+        f"{check.mean:.4f} over {len(check.recalls)} seed(s), minimum {check.minimum:.4f}"
+    )
+    if not check.passed:
+        raise _fail(f"recall dropped below the minimum: {summary}")
+    typer.echo(f"OK: {summary}")
+
+
+@pipeline_app.command("refresh-enrichment")
+def refresh_enrichment_command(
+    days: Annotated[
+        float,
+        typer.Option(
+            min=0.1, help="Refresh addresses seen in events stored in the last DAYS days."
+        ),
+    ] = 7.0,
+    limit: Annotated[
+        int, typer.Option(min=1, help="At most this many addresses, the busiest first.")
+    ] = 500,
+    online: Annotated[
+        bool,
+        typer.Option(
+            "--online",
+            help="Query the external services you configured (default: offline, cache only).",
+        ),
+    ] = False,
+    env_file: Annotated[
+        Path, typer.Option(help="Settings file read under the environment variables.")
+    ] = Path(".env"),
+    state: StateOption = DEFAULT_STATE,
+    database: DatabaseOption = None,
+    postgres: WarehouseOption = None,
+) -> None:
+    """Refresh the enrichment cache for the public addresses the pipeline saw recently.
+
+    Expired answers are removed first. With --online and API keys configured, the addresses are
+    looked up again so the incident stage finds fresh answers in the cache; without --online
+    nothing leaves the machine. Private, reserved and documentation addresses are never looked
+    up. Exit 1 if the warehouse cannot be opened.
+    """
+    from datetime import timedelta
+
+    from prohori.pipeline.jobs import recent_addresses, refresh_enrichment
+
+    sink = _warehouse(state, database, postgres)
+    try:
+        addresses = recent_addresses(sink, datetime.now(UTC) - timedelta(days=days), limit=limit)
+    finally:
+        sink.close()
+    with make_enricher(env_file, online=online) as enricher:
+        result = refresh_enrichment(enricher, addresses)
+    mode = "online" if online else "offline"
+    typer.echo(
+        f"Refreshed {result.looked_up:,} of {result.addresses:,} public address(es) ({mode}; "
+        f"providers: {', '.join(result.providers) or 'none'}); removed {result.purged:,} expired "
+        "cache entr" + ("y." if result.purged == 1 else "ies.")
+    )
 
 
 # ---------------------------------------------------------------------- helpers

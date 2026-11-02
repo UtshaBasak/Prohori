@@ -948,3 +948,63 @@ and a replay, with no manual setup, and fit the memory budget beside the rest of
 Grafana used about 250 MB of its 512 MB with the dashboards open. The Grafana image takes about
 2 GB on disk. Until a dbt build has run, the Detection quality dashboard shows that the marts
 are missing.
+
+---
+
+## ADR-0027: Scheduled jobs with Airflow, and the container image on GitHub Packages
+
+- **Date:** 2026-11-02
+- **Status:** Accepted
+
+**Context.** Step 22 adds scheduled jobs to the Docker stack: a dataset backfill, a nightly
+retrain and evaluation that fails when recall drops, a daily incident digest, data-quality
+checks and an enrichment cache refresh. The DAGs must be checked in CI without installing
+Airflow on Windows, and must run in the stack. The step ends with the v0.3.0 release, which also
+publishes the Prohori image to GitHub Packages.
+
+**Decision.**
+- **Airflow 3.3.2 in its own compose profile** (`orchestration`, `prohori pipeline up
+  --orchestration`). It is the largest service, so the default stack stays at about 3.9 GB of
+  memory limits. 3.3.2 is the newest release older than two weeks; 3.4 is still a release
+  candidate.
+- **One container, `airflow standalone`, with the LocalExecutor.** It runs the scheduler, the DAG
+  processor, the triggerer and the API server. Separate containers for each would multiply the
+  memory for no benefit on one machine. Airflow keeps its state in its own database and role on
+  the stack's PostgreSQL, created idempotently by `warehouse-init`. The key that signs Airflow's
+  internal tokens is generated when the container starts. Every visitor of 127.0.0.1:18080 is an
+  admin (the simple auth manager's all-admins mode), like the unauthenticated local broker.
+- **Thin DAGs over tested commands.** Each task runs a `prohori` or `dbt` command, so the logic is
+  unit-tested without Airflow and works without it. Three commands are new: `prohori pipeline
+  digest`, `check-recall` and `refresh-enrichment` (`prohori.pipeline.jobs`). Prohori and dbt
+  are installed in their own environment in the Airflow image, from `uv.lock`, so Airflow's
+  pinned dependencies and Prohori's never have to agree.
+- **What each job does in practice:**
+  - **Backfill:** one task per scenario, then waits until the warehouse has been quiet for 90
+    seconds (longer than the incident stage's idle close) before building the marts.
+  - **Data quality:** checks freshness on `events` only, and skips it on an empty warehouse; an
+    empty `alerts` table, or a stack nobody has used yet, is not a data problem.
+  - **Nightly evaluation:** one seed of the cleaned UNSW-NB15 models, which takes seconds. The
+    datasets are mounted read-only from `data/`, and the job skips itself without them. The
+    results are loaded before the gate, so a drop is recorded even when the run fails. The
+    minimum, 0.75, sits below the measured 0.82.
+  - **Enrichment refresh:** a cache volume shared with the incident stage (same uid 10001),
+    online only when API keys are set.
+- **DAG integrity in a Linux CI job.** Airflow is installed with its constraints file into a
+  separate environment there. `tests/dags` skips itself without Airflow. A further test, without
+  Airflow, checks that the DAG files call only commands that exist. The Docker workflow runs every
+  DAG through the scheduler in the stack.
+- **The image on GitHub Packages** (`ghcr.io/utshabasak/prohori`) is published by the release
+  workflow only. A job builds it on pull requests and tag pushes:
+  - for linux/amd64, where it runs `--version` and the demo and checks the user and contents;
+  - for linux/arm64 as well.
+
+  After PyPI is approved, a second job pushes `X.Y.Z`, `X.Y` and `latest` for both platforms,
+  with OCI labels and a signed provenance attestation. That job alone has `packages: write`.
+  The image is built from a clean checkout with the `.dockerignore` allow-list, so it holds only
+  `pyproject.toml`, `uv.lock`, the README, licence, changelog and `src/`, installed for user
+  10001. There is no build cache, which a release workflow should not trust.
+
+**Consequences.** The orchestration profile adds a 3 GB limit; measured use is about 1.2 GB idle
+and 1.84 GB at the peak of the nightly training. When Airflow first sees a scheduled DAG it runs
+it once, so a fresh stack builds the marts within a minute. Locally, the Airflow image takes
+about 2 GB of disk.
