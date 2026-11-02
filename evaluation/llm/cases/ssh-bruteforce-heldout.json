@@ -1,0 +1,196 @@
+{
+  "format": "prohori.llm-eval-case/1",
+  "case": "ssh-bruteforce-heldout",
+  "kind": "attack",
+  "truth": "attack",
+  "origin": {
+    "scenario": "ssh-bruteforce",
+    "variant": "heldout",
+    "seed": 1
+  },
+  "incident": {
+    "id": "INC-8aaaf0ee0898a03c",
+    "title": "SSH invalid-user storm or repeated authentication-limit disconnects and 1 related alert",
+    "status": "open",
+    "severity": "high",
+    "score": 35.0,
+    "score_breakdown": [
+      {
+        "reason": "Most severe alert: PRH-SSH-001 (high)",
+        "points": 35.0
+      }
+    ],
+    "first_seen": "2026-10-24T08:31:07Z",
+    "last_seen": "2026-10-24T08:43:09Z",
+    "entities": {
+      "source.ip": [
+        "203.0.113.64"
+      ],
+      "user.name": [
+        "root"
+      ]
+    },
+    "alerts": [
+      {
+        "id": "alr-81177f8758199c4ea90b9b41",
+        "detector_id": "PRH-SSH-001",
+        "detector_kind": "rule",
+        "title": "SSH invalid-user storm or repeated authentication-limit disconnects",
+        "severity": "high",
+        "score": 75.0,
+        "event_ids": [
+          "evt-74beaa8a69451b575f8db5ff",
+          "evt-acf21ff9e9f1f4789740a9c9",
+          "evt-756f6ee9a8eadceb416e17af",
+          "evt-63ff201ccc5b7a9b0603e392",
+          "evt-3da9ce1ee02d1b3d323266b5"
+        ],
+        "entities": {
+          "source.ip": "203.0.113.64"
+        },
+        "first_seen": "2026-10-24T08:31:07Z",
+        "last_seen": "2026-10-24T08:36:27Z",
+        "attack": [
+          "attack.credential_access",
+          "attack.t1110",
+          "attack.t1110.001"
+        ],
+        "explanation": "5 matching events (threshold 5) for source.ip=203.0.113.64 within a 10m window"
+      },
+      {
+        "id": "alr-eb2c1129433dba644ee6b6dc",
+        "detector_id": "PRH-SSH-001",
+        "detector_kind": "rule",
+        "title": "SSH invalid-user storm or repeated authentication-limit disconnects",
+        "severity": "high",
+        "score": 75.0,
+        "event_ids": [
+          "evt-c35c53a3a08bfb1f494b49ba",
+          "evt-1a543ca9746daa9a05c06d02",
+          "evt-ba1c2c7dab433a75af371f6c",
+          "evt-48822f60dc1ee562003441e1",
+          "evt-593fd5c5bf42ed85ed3b515d"
+        ],
+        "entities": {
+          "source.ip": "203.0.113.64"
+        },
+        "first_seen": "2026-10-24T08:37:49Z",
+        "last_seen": "2026-10-24T08:43:09Z",
+        "attack": [
+          "attack.credential_access",
+          "attack.t1110",
+          "attack.t1110.001"
+        ],
+        "explanation": "5 matching events (threshold 5) for source.ip=203.0.113.64 within a 10m window"
+      }
+    ],
+    "timeline": [
+      {
+        "timestamp": "2026-10-24T08:31:07Z",
+        "description": "[sshd] ssh.auth.too_many_failures (failure), account root, from 203.0.113.64",
+        "event_id": "evt-74beaa8a69451b575f8db5ff",
+        "account": "root",
+        "source_ip": "203.0.113.64"
+      },
+      {
+        "timestamp": "2026-10-24T08:32:29Z",
+        "description": "[sshd] ssh.auth.too_many_failures (failure), account root, from 203.0.113.64",
+        "event_id": "evt-acf21ff9e9f1f4789740a9c9",
+        "account": "root",
+        "source_ip": "203.0.113.64"
+      },
+      {
+        "timestamp": "2026-10-24T08:33:47Z",
+        "description": "[sshd] ssh.auth.too_many_failures (failure), account root, from 203.0.113.64",
+        "event_id": "evt-756f6ee9a8eadceb416e17af",
+        "account": "root",
+        "source_ip": "203.0.113.64"
+      },
+      {
+        "timestamp": "2026-10-24T08:35:09Z",
+        "description": "[sshd] ssh.auth.too_many_failures (failure), account root, from 203.0.113.64",
+        "event_id": "evt-63ff201ccc5b7a9b0603e392",
+        "account": "root",
+        "source_ip": "203.0.113.64"
+      },
+      {
+        "timestamp": "2026-10-24T08:36:27Z",
+        "description": "[sshd] ssh.auth.too_many_failures (failure), account root, from 203.0.113.64",
+        "event_id": "evt-3da9ce1ee02d1b3d323266b5",
+        "account": "root",
+        "source_ip": "203.0.113.64"
+      },
+      {
+        "timestamp": "2026-10-24T08:36:27Z",
+        "description": "Alert PRH-SSH-001 (high): SSH invalid-user storm or repeated authentication-limit disconnects",
+        "alert_id": "alr-81177f8758199c4ea90b9b41"
+      },
+      {
+        "timestamp": "2026-10-24T08:37:49Z",
+        "description": "[sshd] ssh.auth.too_many_failures (failure), account root, from 203.0.113.64",
+        "event_id": "evt-c35c53a3a08bfb1f494b49ba",
+        "account": "root",
+        "source_ip": "203.0.113.64"
+      },
+      {
+        "timestamp": "2026-10-24T08:39:07Z",
+        "description": "[sshd] ssh.auth.too_many_failures (failure), account root, from 203.0.113.64",
+        "event_id": "evt-1a543ca9746daa9a05c06d02",
+        "account": "root",
+        "source_ip": "203.0.113.64"
+      },
+      {
+        "timestamp": "2026-10-24T08:40:28Z",
+        "description": "[sshd] ssh.auth.too_many_failures (failure), account root, from 203.0.113.64",
+        "event_id": "evt-ba1c2c7dab433a75af371f6c",
+        "account": "root",
+        "source_ip": "203.0.113.64"
+      },
+      {
+        "timestamp": "2026-10-24T08:41:49Z",
+        "description": "[sshd] ssh.auth.too_many_failures (failure), account root, from 203.0.113.64",
+        "event_id": "evt-48822f60dc1ee562003441e1",
+        "account": "root",
+        "source_ip": "203.0.113.64"
+      },
+      {
+        "timestamp": "2026-10-24T08:43:09Z",
+        "description": "[sshd] ssh.auth.too_many_failures (failure), account root, from 203.0.113.64",
+        "event_id": "evt-593fd5c5bf42ed85ed3b515d",
+        "account": "root",
+        "source_ip": "203.0.113.64"
+      },
+      {
+        "timestamp": "2026-10-24T08:43:09Z",
+        "description": "Alert PRH-SSH-001 (high): SSH invalid-user storm or repeated authentication-limit disconnects",
+        "alert_id": "alr-eb2c1129433dba644ee6b6dc"
+      }
+    ],
+    "indicators": [
+      {
+        "type": "ip",
+        "value": "203.0.113.64",
+        "enrichment": []
+      }
+    ],
+    "attack": [
+      "attack.credential_access",
+      "attack.t1110",
+      "attack.t1110.001"
+    ],
+    "attack_version": "20.0",
+    "recommended_actions": [
+      "Block the IP, or use a tool such as fail2ban to block repeat offenders automatically.",
+      "Disable password authentication and root login over SSH; allow keys only.",
+      "Restrict SSH to known networks or a VPN.",
+      "If a sign-in succeeded, follow the runbook for PRH-AUTH-003."
+    ],
+    "confidence": "medium",
+    "limitations": [
+      "Enrichment not run: IP reputation and location were not considered",
+      "Single log source (sshd): no other log corroborates it",
+      "Possible benign cause for PRH-SSH-001: An automation tool configured with a wrong username",
+      "Possible benign cause for PRH-SSH-001: A user whose SSH agent offers many keys and hits MaxAuthTries on every connection"
+    ]
+  }
+}

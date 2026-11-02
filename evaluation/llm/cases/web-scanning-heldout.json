@@ -1,0 +1,1487 @@
+{
+  "format": "prohori.llm-eval-case/1",
+  "case": "web-scanning-heldout",
+  "kind": "attack",
+  "truth": "attack",
+  "origin": {
+    "scenario": "web-scanning",
+    "variant": "heldout",
+    "seed": 1
+  },
+  "incident": {
+    "id": "INC-9c61bb2a92bce6b1",
+    "title": "Web scanning from one IP and 16 related alerts",
+    "status": "open",
+    "severity": "medium",
+    "score": 30.0,
+    "score_breakdown": [
+      {
+        "reason": "Most severe alert: PRH-WEB-001 (medium)",
+        "points": 20.0
+      },
+      {
+        "reason": "1 more rule fired: PRH-WEB-004",
+        "points": 10.0
+      }
+    ],
+    "first_seen": "2026-10-24T09:40:00Z",
+    "last_seen": "2026-10-24T09:57:30Z",
+    "entities": {
+      "source.ip": [
+        "203.0.113.90"
+      ]
+    },
+    "alerts": [
+      {
+        "id": "alr-2d9d74f9d1577e5e3260ffeb",
+        "detector_id": "PRH-WEB-001",
+        "detector_kind": "rule",
+        "title": "Web scanning from one IP",
+        "severity": "medium",
+        "score": 50.0,
+        "event_ids": [
+          "evt-c766aeb33de3ce6ed0228f76",
+          "evt-0334350fc67962d1550e0d62",
+          "evt-f152d7cf77b77b760311b9dc",
+          "evt-560b0e545a4eb1122ff8cd11",
+          "evt-b00f70a0def3c4807aac5bf8",
+          "evt-fa24d4a84f72757cea1cee73",
+          "evt-0f2e89872c17d40b4e563b2d",
+          "evt-96da60ad86b21419f3981800",
+          "evt-b68d4d192b1518a2cefb12b7",
+          "evt-50561be0569773c5656e4d1a"
+        ],
+        "entities": {
+          "source.ip": "203.0.113.90"
+        },
+        "first_seen": "2026-10-24T09:40:00Z",
+        "last_seen": "2026-10-24T09:41:16Z",
+        "attack": [
+          "attack.reconnaissance",
+          "attack.t1595.003"
+        ],
+        "explanation": "10 distinct http.path values (threshold 10) for source.ip=203.0.113.90 within a 5m window"
+      },
+      {
+        "id": "alr-d1bd79ba70cbae6f991acb4f",
+        "detector_id": "PRH-WEB-004",
+        "detector_kind": "rule",
+        "title": "Probes for sensitive files and admin tools",
+        "severity": "medium",
+        "score": 50.0,
+        "event_ids": [
+          "evt-c766aeb33de3ce6ed0228f76",
+          "evt-0334350fc67962d1550e0d62",
+          "evt-f152d7cf77b77b760311b9dc"
+        ],
+        "entities": {
+          "source.ip": "203.0.113.90"
+        },
+        "first_seen": "2026-10-24T09:40:00Z",
+        "last_seen": "2026-10-24T09:40:15Z",
+        "attack": [
+          "attack.reconnaissance",
+          "attack.t1595.003"
+        ],
+        "explanation": "3 distinct http.path values (threshold 3) for source.ip=203.0.113.90 within a 10m window"
+      },
+      {
+        "id": "alr-448b28e6c8980a794330d997",
+        "detector_id": "PRH-WEB-004",
+        "detector_kind": "rule",
+        "title": "Probes for sensitive files and admin tools",
+        "severity": "medium",
+        "score": 50.0,
+        "event_ids": [
+          "evt-560b0e545a4eb1122ff8cd11",
+          "evt-b00f70a0def3c4807aac5bf8",
+          "evt-fa24d4a84f72757cea1cee73"
+        ],
+        "entities": {
+          "source.ip": "203.0.113.90"
+        },
+        "first_seen": "2026-10-24T09:40:23Z",
+        "last_seen": "2026-10-24T09:40:38Z",
+        "attack": [
+          "attack.reconnaissance",
+          "attack.t1595.003"
+        ],
+        "explanation": "3 distinct http.path values (threshold 3) for source.ip=203.0.113.90 within a 10m window"
+      },
+      {
+        "id": "alr-34050b9af2a6692f67db149a",
+        "detector_id": "PRH-WEB-004",
+        "detector_kind": "rule",
+        "title": "Probes for sensitive files and admin tools",
+        "severity": "medium",
+        "score": 50.0,
+        "event_ids": [
+          "evt-0f2e89872c17d40b4e563b2d",
+          "evt-96da60ad86b21419f3981800",
+          "evt-b68d4d192b1518a2cefb12b7"
+        ],
+        "entities": {
+          "source.ip": "203.0.113.90"
+        },
+        "first_seen": "2026-10-24T09:40:45Z",
+        "last_seen": "2026-10-24T09:41:00Z",
+        "attack": [
+          "attack.reconnaissance",
+          "attack.t1595.003"
+        ],
+        "explanation": "3 distinct http.path values (threshold 3) for source.ip=203.0.113.90 within a 10m window"
+      },
+      {
+        "id": "alr-a8d99adaf555c1b05f7200aa",
+        "detector_id": "PRH-WEB-001",
+        "detector_kind": "rule",
+        "title": "Web scanning from one IP",
+        "severity": "medium",
+        "score": 50.0,
+        "event_ids": [
+          "evt-dec3b3a2ec87214a51b79546",
+          "evt-46d522ba18c67fa1c31d1aab",
+          "evt-30f666fdfd52ba13e5c448b8",
+          "evt-a2699979bd6c1c56648e0292",
+          "evt-dc248bd025a5c5d412e1c969",
+          "evt-6889166600730886a9bd899b",
+          "evt-098245d98d4925d9ed7235f9",
+          "evt-97768f08845eadadfdb35b81",
+          "evt-cd8e722d127c7025eef35c0f",
+          "evt-cd01e91d7895ecc625af6600"
+        ],
+        "entities": {
+          "source.ip": "203.0.113.90"
+        },
+        "first_seen": "2026-10-24T09:41:22Z",
+        "last_seen": "2026-10-24T09:42:31Z",
+        "attack": [
+          "attack.reconnaissance",
+          "attack.t1595.003"
+        ],
+        "explanation": "10 distinct http.path values (threshold 10) for source.ip=203.0.113.90 within a 5m window"
+      },
+      {
+        "id": "alr-a7646a13e27edfd4b66c3bec",
+        "detector_id": "PRH-WEB-001",
+        "detector_kind": "rule",
+        "title": "Web scanning from one IP",
+        "severity": "medium",
+        "score": 50.0,
+        "event_ids": [
+          "evt-960021ca72bd3120c6c5497b",
+          "evt-91425e9aa45bf17de3dc5cb4",
+          "evt-85ef3997f98040d500e4140c",
+          "evt-f47cfb8e5f09c673463d6aa1",
+          "evt-fa0bda71c3a0fdeb1be27415",
+          "evt-fc0862ba08ffdc9dfd9f13d3",
+          "evt-254b0412f98026f2e997e872",
+          "evt-b26b86f3ef8bb85f1ff078af",
+          "evt-0f0a1b382ff65da7fc682ddc",
+          "evt-381e30287b823757eb41a46b"
+        ],
+        "entities": {
+          "source.ip": "203.0.113.90"
+        },
+        "first_seen": "2026-10-24T09:42:39Z",
+        "last_seen": "2026-10-24T09:43:46Z",
+        "attack": [
+          "attack.reconnaissance",
+          "attack.t1595.003"
+        ],
+        "explanation": "10 distinct http.path values (threshold 10) for source.ip=203.0.113.90 within a 5m window"
+      },
+      {
+        "id": "alr-6028f502aa0d3e71f2c3b283",
+        "detector_id": "PRH-WEB-001",
+        "detector_kind": "rule",
+        "title": "Web scanning from one IP",
+        "severity": "medium",
+        "score": 50.0,
+        "event_ids": [
+          "evt-5b3ac7ff03ffb8d9c14cd5b0",
+          "evt-ac5a17d10e6669e52c22da6a",
+          "evt-2cd9252f513887c492fdb53f",
+          "evt-e6527a954a49e38b8d42baea",
+          "evt-c40de17b3b86fb4d65fba661",
+          "evt-d43bd66a9784f2cf93d1fa9a",
+          "evt-8e2977477f22c608842f7cf0",
+          "evt-a1672bd20c1e7ff0a8793cc8",
+          "evt-be22ab1eed045a3154183e1c",
+          "evt-bd0badfb8301b5b53351c00f"
+        ],
+        "entities": {
+          "source.ip": "203.0.113.90"
+        },
+        "first_seen": "2026-10-24T09:43:53Z",
+        "last_seen": "2026-10-24T09:45:01Z",
+        "attack": [
+          "attack.reconnaissance",
+          "attack.t1595.003"
+        ],
+        "explanation": "10 distinct http.path values (threshold 10) for source.ip=203.0.113.90 within a 5m window"
+      },
+      {
+        "id": "alr-8dc289f78fc0f25c630cf3fe",
+        "detector_id": "PRH-WEB-001",
+        "detector_kind": "rule",
+        "title": "Web scanning from one IP",
+        "severity": "medium",
+        "score": 50.0,
+        "event_ids": [
+          "evt-f5bc560f2a8f8b4ee2368129",
+          "evt-c58e62b6a90307505cd4a1b0",
+          "evt-7dc080ec0403be6131ce673d",
+          "evt-9b82933587e1e3bfd07a7536",
+          "evt-37a3e43ecae86f2b128f85dc",
+          "evt-200b79d166a8ae72ec418d32",
+          "evt-fa119a17f16703c24c67b574",
+          "evt-5f9d9157f3f7b9f1c6976a38",
+          "evt-40e6e97f8beb82382d408f6a",
+          "evt-d78c659ffbc77544bebcb326"
+        ],
+        "entities": {
+          "source.ip": "203.0.113.90"
+        },
+        "first_seen": "2026-10-24T09:45:08Z",
+        "last_seen": "2026-10-24T09:46:15Z",
+        "attack": [
+          "attack.reconnaissance",
+          "attack.t1595.003"
+        ],
+        "explanation": "10 distinct http.path values (threshold 10) for source.ip=203.0.113.90 within a 5m window"
+      },
+      {
+        "id": "alr-f2e3fe224a25ec9e0b4607b4",
+        "detector_id": "PRH-WEB-001",
+        "detector_kind": "rule",
+        "title": "Web scanning from one IP",
+        "severity": "medium",
+        "score": 50.0,
+        "event_ids": [
+          "evt-6ab335abbe789d78abeb817e",
+          "evt-706fc536f2bf92d7d926e2ec",
+          "evt-a76b5358c13b7d352d37aba5",
+          "evt-652a5069b0e561e8ccd81deb",
+          "evt-1a8f5419a0a34e036c9fb697",
+          "evt-1fa3cb9814dabe4861fb4ce2",
+          "evt-1ecd8f5d975a514ff9c8f865",
+          "evt-a739d45d129c649811471eab",
+          "evt-bac4c0db05f92c15f9208b67",
+          "evt-77672cee46c0e05a804ebc45"
+        ],
+        "entities": {
+          "source.ip": "203.0.113.90"
+        },
+        "first_seen": "2026-10-24T09:46:24Z",
+        "last_seen": "2026-10-24T09:47:30Z",
+        "attack": [
+          "attack.reconnaissance",
+          "attack.t1595.003"
+        ],
+        "explanation": "10 distinct http.path values (threshold 10) for source.ip=203.0.113.90 within a 5m window"
+      },
+      {
+        "id": "alr-d6e23bf52d6a0d3c33a2f085",
+        "detector_id": "PRH-WEB-001",
+        "detector_kind": "rule",
+        "title": "Web scanning from one IP",
+        "severity": "medium",
+        "score": 50.0,
+        "event_ids": [
+          "evt-abb9b183cdf6c8be96303e81",
+          "evt-1d9d4ef90f102feb88ce8872",
+          "evt-2898222c4e8e1e9f80f51cf2",
+          "evt-42df7712852fd40743be2559",
+          "evt-1ba6580282b47eedcc71fc68",
+          "evt-7141e5adb0131887cbd89ec5",
+          "evt-c7b453a26908e9b264e134f4",
+          "evt-f7fd52906751282cf2a36594",
+          "evt-55ec277bc89f53bd4352aaa1",
+          "evt-236454ed5d3a1af1cbf8f358"
+        ],
+        "entities": {
+          "source.ip": "203.0.113.90"
+        },
+        "first_seen": "2026-10-24T09:47:38Z",
+        "last_seen": "2026-10-24T09:48:45Z",
+        "attack": [
+          "attack.reconnaissance",
+          "attack.t1595.003"
+        ],
+        "explanation": "10 distinct http.path values (threshold 10) for source.ip=203.0.113.90 within a 5m window"
+      },
+      {
+        "id": "alr-3d3fc72b88eee5e8eb2ae731",
+        "detector_id": "PRH-WEB-001",
+        "detector_kind": "rule",
+        "title": "Web scanning from one IP",
+        "severity": "medium",
+        "score": 50.0,
+        "event_ids": [
+          "evt-8560714959899fa3660a8d71",
+          "evt-8f55d976613c0c45b3e79669",
+          "evt-8afd47517a85b89227623965",
+          "evt-4271a9d9f136b54296317d40",
+          "evt-f202dd8cf9fdca1fec6567a8",
+          "evt-27fac30a43c8e1e99fd5570c",
+          "evt-111a42ceaff88ae84c98c4c5",
+          "evt-1986b56fcef2275b3f6965d7",
+          "evt-9ade7e73717f2bf9d3077639",
+          "evt-60be05d38e58b07c004219ef"
+        ],
+        "entities": {
+          "source.ip": "203.0.113.90"
+        },
+        "first_seen": "2026-10-24T09:48:52Z",
+        "last_seen": "2026-10-24T09:50:01Z",
+        "attack": [
+          "attack.reconnaissance",
+          "attack.t1595.003"
+        ],
+        "explanation": "10 distinct http.path values (threshold 10) for source.ip=203.0.113.90 within a 5m window"
+      },
+      {
+        "id": "alr-9f24c65c08e2c4f873a7cb70",
+        "detector_id": "PRH-WEB-001",
+        "detector_kind": "rule",
+        "title": "Web scanning from one IP",
+        "severity": "medium",
+        "score": 50.0,
+        "event_ids": [
+          "evt-2ad4fbcd35e426749c20c6ef",
+          "evt-2de97b03c7dc247c95a61f12",
+          "evt-de0170351e0e63693bb2b537",
+          "evt-00f17ef1a330f968fc27fc64",
+          "evt-5a9c1591d998b503ef750920",
+          "evt-1b38c63e608df5af0b897464",
+          "evt-388a1311b002e6f63a4c41e9",
+          "evt-f357f59c2174ae5c6d49d33e",
+          "evt-075ba6434434710aa4c1f4d9",
+          "evt-5c59d51701002da83629a481"
+        ],
+        "entities": {
+          "source.ip": "203.0.113.90"
+        },
+        "first_seen": "2026-10-24T09:50:07Z",
+        "last_seen": "2026-10-24T09:51:16Z",
+        "attack": [
+          "attack.reconnaissance",
+          "attack.t1595.003"
+        ],
+        "explanation": "10 distinct http.path values (threshold 10) for source.ip=203.0.113.90 within a 5m window"
+      },
+      {
+        "id": "alr-e3f7cbf3f997ab450354346e",
+        "detector_id": "PRH-WEB-001",
+        "detector_kind": "rule",
+        "title": "Web scanning from one IP",
+        "severity": "medium",
+        "score": 50.0,
+        "event_ids": [
+          "evt-d0b2d7fc7201bc02a82b29d2",
+          "evt-ffa7d76daa7cfd4d7cf416b0",
+          "evt-a1f0c7aaab82afa6fdcce49c",
+          "evt-dc8e3558927bfc45848b32d5",
+          "evt-bfcea679cfe4cb556dd9465a",
+          "evt-722d371e85dfbd9245608a09",
+          "evt-9d854a743f2e607bfc8be422",
+          "evt-0d9c3655ed96cb160fde8a67",
+          "evt-cb214af6b04d8d02e0539f08",
+          "evt-167bd4f5edbdee4651768450"
+        ],
+        "entities": {
+          "source.ip": "203.0.113.90"
+        },
+        "first_seen": "2026-10-24T09:51:22Z",
+        "last_seen": "2026-10-24T09:52:31Z",
+        "attack": [
+          "attack.reconnaissance",
+          "attack.t1595.003"
+        ],
+        "explanation": "10 distinct http.path values (threshold 10) for source.ip=203.0.113.90 within a 5m window"
+      },
+      {
+        "id": "alr-0044a4aaa7220285ad440fb6",
+        "detector_id": "PRH-WEB-001",
+        "detector_kind": "rule",
+        "title": "Web scanning from one IP",
+        "severity": "medium",
+        "score": 50.0,
+        "event_ids": [
+          "evt-48c8ca697dd435aac2903121",
+          "evt-ae748aaf1b5375e28f0b00f8",
+          "evt-2e04125bb207b1e4d2d425af",
+          "evt-100493d11e5350557d4561df",
+          "evt-7b8245ee26a14051448a0453",
+          "evt-116fe0aef917f2b4be4da07f",
+          "evt-c4a79f080e217e7b4ca7b81d",
+          "evt-a657d5f746db639aac0089d7",
+          "evt-efdb127844ce29f52f1782ea",
+          "evt-b70471f200e749a45aa6b7c5"
+        ],
+        "entities": {
+          "source.ip": "203.0.113.90"
+        },
+        "first_seen": "2026-10-24T09:52:38Z",
+        "last_seen": "2026-10-24T09:53:45Z",
+        "attack": [
+          "attack.reconnaissance",
+          "attack.t1595.003"
+        ],
+        "explanation": "10 distinct http.path values (threshold 10) for source.ip=203.0.113.90 within a 5m window"
+      },
+      {
+        "id": "alr-38927378b52e24761ef32168",
+        "detector_id": "PRH-WEB-001",
+        "detector_kind": "rule",
+        "title": "Web scanning from one IP",
+        "severity": "medium",
+        "score": 50.0,
+        "event_ids": [
+          "evt-6cbac8839fa8f10847f185a8",
+          "evt-283804860b29780f57d7a0b8",
+          "evt-9baf742e22314062689cf204",
+          "evt-764c23e3525b0e81887fdd32",
+          "evt-7c23d1fc005dd8c6b00bae76",
+          "evt-5f6650f7c3f703f457d68ab5",
+          "evt-ab7727e1940efd970ab9f5d1",
+          "evt-2605b0cc4db63d51f04c7cf9",
+          "evt-007971ecf09fb610c6089cb8",
+          "evt-631ad4de485cf0b99e49da5b"
+        ],
+        "entities": {
+          "source.ip": "203.0.113.90"
+        },
+        "first_seen": "2026-10-24T09:53:52Z",
+        "last_seen": "2026-10-24T09:55:00Z",
+        "attack": [
+          "attack.reconnaissance",
+          "attack.t1595.003"
+        ],
+        "explanation": "10 distinct http.path values (threshold 10) for source.ip=203.0.113.90 within a 5m window"
+      },
+      {
+        "id": "alr-5683ab7593037688f6298aae",
+        "detector_id": "PRH-WEB-001",
+        "detector_kind": "rule",
+        "title": "Web scanning from one IP",
+        "severity": "medium",
+        "score": 50.0,
+        "event_ids": [
+          "evt-360cf75b8da262966a3a6ea5",
+          "evt-c734015017651a13547f7620",
+          "evt-d4ccf3a2cd9c94e2e13ba83d",
+          "evt-6bf2885ebf064ce6bf89dd29",
+          "evt-bec27f4503e5254d80ad2127",
+          "evt-655ba8af5fd76cf4cec0a42c",
+          "evt-46ba509df2e23a456809f395",
+          "evt-49717dba8e5534deee112349",
+          "evt-25edd4d4786b5801bd56202d",
+          "evt-67292e1fca5777732ab31bbf"
+        ],
+        "entities": {
+          "source.ip": "203.0.113.90"
+        },
+        "first_seen": "2026-10-24T09:55:09Z",
+        "last_seen": "2026-10-24T09:56:16Z",
+        "attack": [
+          "attack.reconnaissance",
+          "attack.t1595.003"
+        ],
+        "explanation": "10 distinct http.path values (threshold 10) for source.ip=203.0.113.90 within a 5m window"
+      },
+      {
+        "id": "alr-a9b1659fdf19b25d8b67eb15",
+        "detector_id": "PRH-WEB-001",
+        "detector_kind": "rule",
+        "title": "Web scanning from one IP",
+        "severity": "medium",
+        "score": 50.0,
+        "event_ids": [
+          "evt-1350c640433cb9ef6fe8686f",
+          "evt-92e185406db89d86f3d85baf",
+          "evt-b6097c6d7458740b899926d1",
+          "evt-2d8b455652fb6941dfdad6a8",
+          "evt-cc858da9fe06852102f57c6d",
+          "evt-d89165e7df93df9c4c1dd56f",
+          "evt-6dcb502b122903fcff39f7ad",
+          "evt-294599ff69229eab6346b516",
+          "evt-5c9940e0648e2d725a0f9d02",
+          "evt-af328cf70c55efbef603c380"
+        ],
+        "entities": {
+          "source.ip": "203.0.113.90"
+        },
+        "first_seen": "2026-10-24T09:56:23Z",
+        "last_seen": "2026-10-24T09:57:30Z",
+        "attack": [
+          "attack.reconnaissance",
+          "attack.t1595.003"
+        ],
+        "explanation": "10 distinct http.path values (threshold 10) for source.ip=203.0.113.90 within a 5m window"
+      }
+    ],
+    "timeline": [
+      {
+        "timestamp": "2026-10-24T09:40:00Z",
+        "description": "[access_log] web.request (failure), from 203.0.113.90, GET /.env -> 404",
+        "event_id": "evt-c766aeb33de3ce6ed0228f76",
+        "source_ip": "203.0.113.90"
+      },
+      {
+        "timestamp": "2026-10-24T09:40:08Z",
+        "description": "[access_log] web.request (failure), from 203.0.113.90, GET /.git/config -> 404",
+        "event_id": "evt-0334350fc67962d1550e0d62",
+        "source_ip": "203.0.113.90"
+      },
+      {
+        "timestamp": "2026-10-24T09:40:15Z",
+        "description": "[access_log] web.request (failure), from 203.0.113.90, GET /wp-login.php -> 404",
+        "event_id": "evt-f152d7cf77b77b760311b9dc",
+        "source_ip": "203.0.113.90"
+      },
+      {
+        "timestamp": "2026-10-24T09:40:15Z",
+        "description": "Alert PRH-WEB-004 (medium): Probes for sensitive files and admin tools",
+        "alert_id": "alr-d1bd79ba70cbae6f991acb4f"
+      },
+      {
+        "timestamp": "2026-10-24T09:40:23Z",
+        "description": "[access_log] web.request (failure), from 203.0.113.90, GET /wp-admin/ -> 404",
+        "event_id": "evt-560b0e545a4eb1122ff8cd11",
+        "source_ip": "203.0.113.90"
+      },
+      {
+        "timestamp": "2026-10-24T09:40:30Z",
+        "description": "[access_log] web.request (failure), from 203.0.113.90, GET /phpmyadmin/ -> 404",
+        "event_id": "evt-b00f70a0def3c4807aac5bf8",
+        "source_ip": "203.0.113.90"
+      },
+      {
+        "timestamp": "2026-10-24T09:40:38Z",
+        "description": "[access_log] web.request (failure), from 203.0.113.90, GET /xmlrpc.php -> 404",
+        "event_id": "evt-fa24d4a84f72757cea1cee73",
+        "source_ip": "203.0.113.90"
+      },
+      {
+        "timestamp": "2026-10-24T09:40:38Z",
+        "description": "Alert PRH-WEB-004 (medium): Probes for sensitive files and admin tools",
+        "alert_id": "alr-448b28e6c8980a794330d997"
+      },
+      {
+        "timestamp": "2026-10-24T09:40:45Z",
+        "description": "[access_log] web.request (failure), from 203.0.113.90, GET /server-status -> 404",
+        "event_id": "evt-0f2e89872c17d40b4e563b2d",
+        "source_ip": "203.0.113.90"
+      },
+      {
+        "timestamp": "2026-10-24T09:40:54Z",
+        "description": "[access_log] web.request (failure), from 203.0.113.90, GET /backup.zip -> 404",
+        "event_id": "evt-96da60ad86b21419f3981800",
+        "source_ip": "203.0.113.90"
+      },
+      {
+        "timestamp": "2026-10-24T09:41:00Z",
+        "description": "[access_log] web.request (failure), from 203.0.113.90, GET /config.json -> 404",
+        "event_id": "evt-b68d4d192b1518a2cefb12b7",
+        "source_ip": "203.0.113.90"
+      },
+      {
+        "timestamp": "2026-10-24T09:41:00Z",
+        "description": "Alert PRH-WEB-004 (medium): Probes for sensitive files and admin tools",
+        "alert_id": "alr-34050b9af2a6692f67db149a"
+      },
+      {
+        "timestamp": "2026-10-24T09:41:16Z",
+        "description": "[access_log] web.request (failure), from 203.0.113.90, GET /login.php -> 404",
+        "event_id": "evt-50561be0569773c5656e4d1a",
+        "source_ip": "203.0.113.90"
+      },
+      {
+        "timestamp": "2026-10-24T09:41:16Z",
+        "description": "Alert PRH-WEB-001 (medium): Web scanning from one IP",
+        "alert_id": "alr-2d9d74f9d1577e5e3260ffeb"
+      },
+      {
+        "timestamp": "2026-10-24T09:41:22Z",
+        "description": "[access_log] web.request (failure), from 203.0.113.90, GET /test.php -> 404",
+        "event_id": "evt-dec3b3a2ec87214a51b79546",
+        "source_ip": "203.0.113.90"
+      },
+      {
+        "timestamp": "2026-10-24T09:41:31Z",
+        "description": "[access_log] web.request (failure), from 203.0.113.90, GET /old/ -> 404",
+        "event_id": "evt-46d522ba18c67fa1c31d1aab",
+        "source_ip": "203.0.113.90"
+      },
+      {
+        "timestamp": "2026-10-24T09:41:37Z",
+        "description": "[access_log] web.request (failure), from 203.0.113.90, GET /api/v1/ -> 404",
+        "event_id": "evt-30f666fdfd52ba13e5c448b8",
+        "source_ip": "203.0.113.90"
+      },
+      {
+        "timestamp": "2026-10-24T09:41:46Z",
+        "description": "[access_log] web.request (failure), from 203.0.113.90, GET /console -> 404",
+        "event_id": "evt-a2699979bd6c1c56648e0292",
+        "source_ip": "203.0.113.90"
+      },
+      {
+        "timestamp": "2026-10-24T09:41:54Z",
+        "description": "[access_log] web.request (failure), from 203.0.113.90, GET /.aws/credentials -> 404",
+        "event_id": "evt-dc248bd025a5c5d412e1c969",
+        "source_ip": "203.0.113.90"
+      },
+      {
+        "timestamp": "2026-10-24T09:42:00Z",
+        "description": "[access_log] web.request (failure), from 203.0.113.90, GET /shell.php -> 404",
+        "event_id": "evt-6889166600730886a9bd899b",
+        "source_ip": "203.0.113.90"
+      },
+      {
+        "timestamp": "2026-10-24T09:42:08Z",
+        "description": "[access_log] web.request (failure), from 203.0.113.90, GET /info.php -> 404",
+        "event_id": "evt-098245d98d4925d9ed7235f9",
+        "source_ip": "203.0.113.90"
+      },
+      {
+        "timestamp": "2026-10-24T09:42:15Z",
+        "description": "[access_log] web.request (failure), from 203.0.113.90, GET /dev18.zip -> 404",
+        "event_id": "evt-97768f08845eadadfdb35b81",
+        "source_ip": "203.0.113.90"
+      },
+      {
+        "timestamp": "2026-10-24T09:42:24Z",
+        "description": "[access_log] web.request (failure), from 203.0.113.90, GET /dev19/ -> 404",
+        "event_id": "evt-cd8e722d127c7025eef35c0f",
+        "source_ip": "203.0.113.90"
+      },
+      {
+        "timestamp": "2026-10-24T09:42:31Z",
+        "description": "[access_log] web.request (failure), from 203.0.113.90, GET /dev20.zip -> 404",
+        "event_id": "evt-cd01e91d7895ecc625af6600",
+        "source_ip": "203.0.113.90"
+      },
+      {
+        "timestamp": "2026-10-24T09:42:31Z",
+        "description": "Alert PRH-WEB-001 (medium): Web scanning from one IP",
+        "alert_id": "alr-a8d99adaf555c1b05f7200aa"
+      },
+      {
+        "timestamp": "2026-10-24T09:42:39Z",
+        "description": "[access_log] web.request (failure), from 203.0.113.90, GET /dev21.bak -> 404",
+        "event_id": "evt-960021ca72bd3120c6c5497b",
+        "source_ip": "203.0.113.90"
+      },
+      {
+        "timestamp": "2026-10-24T09:42:45Z",
+        "description": "[access_log] web.request (failure), from 203.0.113.90, GET /backup22.bak -> 404",
+        "event_id": "evt-91425e9aa45bf17de3dc5cb4",
+        "source_ip": "203.0.113.90"
+      },
+      {
+        "timestamp": "2026-10-24T09:42:52Z",
+        "description": "[access_log] web.request (failure), from 203.0.113.90, GET /dev23.bak -> 404",
+        "event_id": "evt-85ef3997f98040d500e4140c",
+        "source_ip": "203.0.113.90"
+      },
+      {
+        "timestamp": "2026-10-24T09:43:00Z",
+        "description": "[access_log] web.request (failure), from 203.0.113.90, GET /tmp24.php -> 404",
+        "event_id": "evt-f47cfb8e5f09c673463d6aa1",
+        "source_ip": "203.0.113.90"
+      },
+      {
+        "timestamp": "2026-10-24T09:43:08Z",
+        "description": "[access_log] web.request (failure), from 203.0.113.90, GET /tmp25/ -> 404",
+        "event_id": "evt-fa0bda71c3a0fdeb1be27415",
+        "source_ip": "203.0.113.90"
+      },
+      {
+        "timestamp": "2026-10-24T09:43:15Z",
+        "description": "[access_log] web.request (failure), from 203.0.113.90, GET /backup26.zip -> 404",
+        "event_id": "evt-fc0862ba08ffdc9dfd9f13d3",
+        "source_ip": "203.0.113.90"
+      },
+      {
+        "timestamp": "2026-10-24T09:43:23Z",
+        "description": "[access_log] web.request (failure), from 203.0.113.90, GET /old27.zip -> 404",
+        "event_id": "evt-254b0412f98026f2e997e872",
+        "source_ip": "203.0.113.90"
+      },
+      {
+        "timestamp": "2026-10-24T09:43:31Z",
+        "description": "[access_log] web.request (failure), from 203.0.113.90, GET /backup28.zip -> 404",
+        "event_id": "evt-b26b86f3ef8bb85f1ff078af",
+        "source_ip": "203.0.113.90"
+      },
+      {
+        "timestamp": "2026-10-24T09:43:38Z",
+        "description": "[access_log] web.request (failure), from 203.0.113.90, GET /dev29.bak -> 404",
+        "event_id": "evt-0f0a1b382ff65da7fc682ddc",
+        "source_ip": "203.0.113.90"
+      },
+      {
+        "timestamp": "2026-10-24T09:43:46Z",
+        "description": "[access_log] web.request (failure), from 203.0.113.90, GET /backup30.php -> 404",
+        "event_id": "evt-381e30287b823757eb41a46b",
+        "source_ip": "203.0.113.90"
+      },
+      {
+        "timestamp": "2026-10-24T09:43:46Z",
+        "description": "Alert PRH-WEB-001 (medium): Web scanning from one IP",
+        "alert_id": "alr-a7646a13e27edfd4b66c3bec"
+      },
+      {
+        "timestamp": "2026-10-24T09:43:53Z",
+        "description": "[access_log] web.request (failure), from 203.0.113.90, GET /tmp31.zip -> 404",
+        "event_id": "evt-5b3ac7ff03ffb8d9c14cd5b0",
+        "source_ip": "203.0.113.90"
+      },
+      {
+        "timestamp": "2026-10-24T09:44:01Z",
+        "description": "[access_log] web.request (failure), from 203.0.113.90, GET /old32.bak -> 404",
+        "event_id": "evt-ac5a17d10e6669e52c22da6a",
+        "source_ip": "203.0.113.90"
+      },
+      {
+        "timestamp": "2026-10-24T09:44:09Z",
+        "description": "[access_log] web.request (failure), from 203.0.113.90, GET /tmp33.zip -> 404",
+        "event_id": "evt-2cd9252f513887c492fdb53f",
+        "source_ip": "203.0.113.90"
+      },
+      {
+        "timestamp": "2026-10-24T09:44:15Z",
+        "description": "[access_log] web.request (failure), from 203.0.113.90, GET /backup34.bak -> 404",
+        "event_id": "evt-e6527a954a49e38b8d42baea",
+        "source_ip": "203.0.113.90"
+      },
+      {
+        "timestamp": "2026-10-24T09:44:22Z",
+        "description": "[access_log] web.request (failure), from 203.0.113.90, GET /dev35.bak -> 404",
+        "event_id": "evt-c40de17b3b86fb4d65fba661",
+        "source_ip": "203.0.113.90"
+      },
+      {
+        "timestamp": "2026-10-24T09:44:31Z",
+        "description": "[access_log] web.request (failure), from 203.0.113.90, GET /old36.zip -> 404",
+        "event_id": "evt-d43bd66a9784f2cf93d1fa9a",
+        "source_ip": "203.0.113.90"
+      },
+      {
+        "timestamp": "2026-10-24T09:44:38Z",
+        "description": "[access_log] web.request (failure), from 203.0.113.90, GET /tmp37.bak -> 404",
+        "event_id": "evt-8e2977477f22c608842f7cf0",
+        "source_ip": "203.0.113.90"
+      },
+      {
+        "timestamp": "2026-10-24T09:44:46Z",
+        "description": "[access_log] web.request (failure), from 203.0.113.90, GET /backup38/ -> 404",
+        "event_id": "evt-a1672bd20c1e7ff0a8793cc8",
+        "source_ip": "203.0.113.90"
+      },
+      {
+        "timestamp": "2026-10-24T09:44:53Z",
+        "description": "[access_log] web.request (failure), from 203.0.113.90, GET /admin39.php -> 404",
+        "event_id": "evt-be22ab1eed045a3154183e1c",
+        "source_ip": "203.0.113.90"
+      },
+      {
+        "timestamp": "2026-10-24T09:45:01Z",
+        "description": "[access_log] web.request (failure), from 203.0.113.90, GET /dev40.zip -> 404",
+        "event_id": "evt-bd0badfb8301b5b53351c00f",
+        "source_ip": "203.0.113.90"
+      },
+      {
+        "timestamp": "2026-10-24T09:45:01Z",
+        "description": "Alert PRH-WEB-001 (medium): Web scanning from one IP",
+        "alert_id": "alr-6028f502aa0d3e71f2c3b283"
+      },
+      {
+        "timestamp": "2026-10-24T09:45:08Z",
+        "description": "[access_log] web.request (failure), from 203.0.113.90, GET /old41.php -> 404",
+        "event_id": "evt-f5bc560f2a8f8b4ee2368129",
+        "source_ip": "203.0.113.90"
+      },
+      {
+        "timestamp": "2026-10-24T09:45:15Z",
+        "description": "[access_log] web.request (failure), from 203.0.113.90, GET /old42/ -> 404",
+        "event_id": "evt-c58e62b6a90307505cd4a1b0",
+        "source_ip": "203.0.113.90"
+      },
+      {
+        "timestamp": "2026-10-24T09:45:23Z",
+        "description": "[access_log] web.request (failure), from 203.0.113.90, GET /tmp43.php -> 404",
+        "event_id": "evt-7dc080ec0403be6131ce673d",
+        "source_ip": "203.0.113.90"
+      },
+      {
+        "timestamp": "2026-10-24T09:45:31Z",
+        "description": "[access_log] web.request (failure), from 203.0.113.90, GET /backup44.php -> 404",
+        "event_id": "evt-9b82933587e1e3bfd07a7536",
+        "source_ip": "203.0.113.90"
+      },
+      {
+        "timestamp": "2026-10-24T09:45:38Z",
+        "description": "[access_log] web.request (failure), from 203.0.113.90, GET /tmp45.bak -> 404",
+        "event_id": "evt-37a3e43ecae86f2b128f85dc",
+        "source_ip": "203.0.113.90"
+      },
+      {
+        "timestamp": "2026-10-24T09:45:46Z",
+        "description": "[access_log] web.request (failure), from 203.0.113.90, GET /tmp46.zip -> 404",
+        "event_id": "evt-200b79d166a8ae72ec418d32",
+        "source_ip": "203.0.113.90"
+      },
+      {
+        "timestamp": "2026-10-24T09:45:53Z",
+        "description": "[access_log] web.request (failure), from 203.0.113.90, GET /admin47.bak -> 404",
+        "event_id": "evt-fa119a17f16703c24c67b574",
+        "source_ip": "203.0.113.90"
+      },
+      {
+        "timestamp": "2026-10-24T09:46:01Z",
+        "description": "[access_log] web.request (failure), from 203.0.113.90, GET /admin48.zip -> 404",
+        "event_id": "evt-5f9d9157f3f7b9f1c6976a38",
+        "source_ip": "203.0.113.90"
+      },
+      {
+        "timestamp": "2026-10-24T09:46:09Z",
+        "description": "[access_log] web.request (failure), from 203.0.113.90, GET /old49/ -> 404",
+        "event_id": "evt-40e6e97f8beb82382d408f6a",
+        "source_ip": "203.0.113.90"
+      },
+      {
+        "timestamp": "2026-10-24T09:46:15Z",
+        "description": "[access_log] web.request (failure), from 203.0.113.90, GET /admin50.bak -> 404",
+        "event_id": "evt-d78c659ffbc77544bebcb326",
+        "source_ip": "203.0.113.90"
+      },
+      {
+        "timestamp": "2026-10-24T09:46:15Z",
+        "description": "Alert PRH-WEB-001 (medium): Web scanning from one IP",
+        "alert_id": "alr-8dc289f78fc0f25c630cf3fe"
+      },
+      {
+        "timestamp": "2026-10-24T09:46:24Z",
+        "description": "[access_log] web.request (failure), from 203.0.113.90, GET /old51.bak -> 404",
+        "event_id": "evt-6ab335abbe789d78abeb817e",
+        "source_ip": "203.0.113.90"
+      },
+      {
+        "timestamp": "2026-10-24T09:46:30Z",
+        "description": "[access_log] web.request (failure), from 203.0.113.90, GET /old52/ -> 404",
+        "event_id": "evt-706fc536f2bf92d7d926e2ec",
+        "source_ip": "203.0.113.90"
+      },
+      {
+        "timestamp": "2026-10-24T09:46:38Z",
+        "description": "[access_log] web.request (failure), from 203.0.113.90, GET /tmp53.bak -> 404",
+        "event_id": "evt-a76b5358c13b7d352d37aba5",
+        "source_ip": "203.0.113.90"
+      },
+      {
+        "timestamp": "2026-10-24T09:46:45Z",
+        "description": "[access_log] web.request (failure), from 203.0.113.90, GET /admin54.bak -> 404",
+        "event_id": "evt-652a5069b0e561e8ccd81deb",
+        "source_ip": "203.0.113.90"
+      },
+      {
+        "timestamp": "2026-10-24T09:46:53Z",
+        "description": "[access_log] web.request (failure), from 203.0.113.90, GET /dev55.bak -> 404",
+        "event_id": "evt-1a8f5419a0a34e036c9fb697",
+        "source_ip": "203.0.113.90"
+      },
+      {
+        "timestamp": "2026-10-24T09:47:01Z",
+        "description": "[access_log] web.request (failure), from 203.0.113.90, GET /admin56.bak -> 404",
+        "event_id": "evt-1fa3cb9814dabe4861fb4ce2",
+        "source_ip": "203.0.113.90"
+      },
+      {
+        "timestamp": "2026-10-24T09:47:08Z",
+        "description": "[access_log] web.request (failure), from 203.0.113.90, GET /admin57.bak -> 404",
+        "event_id": "evt-1ecd8f5d975a514ff9c8f865",
+        "source_ip": "203.0.113.90"
+      },
+      {
+        "timestamp": "2026-10-24T09:47:16Z",
+        "description": "[access_log] web.request (failure), from 203.0.113.90, GET /tmp58/ -> 404",
+        "event_id": "evt-a739d45d129c649811471eab",
+        "source_ip": "203.0.113.90"
+      },
+      {
+        "timestamp": "2026-10-24T09:47:23Z",
+        "description": "[access_log] web.request (failure), from 203.0.113.90, GET /old59.bak -> 404",
+        "event_id": "evt-bac4c0db05f92c15f9208b67",
+        "source_ip": "203.0.113.90"
+      },
+      {
+        "timestamp": "2026-10-24T09:47:30Z",
+        "description": "[access_log] web.request (failure), from 203.0.113.90, GET /dev60/ -> 404",
+        "event_id": "evt-77672cee46c0e05a804ebc45",
+        "source_ip": "203.0.113.90"
+      },
+      {
+        "timestamp": "2026-10-24T09:47:30Z",
+        "description": "Alert PRH-WEB-001 (medium): Web scanning from one IP",
+        "alert_id": "alr-f2e3fe224a25ec9e0b4607b4"
+      },
+      {
+        "timestamp": "2026-10-24T09:47:38Z",
+        "description": "[access_log] web.request (failure), from 203.0.113.90, GET /admin61/ -> 404",
+        "event_id": "evt-abb9b183cdf6c8be96303e81",
+        "source_ip": "203.0.113.90"
+      },
+      {
+        "timestamp": "2026-10-24T09:47:46Z",
+        "description": "[access_log] web.request (failure), from 203.0.113.90, GET /old62/ -> 404",
+        "event_id": "evt-1d9d4ef90f102feb88ce8872",
+        "source_ip": "203.0.113.90"
+      },
+      {
+        "timestamp": "2026-10-24T09:47:53Z",
+        "description": "[access_log] web.request (failure), from 203.0.113.90, GET /old63/ -> 404",
+        "event_id": "evt-2898222c4e8e1e9f80f51cf2",
+        "source_ip": "203.0.113.90"
+      },
+      {
+        "timestamp": "2026-10-24T09:48:01Z",
+        "description": "[access_log] web.request (failure), from 203.0.113.90, GET /admin64.php -> 404",
+        "event_id": "evt-42df7712852fd40743be2559",
+        "source_ip": "203.0.113.90"
+      },
+      {
+        "timestamp": "2026-10-24T09:48:09Z",
+        "description": "[access_log] web.request (failure), from 203.0.113.90, GET /backup65.php -> 404",
+        "event_id": "evt-1ba6580282b47eedcc71fc68",
+        "source_ip": "203.0.113.90"
+      },
+      {
+        "timestamp": "2026-10-24T09:48:15Z",
+        "description": "[access_log] web.request (failure), from 203.0.113.90, GET /backup66/ -> 404",
+        "event_id": "evt-7141e5adb0131887cbd89ec5",
+        "source_ip": "203.0.113.90"
+      },
+      {
+        "timestamp": "2026-10-24T09:48:23Z",
+        "description": "[access_log] web.request (failure), from 203.0.113.90, GET /admin67.php -> 404",
+        "event_id": "evt-c7b453a26908e9b264e134f4",
+        "source_ip": "203.0.113.90"
+      },
+      {
+        "timestamp": "2026-10-24T09:48:31Z",
+        "description": "[access_log] web.request (failure), from 203.0.113.90, GET /tmp68.bak -> 404",
+        "event_id": "evt-f7fd52906751282cf2a36594",
+        "source_ip": "203.0.113.90"
+      },
+      {
+        "timestamp": "2026-10-24T09:48:38Z",
+        "description": "[access_log] web.request (failure), from 203.0.113.90, GET /old69/ -> 404",
+        "event_id": "evt-55ec277bc89f53bd4352aaa1",
+        "source_ip": "203.0.113.90"
+      },
+      {
+        "timestamp": "2026-10-24T09:48:45Z",
+        "description": "[access_log] web.request (failure), from 203.0.113.90, GET /backup70.zip -> 404",
+        "event_id": "evt-236454ed5d3a1af1cbf8f358",
+        "source_ip": "203.0.113.90"
+      },
+      {
+        "timestamp": "2026-10-24T09:48:45Z",
+        "description": "Alert PRH-WEB-001 (medium): Web scanning from one IP",
+        "alert_id": "alr-d6e23bf52d6a0d3c33a2f085"
+      },
+      {
+        "timestamp": "2026-10-24T09:48:52Z",
+        "description": "[access_log] web.request (failure), from 203.0.113.90, GET /tmp71.zip -> 404",
+        "event_id": "evt-8560714959899fa3660a8d71",
+        "source_ip": "203.0.113.90"
+      },
+      {
+        "timestamp": "2026-10-24T09:49:01Z",
+        "description": "[access_log] web.request (failure), from 203.0.113.90, GET /dev72/ -> 404",
+        "event_id": "evt-8f55d976613c0c45b3e79669",
+        "source_ip": "203.0.113.90"
+      },
+      {
+        "timestamp": "2026-10-24T09:49:08Z",
+        "description": "[access_log] web.request (failure), from 203.0.113.90, GET /admin73.php -> 404",
+        "event_id": "evt-8afd47517a85b89227623965",
+        "source_ip": "203.0.113.90"
+      },
+      {
+        "timestamp": "2026-10-24T09:49:16Z",
+        "description": "[access_log] web.request (failure), from 203.0.113.90, GET /old74/ -> 404",
+        "event_id": "evt-4271a9d9f136b54296317d40",
+        "source_ip": "203.0.113.90"
+      },
+      {
+        "timestamp": "2026-10-24T09:49:22Z",
+        "description": "[access_log] web.request (failure), from 203.0.113.90, GET /tmp75/ -> 404",
+        "event_id": "evt-f202dd8cf9fdca1fec6567a8",
+        "source_ip": "203.0.113.90"
+      },
+      {
+        "timestamp": "2026-10-24T09:49:31Z",
+        "description": "[access_log] web.request (failure), from 203.0.113.90, GET /dev76/ -> 404",
+        "event_id": "evt-27fac30a43c8e1e99fd5570c",
+        "source_ip": "203.0.113.90"
+      },
+      {
+        "timestamp": "2026-10-24T09:49:38Z",
+        "description": "[access_log] web.request (failure), from 203.0.113.90, GET /dev77.php -> 404",
+        "event_id": "evt-111a42ceaff88ae84c98c4c5",
+        "source_ip": "203.0.113.90"
+      },
+      {
+        "timestamp": "2026-10-24T09:49:46Z",
+        "description": "[access_log] web.request (failure), from 203.0.113.90, GET /admin78.php -> 404",
+        "event_id": "evt-1986b56fcef2275b3f6965d7",
+        "source_ip": "203.0.113.90"
+      },
+      {
+        "timestamp": "2026-10-24T09:49:53Z",
+        "description": "[access_log] web.request (failure), from 203.0.113.90, GET /admin79.zip -> 404",
+        "event_id": "evt-9ade7e73717f2bf9d3077639",
+        "source_ip": "203.0.113.90"
+      },
+      {
+        "timestamp": "2026-10-24T09:50:01Z",
+        "description": "[access_log] web.request (failure), from 203.0.113.90, GET /tmp80/ -> 404",
+        "event_id": "evt-60be05d38e58b07c004219ef",
+        "source_ip": "203.0.113.90"
+      },
+      {
+        "timestamp": "2026-10-24T09:50:01Z",
+        "description": "Alert PRH-WEB-001 (medium): Web scanning from one IP",
+        "alert_id": "alr-3d3fc72b88eee5e8eb2ae731"
+      },
+      {
+        "timestamp": "2026-10-24T09:50:07Z",
+        "description": "[access_log] web.request (failure), from 203.0.113.90, GET /admin81.zip -> 404",
+        "event_id": "evt-2ad4fbcd35e426749c20c6ef",
+        "source_ip": "203.0.113.90"
+      },
+      {
+        "timestamp": "2026-10-24T09:50:15Z",
+        "description": "[access_log] web.request (failure), from 203.0.113.90, GET /admin82.zip -> 404",
+        "event_id": "evt-2de97b03c7dc247c95a61f12",
+        "source_ip": "203.0.113.90"
+      },
+      {
+        "timestamp": "2026-10-24T09:50:22Z",
+        "description": "[access_log] web.request (failure), from 203.0.113.90, GET /admin83.bak -> 404",
+        "event_id": "evt-de0170351e0e63693bb2b537",
+        "source_ip": "203.0.113.90"
+      },
+      {
+        "timestamp": "2026-10-24T09:50:30Z",
+        "description": "[access_log] web.request (failure), from 203.0.113.90, GET /old84.bak -> 404",
+        "event_id": "evt-00f17ef1a330f968fc27fc64",
+        "source_ip": "203.0.113.90"
+      },
+      {
+        "timestamp": "2026-10-24T09:50:37Z",
+        "description": "[access_log] web.request (failure), from 203.0.113.90, GET /tmp85/ -> 404",
+        "event_id": "evt-5a9c1591d998b503ef750920",
+        "source_ip": "203.0.113.90"
+      },
+      {
+        "timestamp": "2026-10-24T09:50:46Z",
+        "description": "[access_log] web.request (failure), from 203.0.113.90, GET /dev86/ -> 404",
+        "event_id": "evt-1b38c63e608df5af0b897464",
+        "source_ip": "203.0.113.90"
+      },
+      {
+        "timestamp": "2026-10-24T09:50:53Z",
+        "description": "[access_log] web.request (failure), from 203.0.113.90, GET /old87.bak -> 404",
+        "event_id": "evt-388a1311b002e6f63a4c41e9",
+        "source_ip": "203.0.113.90"
+      },
+      {
+        "timestamp": "2026-10-24T09:51:01Z",
+        "description": "[access_log] web.request (failure), from 203.0.113.90, GET /old88/ -> 404",
+        "event_id": "evt-f357f59c2174ae5c6d49d33e",
+        "source_ip": "203.0.113.90"
+      },
+      {
+        "timestamp": "2026-10-24T09:51:08Z",
+        "description": "[access_log] web.request (failure), from 203.0.113.90, GET /backup89/ -> 404",
+        "event_id": "evt-075ba6434434710aa4c1f4d9",
+        "source_ip": "203.0.113.90"
+      },
+      {
+        "timestamp": "2026-10-24T09:51:16Z",
+        "description": "[access_log] web.request (failure), from 203.0.113.90, GET /admin90.php -> 404",
+        "event_id": "evt-5c59d51701002da83629a481",
+        "source_ip": "203.0.113.90"
+      },
+      {
+        "timestamp": "2026-10-24T09:51:16Z",
+        "description": "Alert PRH-WEB-001 (medium): Web scanning from one IP",
+        "alert_id": "alr-9f24c65c08e2c4f873a7cb70"
+      },
+      {
+        "timestamp": "2026-10-24T09:51:22Z",
+        "description": "[access_log] web.request (failure), from 203.0.113.90, GET /admin91/ -> 404",
+        "event_id": "evt-d0b2d7fc7201bc02a82b29d2",
+        "source_ip": "203.0.113.90"
+      },
+      {
+        "timestamp": "2026-10-24T09:51:30Z",
+        "description": "[access_log] web.request (failure), from 203.0.113.90, GET /admin92.zip -> 404",
+        "event_id": "evt-ffa7d76daa7cfd4d7cf416b0",
+        "source_ip": "203.0.113.90"
+      },
+      {
+        "timestamp": "2026-10-24T09:51:39Z",
+        "description": "[access_log] web.request (failure), from 203.0.113.90, GET /dev93.bak -> 404",
+        "event_id": "evt-a1f0c7aaab82afa6fdcce49c",
+        "source_ip": "203.0.113.90"
+      },
+      {
+        "timestamp": "2026-10-24T09:51:45Z",
+        "description": "[access_log] web.request (failure), from 203.0.113.90, GET /admin94/ -> 404",
+        "event_id": "evt-dc8e3558927bfc45848b32d5",
+        "source_ip": "203.0.113.90"
+      },
+      {
+        "timestamp": "2026-10-24T09:51:53Z",
+        "description": "[access_log] web.request (failure), from 203.0.113.90, GET /admin95/ -> 404",
+        "event_id": "evt-bfcea679cfe4cb556dd9465a",
+        "source_ip": "203.0.113.90"
+      },
+      {
+        "timestamp": "2026-10-24T09:52:01Z",
+        "description": "[access_log] web.request (failure), from 203.0.113.90, GET /tmp96/ -> 404",
+        "event_id": "evt-722d371e85dfbd9245608a09",
+        "source_ip": "203.0.113.90"
+      },
+      {
+        "timestamp": "2026-10-24T09:52:08Z",
+        "description": "[access_log] web.request (failure), from 203.0.113.90, GET /tmp97.php -> 404",
+        "event_id": "evt-9d854a743f2e607bfc8be422",
+        "source_ip": "203.0.113.90"
+      },
+      {
+        "timestamp": "2026-10-24T09:52:15Z",
+        "description": "[access_log] web.request (failure), from 203.0.113.90, GET /old98.bak -> 404",
+        "event_id": "evt-0d9c3655ed96cb160fde8a67",
+        "source_ip": "203.0.113.90"
+      },
+      {
+        "timestamp": "2026-10-24T09:52:23Z",
+        "description": "[access_log] web.request (failure), from 203.0.113.90, GET /dev99.bak -> 404",
+        "event_id": "evt-cb214af6b04d8d02e0539f08",
+        "source_ip": "203.0.113.90"
+      },
+      {
+        "timestamp": "2026-10-24T09:52:31Z",
+        "description": "[access_log] web.request (failure), from 203.0.113.90, GET /old100.php -> 404",
+        "event_id": "evt-167bd4f5edbdee4651768450",
+        "source_ip": "203.0.113.90"
+      },
+      {
+        "timestamp": "2026-10-24T09:52:31Z",
+        "description": "Alert PRH-WEB-001 (medium): Web scanning from one IP",
+        "alert_id": "alr-e3f7cbf3f997ab450354346e"
+      },
+      {
+        "timestamp": "2026-10-24T09:52:38Z",
+        "description": "[access_log] web.request (failure), from 203.0.113.90, GET /backup101.zip -> 404",
+        "event_id": "evt-48c8ca697dd435aac2903121",
+        "source_ip": "203.0.113.90"
+      },
+      {
+        "timestamp": "2026-10-24T09:52:46Z",
+        "description": "[access_log] web.request (failure), from 203.0.113.90, GET /admin102.zip -> 404",
+        "event_id": "evt-ae748aaf1b5375e28f0b00f8",
+        "source_ip": "203.0.113.90"
+      },
+      {
+        "timestamp": "2026-10-24T09:52:53Z",
+        "description": "[access_log] web.request (failure), from 203.0.113.90, GET /old103.zip -> 404",
+        "event_id": "evt-2e04125bb207b1e4d2d425af",
+        "source_ip": "203.0.113.90"
+      },
+      {
+        "timestamp": "2026-10-24T09:53:00Z",
+        "description": "[access_log] web.request (failure), from 203.0.113.90, GET /old104.bak -> 404",
+        "event_id": "evt-100493d11e5350557d4561df",
+        "source_ip": "203.0.113.90"
+      },
+      {
+        "timestamp": "2026-10-24T09:53:08Z",
+        "description": "[access_log] web.request (failure), from 203.0.113.90, GET /old105/ -> 404",
+        "event_id": "evt-7b8245ee26a14051448a0453",
+        "source_ip": "203.0.113.90"
+      },
+      {
+        "timestamp": "2026-10-24T09:53:16Z",
+        "description": "[access_log] web.request (failure), from 203.0.113.90, GET /dev106.bak -> 404",
+        "event_id": "evt-116fe0aef917f2b4be4da07f",
+        "source_ip": "203.0.113.90"
+      },
+      {
+        "timestamp": "2026-10-24T09:53:22Z",
+        "description": "[access_log] web.request (failure), from 203.0.113.90, GET /old107.php -> 404",
+        "event_id": "evt-c4a79f080e217e7b4ca7b81d",
+        "source_ip": "203.0.113.90"
+      },
+      {
+        "timestamp": "2026-10-24T09:53:31Z",
+        "description": "[access_log] web.request (failure), from 203.0.113.90, GET /admin108/ -> 404",
+        "event_id": "evt-a657d5f746db639aac0089d7",
+        "source_ip": "203.0.113.90"
+      },
+      {
+        "timestamp": "2026-10-24T09:53:38Z",
+        "description": "[access_log] web.request (failure), from 203.0.113.90, GET /tmp109.bak -> 404",
+        "event_id": "evt-efdb127844ce29f52f1782ea",
+        "source_ip": "203.0.113.90"
+      },
+      {
+        "timestamp": "2026-10-24T09:53:45Z",
+        "description": "[access_log] web.request (failure), from 203.0.113.90, GET /old110.zip -> 404",
+        "event_id": "evt-b70471f200e749a45aa6b7c5",
+        "source_ip": "203.0.113.90"
+      },
+      {
+        "timestamp": "2026-10-24T09:53:45Z",
+        "description": "Alert PRH-WEB-001 (medium): Web scanning from one IP",
+        "alert_id": "alr-0044a4aaa7220285ad440fb6"
+      },
+      {
+        "timestamp": "2026-10-24T09:53:52Z",
+        "description": "[access_log] web.request (failure), from 203.0.113.90, GET /dev111.php -> 404",
+        "event_id": "evt-6cbac8839fa8f10847f185a8",
+        "source_ip": "203.0.113.90"
+      },
+      {
+        "timestamp": "2026-10-24T09:54:01Z",
+        "description": "[access_log] web.request (failure), from 203.0.113.90, GET /backup112/ -> 404",
+        "event_id": "evt-283804860b29780f57d7a0b8",
+        "source_ip": "203.0.113.90"
+      },
+      {
+        "timestamp": "2026-10-24T09:54:08Z",
+        "description": "[access_log] web.request (failure), from 203.0.113.90, GET /admin113.php -> 404",
+        "event_id": "evt-9baf742e22314062689cf204",
+        "source_ip": "203.0.113.90"
+      },
+      {
+        "timestamp": "2026-10-24T09:54:16Z",
+        "description": "[access_log] web.request (failure), from 203.0.113.90, GET /admin114.bak -> 404",
+        "event_id": "evt-764c23e3525b0e81887fdd32",
+        "source_ip": "203.0.113.90"
+      },
+      {
+        "timestamp": "2026-10-24T09:54:22Z",
+        "description": "[access_log] web.request (failure), from 203.0.113.90, GET /dev115.bak -> 404",
+        "event_id": "evt-7c23d1fc005dd8c6b00bae76",
+        "source_ip": "203.0.113.90"
+      },
+      {
+        "timestamp": "2026-10-24T09:54:30Z",
+        "description": "[access_log] web.request (failure), from 203.0.113.90, GET /backup116.php -> 404",
+        "event_id": "evt-5f6650f7c3f703f457d68ab5",
+        "source_ip": "203.0.113.90"
+      },
+      {
+        "timestamp": "2026-10-24T09:54:38Z",
+        "description": "[access_log] web.request (failure), from 203.0.113.90, GET /backup117.php -> 404",
+        "event_id": "evt-ab7727e1940efd970ab9f5d1",
+        "source_ip": "203.0.113.90"
+      },
+      {
+        "timestamp": "2026-10-24T09:54:46Z",
+        "description": "[access_log] web.request (failure), from 203.0.113.90, GET /old118.php -> 404",
+        "event_id": "evt-2605b0cc4db63d51f04c7cf9",
+        "source_ip": "203.0.113.90"
+      },
+      {
+        "timestamp": "2026-10-24T09:54:52Z",
+        "description": "[access_log] web.request (failure), from 203.0.113.90, GET /backup119.php -> 404",
+        "event_id": "evt-007971ecf09fb610c6089cb8",
+        "source_ip": "203.0.113.90"
+      },
+      {
+        "timestamp": "2026-10-24T09:55:00Z",
+        "description": "[access_log] web.request (failure), from 203.0.113.90, GET /old120/ -> 404",
+        "event_id": "evt-631ad4de485cf0b99e49da5b",
+        "source_ip": "203.0.113.90"
+      },
+      {
+        "timestamp": "2026-10-24T09:55:00Z",
+        "description": "Alert PRH-WEB-001 (medium): Web scanning from one IP",
+        "alert_id": "alr-38927378b52e24761ef32168"
+      },
+      {
+        "timestamp": "2026-10-24T09:55:09Z",
+        "description": "[access_log] web.request (failure), from 203.0.113.90, GET /old121.zip -> 404",
+        "event_id": "evt-360cf75b8da262966a3a6ea5",
+        "source_ip": "203.0.113.90"
+      },
+      {
+        "timestamp": "2026-10-24T09:55:16Z",
+        "description": "[access_log] web.request (failure), from 203.0.113.90, GET /tmp122.zip -> 404",
+        "event_id": "evt-c734015017651a13547f7620",
+        "source_ip": "203.0.113.90"
+      },
+      {
+        "timestamp": "2026-10-24T09:55:23Z",
+        "description": "[access_log] web.request (failure), from 203.0.113.90, GET /tmp123.zip -> 404",
+        "event_id": "evt-d4ccf3a2cd9c94e2e13ba83d",
+        "source_ip": "203.0.113.90"
+      },
+      {
+        "timestamp": "2026-10-24T09:55:31Z",
+        "description": "[access_log] web.request (failure), from 203.0.113.90, GET /old124.php -> 404",
+        "event_id": "evt-6bf2885ebf064ce6bf89dd29",
+        "source_ip": "203.0.113.90"
+      },
+      {
+        "timestamp": "2026-10-24T09:55:38Z",
+        "description": "[access_log] web.request (failure), from 203.0.113.90, GET /admin125.bak -> 404",
+        "event_id": "evt-bec27f4503e5254d80ad2127",
+        "source_ip": "203.0.113.90"
+      },
+      {
+        "timestamp": "2026-10-24T09:55:45Z",
+        "description": "[access_log] web.request (failure), from 203.0.113.90, GET /dev126/ -> 404",
+        "event_id": "evt-655ba8af5fd76cf4cec0a42c",
+        "source_ip": "203.0.113.90"
+      },
+      {
+        "timestamp": "2026-10-24T09:55:52Z",
+        "description": "[access_log] web.request (failure), from 203.0.113.90, GET /admin127.bak -> 404",
+        "event_id": "evt-46ba509df2e23a456809f395",
+        "source_ip": "203.0.113.90"
+      },
+      {
+        "timestamp": "2026-10-24T09:56:00Z",
+        "description": "[access_log] web.request (failure), from 203.0.113.90, GET /dev128.bak -> 404",
+        "event_id": "evt-49717dba8e5534deee112349",
+        "source_ip": "203.0.113.90"
+      },
+      {
+        "timestamp": "2026-10-24T09:56:08Z",
+        "description": "[access_log] web.request (failure), from 203.0.113.90, GET /dev129.php -> 404",
+        "event_id": "evt-25edd4d4786b5801bd56202d",
+        "source_ip": "203.0.113.90"
+      },
+      {
+        "timestamp": "2026-10-24T09:56:16Z",
+        "description": "[access_log] web.request (failure), from 203.0.113.90, GET /backup130.bak -> 404",
+        "event_id": "evt-67292e1fca5777732ab31bbf",
+        "source_ip": "203.0.113.90"
+      },
+      {
+        "timestamp": "2026-10-24T09:56:16Z",
+        "description": "Alert PRH-WEB-001 (medium): Web scanning from one IP",
+        "alert_id": "alr-5683ab7593037688f6298aae"
+      },
+      {
+        "timestamp": "2026-10-24T09:56:23Z",
+        "description": "[access_log] web.request (failure), from 203.0.113.90, GET /backup131.php -> 404",
+        "event_id": "evt-1350c640433cb9ef6fe8686f",
+        "source_ip": "203.0.113.90"
+      },
+      {
+        "timestamp": "2026-10-24T09:56:31Z",
+        "description": "[access_log] web.request (failure), from 203.0.113.90, GET /old132/ -> 404",
+        "event_id": "evt-92e185406db89d86f3d85baf",
+        "source_ip": "203.0.113.90"
+      },
+      {
+        "timestamp": "2026-10-24T09:56:38Z",
+        "description": "[access_log] web.request (failure), from 203.0.113.90, GET /old133.zip -> 404",
+        "event_id": "evt-b6097c6d7458740b899926d1",
+        "source_ip": "203.0.113.90"
+      },
+      {
+        "timestamp": "2026-10-24T09:56:46Z",
+        "description": "[access_log] web.request (failure), from 203.0.113.90, GET /admin134.php -> 404",
+        "event_id": "evt-2d8b455652fb6941dfdad6a8",
+        "source_ip": "203.0.113.90"
+      },
+      {
+        "timestamp": "2026-10-24T09:56:53Z",
+        "description": "[access_log] web.request (failure), from 203.0.113.90, GET /backup135.bak -> 404",
+        "event_id": "evt-cc858da9fe06852102f57c6d",
+        "source_ip": "203.0.113.90"
+      },
+      {
+        "timestamp": "2026-10-24T09:57:01Z",
+        "description": "[access_log] web.request (failure), from 203.0.113.90, GET /tmp136/ -> 404",
+        "event_id": "evt-d89165e7df93df9c4c1dd56f",
+        "source_ip": "203.0.113.90"
+      },
+      {
+        "timestamp": "2026-10-24T09:57:08Z",
+        "description": "[access_log] web.request (failure), from 203.0.113.90, GET /old137/ -> 404",
+        "event_id": "evt-6dcb502b122903fcff39f7ad",
+        "source_ip": "203.0.113.90"
+      },
+      {
+        "timestamp": "2026-10-24T09:57:16Z",
+        "description": "[access_log] web.request (failure), from 203.0.113.90, GET /backup138.zip -> 404",
+        "event_id": "evt-294599ff69229eab6346b516",
+        "source_ip": "203.0.113.90"
+      },
+      {
+        "timestamp": "2026-10-24T09:57:23Z",
+        "description": "[access_log] web.request (failure), from 203.0.113.90, GET /tmp139.zip -> 404",
+        "event_id": "evt-5c9940e0648e2d725a0f9d02",
+        "source_ip": "203.0.113.90"
+      },
+      {
+        "timestamp": "2026-10-24T09:57:30Z",
+        "description": "[access_log] web.request (failure), from 203.0.113.90, GET /tmp140.bak -> 404",
+        "event_id": "evt-af328cf70c55efbef603c380",
+        "source_ip": "203.0.113.90"
+      },
+      {
+        "timestamp": "2026-10-24T09:57:30Z",
+        "description": "Alert PRH-WEB-001 (medium): Web scanning from one IP",
+        "alert_id": "alr-a9b1659fdf19b25d8b67eb15"
+      }
+    ],
+    "indicators": [
+      {
+        "type": "ip",
+        "value": "203.0.113.90",
+        "enrichment": []
+      },
+      {
+        "type": "user_agent",
+        "value": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0 Safari/537.36",
+        "enrichment": []
+      }
+    ],
+    "attack": [
+      "attack.reconnaissance",
+      "attack.t1595.003"
+    ],
+    "attack_version": "20.0",
+    "recommended_actions": [
+      "Make sure nothing sensitive is reachable: remove backups, old admin panels and test pages from the web root.",
+      "Block or rate-limit the IP if the scanning continues or is aggressive.",
+      "Return the same response for missing and forbidden paths where possible.",
+      "If any probe succeeded: remove the file from the web root, rotate every secret it contained (database passwords, API keys), and review access logs for other downloads of it.",
+      "Deny access to dot-files and backups in the web server configuration.",
+      "Block the IP if probing continues."
+    ],
+    "confidence": "medium",
+    "limitations": [
+      "Enrichment not run: IP reputation and location were not considered",
+      "Single log source (access_log): no other log corroborates it",
+      "Possible benign cause for PRH-WEB-001: Search-engine crawlers following stale links",
+      "Possible benign cause for PRH-WEB-001: A broken page that references many missing assets",
+      "Possible benign cause for PRH-WEB-004: The site's own security scanner",
+      "Possible benign cause for PRH-WEB-004: Sites that really run WordPress or phpMyAdmin, where admins visit these paths"
+    ]
+  }
+}

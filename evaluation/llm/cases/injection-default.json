@@ -1,0 +1,341 @@
+{
+  "format": "prohori.llm-eval-case/1",
+  "case": "injection-default",
+  "kind": "attack",
+  "truth": "attack",
+  "origin": {
+    "scenario": "injection",
+    "variant": "default",
+    "seed": 1
+  },
+  "incident": {
+    "id": "INC-7d977009085518ea",
+    "title": "Injection patterns in request paths and 5 related alerts",
+    "status": "open",
+    "severity": "medium",
+    "score": 20.0,
+    "score_breakdown": [
+      {
+        "reason": "Most severe alert: PRH-WEB-002 (medium)",
+        "points": 20.0
+      }
+    ],
+    "first_seen": "2026-10-24T09:45:01Z",
+    "last_seen": "2026-10-24T09:47:51Z",
+    "entities": {
+      "source.ip": [
+        "203.0.113.151"
+      ]
+    },
+    "alerts": [
+      {
+        "id": "alr-122cbab569ab6b6ef46ab7fa",
+        "detector_id": "PRH-WEB-002",
+        "detector_kind": "rule",
+        "title": "Injection patterns in request paths",
+        "severity": "medium",
+        "score": 50.0,
+        "event_ids": [
+          "evt-7766dc40b7535a35e87b6c5c",
+          "evt-ce17d2bf9ae395ea8d24ca53",
+          "evt-bce508567d09720b32afeaa6"
+        ],
+        "entities": {
+          "source.ip": "203.0.113.151"
+        },
+        "first_seen": "2026-10-24T09:45:01Z",
+        "last_seen": "2026-10-24T09:45:20Z",
+        "attack": [
+          "attack.initial_access",
+          "attack.t1190"
+        ],
+        "explanation": "3 matching events (threshold 3) for source.ip=203.0.113.151 within a 10m window"
+      },
+      {
+        "id": "alr-cc0d129853697b36bb4df970",
+        "detector_id": "PRH-WEB-002",
+        "detector_kind": "rule",
+        "title": "Injection patterns in request paths",
+        "severity": "medium",
+        "score": 50.0,
+        "event_ids": [
+          "evt-8cf85287ad97d4334eb34a8a",
+          "evt-20eb3055ca2e9863679138f4",
+          "evt-60d622bc81e4536d515e139a"
+        ],
+        "entities": {
+          "source.ip": "203.0.113.151"
+        },
+        "first_seen": "2026-10-24T09:45:30Z",
+        "last_seen": "2026-10-24T09:45:52Z",
+        "attack": [
+          "attack.initial_access",
+          "attack.t1190"
+        ],
+        "explanation": "3 matching events (threshold 3) for source.ip=203.0.113.151 within a 10m window"
+      },
+      {
+        "id": "alr-c6c00e2f97859af685dd34d2",
+        "detector_id": "PRH-WEB-002",
+        "detector_kind": "rule",
+        "title": "Injection patterns in request paths",
+        "severity": "medium",
+        "score": 50.0,
+        "event_ids": [
+          "evt-52c2d020da5614615c49e0a2",
+          "evt-0a95a696b15a453e209a7e77",
+          "evt-c3bff0c90f3bf4ae3a856398"
+        ],
+        "entities": {
+          "source.ip": "203.0.113.151"
+        },
+        "first_seen": "2026-10-24T09:46:00Z",
+        "last_seen": "2026-10-24T09:46:20Z",
+        "attack": [
+          "attack.initial_access",
+          "attack.t1190"
+        ],
+        "explanation": "3 matching events (threshold 3) for source.ip=203.0.113.151 within a 10m window"
+      },
+      {
+        "id": "alr-794b21054e2f818169940544",
+        "detector_id": "PRH-WEB-002",
+        "detector_kind": "rule",
+        "title": "Injection patterns in request paths",
+        "severity": "medium",
+        "score": 50.0,
+        "event_ids": [
+          "evt-e53b38b537b232fe024a45a9",
+          "evt-c2e5afbf7397724ab5e9e85b",
+          "evt-aaad38f03f4c670b95a982a9"
+        ],
+        "entities": {
+          "source.ip": "203.0.113.151"
+        },
+        "first_seen": "2026-10-24T09:46:31Z",
+        "last_seen": "2026-10-24T09:46:51Z",
+        "attack": [
+          "attack.initial_access",
+          "attack.t1190"
+        ],
+        "explanation": "3 matching events (threshold 3) for source.ip=203.0.113.151 within a 10m window"
+      },
+      {
+        "id": "alr-f593f7b0f992932d8a9c16cb",
+        "detector_id": "PRH-WEB-002",
+        "detector_kind": "rule",
+        "title": "Injection patterns in request paths",
+        "severity": "medium",
+        "score": 50.0,
+        "event_ids": [
+          "evt-deabcb816c18ee0dc523d663",
+          "evt-bc752fbd645712dea6428d0e",
+          "evt-db734213fff0fe15fc9bda02"
+        ],
+        "entities": {
+          "source.ip": "203.0.113.151"
+        },
+        "first_seen": "2026-10-24T09:47:00Z",
+        "last_seen": "2026-10-24T09:47:21Z",
+        "attack": [
+          "attack.initial_access",
+          "attack.t1190"
+        ],
+        "explanation": "3 matching events (threshold 3) for source.ip=203.0.113.151 within a 10m window"
+      },
+      {
+        "id": "alr-4619dbe1477553efc180d098",
+        "detector_id": "PRH-WEB-002",
+        "detector_kind": "rule",
+        "title": "Injection patterns in request paths",
+        "severity": "medium",
+        "score": 50.0,
+        "event_ids": [
+          "evt-528229d50990a9b009883161",
+          "evt-4de426eda60201cd634b9f28",
+          "evt-e3044ede0a99ce75de501617"
+        ],
+        "entities": {
+          "source.ip": "203.0.113.151"
+        },
+        "first_seen": "2026-10-24T09:47:30Z",
+        "last_seen": "2026-10-24T09:47:51Z",
+        "attack": [
+          "attack.initial_access",
+          "attack.t1190"
+        ],
+        "explanation": "3 matching events (threshold 3) for source.ip=203.0.113.151 within a 10m window"
+      }
+    ],
+    "timeline": [
+      {
+        "timestamp": "2026-10-24T09:45:01Z",
+        "description": "[access_log] web.request (failure), from 203.0.113.151, GET /books -> 400",
+        "event_id": "evt-7766dc40b7535a35e87b6c5c",
+        "source_ip": "203.0.113.151"
+      },
+      {
+        "timestamp": "2026-10-24T09:45:10Z",
+        "description": "[access_log] web.request (failure), from 203.0.113.151, GET /search -> 403",
+        "event_id": "evt-ce17d2bf9ae395ea8d24ca53",
+        "source_ip": "203.0.113.151"
+      },
+      {
+        "timestamp": "2026-10-24T09:45:20Z",
+        "description": "[access_log] web.request (failure), from 203.0.113.151, GET /download -> 500",
+        "event_id": "evt-bce508567d09720b32afeaa6",
+        "source_ip": "203.0.113.151"
+      },
+      {
+        "timestamp": "2026-10-24T09:45:20Z",
+        "description": "Alert PRH-WEB-002 (medium): Injection patterns in request paths",
+        "alert_id": "alr-122cbab569ab6b6ef46ab7fa"
+      },
+      {
+        "timestamp": "2026-10-24T09:45:30Z",
+        "description": "[access_log] web.request (success), from 203.0.113.151, GET /books -> 200",
+        "event_id": "evt-8cf85287ad97d4334eb34a8a",
+        "source_ip": "203.0.113.151"
+      },
+      {
+        "timestamp": "2026-10-24T09:45:40Z",
+        "description": "[access_log] web.request (success), from 203.0.113.151, GET /search -> 200",
+        "event_id": "evt-20eb3055ca2e9863679138f4",
+        "source_ip": "203.0.113.151"
+      },
+      {
+        "timestamp": "2026-10-24T09:45:52Z",
+        "description": "[access_log] web.request (failure), from 203.0.113.151, GET /books -> 400",
+        "event_id": "evt-60d622bc81e4536d515e139a",
+        "source_ip": "203.0.113.151"
+      },
+      {
+        "timestamp": "2026-10-24T09:45:52Z",
+        "description": "Alert PRH-WEB-002 (medium): Injection patterns in request paths",
+        "alert_id": "alr-cc0d129853697b36bb4df970"
+      },
+      {
+        "timestamp": "2026-10-24T09:46:00Z",
+        "description": "[access_log] web.request (failure), from 203.0.113.151, GET /books -> 400",
+        "event_id": "evt-52c2d020da5614615c49e0a2",
+        "source_ip": "203.0.113.151"
+      },
+      {
+        "timestamp": "2026-10-24T09:46:10Z",
+        "description": "[access_log] web.request (failure), from 203.0.113.151, GET /search -> 400",
+        "event_id": "evt-0a95a696b15a453e209a7e77",
+        "source_ip": "203.0.113.151"
+      },
+      {
+        "timestamp": "2026-10-24T09:46:20Z",
+        "description": "[access_log] web.request (failure), from 203.0.113.151, GET /download -> 500",
+        "event_id": "evt-c3bff0c90f3bf4ae3a856398",
+        "source_ip": "203.0.113.151"
+      },
+      {
+        "timestamp": "2026-10-24T09:46:20Z",
+        "description": "Alert PRH-WEB-002 (medium): Injection patterns in request paths",
+        "alert_id": "alr-c6c00e2f97859af685dd34d2"
+      },
+      {
+        "timestamp": "2026-10-24T09:46:31Z",
+        "description": "[access_log] web.request (success), from 203.0.113.151, GET /books -> 200",
+        "event_id": "evt-e53b38b537b232fe024a45a9",
+        "source_ip": "203.0.113.151"
+      },
+      {
+        "timestamp": "2026-10-24T09:46:41Z",
+        "description": "[access_log] web.request (failure), from 203.0.113.151, GET /search -> 500",
+        "event_id": "evt-c2e5afbf7397724ab5e9e85b",
+        "source_ip": "203.0.113.151"
+      },
+      {
+        "timestamp": "2026-10-24T09:46:51Z",
+        "description": "[access_log] web.request (failure), from 203.0.113.151, GET /books -> 403",
+        "event_id": "evt-aaad38f03f4c670b95a982a9",
+        "source_ip": "203.0.113.151"
+      },
+      {
+        "timestamp": "2026-10-24T09:46:51Z",
+        "description": "Alert PRH-WEB-002 (medium): Injection patterns in request paths",
+        "alert_id": "alr-794b21054e2f818169940544"
+      },
+      {
+        "timestamp": "2026-10-24T09:47:00Z",
+        "description": "[access_log] web.request (failure), from 203.0.113.151, GET /books -> 400",
+        "event_id": "evt-deabcb816c18ee0dc523d663",
+        "source_ip": "203.0.113.151"
+      },
+      {
+        "timestamp": "2026-10-24T09:47:11Z",
+        "description": "[access_log] web.request (failure), from 203.0.113.151, GET /search -> 400",
+        "event_id": "evt-bc752fbd645712dea6428d0e",
+        "source_ip": "203.0.113.151"
+      },
+      {
+        "timestamp": "2026-10-24T09:47:21Z",
+        "description": "[access_log] web.request (failure), from 203.0.113.151, GET /download -> 403",
+        "event_id": "evt-db734213fff0fe15fc9bda02",
+        "source_ip": "203.0.113.151"
+      },
+      {
+        "timestamp": "2026-10-24T09:47:21Z",
+        "description": "Alert PRH-WEB-002 (medium): Injection patterns in request paths",
+        "alert_id": "alr-f593f7b0f992932d8a9c16cb"
+      },
+      {
+        "timestamp": "2026-10-24T09:47:30Z",
+        "description": "[access_log] web.request (failure), from 203.0.113.151, GET /books -> 500",
+        "event_id": "evt-528229d50990a9b009883161",
+        "source_ip": "203.0.113.151"
+      },
+      {
+        "timestamp": "2026-10-24T09:47:41Z",
+        "description": "[access_log] web.request (failure), from 203.0.113.151, GET /search -> 500",
+        "event_id": "evt-4de426eda60201cd634b9f28",
+        "source_ip": "203.0.113.151"
+      },
+      {
+        "timestamp": "2026-10-24T09:47:51Z",
+        "description": "[access_log] web.request (failure), from 203.0.113.151, GET /books -> 500",
+        "event_id": "evt-e3044ede0a99ce75de501617",
+        "source_ip": "203.0.113.151"
+      },
+      {
+        "timestamp": "2026-10-24T09:47:51Z",
+        "description": "Alert PRH-WEB-002 (medium): Injection patterns in request paths",
+        "alert_id": "alr-4619dbe1477553efc180d098"
+      }
+    ],
+    "indicators": [
+      {
+        "type": "ip",
+        "value": "203.0.113.151",
+        "enrichment": []
+      },
+      {
+        "type": "user_agent",
+        "value": "Mozilla/5.0 (X11; Linux x86_64; rv:131.0) Gecko/20100101 Firefox/131.0",
+        "enrichment": []
+      }
+    ],
+    "attack": [
+      "attack.initial_access",
+      "attack.t1190"
+    ],
+    "attack_version": "20.0",
+    "recommended_actions": [
+      "Block or rate-limit the IP while you investigate.",
+      "Review the targeted endpoints for parameterised queries, path normalisation and output encoding.",
+      "If a request may have succeeded, treat the affected data as exposed: check for data access and rotate credentials the endpoint could reach.",
+      "Consider a web application firewall rule for the targeted endpoints."
+    ],
+    "confidence": "medium",
+    "limitations": [
+      "Enrichment not run: IP reputation and location were not considered",
+      "Single log source (access_log): no other log corroborates it",
+      "Possible benign cause for PRH-WEB-002: Search queries or content that legitimately contain these words, such as a blog post about SQL",
+      "Possible benign cause for PRH-WEB-002: Security testing by the site's own team"
+    ]
+  }
+}

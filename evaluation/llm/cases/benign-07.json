@@ -1,0 +1,127 @@
+{
+  "format": "prohori.llm-eval-case/1",
+  "case": "benign-07",
+  "kind": "benign",
+  "truth": "benign",
+  "origin": {
+    "scenario": "admin-misuse",
+    "variant": "heldout",
+    "seed": 1
+  },
+  "incident": {
+    "id": "INC-03933da8174cf166",
+    "title": "Sensitive account change shortly after sign-in",
+    "status": "open",
+    "severity": "high",
+    "score": 60.0,
+    "score_breakdown": [
+      {
+        "reason": "Most severe alert: PRH-ACCT-001 (high)",
+        "points": 35.0
+      },
+      {
+        "reason": "Sensitive account or admin change: account.password.changed",
+        "points": 15.0
+      },
+      {
+        "reason": "Sign-in to u-1005 from 192.0.2.253, an IP not seen for this account before (1 earlier IP)",
+        "points": 10.0
+      }
+    ],
+    "first_seen": "2026-10-23T19:44:36.388000Z",
+    "last_seen": "2026-10-23T19:49:14.225000Z",
+    "entities": {
+      "source.ip": [
+        "192.0.2.253"
+      ],
+      "user.email_hash": [
+        "e657eb26315e2a308f3d0936dc72d168"
+      ],
+      "user.id": [
+        "u-1005"
+      ]
+    },
+    "alerts": [
+      {
+        "id": "alr-7a86a29b9f4062880acd7a59",
+        "detector_id": "PRH-ACCT-001",
+        "detector_kind": "rule",
+        "title": "Sensitive account change shortly after sign-in",
+        "severity": "high",
+        "score": 75.0,
+        "event_ids": [
+          "evt-0ad4876646eebdc5c0270f11",
+          "evt-45f838bc16b22d06a6135110"
+        ],
+        "entities": {
+          "user.id": "u-1005"
+        },
+        "first_seen": "2026-10-23T19:44:36.388000Z",
+        "last_seen": "2026-10-23T19:49:14.225000Z",
+        "attack": [
+          "attack.persistence",
+          "attack.privilege_escalation",
+          "attack.defense_impairment",
+          "attack.credential_access",
+          "attack.t1098",
+          "attack.t1556.006"
+        ],
+        "explanation": "1 x signin then 1 x change for user.id=u-1005 within 30m"
+      }
+    ],
+    "timeline": [
+      {
+        "timestamp": "2026-10-23T19:44:36.388000Z",
+        "description": "[app-security] auth.signin.success (success), account u-1005, from 192.0.2.253, POST /api/auth/signin, client web",
+        "event_id": "evt-0ad4876646eebdc5c0270f11",
+        "account": "u-1005",
+        "source_ip": "192.0.2.253"
+      },
+      {
+        "timestamp": "2026-10-23T19:49:14.225000Z",
+        "description": "[app-security] account.password.changed (success), account u-1005, from 192.0.2.253, PATCH /api/account, client web",
+        "event_id": "evt-45f838bc16b22d06a6135110",
+        "account": "u-1005",
+        "source_ip": "192.0.2.253"
+      },
+      {
+        "timestamp": "2026-10-23T19:49:14.225000Z",
+        "description": "Alert PRH-ACCT-001 (high): Sensitive account change shortly after sign-in",
+        "alert_id": "alr-7a86a29b9f4062880acd7a59"
+      }
+    ],
+    "indicators": [
+      {
+        "type": "ip",
+        "value": "192.0.2.253",
+        "enrichment": []
+      },
+      {
+        "type": "user_agent",
+        "value": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0 Safari/537.36",
+        "enrichment": []
+      }
+    ],
+    "attack": [
+      "attack.persistence",
+      "attack.privilege_escalation",
+      "attack.defense_impairment",
+      "attack.credential_access",
+      "attack.t1098",
+      "attack.t1556.006"
+    ],
+    "attack_version": "20.0",
+    "recommended_actions": [
+      "If the owner did not make the change: end all sessions, revert the change, reset the password and re-enable two-step verification.",
+      "Hold payouts to a newly changed payout number until the owner confirms it.",
+      "Consider requiring re-authentication or a confirmation code for these changes."
+    ],
+    "confidence": "medium",
+    "limitations": [
+      "Enrichment not run: IP reputation and location were not considered",
+      "Single log source (app-security): no other log corroborates it",
+      "Possible benign cause for PRH-ACCT-001: The account owner changing their own settings after signing in",
+      "Possible benign cause for PRH-ACCT-001: Support staff helping a user recover an account"
+    ]
+  }
+}

@@ -1,0 +1,1366 @@
+{
+  "format": "prohori.llm-eval-case/1",
+  "case": "ssh-bruteforce-default",
+  "kind": "attack",
+  "truth": "attack",
+  "origin": {
+    "scenario": "ssh-bruteforce",
+    "variant": "default",
+    "seed": 1
+  },
+  "incident": {
+    "id": "INC-e18a751de23737db",
+    "title": "Brute-force sign-in attempts from one IP and 15 related alerts",
+    "status": "open",
+    "severity": "high",
+    "score": 45.0,
+    "score_breakdown": [
+      {
+        "reason": "Most severe alert: PRH-AUTH-001 (high)",
+        "points": 35.0
+      },
+      {
+        "reason": "1 more rule fired: PRH-SSH-001",
+        "points": 10.0
+      }
+    ],
+    "first_seen": "2026-10-24T09:00:00Z",
+    "last_seen": "2026-10-24T09:02:57Z",
+    "entities": {
+      "source.ip": [
+        "203.0.113.204"
+      ]
+    },
+    "alerts": [
+      {
+        "id": "alr-c84a32cb94693fe63ce9b739",
+        "detector_id": "PRH-AUTH-001",
+        "detector_kind": "rule",
+        "title": "Brute-force sign-in attempts from one IP",
+        "severity": "high",
+        "score": 75.0,
+        "event_ids": [
+          "evt-d1d47c43b54cc7e44dc1babc",
+          "evt-3325ef43eca01720cbc667a0",
+          "evt-707d924af50eb77114df329e",
+          "evt-6de470eea97a777a1d59c82a",
+          "evt-6c2b9a048bd20125063308da",
+          "evt-ac1a41ab5d5c830a80b871be",
+          "evt-656d12a32d51fc2c92ec9bc1",
+          "evt-ab45eec93db78b333ea2bc74",
+          "evt-84cc330d540ea89ad2f51ef9",
+          "evt-535b0064a1d820b94b638861"
+        ],
+        "entities": {
+          "source.ip": "203.0.113.204"
+        },
+        "first_seen": "2026-10-24T09:00:00Z",
+        "last_seen": "2026-10-24T09:00:27Z",
+        "attack": [
+          "attack.credential_access",
+          "attack.t1110",
+          "attack.t1110.001"
+        ],
+        "explanation": "10 matching events (threshold 10) for source.ip=203.0.113.204 within a 5m window"
+      },
+      {
+        "id": "alr-0d753e7d60803bbb893f9dc7",
+        "detector_id": "PRH-SSH-001",
+        "detector_kind": "rule",
+        "title": "SSH invalid-user storm or repeated authentication-limit disconnects",
+        "severity": "high",
+        "score": 75.0,
+        "event_ids": [
+          "evt-9df6d429715847408f844e40",
+          "evt-a68e58f94d4852ee1de6bd2d",
+          "evt-b32bc6a4e6eefac60c63123b",
+          "evt-10f6046b1a7c5aee300b4075",
+          "evt-525f2e3e93ce5a714d1c3fe3"
+        ],
+        "entities": {
+          "source.ip": "203.0.113.204"
+        },
+        "first_seen": "2026-10-24T09:00:03Z",
+        "last_seen": "2026-10-24T09:00:15Z",
+        "attack": [
+          "attack.credential_access",
+          "attack.t1110",
+          "attack.t1110.001"
+        ],
+        "explanation": "5 matching events (threshold 5) for source.ip=203.0.113.204 within a 10m window"
+      },
+      {
+        "id": "alr-4e98bb97b2c22bfbc439c518",
+        "detector_id": "PRH-SSH-001",
+        "detector_kind": "rule",
+        "title": "SSH invalid-user storm or repeated authentication-limit disconnects",
+        "severity": "high",
+        "score": 75.0,
+        "event_ids": [
+          "evt-5931f3a71360c92bc3abe4f0",
+          "evt-7c7b156906ce59d20e2bc246",
+          "evt-249d7c50e75c72fdba21b625",
+          "evt-abc20a76d322b0702282bbc1",
+          "evt-9adbee40ab0b95a6f9938d17"
+        ],
+        "entities": {
+          "source.ip": "203.0.113.204"
+        },
+        "first_seen": "2026-10-24T09:00:21Z",
+        "last_seen": "2026-10-24T09:00:33Z",
+        "attack": [
+          "attack.credential_access",
+          "attack.t1110",
+          "attack.t1110.001"
+        ],
+        "explanation": "5 matching events (threshold 5) for source.ip=203.0.113.204 within a 10m window"
+      },
+      {
+        "id": "alr-455a90eb0f6c79fb95803fac",
+        "detector_id": "PRH-AUTH-001",
+        "detector_kind": "rule",
+        "title": "Brute-force sign-in attempts from one IP",
+        "severity": "high",
+        "score": 75.0,
+        "event_ids": [
+          "evt-8cca3a75baf79fbf7ff68a37",
+          "evt-b7a83ee212d0a1df57de7d10",
+          "evt-0f152bee462447083c6c251f",
+          "evt-7f9864631594296b6792c266",
+          "evt-aa925c80d39b636298d6a34a",
+          "evt-1e7d73e6b93c19ae71c8d6f7",
+          "evt-06a8a07d161028bae06b826b",
+          "evt-d78358be19e5e2b5b703146c",
+          "evt-2281462ca15805ab3d88f3ce",
+          "evt-9fdfc0bccb845ea8f80b7d9d"
+        ],
+        "entities": {
+          "source.ip": "203.0.113.204"
+        },
+        "first_seen": "2026-10-24T09:00:30Z",
+        "last_seen": "2026-10-24T09:00:57Z",
+        "attack": [
+          "attack.credential_access",
+          "attack.t1110",
+          "attack.t1110.001"
+        ],
+        "explanation": "10 matching events (threshold 10) for source.ip=203.0.113.204 within a 5m window"
+      },
+      {
+        "id": "alr-b2248e5710df38486b11edc5",
+        "detector_id": "PRH-SSH-001",
+        "detector_kind": "rule",
+        "title": "SSH invalid-user storm or repeated authentication-limit disconnects",
+        "severity": "high",
+        "score": 75.0,
+        "event_ids": [
+          "evt-6b3f0c97620645b61f811e27",
+          "evt-a645631f28a639052594e938",
+          "evt-e503360b02965e9f44363aed",
+          "evt-5ef49c0eaf5e0e0d2778b019",
+          "evt-9d611ae0b189274d9014f266"
+        ],
+        "entities": {
+          "source.ip": "203.0.113.204"
+        },
+        "first_seen": "2026-10-24T09:00:39Z",
+        "last_seen": "2026-10-24T09:00:51Z",
+        "attack": [
+          "attack.credential_access",
+          "attack.t1110",
+          "attack.t1110.001"
+        ],
+        "explanation": "5 matching events (threshold 5) for source.ip=203.0.113.204 within a 10m window"
+      },
+      {
+        "id": "alr-e72b6f148a87359d75b52081",
+        "detector_id": "PRH-SSH-001",
+        "detector_kind": "rule",
+        "title": "SSH invalid-user storm or repeated authentication-limit disconnects",
+        "severity": "high",
+        "score": 75.0,
+        "event_ids": [
+          "evt-c7c6a9c45df82511d52cecc4",
+          "evt-3b8149fc6e6649fbb5068d5a",
+          "evt-9a7ea19b1d3db58f08abbc35",
+          "evt-5b0d3bf4d8a3b5e0d7fb8c22",
+          "evt-96da280865635ef372e26f99"
+        ],
+        "entities": {
+          "source.ip": "203.0.113.204"
+        },
+        "first_seen": "2026-10-24T09:00:57Z",
+        "last_seen": "2026-10-24T09:01:09Z",
+        "attack": [
+          "attack.credential_access",
+          "attack.t1110",
+          "attack.t1110.001"
+        ],
+        "explanation": "5 matching events (threshold 5) for source.ip=203.0.113.204 within a 10m window"
+      },
+      {
+        "id": "alr-13eafa4e0373e6bc4efb014f",
+        "detector_id": "PRH-AUTH-001",
+        "detector_kind": "rule",
+        "title": "Brute-force sign-in attempts from one IP",
+        "severity": "high",
+        "score": 75.0,
+        "event_ids": [
+          "evt-4c5baaab3d2c57d0296c8967",
+          "evt-eb14927cead32f17cc552d86",
+          "evt-2b91ff236e2c30e6ac9087c1",
+          "evt-d5edce46f40838a031f5fab8",
+          "evt-eab5f8ca6230518bf429cf00",
+          "evt-f28b8ea1285f65564fb9241b",
+          "evt-1c1bcbc23b9f5ee5b9c3a93e",
+          "evt-a3684894896aeacf32c40836",
+          "evt-c3ed67551ec2f3a9491f8eae",
+          "evt-57594c317a1dc5fcdb04e71e"
+        ],
+        "entities": {
+          "source.ip": "203.0.113.204"
+        },
+        "first_seen": "2026-10-24T09:01:00Z",
+        "last_seen": "2026-10-24T09:01:27Z",
+        "attack": [
+          "attack.credential_access",
+          "attack.t1110",
+          "attack.t1110.001"
+        ],
+        "explanation": "10 matching events (threshold 10) for source.ip=203.0.113.204 within a 5m window"
+      },
+      {
+        "id": "alr-a7da8666509685e03a4f680a",
+        "detector_id": "PRH-SSH-001",
+        "detector_kind": "rule",
+        "title": "SSH invalid-user storm or repeated authentication-limit disconnects",
+        "severity": "high",
+        "score": 75.0,
+        "event_ids": [
+          "evt-7a1a637c68c6164a70ebf826",
+          "evt-f261c9dc322469358f652d81",
+          "evt-295fff6e2fc9fb71b4ca2bbe",
+          "evt-43a8743655218eb4e576b815",
+          "evt-6d3cda24ac0dab38c1bfa766"
+        ],
+        "entities": {
+          "source.ip": "203.0.113.204"
+        },
+        "first_seen": "2026-10-24T09:01:15Z",
+        "last_seen": "2026-10-24T09:01:27Z",
+        "attack": [
+          "attack.credential_access",
+          "attack.t1110",
+          "attack.t1110.001"
+        ],
+        "explanation": "5 matching events (threshold 5) for source.ip=203.0.113.204 within a 10m window"
+      },
+      {
+        "id": "alr-e181d1eae7d50a58eaf05c88",
+        "detector_id": "PRH-AUTH-001",
+        "detector_kind": "rule",
+        "title": "Brute-force sign-in attempts from one IP",
+        "severity": "high",
+        "score": 75.0,
+        "event_ids": [
+          "evt-28870f04dd675b82e320d325",
+          "evt-76a97084befae9afb43fa119",
+          "evt-7560c4e1bdea708d0d95a5ed",
+          "evt-2b015d44bbab290e218d4c6a",
+          "evt-ba7b73e7fe8bee11d6e46f28",
+          "evt-5a1b7b8ccb1edd30cbf1d6c1",
+          "evt-bdbaa152744127857415de25",
+          "evt-0312cc471c701d49cac37654",
+          "evt-263b7a35480090e4efb5d979",
+          "evt-0849f0517df5595f2580c114"
+        ],
+        "entities": {
+          "source.ip": "203.0.113.204"
+        },
+        "first_seen": "2026-10-24T09:01:30Z",
+        "last_seen": "2026-10-24T09:01:57Z",
+        "attack": [
+          "attack.credential_access",
+          "attack.t1110",
+          "attack.t1110.001"
+        ],
+        "explanation": "10 matching events (threshold 10) for source.ip=203.0.113.204 within a 5m window"
+      },
+      {
+        "id": "alr-270695eff3ff84719573c37d",
+        "detector_id": "PRH-SSH-001",
+        "detector_kind": "rule",
+        "title": "SSH invalid-user storm or repeated authentication-limit disconnects",
+        "severity": "high",
+        "score": 75.0,
+        "event_ids": [
+          "evt-d108555e9b7d113348ab0f1d",
+          "evt-259859d197fb53d699027531",
+          "evt-63ac9f3ff7693506b83bd337",
+          "evt-fa5eade0356dcc97bd42ab6e",
+          "evt-6a097e42fc91d824ebafbdd8"
+        ],
+        "entities": {
+          "source.ip": "203.0.113.204"
+        },
+        "first_seen": "2026-10-24T09:01:33Z",
+        "last_seen": "2026-10-24T09:01:45Z",
+        "attack": [
+          "attack.credential_access",
+          "attack.t1110",
+          "attack.t1110.001"
+        ],
+        "explanation": "5 matching events (threshold 5) for source.ip=203.0.113.204 within a 10m window"
+      },
+      {
+        "id": "alr-cc9a9f0fd11810cf63a471e2",
+        "detector_id": "PRH-SSH-001",
+        "detector_kind": "rule",
+        "title": "SSH invalid-user storm or repeated authentication-limit disconnects",
+        "severity": "high",
+        "score": 75.0,
+        "event_ids": [
+          "evt-2fecd63a066a34696e158368",
+          "evt-e16562a184792a0c6b6b5fce",
+          "evt-b94e628384baea02d333b5d6",
+          "evt-107516934a366071291f9feb",
+          "evt-ec16e89388ccd530cd5e84ee"
+        ],
+        "entities": {
+          "source.ip": "203.0.113.204"
+        },
+        "first_seen": "2026-10-24T09:01:51Z",
+        "last_seen": "2026-10-24T09:02:03Z",
+        "attack": [
+          "attack.credential_access",
+          "attack.t1110",
+          "attack.t1110.001"
+        ],
+        "explanation": "5 matching events (threshold 5) for source.ip=203.0.113.204 within a 10m window"
+      },
+      {
+        "id": "alr-e50d3140f501167be6e06c8b",
+        "detector_id": "PRH-AUTH-001",
+        "detector_kind": "rule",
+        "title": "Brute-force sign-in attempts from one IP",
+        "severity": "high",
+        "score": 75.0,
+        "event_ids": [
+          "evt-91fbb583a251c5fd01b672c7",
+          "evt-3a0d8968a93734b9341622ef",
+          "evt-9549d353f67ddf47748db448",
+          "evt-99717fd07ddedcb16f7710bc",
+          "evt-5ae5c88e6f0bf053d4eed553",
+          "evt-151f60af3520ab465dd768d9",
+          "evt-eafcc880885ab9c389a3f55a",
+          "evt-4471c0578657231af494bdc9",
+          "evt-03ee65774b073cc5428c177b",
+          "evt-26d7f34c99b427e7bc9c9eea"
+        ],
+        "entities": {
+          "source.ip": "203.0.113.204"
+        },
+        "first_seen": "2026-10-24T09:02:00Z",
+        "last_seen": "2026-10-24T09:02:27Z",
+        "attack": [
+          "attack.credential_access",
+          "attack.t1110",
+          "attack.t1110.001"
+        ],
+        "explanation": "10 matching events (threshold 10) for source.ip=203.0.113.204 within a 5m window"
+      },
+      {
+        "id": "alr-9be0699f3ea18667078efae2",
+        "detector_id": "PRH-SSH-001",
+        "detector_kind": "rule",
+        "title": "SSH invalid-user storm or repeated authentication-limit disconnects",
+        "severity": "high",
+        "score": 75.0,
+        "event_ids": [
+          "evt-3d2a993e2e7b0bc885f508c3",
+          "evt-10689c876274f32eb6936bc5",
+          "evt-bc7bec26a503f5b8f62cfe48",
+          "evt-98b2b29f4c3f39ff5bccd625",
+          "evt-45142fa15f918979877f614f"
+        ],
+        "entities": {
+          "source.ip": "203.0.113.204"
+        },
+        "first_seen": "2026-10-24T09:02:09Z",
+        "last_seen": "2026-10-24T09:02:21Z",
+        "attack": [
+          "attack.credential_access",
+          "attack.t1110",
+          "attack.t1110.001"
+        ],
+        "explanation": "5 matching events (threshold 5) for source.ip=203.0.113.204 within a 10m window"
+      },
+      {
+        "id": "alr-34ff1bc8858d2baca59f0700",
+        "detector_id": "PRH-SSH-001",
+        "detector_kind": "rule",
+        "title": "SSH invalid-user storm or repeated authentication-limit disconnects",
+        "severity": "high",
+        "score": 75.0,
+        "event_ids": [
+          "evt-0062932218c2bc4c55d3832c",
+          "evt-ff2ecd71b198d98df44a24f8",
+          "evt-2d06b3cde3a107fa4888514b",
+          "evt-99251cd323bb4d495f3d7450",
+          "evt-40d2623614eaed49a959d2b6"
+        ],
+        "entities": {
+          "source.ip": "203.0.113.204"
+        },
+        "first_seen": "2026-10-24T09:02:27Z",
+        "last_seen": "2026-10-24T09:02:39Z",
+        "attack": [
+          "attack.credential_access",
+          "attack.t1110",
+          "attack.t1110.001"
+        ],
+        "explanation": "5 matching events (threshold 5) for source.ip=203.0.113.204 within a 10m window"
+      },
+      {
+        "id": "alr-f81ca52c4f496cf548cdabc3",
+        "detector_id": "PRH-AUTH-001",
+        "detector_kind": "rule",
+        "title": "Brute-force sign-in attempts from one IP",
+        "severity": "high",
+        "score": 75.0,
+        "event_ids": [
+          "evt-4c9c9bcf627cd294f61a5ed6",
+          "evt-93f0aa87b9a769835537aae9",
+          "evt-64f44e482fb541d520e279db",
+          "evt-66974e246d4fa1e3174dad69",
+          "evt-50724a9496b79ba967eebc10",
+          "evt-bd502e4316ae341d22b76941",
+          "evt-fce1a42b8281c7c986fa00e9",
+          "evt-ff9e3d885ce76b76305e10dd",
+          "evt-36af17e1572833dc6ffcf324",
+          "evt-a64fddb024576534414fa4af"
+        ],
+        "entities": {
+          "source.ip": "203.0.113.204"
+        },
+        "first_seen": "2026-10-24T09:02:30Z",
+        "last_seen": "2026-10-24T09:02:57Z",
+        "attack": [
+          "attack.credential_access",
+          "attack.t1110",
+          "attack.t1110.001"
+        ],
+        "explanation": "10 matching events (threshold 10) for source.ip=203.0.113.204 within a 5m window"
+      },
+      {
+        "id": "alr-fccd165ed782e1122256a912",
+        "detector_id": "PRH-SSH-001",
+        "detector_kind": "rule",
+        "title": "SSH invalid-user storm or repeated authentication-limit disconnects",
+        "severity": "high",
+        "score": 75.0,
+        "event_ids": [
+          "evt-3006c4cf6001c1f02c51082c",
+          "evt-f068d14342a1a0da3acf08d2",
+          "evt-4fb0dbbda055a7a0fecaec05",
+          "evt-f9c55697f257351a3f8329ab",
+          "evt-1e4430fc3abbe3f9590783d6"
+        ],
+        "entities": {
+          "source.ip": "203.0.113.204"
+        },
+        "first_seen": "2026-10-24T09:02:45Z",
+        "last_seen": "2026-10-24T09:02:57Z",
+        "attack": [
+          "attack.credential_access",
+          "attack.t1110",
+          "attack.t1110.001"
+        ],
+        "explanation": "5 matching events (threshold 5) for source.ip=203.0.113.204 within a 10m window"
+      }
+    ],
+    "timeline": [
+      {
+        "timestamp": "2026-10-24T09:00:00Z",
+        "description": "[sshd] ssh.login.failure (failure), account root, from 203.0.113.204",
+        "event_id": "evt-d1d47c43b54cc7e44dc1babc",
+        "account": "root",
+        "source_ip": "203.0.113.204"
+      },
+      {
+        "timestamp": "2026-10-24T09:00:03Z",
+        "description": "[sshd] ssh.login.failure (failure), account admin, from 203.0.113.204",
+        "event_id": "evt-3325ef43eca01720cbc667a0",
+        "account": "admin",
+        "source_ip": "203.0.113.204"
+      },
+      {
+        "timestamp": "2026-10-24T09:00:03Z",
+        "description": "[sshd] ssh.invalid_user (failure), account admin, from 203.0.113.204",
+        "event_id": "evt-9df6d429715847408f844e40",
+        "account": "admin",
+        "source_ip": "203.0.113.204"
+      },
+      {
+        "timestamp": "2026-10-24T09:00:06Z",
+        "description": "[sshd] ssh.login.failure (failure), account ubuntu, from 203.0.113.204",
+        "event_id": "evt-707d924af50eb77114df329e",
+        "account": "ubuntu",
+        "source_ip": "203.0.113.204"
+      },
+      {
+        "timestamp": "2026-10-24T09:00:06Z",
+        "description": "[sshd] ssh.invalid_user (failure), account ubuntu, from 203.0.113.204",
+        "event_id": "evt-a68e58f94d4852ee1de6bd2d",
+        "account": "ubuntu",
+        "source_ip": "203.0.113.204"
+      },
+      {
+        "timestamp": "2026-10-24T09:00:09Z",
+        "description": "[sshd] ssh.login.failure (failure), account test, from 203.0.113.204",
+        "event_id": "evt-6de470eea97a777a1d59c82a",
+        "account": "test",
+        "source_ip": "203.0.113.204"
+      },
+      {
+        "timestamp": "2026-10-24T09:00:09Z",
+        "description": "[sshd] ssh.invalid_user (failure), account test, from 203.0.113.204",
+        "event_id": "evt-b32bc6a4e6eefac60c63123b",
+        "account": "test",
+        "source_ip": "203.0.113.204"
+      },
+      {
+        "timestamp": "2026-10-24T09:00:12Z",
+        "description": "[sshd] ssh.invalid_user (failure), account oracle, from 203.0.113.204",
+        "event_id": "evt-10f6046b1a7c5aee300b4075",
+        "account": "oracle",
+        "source_ip": "203.0.113.204"
+      },
+      {
+        "timestamp": "2026-10-24T09:00:12Z",
+        "description": "[sshd] ssh.login.failure (failure), account oracle, from 203.0.113.204",
+        "event_id": "evt-6c2b9a048bd20125063308da",
+        "account": "oracle",
+        "source_ip": "203.0.113.204"
+      },
+      {
+        "timestamp": "2026-10-24T09:00:15Z",
+        "description": "[sshd] ssh.invalid_user (failure), account postgres, from 203.0.113.204",
+        "event_id": "evt-525f2e3e93ce5a714d1c3fe3",
+        "account": "postgres",
+        "source_ip": "203.0.113.204"
+      },
+      {
+        "timestamp": "2026-10-24T09:00:15Z",
+        "description": "[sshd] ssh.login.failure (failure), account postgres, from 203.0.113.204",
+        "event_id": "evt-ac1a41ab5d5c830a80b871be",
+        "account": "postgres",
+        "source_ip": "203.0.113.204"
+      },
+      {
+        "timestamp": "2026-10-24T09:00:15Z",
+        "description": "Alert PRH-SSH-001 (high): SSH invalid-user storm or repeated authentication-limit disconnects",
+        "alert_id": "alr-0d753e7d60803bbb893f9dc7"
+      },
+      {
+        "timestamp": "2026-10-24T09:00:18Z",
+        "description": "[sshd] ssh.login.failure (failure), account root, from 203.0.113.204",
+        "event_id": "evt-656d12a32d51fc2c92ec9bc1",
+        "account": "root",
+        "source_ip": "203.0.113.204"
+      },
+      {
+        "timestamp": "2026-10-24T09:00:21Z",
+        "description": "[sshd] ssh.invalid_user (failure), account admin, from 203.0.113.204",
+        "event_id": "evt-5931f3a71360c92bc3abe4f0",
+        "account": "admin",
+        "source_ip": "203.0.113.204"
+      },
+      {
+        "timestamp": "2026-10-24T09:00:21Z",
+        "description": "[sshd] ssh.login.failure (failure), account admin, from 203.0.113.204",
+        "event_id": "evt-ab45eec93db78b333ea2bc74",
+        "account": "admin",
+        "source_ip": "203.0.113.204"
+      },
+      {
+        "timestamp": "2026-10-24T09:00:24Z",
+        "description": "[sshd] ssh.invalid_user (failure), account ubuntu, from 203.0.113.204",
+        "event_id": "evt-7c7b156906ce59d20e2bc246",
+        "account": "ubuntu",
+        "source_ip": "203.0.113.204"
+      },
+      {
+        "timestamp": "2026-10-24T09:00:24Z",
+        "description": "[sshd] ssh.login.failure (failure), account ubuntu, from 203.0.113.204",
+        "event_id": "evt-84cc330d540ea89ad2f51ef9",
+        "account": "ubuntu",
+        "source_ip": "203.0.113.204"
+      },
+      {
+        "timestamp": "2026-10-24T09:00:27Z",
+        "description": "[sshd] ssh.invalid_user (failure), account test, from 203.0.113.204",
+        "event_id": "evt-249d7c50e75c72fdba21b625",
+        "account": "test",
+        "source_ip": "203.0.113.204"
+      },
+      {
+        "timestamp": "2026-10-24T09:00:27Z",
+        "description": "[sshd] ssh.login.failure (failure), account test, from 203.0.113.204",
+        "event_id": "evt-535b0064a1d820b94b638861",
+        "account": "test",
+        "source_ip": "203.0.113.204"
+      },
+      {
+        "timestamp": "2026-10-24T09:00:27Z",
+        "description": "Alert PRH-AUTH-001 (high): Brute-force sign-in attempts from one IP",
+        "alert_id": "alr-c84a32cb94693fe63ce9b739"
+      },
+      {
+        "timestamp": "2026-10-24T09:00:30Z",
+        "description": "[sshd] ssh.login.failure (failure), account oracle, from 203.0.113.204",
+        "event_id": "evt-8cca3a75baf79fbf7ff68a37",
+        "account": "oracle",
+        "source_ip": "203.0.113.204"
+      },
+      {
+        "timestamp": "2026-10-24T09:00:30Z",
+        "description": "[sshd] ssh.invalid_user (failure), account oracle, from 203.0.113.204",
+        "event_id": "evt-abc20a76d322b0702282bbc1",
+        "account": "oracle",
+        "source_ip": "203.0.113.204"
+      },
+      {
+        "timestamp": "2026-10-24T09:00:33Z",
+        "description": "[sshd] ssh.invalid_user (failure), account postgres, from 203.0.113.204",
+        "event_id": "evt-9adbee40ab0b95a6f9938d17",
+        "account": "postgres",
+        "source_ip": "203.0.113.204"
+      },
+      {
+        "timestamp": "2026-10-24T09:00:33Z",
+        "description": "[sshd] ssh.login.failure (failure), account postgres, from 203.0.113.204",
+        "event_id": "evt-b7a83ee212d0a1df57de7d10",
+        "account": "postgres",
+        "source_ip": "203.0.113.204"
+      },
+      {
+        "timestamp": "2026-10-24T09:00:33Z",
+        "description": "Alert PRH-SSH-001 (high): SSH invalid-user storm or repeated authentication-limit disconnects",
+        "alert_id": "alr-4e98bb97b2c22bfbc439c518"
+      },
+      {
+        "timestamp": "2026-10-24T09:00:36Z",
+        "description": "[sshd] ssh.login.failure (failure), account root, from 203.0.113.204",
+        "event_id": "evt-0f152bee462447083c6c251f",
+        "account": "root",
+        "source_ip": "203.0.113.204"
+      },
+      {
+        "timestamp": "2026-10-24T09:00:39Z",
+        "description": "[sshd] ssh.invalid_user (failure), account admin, from 203.0.113.204",
+        "event_id": "evt-6b3f0c97620645b61f811e27",
+        "account": "admin",
+        "source_ip": "203.0.113.204"
+      },
+      {
+        "timestamp": "2026-10-24T09:00:39Z",
+        "description": "[sshd] ssh.login.failure (failure), account admin, from 203.0.113.204",
+        "event_id": "evt-7f9864631594296b6792c266",
+        "account": "admin",
+        "source_ip": "203.0.113.204"
+      },
+      {
+        "timestamp": "2026-10-24T09:00:42Z",
+        "description": "[sshd] ssh.invalid_user (failure), account ubuntu, from 203.0.113.204",
+        "event_id": "evt-a645631f28a639052594e938",
+        "account": "ubuntu",
+        "source_ip": "203.0.113.204"
+      },
+      {
+        "timestamp": "2026-10-24T09:00:42Z",
+        "description": "[sshd] ssh.login.failure (failure), account ubuntu, from 203.0.113.204",
+        "event_id": "evt-aa925c80d39b636298d6a34a",
+        "account": "ubuntu",
+        "source_ip": "203.0.113.204"
+      },
+      {
+        "timestamp": "2026-10-24T09:00:45Z",
+        "description": "[sshd] ssh.login.failure (failure), account test, from 203.0.113.204",
+        "event_id": "evt-1e7d73e6b93c19ae71c8d6f7",
+        "account": "test",
+        "source_ip": "203.0.113.204"
+      },
+      {
+        "timestamp": "2026-10-24T09:00:45Z",
+        "description": "[sshd] ssh.invalid_user (failure), account test, from 203.0.113.204",
+        "event_id": "evt-e503360b02965e9f44363aed",
+        "account": "test",
+        "source_ip": "203.0.113.204"
+      },
+      {
+        "timestamp": "2026-10-24T09:00:48Z",
+        "description": "[sshd] ssh.login.failure (failure), account oracle, from 203.0.113.204",
+        "event_id": "evt-06a8a07d161028bae06b826b",
+        "account": "oracle",
+        "source_ip": "203.0.113.204"
+      },
+      {
+        "timestamp": "2026-10-24T09:00:48Z",
+        "description": "[sshd] ssh.invalid_user (failure), account oracle, from 203.0.113.204",
+        "event_id": "evt-5ef49c0eaf5e0e0d2778b019",
+        "account": "oracle",
+        "source_ip": "203.0.113.204"
+      },
+      {
+        "timestamp": "2026-10-24T09:00:51Z",
+        "description": "[sshd] ssh.invalid_user (failure), account postgres, from 203.0.113.204",
+        "event_id": "evt-9d611ae0b189274d9014f266",
+        "account": "postgres",
+        "source_ip": "203.0.113.204"
+      },
+      {
+        "timestamp": "2026-10-24T09:00:51Z",
+        "description": "[sshd] ssh.login.failure (failure), account postgres, from 203.0.113.204",
+        "event_id": "evt-d78358be19e5e2b5b703146c",
+        "account": "postgres",
+        "source_ip": "203.0.113.204"
+      },
+      {
+        "timestamp": "2026-10-24T09:00:51Z",
+        "description": "Alert PRH-SSH-001 (high): SSH invalid-user storm or repeated authentication-limit disconnects",
+        "alert_id": "alr-b2248e5710df38486b11edc5"
+      },
+      {
+        "timestamp": "2026-10-24T09:00:54Z",
+        "description": "[sshd] ssh.login.failure (failure), account root, from 203.0.113.204",
+        "event_id": "evt-2281462ca15805ab3d88f3ce",
+        "account": "root",
+        "source_ip": "203.0.113.204"
+      },
+      {
+        "timestamp": "2026-10-24T09:00:57Z",
+        "description": "[sshd] ssh.login.failure (failure), account admin, from 203.0.113.204",
+        "event_id": "evt-9fdfc0bccb845ea8f80b7d9d",
+        "account": "admin",
+        "source_ip": "203.0.113.204"
+      },
+      {
+        "timestamp": "2026-10-24T09:00:57Z",
+        "description": "[sshd] ssh.invalid_user (failure), account admin, from 203.0.113.204",
+        "event_id": "evt-c7c6a9c45df82511d52cecc4",
+        "account": "admin",
+        "source_ip": "203.0.113.204"
+      },
+      {
+        "timestamp": "2026-10-24T09:00:57Z",
+        "description": "Alert PRH-AUTH-001 (high): Brute-force sign-in attempts from one IP",
+        "alert_id": "alr-455a90eb0f6c79fb95803fac"
+      },
+      {
+        "timestamp": "2026-10-24T09:01:00Z",
+        "description": "[sshd] ssh.invalid_user (failure), account ubuntu, from 203.0.113.204",
+        "event_id": "evt-3b8149fc6e6649fbb5068d5a",
+        "account": "ubuntu",
+        "source_ip": "203.0.113.204"
+      },
+      {
+        "timestamp": "2026-10-24T09:01:00Z",
+        "description": "[sshd] ssh.login.failure (failure), account ubuntu, from 203.0.113.204",
+        "event_id": "evt-4c5baaab3d2c57d0296c8967",
+        "account": "ubuntu",
+        "source_ip": "203.0.113.204"
+      },
+      {
+        "timestamp": "2026-10-24T09:01:03Z",
+        "description": "[sshd] ssh.invalid_user (failure), account test, from 203.0.113.204",
+        "event_id": "evt-9a7ea19b1d3db58f08abbc35",
+        "account": "test",
+        "source_ip": "203.0.113.204"
+      },
+      {
+        "timestamp": "2026-10-24T09:01:03Z",
+        "description": "[sshd] ssh.login.failure (failure), account test, from 203.0.113.204",
+        "event_id": "evt-eb14927cead32f17cc552d86",
+        "account": "test",
+        "source_ip": "203.0.113.204"
+      },
+      {
+        "timestamp": "2026-10-24T09:01:06Z",
+        "description": "[sshd] ssh.login.failure (failure), account oracle, from 203.0.113.204",
+        "event_id": "evt-2b91ff236e2c30e6ac9087c1",
+        "account": "oracle",
+        "source_ip": "203.0.113.204"
+      },
+      {
+        "timestamp": "2026-10-24T09:01:06Z",
+        "description": "[sshd] ssh.invalid_user (failure), account oracle, from 203.0.113.204",
+        "event_id": "evt-5b0d3bf4d8a3b5e0d7fb8c22",
+        "account": "oracle",
+        "source_ip": "203.0.113.204"
+      },
+      {
+        "timestamp": "2026-10-24T09:01:09Z",
+        "description": "[sshd] ssh.invalid_user (failure), account postgres, from 203.0.113.204",
+        "event_id": "evt-96da280865635ef372e26f99",
+        "account": "postgres",
+        "source_ip": "203.0.113.204"
+      },
+      {
+        "timestamp": "2026-10-24T09:01:09Z",
+        "description": "[sshd] ssh.login.failure (failure), account postgres, from 203.0.113.204",
+        "event_id": "evt-d5edce46f40838a031f5fab8",
+        "account": "postgres",
+        "source_ip": "203.0.113.204"
+      },
+      {
+        "timestamp": "2026-10-24T09:01:09Z",
+        "description": "Alert PRH-SSH-001 (high): SSH invalid-user storm or repeated authentication-limit disconnects",
+        "alert_id": "alr-e72b6f148a87359d75b52081"
+      },
+      {
+        "timestamp": "2026-10-24T09:01:12Z",
+        "description": "[sshd] ssh.login.failure (failure), account root, from 203.0.113.204",
+        "event_id": "evt-eab5f8ca6230518bf429cf00",
+        "account": "root",
+        "source_ip": "203.0.113.204"
+      },
+      {
+        "timestamp": "2026-10-24T09:01:15Z",
+        "description": "[sshd] ssh.invalid_user (failure), account admin, from 203.0.113.204",
+        "event_id": "evt-7a1a637c68c6164a70ebf826",
+        "account": "admin",
+        "source_ip": "203.0.113.204"
+      },
+      {
+        "timestamp": "2026-10-24T09:01:15Z",
+        "description": "[sshd] ssh.login.failure (failure), account admin, from 203.0.113.204",
+        "event_id": "evt-f28b8ea1285f65564fb9241b",
+        "account": "admin",
+        "source_ip": "203.0.113.204"
+      },
+      {
+        "timestamp": "2026-10-24T09:01:18Z",
+        "description": "[sshd] ssh.login.failure (failure), account ubuntu, from 203.0.113.204",
+        "event_id": "evt-1c1bcbc23b9f5ee5b9c3a93e",
+        "account": "ubuntu",
+        "source_ip": "203.0.113.204"
+      },
+      {
+        "timestamp": "2026-10-24T09:01:18Z",
+        "description": "[sshd] ssh.invalid_user (failure), account ubuntu, from 203.0.113.204",
+        "event_id": "evt-f261c9dc322469358f652d81",
+        "account": "ubuntu",
+        "source_ip": "203.0.113.204"
+      },
+      {
+        "timestamp": "2026-10-24T09:01:21Z",
+        "description": "[sshd] ssh.invalid_user (failure), account test, from 203.0.113.204",
+        "event_id": "evt-295fff6e2fc9fb71b4ca2bbe",
+        "account": "test",
+        "source_ip": "203.0.113.204"
+      },
+      {
+        "timestamp": "2026-10-24T09:01:21Z",
+        "description": "[sshd] ssh.login.failure (failure), account test, from 203.0.113.204",
+        "event_id": "evt-a3684894896aeacf32c40836",
+        "account": "test",
+        "source_ip": "203.0.113.204"
+      },
+      {
+        "timestamp": "2026-10-24T09:01:24Z",
+        "description": "[sshd] ssh.invalid_user (failure), account oracle, from 203.0.113.204",
+        "event_id": "evt-43a8743655218eb4e576b815",
+        "account": "oracle",
+        "source_ip": "203.0.113.204"
+      },
+      {
+        "timestamp": "2026-10-24T09:01:24Z",
+        "description": "[sshd] ssh.login.failure (failure), account oracle, from 203.0.113.204",
+        "event_id": "evt-c3ed67551ec2f3a9491f8eae",
+        "account": "oracle",
+        "source_ip": "203.0.113.204"
+      },
+      {
+        "timestamp": "2026-10-24T09:01:27Z",
+        "description": "[sshd] ssh.login.failure (failure), account postgres, from 203.0.113.204",
+        "event_id": "evt-57594c317a1dc5fcdb04e71e",
+        "account": "postgres",
+        "source_ip": "203.0.113.204"
+      },
+      {
+        "timestamp": "2026-10-24T09:01:27Z",
+        "description": "[sshd] ssh.invalid_user (failure), account postgres, from 203.0.113.204",
+        "event_id": "evt-6d3cda24ac0dab38c1bfa766",
+        "account": "postgres",
+        "source_ip": "203.0.113.204"
+      },
+      {
+        "timestamp": "2026-10-24T09:01:27Z",
+        "description": "Alert PRH-AUTH-001 (high): Brute-force sign-in attempts from one IP",
+        "alert_id": "alr-13eafa4e0373e6bc4efb014f"
+      },
+      {
+        "timestamp": "2026-10-24T09:01:27Z",
+        "description": "Alert PRH-SSH-001 (high): SSH invalid-user storm or repeated authentication-limit disconnects",
+        "alert_id": "alr-a7da8666509685e03a4f680a"
+      },
+      {
+        "timestamp": "2026-10-24T09:01:30Z",
+        "description": "[sshd] ssh.login.failure (failure), account root, from 203.0.113.204",
+        "event_id": "evt-28870f04dd675b82e320d325",
+        "account": "root",
+        "source_ip": "203.0.113.204"
+      },
+      {
+        "timestamp": "2026-10-24T09:01:33Z",
+        "description": "[sshd] ssh.login.failure (failure), account admin, from 203.0.113.204",
+        "event_id": "evt-76a97084befae9afb43fa119",
+        "account": "admin",
+        "source_ip": "203.0.113.204"
+      },
+      {
+        "timestamp": "2026-10-24T09:01:33Z",
+        "description": "[sshd] ssh.invalid_user (failure), account admin, from 203.0.113.204",
+        "event_id": "evt-d108555e9b7d113348ab0f1d",
+        "account": "admin",
+        "source_ip": "203.0.113.204"
+      },
+      {
+        "timestamp": "2026-10-24T09:01:36Z",
+        "description": "[sshd] ssh.invalid_user (failure), account ubuntu, from 203.0.113.204",
+        "event_id": "evt-259859d197fb53d699027531",
+        "account": "ubuntu",
+        "source_ip": "203.0.113.204"
+      },
+      {
+        "timestamp": "2026-10-24T09:01:36Z",
+        "description": "[sshd] ssh.login.failure (failure), account ubuntu, from 203.0.113.204",
+        "event_id": "evt-7560c4e1bdea708d0d95a5ed",
+        "account": "ubuntu",
+        "source_ip": "203.0.113.204"
+      },
+      {
+        "timestamp": "2026-10-24T09:01:39Z",
+        "description": "[sshd] ssh.login.failure (failure), account test, from 203.0.113.204",
+        "event_id": "evt-2b015d44bbab290e218d4c6a",
+        "account": "test",
+        "source_ip": "203.0.113.204"
+      },
+      {
+        "timestamp": "2026-10-24T09:01:39Z",
+        "description": "[sshd] ssh.invalid_user (failure), account test, from 203.0.113.204",
+        "event_id": "evt-63ac9f3ff7693506b83bd337",
+        "account": "test",
+        "source_ip": "203.0.113.204"
+      },
+      {
+        "timestamp": "2026-10-24T09:01:42Z",
+        "description": "[sshd] ssh.login.failure (failure), account oracle, from 203.0.113.204",
+        "event_id": "evt-ba7b73e7fe8bee11d6e46f28",
+        "account": "oracle",
+        "source_ip": "203.0.113.204"
+      },
+      {
+        "timestamp": "2026-10-24T09:01:42Z",
+        "description": "[sshd] ssh.invalid_user (failure), account oracle, from 203.0.113.204",
+        "event_id": "evt-fa5eade0356dcc97bd42ab6e",
+        "account": "oracle",
+        "source_ip": "203.0.113.204"
+      },
+      {
+        "timestamp": "2026-10-24T09:01:45Z",
+        "description": "[sshd] ssh.login.failure (failure), account postgres, from 203.0.113.204",
+        "event_id": "evt-5a1b7b8ccb1edd30cbf1d6c1",
+        "account": "postgres",
+        "source_ip": "203.0.113.204"
+      },
+      {
+        "timestamp": "2026-10-24T09:01:45Z",
+        "description": "[sshd] ssh.invalid_user (failure), account postgres, from 203.0.113.204",
+        "event_id": "evt-6a097e42fc91d824ebafbdd8",
+        "account": "postgres",
+        "source_ip": "203.0.113.204"
+      },
+      {
+        "timestamp": "2026-10-24T09:01:45Z",
+        "description": "Alert PRH-SSH-001 (high): SSH invalid-user storm or repeated authentication-limit disconnects",
+        "alert_id": "alr-270695eff3ff84719573c37d"
+      },
+      {
+        "timestamp": "2026-10-24T09:01:48Z",
+        "description": "[sshd] ssh.login.failure (failure), account root, from 203.0.113.204",
+        "event_id": "evt-bdbaa152744127857415de25",
+        "account": "root",
+        "source_ip": "203.0.113.204"
+      },
+      {
+        "timestamp": "2026-10-24T09:01:51Z",
+        "description": "[sshd] ssh.login.failure (failure), account admin, from 203.0.113.204",
+        "event_id": "evt-0312cc471c701d49cac37654",
+        "account": "admin",
+        "source_ip": "203.0.113.204"
+      },
+      {
+        "timestamp": "2026-10-24T09:01:51Z",
+        "description": "[sshd] ssh.invalid_user (failure), account admin, from 203.0.113.204",
+        "event_id": "evt-2fecd63a066a34696e158368",
+        "account": "admin",
+        "source_ip": "203.0.113.204"
+      },
+      {
+        "timestamp": "2026-10-24T09:01:54Z",
+        "description": "[sshd] ssh.login.failure (failure), account ubuntu, from 203.0.113.204",
+        "event_id": "evt-263b7a35480090e4efb5d979",
+        "account": "ubuntu",
+        "source_ip": "203.0.113.204"
+      },
+      {
+        "timestamp": "2026-10-24T09:01:54Z",
+        "description": "[sshd] ssh.invalid_user (failure), account ubuntu, from 203.0.113.204",
+        "event_id": "evt-e16562a184792a0c6b6b5fce",
+        "account": "ubuntu",
+        "source_ip": "203.0.113.204"
+      },
+      {
+        "timestamp": "2026-10-24T09:01:57Z",
+        "description": "[sshd] ssh.login.failure (failure), account test, from 203.0.113.204",
+        "event_id": "evt-0849f0517df5595f2580c114",
+        "account": "test",
+        "source_ip": "203.0.113.204"
+      },
+      {
+        "timestamp": "2026-10-24T09:01:57Z",
+        "description": "[sshd] ssh.invalid_user (failure), account test, from 203.0.113.204",
+        "event_id": "evt-b94e628384baea02d333b5d6",
+        "account": "test",
+        "source_ip": "203.0.113.204"
+      },
+      {
+        "timestamp": "2026-10-24T09:01:57Z",
+        "description": "Alert PRH-AUTH-001 (high): Brute-force sign-in attempts from one IP",
+        "alert_id": "alr-e181d1eae7d50a58eaf05c88"
+      },
+      {
+        "timestamp": "2026-10-24T09:02:00Z",
+        "description": "[sshd] ssh.invalid_user (failure), account oracle, from 203.0.113.204",
+        "event_id": "evt-107516934a366071291f9feb",
+        "account": "oracle",
+        "source_ip": "203.0.113.204"
+      },
+      {
+        "timestamp": "2026-10-24T09:02:00Z",
+        "description": "[sshd] ssh.login.failure (failure), account oracle, from 203.0.113.204",
+        "event_id": "evt-91fbb583a251c5fd01b672c7",
+        "account": "oracle",
+        "source_ip": "203.0.113.204"
+      },
+      {
+        "timestamp": "2026-10-24T09:02:03Z",
+        "description": "[sshd] ssh.login.failure (failure), account postgres, from 203.0.113.204",
+        "event_id": "evt-3a0d8968a93734b9341622ef",
+        "account": "postgres",
+        "source_ip": "203.0.113.204"
+      },
+      {
+        "timestamp": "2026-10-24T09:02:03Z",
+        "description": "[sshd] ssh.invalid_user (failure), account postgres, from 203.0.113.204",
+        "event_id": "evt-ec16e89388ccd530cd5e84ee",
+        "account": "postgres",
+        "source_ip": "203.0.113.204"
+      },
+      {
+        "timestamp": "2026-10-24T09:02:03Z",
+        "description": "Alert PRH-SSH-001 (high): SSH invalid-user storm or repeated authentication-limit disconnects",
+        "alert_id": "alr-cc9a9f0fd11810cf63a471e2"
+      },
+      {
+        "timestamp": "2026-10-24T09:02:06Z",
+        "description": "[sshd] ssh.login.failure (failure), account root, from 203.0.113.204",
+        "event_id": "evt-9549d353f67ddf47748db448",
+        "account": "root",
+        "source_ip": "203.0.113.204"
+      },
+      {
+        "timestamp": "2026-10-24T09:02:09Z",
+        "description": "[sshd] ssh.invalid_user (failure), account admin, from 203.0.113.204",
+        "event_id": "evt-3d2a993e2e7b0bc885f508c3",
+        "account": "admin",
+        "source_ip": "203.0.113.204"
+      },
+      {
+        "timestamp": "2026-10-24T09:02:09Z",
+        "description": "[sshd] ssh.login.failure (failure), account admin, from 203.0.113.204",
+        "event_id": "evt-99717fd07ddedcb16f7710bc",
+        "account": "admin",
+        "source_ip": "203.0.113.204"
+      },
+      {
+        "timestamp": "2026-10-24T09:02:12Z",
+        "description": "[sshd] ssh.invalid_user (failure), account ubuntu, from 203.0.113.204",
+        "event_id": "evt-10689c876274f32eb6936bc5",
+        "account": "ubuntu",
+        "source_ip": "203.0.113.204"
+      },
+      {
+        "timestamp": "2026-10-24T09:02:12Z",
+        "description": "[sshd] ssh.login.failure (failure), account ubuntu, from 203.0.113.204",
+        "event_id": "evt-5ae5c88e6f0bf053d4eed553",
+        "account": "ubuntu",
+        "source_ip": "203.0.113.204"
+      },
+      {
+        "timestamp": "2026-10-24T09:02:15Z",
+        "description": "[sshd] ssh.login.failure (failure), account test, from 203.0.113.204",
+        "event_id": "evt-151f60af3520ab465dd768d9",
+        "account": "test",
+        "source_ip": "203.0.113.204"
+      },
+      {
+        "timestamp": "2026-10-24T09:02:15Z",
+        "description": "[sshd] ssh.invalid_user (failure), account test, from 203.0.113.204",
+        "event_id": "evt-bc7bec26a503f5b8f62cfe48",
+        "account": "test",
+        "source_ip": "203.0.113.204"
+      },
+      {
+        "timestamp": "2026-10-24T09:02:18Z",
+        "description": "[sshd] ssh.invalid_user (failure), account oracle, from 203.0.113.204",
+        "event_id": "evt-98b2b29f4c3f39ff5bccd625",
+        "account": "oracle",
+        "source_ip": "203.0.113.204"
+      },
+      {
+        "timestamp": "2026-10-24T09:02:18Z",
+        "description": "[sshd] ssh.login.failure (failure), account oracle, from 203.0.113.204",
+        "event_id": "evt-eafcc880885ab9c389a3f55a",
+        "account": "oracle",
+        "source_ip": "203.0.113.204"
+      },
+      {
+        "timestamp": "2026-10-24T09:02:21Z",
+        "description": "[sshd] ssh.login.failure (failure), account postgres, from 203.0.113.204",
+        "event_id": "evt-4471c0578657231af494bdc9",
+        "account": "postgres",
+        "source_ip": "203.0.113.204"
+      },
+      {
+        "timestamp": "2026-10-24T09:02:21Z",
+        "description": "[sshd] ssh.invalid_user (failure), account postgres, from 203.0.113.204",
+        "event_id": "evt-45142fa15f918979877f614f",
+        "account": "postgres",
+        "source_ip": "203.0.113.204"
+      },
+      {
+        "timestamp": "2026-10-24T09:02:21Z",
+        "description": "Alert PRH-SSH-001 (high): SSH invalid-user storm or repeated authentication-limit disconnects",
+        "alert_id": "alr-9be0699f3ea18667078efae2"
+      },
+      {
+        "timestamp": "2026-10-24T09:02:24Z",
+        "description": "[sshd] ssh.login.failure (failure), account root, from 203.0.113.204",
+        "event_id": "evt-03ee65774b073cc5428c177b",
+        "account": "root",
+        "source_ip": "203.0.113.204"
+      },
+      {
+        "timestamp": "2026-10-24T09:02:27Z",
+        "description": "[sshd] ssh.invalid_user (failure), account admin, from 203.0.113.204",
+        "event_id": "evt-0062932218c2bc4c55d3832c",
+        "account": "admin",
+        "source_ip": "203.0.113.204"
+      },
+      {
+        "timestamp": "2026-10-24T09:02:27Z",
+        "description": "[sshd] ssh.login.failure (failure), account admin, from 203.0.113.204",
+        "event_id": "evt-26d7f34c99b427e7bc9c9eea",
+        "account": "admin",
+        "source_ip": "203.0.113.204"
+      },
+      {
+        "timestamp": "2026-10-24T09:02:27Z",
+        "description": "Alert PRH-AUTH-001 (high): Brute-force sign-in attempts from one IP",
+        "alert_id": "alr-e50d3140f501167be6e06c8b"
+      },
+      {
+        "timestamp": "2026-10-24T09:02:30Z",
+        "description": "[sshd] ssh.login.failure (failure), account ubuntu, from 203.0.113.204",
+        "event_id": "evt-4c9c9bcf627cd294f61a5ed6",
+        "account": "ubuntu",
+        "source_ip": "203.0.113.204"
+      },
+      {
+        "timestamp": "2026-10-24T09:02:30Z",
+        "description": "[sshd] ssh.invalid_user (failure), account ubuntu, from 203.0.113.204",
+        "event_id": "evt-ff2ecd71b198d98df44a24f8",
+        "account": "ubuntu",
+        "source_ip": "203.0.113.204"
+      },
+      {
+        "timestamp": "2026-10-24T09:02:33Z",
+        "description": "[sshd] ssh.invalid_user (failure), account test, from 203.0.113.204",
+        "event_id": "evt-2d06b3cde3a107fa4888514b",
+        "account": "test",
+        "source_ip": "203.0.113.204"
+      },
+      {
+        "timestamp": "2026-10-24T09:02:33Z",
+        "description": "[sshd] ssh.login.failure (failure), account test, from 203.0.113.204",
+        "event_id": "evt-93f0aa87b9a769835537aae9",
+        "account": "test",
+        "source_ip": "203.0.113.204"
+      },
+      {
+        "timestamp": "2026-10-24T09:02:36Z",
+        "description": "[sshd] ssh.login.failure (failure), account oracle, from 203.0.113.204",
+        "event_id": "evt-64f44e482fb541d520e279db",
+        "account": "oracle",
+        "source_ip": "203.0.113.204"
+      },
+      {
+        "timestamp": "2026-10-24T09:02:36Z",
+        "description": "[sshd] ssh.invalid_user (failure), account oracle, from 203.0.113.204",
+        "event_id": "evt-99251cd323bb4d495f3d7450",
+        "account": "oracle",
+        "source_ip": "203.0.113.204"
+      },
+      {
+        "timestamp": "2026-10-24T09:02:39Z",
+        "description": "[sshd] ssh.invalid_user (failure), account postgres, from 203.0.113.204",
+        "event_id": "evt-40d2623614eaed49a959d2b6",
+        "account": "postgres",
+        "source_ip": "203.0.113.204"
+      },
+      {
+        "timestamp": "2026-10-24T09:02:39Z",
+        "description": "[sshd] ssh.login.failure (failure), account postgres, from 203.0.113.204",
+        "event_id": "evt-66974e246d4fa1e3174dad69",
+        "account": "postgres",
+        "source_ip": "203.0.113.204"
+      },
+      {
+        "timestamp": "2026-10-24T09:02:39Z",
+        "description": "Alert PRH-SSH-001 (high): SSH invalid-user storm or repeated authentication-limit disconnects",
+        "alert_id": "alr-34ff1bc8858d2baca59f0700"
+      },
+      {
+        "timestamp": "2026-10-24T09:02:42Z",
+        "description": "[sshd] ssh.login.failure (failure), account root, from 203.0.113.204",
+        "event_id": "evt-50724a9496b79ba967eebc10",
+        "account": "root",
+        "source_ip": "203.0.113.204"
+      },
+      {
+        "timestamp": "2026-10-24T09:02:45Z",
+        "description": "[sshd] ssh.invalid_user (failure), account admin, from 203.0.113.204",
+        "event_id": "evt-3006c4cf6001c1f02c51082c",
+        "account": "admin",
+        "source_ip": "203.0.113.204"
+      },
+      {
+        "timestamp": "2026-10-24T09:02:45Z",
+        "description": "[sshd] ssh.login.failure (failure), account admin, from 203.0.113.204",
+        "event_id": "evt-bd502e4316ae341d22b76941",
+        "account": "admin",
+        "source_ip": "203.0.113.204"
+      },
+      {
+        "timestamp": "2026-10-24T09:02:48Z",
+        "description": "[sshd] ssh.invalid_user (failure), account ubuntu, from 203.0.113.204",
+        "event_id": "evt-f068d14342a1a0da3acf08d2",
+        "account": "ubuntu",
+        "source_ip": "203.0.113.204"
+      },
+      {
+        "timestamp": "2026-10-24T09:02:48Z",
+        "description": "[sshd] ssh.login.failure (failure), account ubuntu, from 203.0.113.204",
+        "event_id": "evt-fce1a42b8281c7c986fa00e9",
+        "account": "ubuntu",
+        "source_ip": "203.0.113.204"
+      },
+      {
+        "timestamp": "2026-10-24T09:02:51Z",
+        "description": "[sshd] ssh.invalid_user (failure), account test, from 203.0.113.204",
+        "event_id": "evt-4fb0dbbda055a7a0fecaec05",
+        "account": "test",
+        "source_ip": "203.0.113.204"
+      },
+      {
+        "timestamp": "2026-10-24T09:02:51Z",
+        "description": "[sshd] ssh.login.failure (failure), account test, from 203.0.113.204",
+        "event_id": "evt-ff9e3d885ce76b76305e10dd",
+        "account": "test",
+        "source_ip": "203.0.113.204"
+      },
+      {
+        "timestamp": "2026-10-24T09:02:54Z",
+        "description": "[sshd] ssh.login.failure (failure), account oracle, from 203.0.113.204",
+        "event_id": "evt-36af17e1572833dc6ffcf324",
+        "account": "oracle",
+        "source_ip": "203.0.113.204"
+      },
+      {
+        "timestamp": "2026-10-24T09:02:54Z",
+        "description": "[sshd] ssh.invalid_user (failure), account oracle, from 203.0.113.204",
+        "event_id": "evt-f9c55697f257351a3f8329ab",
+        "account": "oracle",
+        "source_ip": "203.0.113.204"
+      },
+      {
+        "timestamp": "2026-10-24T09:02:57Z",
+        "description": "[sshd] ssh.invalid_user (failure), account postgres, from 203.0.113.204",
+        "event_id": "evt-1e4430fc3abbe3f9590783d6",
+        "account": "postgres",
+        "source_ip": "203.0.113.204"
+      },
+      {
+        "timestamp": "2026-10-24T09:02:57Z",
+        "description": "[sshd] ssh.login.failure (failure), account postgres, from 203.0.113.204",
+        "event_id": "evt-a64fddb024576534414fa4af",
+        "account": "postgres",
+        "source_ip": "203.0.113.204"
+      },
+      {
+        "timestamp": "2026-10-24T09:02:57Z",
+        "description": "Alert PRH-AUTH-001 (high): Brute-force sign-in attempts from one IP",
+        "alert_id": "alr-f81ca52c4f496cf548cdabc3"
+      },
+      {
+        "timestamp": "2026-10-24T09:02:57Z",
+        "description": "Alert PRH-SSH-001 (high): SSH invalid-user storm or repeated authentication-limit disconnects",
+        "alert_id": "alr-fccd165ed782e1122256a912"
+      }
+    ],
+    "indicators": [
+      {
+        "type": "ip",
+        "value": "203.0.113.204",
+        "enrichment": []
+      }
+    ],
+    "attack": [
+      "attack.credential_access",
+      "attack.t1110",
+      "attack.t1110.001"
+    ],
+    "attack_version": "20.0",
+    "recommended_actions": [
+      "Block or rate-limit the source IP at the firewall, reverse proxy or application while you investigate.",
+      "If any sign-in from the IP succeeded, follow the runbook for PRH-AUTH-003.",
+      "For SSH, disable password authentication and allow keys only; restrict SSH to known networks.",
+      "Block the IP, or use a tool such as fail2ban to block repeat offenders automatically.",
+      "Disable password authentication and root login over SSH; allow keys only.",
+      "Restrict SSH to known networks or a VPN.",
+      "If a sign-in succeeded, follow the runbook for PRH-AUTH-003."
+    ],
+    "confidence": "medium",
+    "limitations": [
+      "Enrichment not run: IP reputation and location were not considered",
+      "Single log source (sshd): no other log corroborates it",
+      "Possible benign cause for PRH-AUTH-001: Many users behind one shared NAT or proxy address",
+      "Possible benign cause for PRH-AUTH-001: A script or password manager retrying a stale password",
+      "Possible benign cause for PRH-SSH-001: An automation tool configured with a wrong username",
+      "Possible benign cause for PRH-SSH-001: A user whose SSH agent offers many keys and hits MaxAuthTries on every connection"
+    ]
+  }
+}

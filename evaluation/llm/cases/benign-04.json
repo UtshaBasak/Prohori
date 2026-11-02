@@ -1,0 +1,118 @@
+{
+  "format": "prohori.llm-eval-case/1",
+  "case": "benign-04",
+  "kind": "benign",
+  "truth": "benign",
+  "origin": {
+    "scenario": "account-takeover",
+    "variant": "heldout",
+    "seed": 1
+  },
+  "incident": {
+    "id": "INC-c610228e3bdf2185",
+    "title": "Sensitive account change shortly after sign-in",
+    "status": "open",
+    "severity": "high",
+    "score": 50.0,
+    "score_breakdown": [
+      {
+        "reason": "Most severe alert: PRH-ACCT-001 (high)",
+        "points": 35.0
+      },
+      {
+        "reason": "Sensitive account or admin change: account.password.changed",
+        "points": 15.0
+      }
+    ],
+    "first_seen": "2026-10-24T12:10:33.089000Z",
+    "last_seen": "2026-10-24T12:32:53.554000Z",
+    "entities": {
+      "source.ip": [
+        "192.0.2.124"
+      ],
+      "user.email_hash": [
+        "5459e60c60eaf85a15f0cb102024e075"
+      ],
+      "user.id": [
+        "u-1001"
+      ]
+    },
+    "alerts": [
+      {
+        "id": "alr-40ff0fdc6039e3a599b41d40",
+        "detector_id": "PRH-ACCT-001",
+        "detector_kind": "rule",
+        "title": "Sensitive account change shortly after sign-in",
+        "severity": "high",
+        "score": 75.0,
+        "event_ids": [
+          "evt-1da58e06860945a772931e5c",
+          "evt-c4ee213c869f9ec363296805"
+        ],
+        "entities": {
+          "user.id": "u-1001"
+        },
+        "first_seen": "2026-10-24T12:10:33.089000Z",
+        "last_seen": "2026-10-24T12:32:53.554000Z",
+        "attack": [
+          "attack.persistence",
+          "attack.privilege_escalation",
+          "attack.defense_impairment",
+          "attack.credential_access",
+          "attack.t1098",
+          "attack.t1556.006"
+        ],
+        "explanation": "1 x signin then 1 x change for user.id=u-1001 within 30m"
+      }
+    ],
+    "timeline": [
+      {
+        "timestamp": "2026-10-24T12:10:33.089000Z",
+        "description": "[app-security] auth.signin.success (success), account u-1001, from 192.0.2.124, POST /api/auth/signin, client web",
+        "event_id": "evt-1da58e06860945a772931e5c",
+        "account": "u-1001",
+        "source_ip": "192.0.2.124"
+      },
+      {
+        "timestamp": "2026-10-24T12:32:53.554000Z",
+        "description": "[app-security] account.password.changed (success), account u-1001, from 192.0.2.43, PATCH /api/account, client web",
+        "event_id": "evt-c4ee213c869f9ec363296805",
+        "account": "u-1001",
+        "source_ip": "192.0.2.43"
+      },
+      {
+        "timestamp": "2026-10-24T12:32:53.554000Z",
+        "description": "Alert PRH-ACCT-001 (high): Sensitive account change shortly after sign-in",
+        "alert_id": "alr-40ff0fdc6039e3a599b41d40"
+      }
+    ],
+    "indicators": [
+      {
+        "type": "user_agent",
+        "value": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0 Safari/537.36",
+        "enrichment": []
+      }
+    ],
+    "attack": [
+      "attack.persistence",
+      "attack.privilege_escalation",
+      "attack.defense_impairment",
+      "attack.credential_access",
+      "attack.t1098",
+      "attack.t1556.006"
+    ],
+    "attack_version": "20.0",
+    "recommended_actions": [
+      "If the owner did not make the change: end all sessions, revert the change, reset the password and re-enable two-step verification.",
+      "Hold payouts to a newly changed payout number until the owner confirms it.",
+      "Consider requiring re-authentication or a confirmation code for these changes."
+    ],
+    "confidence": "medium",
+    "limitations": [
+      "Single log source (app-security): no other log corroborates it",
+      "No earlier sign-in to u-1001 in the input: could not tell whether 192.0.2.124 is new for it",
+      "Possible benign cause for PRH-ACCT-001: The account owner changing their own settings after signing in",
+      "Possible benign cause for PRH-ACCT-001: Support staff helping a user recover an account"
+    ]
+  }
+}

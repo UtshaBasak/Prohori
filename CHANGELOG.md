@@ -35,8 +35,23 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   - read-only tools (knowledge search, one technique, one alert) with a call limit
     (`--max-tool-calls`);
   - an injection fixture suite with instructions hidden in user agents, usernames and paths.
+- An offline evaluation of the LLM analyst (`docs/LLM_ANALYST.md#evaluation`, ADR-0030):
+  - 30 cases with truth labels from the simulator: 15 attacks, 7 false positives and 8
+    incidents with an instruction hidden in a user agent, a request path or a username;
+  - a hand-written reference for each, with the indicators and points a good answer covers and
+    the statements that would be false;
+  - `python -m prohori.llm.evaluate record` saves answers once (a real model resumes where its
+    daily budget stopped it); `score` replays them through the same checks offline and writes
+    `results/llm_eval.json`;
+  - factual errors, indicators named, points covered and whether injections were followed,
+    for the model's answer and for what the analyst is shown; the tables in the docs and the
+    README are generated from the results;
+  - baselines: the local summary, the mock and a scripted model that obeys every injection.
+    No real model has been recorded yet.
 
 ### Fixed
+
+- The mock LLM provider failed on an incident whose user agent contained `</incident>`.
 
 - Docker stack start-up: a stage whose new Kafka consumer still found a just-created topic
   unknown crashed and restarted, which could make `prohori pipeline up` report the stack

@@ -76,16 +76,20 @@ def build_payload(
     mask_ips: bool = False,
     max_input_tokens: int = 6000,
     nonce: str | None = None,
+    key: bytes | None = None,
 ) -> Payload:
     """Redact ``incident`` and build the payload to send.
+
+    ``key`` fixes the redaction key, so the same incident always gives the same pseudonyms; only
+    the offline evaluation uses it (:mod:`prohori.llm.evaluate`). Otherwise the key is random.
 
     Raises:
         RedactionError: if a replaced value would still be sent.
     """
     nonce = nonce or new_nonce()
-    redactor = Redactor(secrets.token_bytes(32), ips=mask_ips)
+    redactor = Redactor(key or secrets.token_bytes(32), ips=mask_ips)
     clean = redactor.redact(incident)
-    data = _fields(clean)
+    data = payload_fields(clean)
     trimmed: list[str] = []
     text = _serialise(_fenced(data, nonce))
     for step in ("indicators", "alerts", "alert_timeline"):
@@ -147,7 +151,7 @@ def _trim(data: dict[str, Any], step: str) -> bool:
     return False
 
 
-def _fields(incident: Incident) -> dict[str, Any]:
+def payload_fields(incident: Incident) -> dict[str, Any]:
     """The allow-list: every field sent is named here."""
     events = [t for t in incident.timeline if t.alert_id is None]
     return {
