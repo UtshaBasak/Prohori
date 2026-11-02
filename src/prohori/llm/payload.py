@@ -9,6 +9,9 @@ The payload is built from chosen fields, never by dumping the incident:
 - **No log content.** Incidents hold no raw log lines, and the timeline's event descriptions,
   which carry attacker-controlled request paths and user agents, are not sent: only the number of
   events and the alert entries, which Prohori writes itself. Free-text fields are capped.
+- **Fenced.** In the text sent, every value that can carry log content is wrapped in a fence
+  with a random nonce (:func:`prohori.llm.guard.fence`); :attr:`Payload.data` keeps the plain
+  values, from which :func:`prohori.llm.guard.allowed_from` takes what an answer may cite.
 - **Size cap.** The estimated size (characters / 4) is kept under ``max_input_tokens`` by
   dropping, in this order, indicators beyond the first five, alerts beyond the first twenty and
   the alert timeline; the payload says what was trimmed.
@@ -23,6 +26,7 @@ import secrets
 from dataclasses import dataclass
 from typing import Any
 
+from prohori.llm.guard import fence, new_nonce
 from prohori.reports.redact import Redactor, find_leaks
 from prohori.schema import Incident
 
@@ -39,10 +43,11 @@ class RedactionError(ValueError):
 class Payload:
     """The redacted incident as sent, and the local map back from pseudonyms."""
 
-    data: dict[str, Any]
-    text: str  # exactly what goes into the prompt
+    data: dict[str, Any]  # plain values
+    text: str  # exactly what goes into the prompt, with untrusted values fenced
     pseudonyms: dict[str, str]  # pseudonym -> original, kept on this machine
     trimmed: tuple[str, ...]
+    nonce: str = ""
 
     @property
     def estimated_tokens(self) -> int:
@@ -66,25 +71,30 @@ def _cap(text: str) -> str:
 
 
 def build_payload(
-    incident: Incident, *, mask_ips: bool = False, max_input_tokens: int = 6000
+    incident: Incident,
+    *,
+    mask_ips: bool = False,
+    max_input_tokens: int = 6000,
+    nonce: str | None = None,
 ) -> Payload:
     """Redact ``incident`` and build the payload to send.
 
     Raises:
         RedactionError: if a replaced value would still be sent.
     """
+    nonce = nonce or new_nonce()
     redactor = Redactor(secrets.token_bytes(32), ips=mask_ips)
     clean = redactor.redact(incident)
     data = _fields(clean)
     trimmed: list[str] = []
-    text = _serialise(data)
+    text = _serialise(_fenced(data, nonce))
     for step in ("indicators", "alerts", "alert_timeline"):
         if estimate_tokens(text) <= max_input_tokens:
             break
         if _trim(data, step):
             trimmed.append(step)
             data["trimmed"] = list(trimmed)
-            text = _serialise(data)
+            text = _serialise(_fenced(data, nonce))
     leaks = find_leaks(text, redactor.replaced)
     if leaks:
         raise RedactionError(f"{len(leaks)} personal value(s) would still be sent")
@@ -93,7 +103,30 @@ def build_payload(
         text=text,
         pseudonyms={v: k for k, v in redactor.replaced.items()},
         trimmed=tuple(trimmed),
+        nonce=nonce,
     )
+
+
+def _fenced(data: dict[str, Any], nonce: str) -> dict[str, Any]:
+    """A copy of ``data`` with every value that can carry log content fenced."""
+
+    def f(value: str | None) -> str | None:
+        return fence(value, nonce) if value else value
+
+    copy: dict[str, Any] = json.loads(json.dumps(data))
+    copy["title"] = f(copy["title"])
+    for part in copy["score_breakdown"]:
+        part["reason"] = f(part["reason"])
+    copy["entities"] = {k: [f(v) for v in vs] for k, vs in copy["entities"].items()}
+    for alert in copy["alerts"]:
+        alert["title"] = f(alert["title"])
+        alert["explanation"] = f(alert["explanation"])
+    for entry in copy["timeline"]["alert_entries"]:
+        entry["entry"] = f(entry["entry"])
+    for indicator in copy["indicators"]:
+        indicator["value"] = f(indicator["value"])
+    copy["limitations"] = [f(x) for x in copy["limitations"]]
+    return copy
 
 
 def _serialise(data: dict[str, Any]) -> str:
