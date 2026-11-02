@@ -13,6 +13,8 @@ The Kafka transport in the Docker stack implements the same protocol.
 
 import json
 import os
+import sys
+import time
 from collections.abc import Iterator, Mapping
 from dataclasses import dataclass
 from pathlib import Path
@@ -71,6 +73,28 @@ class Transport(Protocol):
 
     def close(self) -> None:
         """Release files and other resources."""
+
+
+#: Attempts at an atomic rename on Windows before giving up.
+REPLACE_ATTEMPTS = 20
+
+
+def replace(source: Path, target: Path) -> None:
+    """Atomically rename ``source`` over ``target``.
+
+    On Windows the rename fails with "access denied" while another process, such as a virus
+    scanner or the search indexer, briefly has ``target`` open; it is retried with a growing
+    pause (at most about two seconds in all) before the error is raised.
+    """
+    attempts = REPLACE_ATTEMPTS if sys.platform == "win32" else 1
+    for attempt in range(attempts):
+        try:
+            source.replace(target)
+            return
+        except PermissionError:
+            if attempt == attempts - 1:
+                raise
+            time.sleep(0.01 * (attempt + 1))
 
 
 def decode(topic: Topic, position: int, line: bytes) -> Record:
@@ -262,7 +286,7 @@ class FileTransport:
         path = self._offset_path(group, topic)
         temp = path.with_name(path.name + ".tmp")
         temp.write_text(str(position), encoding="ascii")
-        temp.replace(path)
+        replace(temp, path)
 
     def close(self) -> None:
         self.flush()

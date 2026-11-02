@@ -1,9 +1,12 @@
 """Transports: ordering, positions, at-least-once redelivery and malformed lines."""
 
+import sys
+import time
 from pathlib import Path
 
 import pytest
 
+from prohori.pipeline import transport as transport_module
 from prohori.pipeline.messages import Topic
 from prohori.pipeline.transport import (
     MAX_MESSAGE_BYTES,
@@ -148,3 +151,32 @@ def test_corrupt_offset_file_starts_from_the_beginning(tmp_path: Path) -> None:
     assert transport.committed("g", Topic.EVENTS) == 0
     assert len(transport.poll(Topic.EVENTS, "g", 10)) == 1
     transport.close()
+
+
+def test_replace_retries_a_briefly_locked_file_on_windows(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    source, target = tmp_path / "a.tmp", tmp_path / "a"
+    source.write_text("1", encoding="ascii")
+    real = Path.replace
+    failures = [PermissionError("locked"), PermissionError("locked")]
+
+    def flaky(self: Path, other: Path) -> Path:
+        if failures:
+            raise failures.pop()
+        return real(self, other)
+
+    monkeypatch.setattr(Path, "replace", flaky)
+    monkeypatch.setattr(time, "sleep", lambda seconds: None)
+    monkeypatch.setattr(sys, "platform", "win32")
+    transport_module.replace(source, target)
+    assert target.read_text(encoding="ascii") == "1"
+
+    failures.extend([PermissionError("locked")] * transport_module.REPLACE_ATTEMPTS)
+    source.write_text("2", encoding="ascii")
+    with pytest.raises(PermissionError):
+        transport_module.replace(source, target)
+    monkeypatch.setattr(sys, "platform", "linux")
+    failures[:] = [PermissionError("denied")]
+    with pytest.raises(PermissionError):  # elsewhere it is a real error, raised at once
+        transport_module.replace(source, target)

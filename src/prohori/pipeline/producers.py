@@ -24,7 +24,7 @@ from typing import BinaryIO
 
 from prohori.parsers import RawLine, available, detect_format, read_lines
 from prohori.pipeline.messages import RawLog, Topic
-from prohori.pipeline.transport import Transport
+from prohori.pipeline.transport import Transport, replace
 
 #: Lines read for format detection.
 DETECT_LINES = 50
@@ -222,7 +222,7 @@ class FileTailer:
         }
         temp = self.state_file.with_name(self.state_file.name + ".tmp")
         temp.write_text(json.dumps(data), encoding="utf-8")
-        temp.replace(self.state_file)
+        replace(temp, self.state_file)
 
     # ------------------------------------------------------------------ files
 
