@@ -237,14 +237,14 @@ take about a minute.
 
 | Service | Image | Role | Memory limit |
 |---------|-------|------|-------------:|
-| `redpanda` | Redpanda v26.2.4, one node, one core | Kafka-compatible broker | 1.5 GB |
+| `redpanda` | Redpanda v26.2.6, one node, one core | Kafka-compatible broker | 1.5 GB |
 | `postgres` | PostgreSQL 17.11 (Alpine) | Warehouse, `raw` schema | 512 MB |
 | `normalise` | `prohori:local` | `prohori pipeline run --stage normalise` | 256 MB |
 | `detect` | `prohori:local` | `... --stage detect` | 384 MB |
 | `incidents` | `prohori:local` | `... --stage incidents --idle-close 60` | 384 MB |
 | `sink` | `prohori:local` | `... --stage sink`, into PostgreSQL | 256 MB |
 | `warehouse-init` | PostgreSQL 17.11 (Alpine) | Runs once per `up`: schemas and Grafana's read-only role | 64 MB |
-| `grafana` | Grafana 13.2.5 (Alpine) | Provisioned dashboards ([DASHBOARD.md](DASHBOARD.md)) | 512 MB |
+| `grafana` | Grafana 13.3.0 (Alpine) | Provisioned dashboards ([DASHBOARD.md](DASHBOARD.md)) | 512 MB |
 | `airflow` (orchestration profile) | Airflow 3.3.2 with Prohori and dbt | Scheduled jobs ([ORCHESTRATION.md](ORCHESTRATION.md)) | 3 GB |
 
 The limits add up to about 3.9 GB, or 6.9 GB with `--orchestration`. Measured with `docker stats` on the development laptop:
