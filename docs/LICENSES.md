@@ -92,7 +92,7 @@ change, so check them again before relying on them.
 
 ## UNSW-NB15
 
-- **Used for:** training and testing the flow detectors (`prohori.ml`, from step 15); see
+- **Used for:** training and testing the flow detectors (`prohori.ml`, since 0.2.0); see
   [DATASETS.md](DATASETS.md). Terms checked on **2026-10-30**.
 - **Terms:** <https://research.unsw.edu.au/projects/unsw-nb15-dataset>: "Free use of the
   UNSW-NB15 dataset for academic research purposes is hereby granted in perpetuity. Use for

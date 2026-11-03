@@ -4,7 +4,7 @@ What Prohori protects, who might attack it, how, and what stops them. Every cont
 exists in the code, with the file it lives in. The residual risks are the ones the other
 documents already admit. To report a problem, see [SECURITY.md](../SECURITY.md).
 
-Reviewed for v1.0.0 on 2026-11-02.
+Reviewed for v1.0.1 on 2026-11-03.
 
 ## Contents
 
@@ -76,7 +76,7 @@ anything outside its own output.
 |--------|----------|
 | Code execution from YAML rules or mappings | `yaml.safe_load` only; rule files capped at 128 KiB and one document (`rules/loader.py`); rules validated before they run |
 | Code execution from model files | Models are joblib (pickle) files, which **can run code**. The CLI warns, checks the SHA-256 sidecar written at training (`ml/models.py`) and the docs say to load only models you trained ([MODEL_CARD.md](MODEL_CARD.md)) |
-| Tampered datasets | Download script pins and checks SHA-256 hashes (`scripts/download_datasets.py`); datasets are never committed or fetched at import time |
+| Tampered datasets | The download script pins and checks the size and SHA-256 of the CIC-IDS-2017 archive it fetches, and `verify` checks the pinned UNSW-NB15 files (`scripts/download_datasets.py`); training does not re-check hashes. Datasets are never committed or fetched at import time |
 | Path traversal in outputs | Outputs are written only under the directory given; report file names are built from incident ids, not log content |
 
 ### Outside services (boundary 3)
@@ -123,7 +123,7 @@ anything outside its own output.
 | Compromised CI actions | Every action pinned to a full commit SHA (repository policy); zizmor and actionlint; least-privilege workflow permissions |
 | Secrets committed | gitleaks in pre-commit and CI, GitHub secret scanning |
 | Vulnerable code | CodeQL, OpenSSF Scorecard, strict mypy |
-| Tampered releases | PyPI trusted publishing (no stored token), a TestPyPI rehearsal, the container image with a build provenance attestation (`gh attestation verify`) |
+| Tampered releases | PyPI trusted publishing (no stored token) with PyPI attestations, a TestPyPI rehearsal, a signed provenance attestation for the wheel and sdist (from 1.0.1, attached to the GitHub release) and for the container image (`gh attestation verify`) |
 
 ## Residual risks
 

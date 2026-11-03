@@ -602,6 +602,13 @@ and test it.
 **Consequences.** Scores will be lower than many published ones, and the documentation says why.
 Results depend on the seed; step 15 reports the mean and standard deviation over several seeds.
 
+*Amended 2026-11-03:* the dependency boundary no longer holds as written: `prohori.ml.models`,
+`train`, `evaluate`, `transfer`, `score` and the Isolation Forest detector import the ML
+packages too, always lazily or inside the `ml` extra, and the base-install test still passes.
+The validation split is drawn at random from the training data with exact duplicates removed,
+so near-duplicate flows can sit on both sides; the model card names this as the likely cause of
+the threshold shift on UNSW-NB15.
+
 ---
 
 ## ADR-0020: Flow models and how they are evaluated
@@ -1161,6 +1168,11 @@ language model. Recording Gemini once fills in that row without changing any cod
 adversary shows the known gap: claims made with real values ("no action needed") pass the
 answer checks.
 
+*Amended 2026-11-03:* Gemini (`gemini-3.5-flash-lite`) was recorded on 2026-11-02
+(`evaluation/llm/recordings/gemini.jsonl`), and its row is in the tables. The factual-error
+column uses the same validator as the analyst itself, so it cannot show a value the validator
+misses; ADR-0032 closes the gaps found since.
+
 ## ADR-0031: Release 1.0.0: what "stable" covers, and how its claims are checked
 
 - **Date:** 2026-11-02
@@ -1201,3 +1213,64 @@ consumer position failed with "access denied" while another process briefly had 
 The rename is now retried for up to about two seconds. Two success criteria, the tagged release
 and `pip install prohori && prohori demo` from PyPI, can only be met when the release is
 published; the release workflow's checks are their evidence.
+
+---
+
+## ADR-0032: Release 1.0.1: fixes from a review of the whole project
+
+- **Date:** 2026-11-03
+- **Status:** Accepted
+
+**Context.** After 1.0.0, every part of the project was reviewed: the batch core, the pipeline,
+the ML and LLM code, and the repository's CI and release. Each finding was reproduced before it
+was fixed. All fixes keep the command line, the file formats and the rule format of 1.0.0.
+
+**Decision.**
+- **Redaction covers enrichment data.** An indicator's `enrichment` was skipped as structural, so
+  `--redact-ips` left the network (`203.0.113.0/24`) and any address or email in provider data,
+  and the leak check skipped it too. Now only `provenance.enrichment` (the run's mode, a string)
+  is structural. Account values are matched ignoring letter case and next to `@`
+  (`alice@bastion`, `@alice`); emails are found with non-ASCII letters. The `-` and `.`
+  boundaries stay, so rule ids and action names are never rewritten; the residual (`alice-laptop`
+  keeps the name) is documented.
+- **The LLM payload fences and caps enrichment values**, drops them before giving up on size,
+  and raises `PayloadTooLargeError` (nothing sent, exit 1) when trimming cannot meet
+  `PROHORI_LLM_MAX_INPUT_TOKENS`; before, it sent an oversized payload. `ask` redacts the
+  question with the incident's key. Restored real values are cleaned again before display.
+- **The answer validator normalises first** (NFKC, defanged `[.]` and `hxxp`), finds compressed
+  IPv6 addresses, treats an unparsable dotted quad as unknown, checks Prohori's detector ids in
+  any case, and allows only `https://attack.mitre.org/` links: Markdown targets, scheme-less
+  `//host`, other schemes and backslashes are untrusted.
+- **Parsers:** a timestamp that overflows when moved to UTC is a line error, not a crash; JSON
+  and nginx escapes that decode to control characters are sanitised again; a sudo command line
+  can no longer overwrite the fields before `COMMAND=`; an unparseable request is kept as written.
+- **Incidents:** the shared-address limit counts accounts, not (field, value) pairs, so an
+  account seen by id, name and email hash counts once.
+- **The Docker stack's stateful stages do not release state on SIGTERM.** They rebuild it from
+  their topics on the next start, so a stop between two parts of an attack no longer writes the
+  first part as an incident of its own next to the final one. The heartbeat is touched per batch
+  so a long rebuild stays healthy.
+- **Airflow parameters reach scripts only as environment variables** (`env=`, quoted), never
+  rendered into a bash script, and the backfill's `start` has a pattern. Before, a string
+  parameter could inject shell commands into the Airflow container.
+- **Bounded stack roles and checks:** Grafana's database role is read-only by default, with a
+  15-second statement timeout and five connections. The future-timestamp data check is a
+  warning, so one bogus line cannot stop every mart from being rebuilt (reproduced with dbt).
+- **Lite mode** fsyncs consumer positions and tailer checkpoints before the rename (about 5 %
+  slower on a small replay).
+- **CLI:** an unusable `-o` for `report` or `triage` is a usage error (exit 2), checked before
+  any work; Typer never prints local variables on a crash.
+- **Repository:** CI runs with `UV_LOCKED` (a stale lock fails), every job has a timeout, the
+  fuzzer and twine are pinned, Dependabot covers the Docker images, the compose file and the
+  Airflow requirements, and one "All checks passed" job sums up CI for branch protection. The
+  release signs a SLSA provenance statement for the wheel and sdist and keeps the bundle as an
+  artifact, which the maintainer attaches to the GitHub release; no job gains write access to
+  the repository (ADR-0018).
+
+**Consequences.** Redacted reports and LLM payloads can show more pseudonyms than before (the
+sample's network is now `[ip:...]/24`). Not fixed here, and listed as candidates for later work:
+the detector's idle flush depends on wall-clock time, so a rebuild can evaluate events the live
+run dropped as late; a daylight-saving fall-back hour in `auth.log` can drop events as late;
+SSH lines with a host name instead of an address are not grouped by source; alerts of a batch
+run are held in memory; the raw tables have no indexes beyond their keys; the stages use the
+database superuser; Redpanda runs in its development mode.

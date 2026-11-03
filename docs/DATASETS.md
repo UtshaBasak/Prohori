@@ -193,8 +193,8 @@ it to in the cross-dataset test. Both are dropped; `protocol` is kept.
 **Suspect columns.** UNSW-NB15's time-to-live columns (`sttl`, `dttl`, `ct_state_ttl`) are
 reported in the literature to separate the classes because of how the testbed was built rather
 than because of the attacks. They are kept by default and listed in the cleaning report;
-`--drop-suspect` (or `drop_suspect=True`) removes them. Step 15 compares models with and without
-them rather than deciding by assumption.
+`--drop-suspect` (or `drop_suspect=True`) removes them. The model card compares models with and
+without them rather than deciding by assumption.
 
 ## The cleaning report
 
