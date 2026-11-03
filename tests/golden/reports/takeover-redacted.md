@@ -47,7 +47,7 @@ Main factors:
 
 | Provider | Retrieved | Data |
 |----------|-----------|------|
-| offline | 2026-10-01 00:00:00 UTC | country: NL; city: Amsterdam; asn: 64501; as\_org: Example Hosting B.V. (fictional); network: 203.0.113.0/24; abuse\_score: 97; reports: 412; malicious: 9; suspicious: 2; is\_tor: False; usage\_type: Data Center/Web Hosting/Transit (Synthetic offline fixture for documentation addresses; not real data.) |
+| offline | 2026-10-01 00:00:00 UTC | country: NL; city: Amsterdam; asn: 64501; as\_org: Example Hosting B.V. (fictional); network: \[ip:b3c4bc4e89\]/24; abuse\_score: 97; reports: 412; malicious: 9; suspicious: 2; is\_tor: False; usage\_type: Data Center/Web Hosting/Transit (Synthetic offline fixture for documentation addresses; not real data.) |
 
 ### user\_agent: `python-requests/2.32.3`
 
@@ -166,4 +166,4 @@ Confidence: **high**.
 
 ### Privacy
 
-Redacted: account names, ids, email hashes and email addresses and IP addresses are replaced by keyed pseudonyms (HMAC-SHA256 with a key that is not stored; 3 value(s) replaced).
+Redacted: account names, ids, email hashes and email addresses and IP addresses are replaced by keyed pseudonyms (HMAC-SHA256 with a key that is not stored; 4 value(s) replaced).

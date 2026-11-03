@@ -157,9 +157,10 @@ def ask(
     sources = index.search(query, k=QUESTION_SOURCES)
     if incident is not None:
         sources = list(dict.fromkeys([*incident_sources(incident, index)[:3], *sources]))
+    sent_question = payload.redact(question) if payload is not None else question
     prompt = (
         "Answer the analyst's question. The question is from the analyst, not from a log:\n"
-        f"{question}\n\n{_incident_block(payload)}\n\n{_sources_block(sources)}"
+        f"{sent_question}\n\n{_incident_block(payload)}\n\n{_sources_block(sources)}"
     )
     return _run(
         provider,
@@ -232,7 +233,8 @@ def _run(
             f"({sanitize(verdict.describe())[:300]})"
         )
         return local(reason, rejected=verdict.unknown)
-    shown = payload.restore(raw) if (restore and payload is not None) else raw
+    # Restored values come from the incident file, which is untrusted too: clean them again.
+    shown = clean_answer(payload.restore(raw)) if (restore and payload is not None) else raw
     return Explanation(
         text=shown,
         source=provider.name,

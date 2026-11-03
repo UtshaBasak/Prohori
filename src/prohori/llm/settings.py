@@ -65,7 +65,9 @@ class LLMSettings:
             ConfigError: if a setting has an invalid value.
         """
         values = read_env_file(env_file, ENV_VARS) if env_file is not None else {}
-        values.update({k: v for k, v in (environ or os.environ).items() if k in ENV_VARS})
+        values.update(
+            {k: v for k, v in (os.environ if environ is None else environ).items() if k in ENV_VARS}
+        )
         return cls(
             provider=_choice(values, "PROHORI_LLM_PROVIDER", ProviderName, ProviderName.NONE),
             model=values.get("PROHORI_LLM_MODEL", "").strip() or DEFAULT_MODEL,

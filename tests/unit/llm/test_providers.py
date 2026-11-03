@@ -170,7 +170,8 @@ def test_answers_are_cleaned() -> None:
     assert clean_answer("x" * 30_000).endswith("[truncated]")
 
 
-def test_settings_from_env_and_file(tmp_path: Path) -> None:
+def test_settings_from_env_and_file(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("PROHORI_LLM_PROVIDER", "gemini")  # an empty environ means none at all
     assert LLMSettings.load(environ={}, env_file=None) == LLMSettings()
     env = tmp_path / ".env"
     env.write_text(

@@ -177,3 +177,34 @@ def test_account_named_only_in_novelty_text_is_redacted() -> None:
     assert any("deploy" in x for x in incident.limitations)  # named by the novelty check
     redacted = Redactor(KEY).redact(incident)
     assert "deploy" not in redacted.model_dump_json()
+
+
+def test_account_values_in_any_case_and_next_to_at_signs_are_redacted() -> None:
+    title = "Alice and ALICE as alice@bastion, mentioned as @alice; alice.role.granted kept"
+    incident = build_incidents([alert("R-A", title=title, entities={"user.name": "alice"})])[0]
+    redactor = Redactor(KEY)
+    redacted = redactor.redact(incident).title
+    pseudonym = redactor.pseudonym("user", "alice")
+    assert redacted.count(pseudonym) == 4
+    assert "alice.role.granted" in redacted  # a dotted name is not an account
+    assert find_leaks(redacted.replace("alice.role", ""), redactor.replaced) == []
+    assert find_leaks("ALICE signed in", ["alice"]) == ["ALICE"]
+
+
+def test_unicode_emails_in_free_text_are_redacted() -> None:
+    title = "Contact josé@example.com or bob@münchen.de"
+    incident = build_incidents([alert("R-A", title=title, entities={"user.id": "u-1"})])[0]
+    redacted = Redactor(KEY).redact(incident).title
+    assert "josé" not in redacted
+    assert "bob@" not in redacted
+
+
+def test_enrichment_data_is_redacted_and_checked() -> None:
+    sample = next(Path(ROOT / "samples" / "incidents").glob("INC-*.json"))
+    incident = Incident.model_validate_json(sample.read_text(encoding="utf-8"))
+    redactor = Redactor(KEY, ips=True)
+    text = render(redactor.redact(incident), ReportFormat.JSON)
+    assert "203.0.113.0/24" not in text  # the network reported by AbuseIPDB
+    assert "203.0.113.0" in redactor.replaced
+    assert find_leaks(text, redactor.replaced) == []
+    assert '"enrichment": "offline"' in text.replace('":"', '": "')  # the run's mode is kept

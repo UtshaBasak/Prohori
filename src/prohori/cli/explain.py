@@ -13,7 +13,7 @@ from prohori.enrich.config import ConfigError, EnrichSettings
 from prohori.enrich.ratelimit import DailyBudget
 from prohori.llm import MissingExtraError
 from prohori.llm.explain import Explanation, ask, explain
-from prohori.llm.payload import Payload, RedactionError, build_payload
+from prohori.llm.payload import Payload, PayloadError, build_payload
 from prohori.llm.provider import (
     GeminiProvider,
     MockProvider,
@@ -172,16 +172,20 @@ def ask_command(
         return
     session = _session(provider_name or settings.provider, model, settings, cache_path)
     provider, problem, budget = session or (NoneProvider(), "the LLM analyst is off", None)
-    result = ask(
-        question,
-        provider,
-        incident=incident,
-        payload=payload,
-        budget=budget,
-        max_output_tokens=settings.max_output_tokens,
-        max_tool_calls=max_tool_calls,
-        restore=not keep_pseudonyms,
-    )
+    try:
+        result = ask(
+            question,
+            provider,
+            incident=incident,
+            payload=payload,
+            budget=budget,
+            max_output_tokens=settings.max_output_tokens,
+            max_tool_calls=max_tool_calls,
+            restore=not keep_pseudonyms,
+        )
+    except PayloadError as exc:
+        typer.echo(f"error: {exc}; nothing was sent", err=True)
+        raise typer.Exit(ExitCode.REDACTION_FAILED) from None
     _print(_unavailable(result, problem), "Answer")
 
 
@@ -203,7 +207,7 @@ def _payload(incident: Incident, mask_ips: bool, settings: LLMSettings) -> Paylo
         return build_payload(
             incident, mask_ips=mask_ips, max_input_tokens=settings.max_input_tokens
         )
-    except RedactionError as exc:
+    except PayloadError as exc:
         typer.echo(f"error: {exc}; nothing was sent", err=True)
         raise typer.Exit(ExitCode.REDACTION_FAILED) from None
 
