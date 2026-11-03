@@ -21,3 +21,27 @@ updates:
     directory: /
     schedule:
       interval: monthly
+
+  # Base images pinned by digest: the stage image and the Airflow image.
+  - package-ecosystem: docker
+    directories: [/pipeline, /pipeline/airflow]
+    schedule:
+      interval: weekly
+    groups:
+      docker-images:
+        patterns: ["*"]
+
+  # Redpanda, PostgreSQL and Grafana, pinned by digest in the compose file.
+  - package-ecosystem: docker-compose
+    directory: /pipeline
+    schedule:
+      interval: weekly
+    groups:
+      stack-images:
+        patterns: ["*"]
+
+  # The Airflow image's hash-pinned database drivers.
+  - package-ecosystem: pip
+    directory: /pipeline/airflow
+    schedule:
+      interval: monthly

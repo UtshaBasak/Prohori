@@ -28,26 +28,32 @@ The workflow is [`.github/workflows/release.yml`](../.github/workflows/release.y
    2. builds the sdist and wheel and runs `twine check`;
    3. installs the wheel alone in fresh environments on Linux, Windows and macOS and runs
       `prohori demo` (which must finish within a minute) and `prohori rules test`;
-   4. publishes to **TestPyPI**;
-   5. **waits for approval** of the `pypi` environment: open the run under *Actions*, review it
+   4. signs a provenance attestation for the wheel and sdist (Sigstore, through GitHub's
+      attestations) and keeps the bundle as the `provenance` artifact;
+   5. publishes to **TestPyPI**;
+   6. **waits for approval** of the `pypi` environment: open the run under *Actions*, review it
       and click *Approve and deploy*;
-   6. publishes to **PyPI** (with build attestations);
-   7. installs the release from PyPI on Linux, Windows and macOS and runs `prohori demo`
+   7. publishes to **PyPI** (with build attestations);
+   8. installs the release from PyPI on Linux, Windows and macOS and runs `prohori demo`
       (within a minute);
-   8. publishes the Docker image to GitHub Packages as `ghcr.io/utshabasak/prohori:X.Y.Z`,
+   9. publishes the Docker image to GitHub Packages as `ghcr.io/utshabasak/prohori:X.Y.Z`,
       `:X.Y` and `:latest`, for linux/amd64 and linux/arm64, with a provenance attestation
       (`gh attestation verify oci://ghcr.io/utshabasak/prohori:X.Y.Z --owner UtshaBasak`).
       Before PyPI, a job builds the image, runs it and checks it holds only the package; pull
       requests that change `pipeline/Dockerfile` run that job too.
 
-5. **Create the GitHub release** from the same files, with the changelog section as notes
-   (`<run-id>` is the release run's id, shown in its URL):
+5. **Create the GitHub release** from the same files and their signed provenance, with the
+   changelog section as notes (`<run-id>` is the release run's id, shown in its URL):
 
    ```bash
    gh run download <run-id> --name dist --dir dist
+   gh run download <run-id> --name provenance --dir dist
    uv run python scripts/release_notes.py 0.2.0 > notes.md
    gh release create v0.2.0 dist/* --title "Prohori 0.2.0" --notes-file notes.md --verify-tag
    ```
+
+   Anyone can then check a downloaded file:
+   `gh attestation verify prohori-0.2.0-py3-none-any.whl --owner UtshaBasak`.
 
    The workflow does not do this itself on purpose: creating a release needs a token that can
    write to the repository, and no job in the release workflow has one.
