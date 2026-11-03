@@ -28,10 +28,13 @@ and tested on, how well they work and where they fail. Design decisions:
   `Fuzzers` and `Analysis` attacks.
 - **A threshold chosen on validation data does not always hold on test data.** On UNSW-NB15 the
   threshold for a 1 % false-positive rate on validation produced about 4.5 % on the test file:
-  290 false alerts per 10,000 flows instead of 100. The benign flows of the official testing
-  file score differently from the benign validation flows, which come from the training file;
-  why is not established. A SOC deploying a model meets the same kind of shift between the data
-  a threshold was set on and live traffic. The 0.1 % threshold held (0.07 %).
+  290 false alerts per 10,000 test flows where about 64 were expected (benign flows are 64 % of
+  that file). The benign flows of the official testing file score differently from the benign
+  validation flows. A likely cause, not proven: the validation split is drawn at random from the
+  training file, and only exact duplicates are removed, so flows from the same sessions sit on
+  both sides and the model scores validation flows more confidently than new traffic. A SOC
+  deploying a model meets the same kind of shift between the data a threshold was set on and
+  live traffic. The 0.1 % threshold held (0.07 %).
 - **CIC-IDS-2017 is close to solved by gradient boosting, even after cleaning:** 99.98 % of
   attacks caught at a 0.1 % false-positive rate. That says more about the dataset than about the
   model: every attack in it comes from a few scripted tools run in one lab week.

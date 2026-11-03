@@ -11,7 +11,8 @@ Shutdown is graceful: :meth:`LitePipeline.follow` stops between rounds when its 
 set (the command sets it on Ctrl+C or SIGTERM), finishes the stages and commits.
 
 **The Docker stack** runs each stage in its own container over Kafka with :func:`serve`, which
-loops until it is stopped and touches a heartbeat file the container's health check reads.
+loops until it is stopped and touches a heartbeat file the container's health check reads. A
+stopped stateful stage does not release what it holds; it rebuilds it on the next start.
 """
 
 import threading
@@ -105,14 +106,22 @@ def serve(
     batch_size: int = BATCH_SIZE,
     max_rounds: int | None = None,
 ) -> int:
-    """Run ``stages`` until ``stop`` is set, then finish them; return the number of rounds.
+    """Run ``stages`` until ``stop`` is set, then stop them; return the number of rounds.
 
     After ``idle_after`` quiet seconds each stage's :meth:`~Stage.idle` runs once (the detector
     releases its reorder buffer). ``heartbeat`` is touched after every round, so a health check
     can tell a stuck process from a quiet one. An error stops the loop without finishing or
     committing, so the batch is delivered again after a restart.
+
+    When stopped, stateless stages finish; stateful ones (the detector and the incident stage)
+    keep what they hold, because they rebuild it from their topics on the next start. Releasing
+    it would write alerts and incidents that are not final, next to the final ones written after
+    the restart.
     """
+    if heartbeat is not None:
+        heartbeat.touch()
     for stage in stages:
+        stage.progress = heartbeat.touch if heartbeat is not None else None
         stage.start()
     quiet_since: float | None = None
     rounds = 0
@@ -133,7 +142,10 @@ def serve(
             quiet_since = None
         stop.wait(poll_interval)
     for stage in stages:
-        stage.finish()
+        if stage.stateful:
+            stage.transport.flush()
+        else:
+            stage.finish()
     return rounds
 
 

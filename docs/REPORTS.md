@@ -19,7 +19,8 @@ validated against the incident schema and capped at 32 MiB. Use `-o FILE` rather
 redirection on Windows: PowerShell 5.1 re-encodes redirected output as UTF-16.
 
 Exit codes: `0` written, `1` redaction could not remove every personal value (nothing is
-written), `2` invalid usage or input.
+written), `2` invalid usage or input, including an `-o` that is a directory, is in a directory
+that does not exist, or is the incident file itself (checked before anything is read).
 
 ## Formats
 
@@ -61,14 +62,17 @@ replaces IP addresses (including networks such as `203.0.113.0/24`).
   email could be) and cannot be linked across reports.
 - Values are collected from every structured field: incident and alert entities, timeline
   accounts and addresses, and indicators. They are then replaced in **every** string, because they
-  also appear in titles, explanations, score reasons and limitations. Email addresses and, with
-  `--redact-ips`, IP addresses are also found by pattern in free text.
-- Replacement is whole-token: an account named `admin` is replaced in "account admin" but not
-  inside `admin.role.granted` or `PRH-ADMIN-001`. Prose may change; identifiers do not.
+  also appear in titles, explanations, score reasons, limitations and the indicators' enrichment
+  data. Email addresses (including non-ASCII ones such as `josé@example.com`) and, with
+  `--redact-ips`, IP addresses are also found by pattern in free text, enrichment data included.
+- Replacement is whole-token and ignores letter case: an account named `admin` is replaced in
+  "account Admin", "admin@bastion" and "@admin", but not inside `admin.role.granted`,
+  `admin-laptop` or `PRH-ADMIN-001`. Prose may change; identifiers do not. A host or file name
+  that contains an account name joined with `-` or `.` is therefore not redacted.
 - **Fail closed:** after rendering, Prohori searches the report data for every original value.
   If one is left, it prints an error, writes nothing and exits with code `1`.
 - Not redacted: event, alert and incident ids (hashes of the log lines), rule ids, provider data
-  other than addresses (country, network owner) and input file names. Review a report before
+  other than addresses and emails (country, network owner) and input file names. Review a report before
   sharing it outside your organisation.
 
 ## Security

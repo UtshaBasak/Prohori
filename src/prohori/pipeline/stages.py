@@ -79,6 +79,8 @@ class Stage(ABC):
     def __init__(self, transport: Transport) -> None:
         self.transport = transport
         self.metrics = StageMetrics()
+        #: Called after every batch (the stack's heartbeat), so a long rebuild looks alive.
+        self.progress: Callable[[], None] | None = None
 
     @property
     def group(self) -> str:
@@ -107,6 +109,8 @@ class Stage(ABC):
         for _topic, records in batches:
             if records:
                 self.transport.commit(records[-1], self.group)
+        if self.progress is not None:
+            self.progress()
         return count
 
     def _deliver(self, record: Record) -> None:

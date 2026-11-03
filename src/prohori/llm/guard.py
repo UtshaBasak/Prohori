@@ -10,11 +10,16 @@ data and that instructions inside it must be ignored.
 technique id an answer mentions must appear in the incident's *structured* fields (never its
 free text, which an attacker can fill) or in the sources the model was given; any link must
 point to attack.mitre.org. Validation is conservative: one unknown value rejects the answer.
+The answer is checked after Unicode normalisation (NFKC, so full-width digits and dots count)
+and with defanged forms such as ``198[.]51[.]100[.]9`` and ``hxxp://`` turned back. Markdown link
+and image targets and scheme-less ``//host`` links count as links, and an address that looks
+like IPv4 but does not parse (``198.051.100.009``) counts as unknown.
 """
 
 import ipaddress
 import re
 import secrets
+import unicodedata
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass, field
 from typing import Any
@@ -24,13 +29,19 @@ FENCE_CHARS = str.maketrans("", "", "⟦⟧")
 _FENCE_RE = re.compile(r"⟦u:[0-9a-f]{8}⟧.*?⟦/u:[0-9a-f]{8}⟧", re.DOTALL)
 
 _IPV4 = re.compile(r"(?<![\w.])(?:\d{1,3}\.){3}\d{1,3}(?![\w.]?\d)")
-_IPV6 = re.compile(r"(?<![\w:.])(?:[0-9A-Fa-f]{1,4}:){2,7}[0-9A-Fa-f]{0,4}(?![\w:])")
-_EMAIL = re.compile(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,}")
+# Any run of hex digits and colons with at least two colons: compressed forms (2001:db8::1, ::1)
+# included. Candidates are kept only if ipaddress parses them.
+_IPV6 = re.compile(r"(?<![\w:.])[0-9A-Fa-f]{0,4}(?::[0-9A-Fa-f]{0,4}){2,7}(?:%\w+)?(?![\w:])")
+_EMAIL = re.compile(r"[\w.%+-]+@[\w-]+(?:\.[\w-]+)*\.[^\W\d_]{2,}")
 _PSEUDONYM = re.compile(r"\[(?:user|email|ip):[0-9a-f]{10}\]")
 _INCIDENT = re.compile(r"\bINC-[A-Za-z0-9]{6,40}\b")
-_RULE = re.compile(r"\b[A-Z]{2,10}-[A-Z]{2,10}-\d{3}\b")
+# Rule ids such as PRH-AUTH-001, and Prohori's detector ids (PRH-ML-ZSCORE) in any case.
+_RULE = re.compile(r"\b(?:[A-Z]{2,10}-[A-Z]{2,10}-\d{3}|(?i:PRH-[A-Z]{2,10}-[A-Z0-9]{2,12}))\b")
 _TECHNIQUE = re.compile(r"(?<![A-Za-z0-9])[Tt]\d{4}(?:\.\d{3})?(?![\d.]*\d)")
-_URL = re.compile(r"https?://[^\s<>()\[\]\"'`]+", re.IGNORECASE)
+_URL = re.compile(r"(?:[a-z][a-z0-9+.-]*:)?//[^\s<>()\[\]\"'`]+", re.IGNORECASE)
+# Markdown link and image targets: [text](target) and ![alt](target).
+_MARKDOWN_TARGET = re.compile(r"\]\(\s*<?([^)\s>]+)")
+_DEFANGED = (("[.]", "."), ("(.)", "."), ("[dot]", "."), ("[:]", ":"), ("hxxp", "http"))
 TRUSTED_LINK_HOSTS = frozenset({"attack.mitre.org"})
 #: Entity fields whose values an answer may cite: addresses and (pseudonymised) accounts.
 IDENTITY_KEYS = frozenset(
@@ -52,15 +63,36 @@ def outside_fences(text: str) -> str:
     return _FENCE_RE.sub(" ", text)
 
 
-def _ips(text: str) -> set[str]:
+def _ips(text: str, *, strict: bool = False) -> set[str]:
+    """IP addresses in ``text``, normalised. With ``strict``, a dotted quad that does not parse
+    (such as ``198.051.100.009``, which some tools read as octal) is returned as it is, so it
+    can never be in an allow-list.
+    """
     found = set()
     for regex in (_IPV4, _IPV6):
         for match in regex.finditer(text):
+            candidate = match.group()
             try:
-                found.add(str(ipaddress.ip_address(match.group())))
+                found.add(str(ipaddress.ip_address(candidate.split("%", 1)[0])))
             except ValueError:
-                continue
+                if strict and regex is _IPV4 and all(int(o) <= 255 for o in candidate.split(".")):
+                    found.add(candidate)
     return found
+
+
+def normalise(text: str) -> str:
+    """``text`` as it is checked: NFKC-normalised, with defanged addresses and links undone."""
+    text = unicodedata.normalize("NFKC", text).replace("。", ".")
+    for defanged, plain in _DEFANGED:
+        text = re.sub(re.escape(defanged), plain, text, flags=re.IGNORECASE)
+    return text
+
+
+def _trusted_link(url: str) -> bool:
+    if "\\" in url:  # browsers read a backslash as a slash: https://evil\@attack.mitre.org/
+        return False
+    parts = urlsplit(url)
+    return parts.scheme.lower() == "https" and parts.hostname in TRUSTED_LINK_HOSTS
 
 
 def techniques(text: str) -> set[str]:
@@ -84,7 +116,7 @@ class Allowed:
         self.emails |= {m.lower() for m in _EMAIL.findall(text)}
         self.pseudonyms |= set(_PSEUDONYM.findall(text))
         self.incidents |= set(_INCIDENT.findall(text))
-        self.rules |= set(_RULE.findall(text))
+        self.rules |= {m.upper() for m in _RULE.findall(text)}
         self.techniques |= techniques(text)
 
 
@@ -93,7 +125,7 @@ def allowed_from(data: Mapping[str, Any], sources: Iterable[str] = ()) -> Allowe
     allowed = Allowed()
     if data:
         allowed.incidents.add(str(data["id"]))
-        allowed.rules |= {str(a["rule"]) for a in data["alerts"]}
+        allowed.rules |= {str(a["rule"]).upper() for a in data["alerts"]}
         allowed.techniques |= techniques(" ".join(data["attack"]))
         for alert in data["alerts"]:
             allowed.techniques |= techniques(" ".join(alert["attack"]))
@@ -138,14 +170,16 @@ def validate(answer: str, allowed: Allowed) -> Verdict:
         if missing:
             unknown[kind] = [m[:80] for m in missing]
 
+    answer = normalise(answer)
     urls = _URL.findall(answer)
-    check("links", [u for u in urls if urlsplit(u).hostname not in TRUSTED_LINK_HOSTS], set())
+    targets = [t for t in _MARKDOWN_TARGET.findall(answer) if not t.startswith("#")]
+    check("links", [u for u in [*urls, *targets] if not _trusted_link(u)], set())
     text = _URL.sub(" ", answer)  # an address inside a trusted link is not cited on its own
-    check("IP addresses", _ips(text), allowed.ips)
+    check("IP addresses", _ips(text, strict=True), allowed.ips)
     check("email addresses", {m.lower() for m in _EMAIL.findall(text)}, allowed.emails)
     check("pseudonyms", _PSEUDONYM.findall(text), allowed.pseudonyms)
     check("incident ids", _INCIDENT.findall(text), allowed.incidents)
-    check("rule ids", _RULE.findall(text), allowed.rules)
+    check("rule ids", {m.upper() for m in _RULE.findall(text)}, allowed.rules)
     check("ATT&CK techniques", techniques(text) | techniques_in_links(urls), allowed.techniques)
     return Verdict(unknown)
 
@@ -154,6 +188,6 @@ def techniques_in_links(urls: Iterable[str]) -> set[str]:
     found = set()
     for url in urls:
         parts = urlsplit(url)
-        if parts.hostname in TRUSTED_LINK_HOSTS:
+        if _trusted_link(url):
             found |= techniques(parts.path.replace("/", "."))
     return found

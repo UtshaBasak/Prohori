@@ -47,7 +47,7 @@ Main factors:
 
 | Provider | Retrieved | Data |
 |----------|-----------|------|
-| offline | 2026-10-01 00:00:00 UTC | country: NL; city: Amsterdam; asn: 64501; as\_org: Example Hosting B.V. (fictional); network: 203.0.113.0/24; abuse\_score: 97; reports: 412; malicious: 9; suspicious: 2; is\_tor: False; usage\_type: Data Center/Web Hosting/Transit (Synthetic offline fixture for documentation addresses; not real data.) |
+| offline | 2026-10-01 00:00:00 UTC | country: NL; city: Amsterdam; asn: 64501; as\_org: Example Hosting B.V. (fictional); network: \[ip:4b573a8fcb\]/24; abuse\_score: 97; reports: 412; malicious: 9; suspicious: 2; is\_tor: False; usage\_type: Data Center/Web Hosting/Transit (Synthetic offline fixture for documentation addresses; not real data.) |
 
 ### user\_agent: `python-requests/2.32.3`
 
@@ -160,11 +160,11 @@ Confidence: **high**.
 
 ### Versions
 
-- Incident built with: prohori 1.0.0 (enrichment: offline)
-- Report rendered with: prohori 1.0.0
+- Incident built with: prohori 1.0.1 (enrichment: offline)
+- Report rendered with: prohori 1.0.1
 - ATT&CK: Enterprise v20.0
-- Incident file: `INC-ee7c8818fbb34989.json`, SHA-256 `c3b29f5f6ac0e9b6e2668d006811def721d0534ff88ab88e7b6265e424149a81`
+- Incident file: `INC-ee7c8818fbb34989.json`, SHA-256 `7034be1ce4a42349d4d08437c435f3af051eb67fff9db3a6167609f56c9cead6`
 
 ### Privacy
 
-Redacted: account names, ids, email hashes and email addresses and IP addresses are replaced by keyed pseudonyms (HMAC-SHA256 with a key that is not stored; 3 value(s) replaced).
+Redacted: account names, ids, email hashes and email addresses and IP addresses are replaced by keyed pseudonyms (HMAC-SHA256 with a key that is not stored; 4 value(s) replaced).

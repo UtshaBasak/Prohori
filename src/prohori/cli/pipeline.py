@@ -438,8 +438,9 @@ def run_command(
     """Run one pipeline stage (or all) over Kafka until stopped: what each container runs.
 
     Stateful stages (detect, incidents) rebuild their state from the start of their topics when
-    they start. SIGTERM or Ctrl+C finishes the current batch, releases what the stage holds and
-    exits 0. Exit 1 if the pipeline extra is missing or the broker or database is unreachable.
+    they start. SIGTERM or Ctrl+C finishes the current batch and exits 0; a stateful stage keeps
+    what it holds (it is rebuilt on the next start), so a restart writes no partial incident.
+    Exit 1 if the pipeline extra is missing or the broker or database is unreachable.
     """
     del parser_name  # each raw line names its parser
     parsers = ParserSettings(year, timezone, mapping, pattern, keep_query)

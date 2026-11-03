@@ -160,10 +160,10 @@ Confidence: **high**.
 
 ### Versions
 
-- Incident built with: prohori 1.0.0 (enrichment: offline)
-- Report rendered with: prohori 1.0.0
+- Incident built with: prohori 1.0.1 (enrichment: offline)
+- Report rendered with: prohori 1.0.1
 - ATT&CK: Enterprise v20.0
-- Incident file: `INC-ee7c8818fbb34989.json`, SHA-256 `c3b29f5f6ac0e9b6e2668d006811def721d0534ff88ab88e7b6265e424149a81`
+- Incident file: `INC-ee7c8818fbb34989.json`, SHA-256 `7034be1ce4a42349d4d08437c435f3af051eb67fff9db3a6167609f56c9cead6`
 
 ### Privacy
 

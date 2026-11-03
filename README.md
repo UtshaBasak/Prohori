@@ -43,7 +43,7 @@ reports, with honest machine-learning evaluation and a streaming data pipeline.*
 *Prohori* (প্রহরী) is Bengali for "guard". It is an open-source, defensive security-operations
 toolkit in Python that runs on a single laptop with free tools only, offline by default.
 
-> **Status: v1.0.0, stable.** One command goes from a log file to scored incidents and
+> **Status: v1.0.1, stable.** One command goes from a log file to scored incidents and
 > shareable reports, and a labelled attack simulator measures the rules. Machine learning
 > (anomaly detectors over your own logs, flow models evaluated with leakage controls), a
 > streaming pipeline with warehouse models, dashboards and scheduled jobs, and an opt-in LLM
@@ -117,8 +117,10 @@ on macOS (Python 3.13), and every release is installed and its demo run on all t
 - **From PyPI:** `pipx install prohori` puts the `prohori` command in its own environment;
   `pip install prohori` works in any virtual environment. Optional parts are extras:
   `pip install "prohori[geoip]"` for local GeoLite2 files, `pip install "prohori[ml]"` for the
-  machine-learning code (scikit-learn, pandas, pyarrow) and `pip install "prohori[pipeline]"` for
-  the streaming pipeline (DuckDB, confluent-kafka, psycopg). The base install never needs them.
+  machine-learning code (scikit-learn, pandas, pyarrow), `pip install "prohori[pipeline]"` for
+  the streaming pipeline (DuckDB, confluent-kafka, psycopg), `pip install "prohori[llm]"` for the
+  Gemini provider of the LLM analyst (google-genai), and `pip install "prohori[all]"` for all of
+  them. The base install never needs them.
 - **As a Docker image:** `docker run --rm ghcr.io/utshabasak/prohori:latest demo` runs the same
   command line with the pipeline extra, for linux/amd64 and linux/arm64. Mount a folder to read
   your own logs: `docker run --rm -v "$PWD:/data" ghcr.io/utshabasak/prohori triage /data/auth.log`.
@@ -559,8 +561,8 @@ Third-party data terms (MITRE ATT&CK, GeoLite2, AbuseIPDB, VirusTotal, the Gemin
 Prohori is honest about what it does not do:
 
 - **The streaming stack runs on one machine.** It is a single-node broker with no
-  authentication, built from a clone; dashboards and scheduled jobs come later in v0.3.0.
-  Prohori never blocks, disables or changes anything.
+  authentication, built from a clone, and its dashboards and Airflow open without a login on
+  127.0.0.1 only. Prohori never blocks, disables or changes anything.
 - **Rules see only what the logs say.** Request bodies, headers and encrypted traffic are not
   inspected; the web rules use the request line only.
 - **Thresholds can be evaded.** The held-out evaluation shows that slow or widely distributed
@@ -582,7 +584,8 @@ Prohori is honest about what it does not do:
 | v0.1.0 | Batch core: parsers, rules, enrichment, incidents, reports, log simulator with rule evaluation, `triage` and `demo` commands | Released |
 | v0.2.0 | Machine learning: leakage-controlled intrusion detection on public flow datasets, log-derived anomaly detection, model cards | Released |
 | v0.3.0 | Pipeline: streaming core and lite mode, Redpanda and PostgreSQL in Docker, dbt models and data-quality checks, Grafana dashboards, Airflow jobs; Docker image on GitHub Packages | Released |
-| v1.0.0 | Optional LLM analyst: providers, redaction, `explain` and `ask`, retrieval, prompt-injection defences, answer validation and an evaluation; threat model, performance notes, completed licence notes, macOS in CI | Ready for release |
+| v1.0.0 | Optional LLM analyst: providers, redaction, `explain` and `ask`, retrieval, prompt-injection defences, answer validation and an evaluation; threat model, performance notes, completed licence notes, macOS in CI | Released |
+| v1.0.1 | Fixes from a full review: stricter redaction and answer checks, parser and output-path robustness, safer stack shutdown and Airflow parameters, signed provenance for release files | Released |
 
 ## Development
 

@@ -18,7 +18,11 @@ sources:
           - name: timestamp
             data_tests:
               - not_null
-              - not_in_future
+              # A warning, not an error: one log line with a bogus future time (an attacker
+              # can write one) must not stop every mart from being rebuilt.
+              - not_in_future:
+                  config:
+                    severity: warn
           - name: outcome
             data_tests:
               - accepted_values:

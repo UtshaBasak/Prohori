@@ -4,6 +4,8 @@ import json
 from importlib.resources import files
 from pathlib import Path
 
+import pytest
+
 from prohori.llm.guard import Allowed, techniques, validate
 from prohori.llm.knowledge import (
     Document,
@@ -104,3 +106,40 @@ def test_validator_catches_each_kind() -> None:
     assert "links https://evil.example/a" in verdict.describe()
     assert techniques("attack.t1110.001 and T1078.") == {"T1110.001", "T1078"}
     assert validate("Version 1.2.3.4.5 and 999.1.1.1 are not addresses.", Allowed()).ok
+
+
+@pytest.mark.parametrize(
+    "answer",
+    [
+        "Block 2001:db8::dead:beef now.",  # compressed IPv6
+        "Block fe80::1 and ::1.",
+        "Block 198[.]51[.]100[.]9.",  # defanged
+        "Block 198.051.100.009.",  # leading zeros, read as octal by some tools
+        "Block １９８.51.100.9.",  # noqa: RUF001 - full-width digits
+        "Block 198。51。100。9.",  # ideographic full stops
+        r"See https://evil.example\@attack.mitre.org/techniques/T1110/",  # backslash host trick
+        "See //evil.example/x",
+        "See ![x](//evil.example/p.png?q=1)",
+        "See [docs](javascript:alert(1))",
+        "See ftp://evil.example/x",
+        "See hxxp://evil.example/x",
+        "See http://attack.mitre.org/techniques/T1110/",  # not https
+        "Rule prh-auth-999 fired.",
+        "Rule PRH-ML-FAKE fired.",
+        "Mail josé@example.com.",
+    ],
+)
+def test_validator_sees_through_disguised_values(answer: str) -> None:
+    allowed = Allowed()
+    allowed.add_text("203.0.113.7 PRH-AUTH-001 PRH-ML-ZSCORE T1110")
+    assert not validate(answer, allowed).ok, answer
+
+
+def test_validator_accepts_allowed_values_in_other_forms() -> None:
+    allowed = Allowed()
+    allowed.add_text("2001:db8::1 PRH-ML-ZSCORE PRH-AUTH-001 T1110")
+    answer = (
+        "2001:0db8:0000:0000:0000:0000:0000:0001, prh-ml-zscore and PRH-AUTH-001; "
+        "[T1110](https://attack.mitre.org/techniques/T1110/), [above](#summary)"
+    )
+    assert validate(answer, allowed).ok

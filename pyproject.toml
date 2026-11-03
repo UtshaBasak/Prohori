@@ -73,6 +73,8 @@ Homepage = "https://github.com/UtshaBasak/Prohori"
 Repository = "https://github.com/UtshaBasak/Prohori"
 Issues = "https://github.com/UtshaBasak/Prohori/issues"
 Changelog = "https://github.com/UtshaBasak/Prohori/blob/main/CHANGELOG.md"
+Documentation = "https://github.com/UtshaBasak/Prohori/tree/main/docs"
+Security = "https://github.com/UtshaBasak/Prohori/security/policy"
 
 [project.scripts]
 prohori = "prohori.cli:main"

@@ -238,6 +238,8 @@ def triage_command(
     --exit-zero), 1 nothing could be parsed, a rule file is invalid or redaction failed (nothing
     is written), 2 invalid usage.
     """
+    if out.exists() and not out.is_dir():
+        raise typer.BadParameter(f"{out} exists and is not a directory", param_hint="--out")
     allowed_lateness = parse_lateness(lateness)
     try:
         settings = IncidentSettings(gap=parse_duration(gap))
@@ -263,6 +265,8 @@ def triage_command(
     except RedactionError as exc:
         typer.echo(f"error: {exc}; nothing was written", err=True)
         raise typer.Exit(ExitCode.REDACTION_FAILED) from None
+    except OSError as exc:  # such as a read-only or full --out directory
+        raise typer.BadParameter(f"{exc.filename or out}: {exc.strerror or exc}") from None
     print_result(result)
     if result.run.events == 0 and result.run.parse_errors > 0:
         raise typer.Exit(ExitCode.NO_EVENTS)

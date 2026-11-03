@@ -273,8 +273,11 @@ The limits add up to about 3.9 GB, or 6.9 GB with `--orchestration`. Measured wi
   a stuck stage shows up even when its process is still alive. `up` waits until every service is
   healthy; `status` shows the state and exits 1 if anything is not.
 - **Shutdown.** The containers run with an init process, so `down` (or `docker compose stop`)
-  sends SIGTERM to Prohori. The stage finishes its batch, releases what it holds, commits and
-  prints its counters. The stack stops in a few seconds.
+  sends SIGTERM to Prohori. The stage finishes its batch, commits and prints its counters. The
+  detector and the incident stage do not release what they hold (the reorder buffer, open
+  incidents): they rebuild it from their topics on the next start, so a stop between two parts
+  of an attack never writes the first part as an incident of its own. Open incidents are
+  written after the next `up`. The stack stops in a few seconds.
 - **Containers restart** unless stopped. A stage that hits a database or broker error stops
   without committing, restarts, and processes the same batch again.
 

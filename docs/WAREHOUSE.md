@@ -121,7 +121,7 @@ the broker and the containers.
 |------|--------|
 | Schema and nulls | Every id is unique and not null, in the inputs and in each model. |
 | Accepted values | Severity is `low`, `medium`, `high` or `critical`. The detector kind is `rule` or `model`. The outcome is `success`, `failure` or `unknown`. |
-| Ranges | HTTP status is 100 to 599. Score is 0 to 100. An alert counts at least one event. Precision and recall are 0 to 1. Durations and latencies are not negative. No timestamp is more than a day in the future. |
+| Ranges | HTTP status is 100 to 599. Score is 0 to 100. An alert counts at least one event. Precision and recall are 0 to 1. Durations and latencies are not negative. No timestamp is more than a day in the future (a warning only: a log line with a bogus future time, which anyone who can write to the log can add, must not stop the marts from being rebuilt). |
 | Duplicates | Each (day, rule, severity), (alert, event), (incident, alert) and (evaluation, model, operating point) appears once. |
 | Consistency | Every event an alert lists was stored. Every alert an incident holds was stored. An alert's `event_count` matches its event ids, and an incident's `alert_count` matches its alerts. Nothing ends before it starts. |
 | Freshness | `events`, `alerts` and `incidents` got a row within the last day (warning) or week (error), measured on `stored_at`. |

@@ -51,7 +51,7 @@ sources (below). Nothing else from the incident is included:
 | Entities, ATT&CK techniques | The timeline's event descriptions: they carry request paths, user agents and other text an attacker controls |
 | Alerts: rule, kind, title, severity, times, event count, ATT&CK, explanation | Event ids, input file names and hashes (provenance) |
 | The number of events, the alert entries of the timeline | Enrichment notes |
-| Indicators with their enrichment data | |
+| Indicators with their enrichment data (fenced, each value capped) | |
 | Recommended actions, limitations | |
 
 - **Redaction first.** Account names, ids and email addresses become keyed pseudonyms such as
@@ -62,9 +62,15 @@ sources (below). Nothing else from the incident is included:
 - **Fail closed.** Before sending, the exact text is searched for every value that was
   replaced. It searches the decoded text, so a Bangla or other non-ASCII name counts. If one
   remains, nothing is sent and the command exits 1.
-- **Size cap.** Each free-text value is cut at 300 characters. If the estimated size (characters
-  / 4) is over `PROHORI_LLM_MAX_INPUT_TOKENS`, Prohori drops indicators beyond five, then alerts
-  beyond twenty, then the alert timeline, and says so in the payload's `trimmed` field.
+- **Your question** (`ask`) is redacted with the same key as the incident, so an account named
+  in it becomes the same pseudonym, in any letter case. Values the incident does not hold, such
+  as another account you mention, are sent as you typed them.
+- **Size cap.** Titles, explanations, reasons, actions, limitations and enrichment values are cut
+  at 300 characters (entity and indicator values are bounded by the schema). If the estimated
+  size (characters / 4) is over `PROHORI_LLM_MAX_INPUT_TOKENS`, Prohori drops indicators beyond
+  five, then alerts beyond twenty, then the alert timeline, then the enrichment data, then
+  alerts beyond five, and says so in the payload's `trimmed` field. If it is still over,
+  nothing is sent and the command exits 1.
 - **Untrusted values are fenced** (see below).
 
 ## Sources and tools
@@ -101,14 +107,23 @@ that rules quote. Prohori assumes some of it will try to instruct the model.
 - **What is sent is fenced.** Every value that can carry log content is wrapped as
   `⟦u:NONCE⟧...⟦/u:NONCE⟧`, with a random nonce for each request. That covers titles,
   explanations, score reasons, alert timeline entries, entity and indicator values (such as a
-  scanner's user agent) and limitations. The fence characters are removed from the value first,
-  so it cannot close its fence or forge one. The system instruction says fenced text is data and
+  scanner's user agent), enrichment values (a network owner or host name can be chosen by
+  whoever controls the address) and limitations. The fence characters are removed from the
+  value first, so it cannot close its fence or forge one. The system instruction says fenced text is data and
   that any instruction in it must be ignored. Tool results are fenced the same way.
 - **Answers are checked before they are shown.** Every IP address, email address, pseudonym,
   incident id, rule id and ATT&CK technique id in the answer must exist in the incident's
   identity fields (addresses and pseudonymised accounts, never free text such as a user agent)
   or in the sources and tool results the model was given. Links are allowed only to
-  attack.mitre.org.
+  `https://attack.mitre.org/`.
+- **Disguises count.** The answer is checked after Unicode normalisation (full-width digits,
+  other full stops) and with defanged forms turned back (`198[.]51[.]100[.]9`, `hxxp://`).
+  Compressed IPv6 addresses (`2001:db8::1`) are found, a dotted quad that does not parse
+  (`198.051.100.009`) counts as unknown, and Markdown link and image targets, scheme-less
+  `//host` links, other schemes and a backslash in a link all count as untrusted links. Bare
+  domain names without a scheme (`evil.example/x`) are not detected.
+- **Shown text is cleaned twice.** Control characters are removed from the answer, and again
+  after the real values are put back, since those come from the incident file.
 - **Conservative by design.** One unknown value rejects the whole answer. You get the local
   summary instead, and stderr lists what was unknown. A model that obeys an injected "the
   attacker is 198.51.100.250" or "link to https://evil.example" is therefore caught. The checks

@@ -14,13 +14,15 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  UV_FROZEN: "1"
+  # The lock file must match pyproject.toml: a stale uv.lock fails the run instead of shipping.
+  UV_LOCKED: "1"
   PYTHONUTF8: "1"
 
 jobs:
   lint:
     name: Lint and type check
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -40,6 +42,7 @@ jobs:
   test:
     name: Test (${{ matrix.os }}, Python ${{ matrix.python-version }})
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
@@ -69,6 +72,7 @@ jobs:
   dbt:
     name: dbt (DuckDB)
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -84,6 +88,7 @@ jobs:
   llm:
     name: LLM extra (google-genai)
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -99,6 +104,7 @@ jobs:
   dags:
     name: Airflow DAGs
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -119,6 +125,7 @@ jobs:
   fuzz:
     name: Fuzz parsers (Atheris)
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -131,11 +138,12 @@ jobs:
       - name: Fuzz the parsers
         run: |
           mkdir -p corpus && cp samples/logs/* corpus/
-          uv run --with atheris python fuzz/fuzz_parsers.py -max_total_time=60 corpus
+          uv run --with atheris==3.1.0 python fuzz/fuzz_parsers.py -max_total_time=60 corpus
 
   build:
     name: Build distributions
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     needs: [lint, test]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -160,6 +168,7 @@ jobs:
   secrets:
     name: Secret scan
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -168,3 +177,21 @@ jobs:
       - uses: gitleaks/gitleaks-action@e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e # v3.0.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # One check to require in branch protection: it fails if any job above failed or was cancelled
+  # (a skipped "needs" job would otherwise count as passing).
+  all-green:
+    name: All checks passed
+    if: always()
+    needs: [lint, test, dbt, llm, dags, fuzz, build, secrets]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Every job succeeded
+        env:
+          RESULTS: ${{ join(needs.*.result, ' ') }}
+        run: |
+          echo "job results: $RESULTS"
+          for result in $RESULTS; do
+            if [ "$result" != "success" ]; then exit 1; fi
+          done

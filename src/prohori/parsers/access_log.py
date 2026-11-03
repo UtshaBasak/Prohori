@@ -13,7 +13,7 @@ named groups ``ip``, ``time`` and ``status``, and either ``request`` or ``method
 import re
 from datetime import UTC, datetime, timedelta, timezone
 
-from prohori.parsers.base import LineParser, ParseError
+from prohori.parsers.base import LineParser, ParseError, sanitize
 from prohori.parsers.registry import register
 from prohori.parsers.util import normalise_ip
 from prohori.schema import Event, EventCategory, EventInfo, Outcome, event_id
@@ -81,7 +81,8 @@ def unescape(text: str) -> str:
             return chr(int(match[1], 16))
         return match[2]
 
-    return _ESCAPE_RE.sub(replace, text)
+    # An escape can encode a control character (\x1B), so the result is sanitised again.
+    return sanitize(_ESCAPE_RE.sub(replace, text))
 
 
 @register
@@ -138,7 +139,9 @@ class AccessLogParser(LineParser):
         if query:
             extra["query"] = query
         if method is None and groups.get("request"):
-            extra["request"] = unescape(groups["request"])  # unparseable, e.g. TLS on port 80
+            # Unparseable, such as a TLS handshake on port 80: kept as written (...),
+            # since decoding it would only give control characters.
+            extra["request"] = groups["request"]
         referer = _optional(groups.get("referer"))
         if referer:
             extra["referer"] = unescape(referer)

@@ -94,7 +94,7 @@ class TestCombinedFormat:
             '198.51.100.23 - - [24/Oct/2026:13:41:02 +0000] "\\x16\\x03\\x01\\x00" 400 157 "-" "-"'
         )
         assert event.http.method is None
-        assert event.extra["request"] == "\x16\x03\x01\x00"
+        assert event.extra["request"] == r"\x16\x03\x01\x00"  # as written, never decoded
         assert event.user_agent is None
 
     def test_escaped_quotes_in_agent(self) -> None:

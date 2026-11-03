@@ -97,6 +97,19 @@ def replace(source: Path, target: Path) -> None:
             time.sleep(0.01 * (attempt + 1))
 
 
+def write_atomic(path: Path, data: bytes, *, fsync: bool = True) -> None:
+    """Write ``data`` to ``path`` through a temporary file, flushed to disk before the rename,
+    so a crash or power loss leaves the old content or the new one, never an empty file.
+    """
+    temp = path.with_name(path.name + ".tmp")
+    with temp.open("wb") as handle:
+        handle.write(data)
+        if fsync:
+            handle.flush()
+            os.fsync(handle.fileno())
+    replace(temp, path)
+
+
 def decode(topic: Topic, position: int, line: bytes) -> Record:
     """Turn one stored line into a :class:`Record`, never raising on bad input."""
     raw = line.decode("utf-8", errors="replace")
@@ -283,10 +296,7 @@ class FileTransport:
         self._write_offset(group, topic, 0)
 
     def _write_offset(self, group: str, topic: Topic, position: int) -> None:
-        path = self._offset_path(group, topic)
-        temp = path.with_name(path.name + ".tmp")
-        temp.write_text(str(position), encoding="ascii")
-        replace(temp, path)
+        write_atomic(self._offset_path(group, topic), str(position).encode(), fsync=self.fsync)
 
     def close(self) -> None:
         self.flush()

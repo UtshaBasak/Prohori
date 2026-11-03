@@ -11,6 +11,11 @@ CREATE SCHEMA IF NOT EXISTS marts;
 SELECT 'CREATE ROLE grafana LOGIN'
 WHERE NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'grafana') \gexec
 ALTER ROLE grafana WITH LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE PASSWORD :'reader_password';
+-- Anyone who can open the dashboards can run a query through this role, so it is bounded: a
+-- query stops after 15 seconds, at most five connections, and every transaction is read-only.
+ALTER ROLE grafana CONNECTION LIMIT 5;
+ALTER ROLE grafana SET statement_timeout = '15s';
+ALTER ROLE grafana SET default_transaction_read_only = on;
 GRANT CONNECT ON DATABASE prohori TO grafana;
 GRANT USAGE ON SCHEMA raw, marts TO grafana;
 GRANT SELECT ON ALL TABLES IN SCHEMA raw, marts TO grafana;

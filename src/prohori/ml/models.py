@@ -13,6 +13,7 @@ swapped file, not a deliberate attack: whoever can replace the model can replace
 """
 
 import hashlib
+import io
 import json
 from dataclasses import dataclass
 from pathlib import Path
@@ -109,8 +110,10 @@ def load_model(path: Path) -> tuple[dict[str, Any], dict[str, Any]]:
         msg = f"{path} has no {sidecar.name}; refusing to load an unknown pickle"
         raise ModelFileError(msg)
     meta = json.loads(sidecar.read_text(encoding="utf-8"))
-    if meta.get("format") != MODEL_FORMAT or meta.get("sha256") != _sha256(path):
+    data = path.read_bytes()  # read once: the bytes checked are the bytes loaded
+    if meta.get("format") != MODEL_FORMAT or meta.get("sha256") != hashlib.sha256(data).hexdigest():
         msg = f"{path} does not match {sidecar.name}; refusing to load it"
         raise ModelFileError(msg)
-    bundle: dict[str, Any] = joblib.load(path)  # hash checked above; see UNSAFE_PICKLE_WARNING
+    # Hash checked above; see UNSAFE_PICKLE_WARNING.
+    bundle: dict[str, Any] = joblib.load(io.BytesIO(data))
     return bundle, meta

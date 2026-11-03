@@ -30,7 +30,8 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  UV_FROZEN: "1"
+  # The lock file must match pyproject.toml: a stale uv.lock fails the run instead of shipping.
+  UV_LOCKED: "1"
   PYTHONUTF8: "1"
   # Image names must be lower case; the account name is not.
   IMAGE: ghcr.io/utshabasak/prohori
@@ -39,6 +40,7 @@ jobs:
   build:
     name: Build and check
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     outputs:
       version: ${{ steps.version.outputs.version }}
     steps:
@@ -70,7 +72,7 @@ jobs:
         run: uv run --no-dev python scripts/release_notes.py "$VERSION" > /dev/null
       - run: uv build
       - name: Check the distributions (metadata and README rendering)
-        run: uvx twine check --strict dist/*
+        run: uvx twine==7.0.0 check --strict dist/*
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: dist
@@ -81,6 +83,7 @@ jobs:
     name: Wheel smoke test (${{ matrix.os }})
     needs: build
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
     strategy:
       fail-fast: true
       matrix:
@@ -107,11 +110,48 @@ jobs:
           if [ "$SECONDS" -gt 60 ]; then echo "the demo must finish within a minute"; exit 1; fi
           "$bin/prohori" rules test
 
+  # A signed SLSA provenance statement for the wheel and sdist (Sigstore, through GitHub's
+  # attestations): `gh attestation verify dist/prohori-X.Y.Z-py3-none-any.whl --owner UtshaBasak`.
+  # The bundle is kept as the "provenance" artifact and attached to the GitHub release with the
+  # files themselves (docs/RELEASING.md); no job here can write to the repository.
+  provenance:
+    name: Attest the distributions
+    if: github.event_name == 'push'
+    needs: [build, smoke]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      id-token: write # sign with Sigstore
+      attestations: write
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: dist
+          path: dist
+      - name: Attest build provenance
+        id: attest
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-path: "dist/*"
+      - name: Name the bundle after the release
+        env:
+          BUNDLE: ${{ steps.attest.outputs.bundle-path }}
+          VERSION: ${{ needs.build.outputs.version }}
+        run: |
+          mkdir provenance
+          cp "$BUNDLE" "provenance/prohori-$VERSION.intoto.jsonl"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: provenance
+          path: provenance/
+          if-no-files-found: error
+
   testpypi:
     name: Publish to TestPyPI
     if: github.event_name == 'push'
     needs: [build, smoke]
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     environment:
       name: testpypi
       url: https://test.pypi.org/project/prohori/${{ needs.build.outputs.version }}/
@@ -129,8 +169,9 @@ jobs:
   pypi:
     name: Publish to PyPI (needs approval)
     if: github.event_name == 'push'
-    needs: [build, testpypi]
+    needs: [build, testpypi, provenance]
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     environment:
       name: pypi
       url: https://pypi.org/project/prohori/${{ needs.build.outputs.version }}/
@@ -147,6 +188,7 @@ jobs:
     name: Install from PyPI (${{ matrix.os }})
     needs: [build, pypi]
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
     strategy:
       fail-fast: false
       matrix:
@@ -178,6 +220,7 @@ jobs:
     name: Container image (build and check)
     needs: build
     runs-on: ubuntu-latest
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -219,6 +262,7 @@ jobs:
     if: github.event_name == 'push'
     needs: [build, image, pypi]
     runs-on: ubuntu-latest
+    timeout-minutes: 60
     permissions:
       packages: write # push to ghcr.io
       attestations: write

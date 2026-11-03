@@ -122,6 +122,25 @@ def test_fanout_counts_accounts_not_alerts() -> None:
     assert groups[0].shared_ips == ()
 
 
+def test_an_account_named_by_id_name_and_email_hash_counts_once() -> None:
+    alerts = [
+        alert(
+            f"R-{n}",
+            start=at(n),
+            entities={
+                "source.ip": "192.0.2.1",
+                "user.id": f"u-{n}",
+                "user.name": f"name{n}",
+                "user.email_hash": f"{n:032x}",
+            },
+        )
+        for n in range(3)
+    ]
+    groups = group_alerts(alerts, max_ip_fanout=3)  # three accounts, not nine values
+    assert len(groups) == 1
+    assert groups[0].shared_ips == ()
+
+
 def test_invalid_settings() -> None:
     with pytest.raises(ValueError, match="gap"):
         group_alerts([], gap=timedelta(seconds=-1))

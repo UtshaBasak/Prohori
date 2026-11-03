@@ -51,24 +51,32 @@ _STRUCTURAL_KEYS = frozenset(
         "tool",
         "tool_version",
         "parser",
-        "enrichment",
     }
 )
+#: Keys that are structural only when they hold a string: ``provenance.enrichment`` is the run's
+#: enrichment mode, while an indicator's ``enrichment`` holds third-party data that can carry
+#: addresses, networks, host names and emails, and is redacted like everything else.
+_STRUCTURAL_STRINGS = frozenset({"enrichment"})
 
-_EMAIL_RE = re.compile(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,}")
+# Unicode-aware, so josé@example.com and bob@münchen.de are found too.
+_EMAIL_RE = re.compile(r"[\w.%+-]+@[\w-]+(?:\.[\w-]+)*\.[^\W\d_]{2,}")
 _IPV4_RE = re.compile(r"(?<![\w.])(?:\d{1,3}\.){3}\d{1,3}(?![\w])")
 _IPV6_RE = re.compile(r"(?<![\w:.])[0-9A-Fa-f]{0,4}(?::[0-9A-Fa-f]{0,4}){2,7}(?![\w:])")
 _PSEUDONYM_RE = re.compile(r"\[(?:user|email|ip):[0-9a-f]{10}\]")
 
 
-def _tokens(values: Iterable[str]) -> re.Pattern[str]:
-    """Match any of ``values`` as a whole token: not inside a longer word or a dotted name.
+def token_pattern(values: Iterable[str]) -> re.Pattern[str]:
+    """Match any of ``values``, ignoring case, as a whole token: not inside a longer word or a
+    dotted or hyphenated name.
 
-    ``admin`` matches in "account admin." but not in "admin.role.granted" or "PRH-ADMIN-001".
-    Longer values are tried first, so one value inside another is not replaced twice.
+    ``admin`` matches in "account admin.", "Admin", "admin@bastion" and "@admin", but not in
+    "admin.role.granted" or "PRH-ADMIN-001". Longer values are tried first, so one value inside
+    another is not replaced twice.
     """
     alternatives = "|".join(re.escape(v) for v in sorted(set(values), key=lambda v: (-len(v), v)))
-    return re.compile(r"(?<![\w@-])(?<!\w\.)(?:" + alternatives + r")(?![\w@-])(?!\.\w)")
+    return re.compile(
+        r"(?<![\w-])(?<!\w\.)(?:" + alternatives + r")(?![\w-])(?!\.\w)", re.IGNORECASE
+    )
 
 
 @dataclass
@@ -94,10 +102,15 @@ class Redactor:
         self._collect(incident, data)
         if not self.replaced:
             return incident
-        pattern = _tokens(self.replaced)
+        pattern = token_pattern(self.replaced)
+        folded: dict[str, str] = {}
+        for original, pseudonym in self.replaced.items():
+            folded.setdefault(original.casefold(), pseudonym)
 
         def replace(text: str) -> str:  # one pass: pseudonyms are never re-scanned
-            return pattern.sub(lambda m: self.replaced[m.group()], text)
+            return pattern.sub(
+                lambda m: self.replaced.get(m.group()) or folded[m.group().casefold()], text
+            )
 
         return Incident.model_validate(_walk(data, replace))
 
@@ -145,8 +158,12 @@ def _addresses(text: str) -> Iterator[str]:
             yield candidate
 
 
+def _structural(key: str | None, value: Json) -> bool:
+    return key in _STRUCTURAL_KEYS or (key in _STRUCTURAL_STRINGS and isinstance(value, str))
+
+
 def _walk(value: Json, transform: Callable[[str], str], key: str | None = None) -> Json:
-    if key in _STRUCTURAL_KEYS:
+    if _structural(key, value):
         return value
     if isinstance(value, str):
         return transform(value)
@@ -158,7 +175,7 @@ def _walk(value: Json, transform: Callable[[str], str], key: str | None = None) 
 
 
 def _strings(value: Json, key: str | None = None) -> Iterator[str]:
-    if key in _STRUCTURAL_KEYS:
+    if _structural(key, value):
         return
     if isinstance(value, str):
         yield value
@@ -176,14 +193,14 @@ def incident_strings(incident: Incident) -> list[str]:
 
 
 def find_leaks(text: str, originals: Iterable[str]) -> list[str]:
-    """Return the original values that still occur in ``text`` as whole tokens.
+    """Return the original values that still occur in ``text`` as whole tokens, in any case.
 
     Pseudonyms are removed first, so a value such as ``user`` does not match ``[user:...]``.
     """
     values = [v for v in originals if v]
     if not values:
         return []
-    return sorted(set(_tokens(values).findall(_PSEUDONYM_RE.sub(" ", text))))
+    return sorted(set(token_pattern(values).findall(_PSEUDONYM_RE.sub(" ", text))))
 
 
 def is_pseudonym(text: str) -> bool:

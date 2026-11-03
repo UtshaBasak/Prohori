@@ -24,6 +24,7 @@ jobs:
   clones:
     name: Record clones
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     permissions:
       contents: write # publish the traffic-data branch (nothing else is written)
     steps:
