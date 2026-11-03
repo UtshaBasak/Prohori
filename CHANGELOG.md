@@ -7,6 +7,69 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.0.1] - 2026-11-03
+
+Fixes from a review of the whole project. The command line, the output formats and the rule
+format are unchanged.
+
+### Security
+
+- Redaction now covers indicators' enrichment data: `--redact-ips` replaces the network
+  (`203.0.113.0/24` became `[ip:...]/24`) and any address or email in provider data, and the
+  fail-closed check searches it too. Account values are matched in any letter case and next to
+  `@` (`alice@bastion`), and emails with non-ASCII letters are found.
+- LLM analyst: enrichment values are fenced and capped; a payload still over
+  `PROHORI_LLM_MAX_INPUT_TOKENS` after trimming is not sent (exit 1); `prohori ask` redacts the
+  question with the incident's key; restored values are cleaned before display.
+- The answer checks see through disguises: compressed IPv6 addresses, defanged and full-width
+  addresses, unparsable dotted quads, detector ids in any case, Markdown link and image targets,
+  scheme-less and non-https links, and backslash host tricks.
+- Airflow: run parameters reach the task scripts only as quoted environment variables, so a
+  backfill `start` value can no longer inject shell commands; `start` is checked by a pattern.
+- Parsers remove control characters that JSON (``) or nginx (``) escapes decode to,
+  so a log value cannot send terminal escape sequences to `parse`, `detect` or `incidents`.
+- A sudo command line can no longer overwrite the target user or command recorded before it.
+- `::/96` (IPv4-compatible IPv6) is never sent to enrichment services.
+- Grafana's database role is read-only by default, with a 15-second statement timeout and at
+  most five connections.
+- A crash never prints local variables (Typer's `pretty_exceptions_show_locals` is off).
+- Model files are hashed and loaded from the same bytes.
+
+### Fixed
+
+- A timestamp at the edge of the calendar (year 1 or 9999 with an offset) is a line error
+  instead of crashing the whole run.
+- The Docker stack no longer writes a partial incident when a stage is stopped between two parts
+  of an attack: the detector and the incident stage rebuild their state on the next start
+  instead of releasing it. A long rebuild keeps the stage healthy (heartbeat per batch).
+- A shared address is one seen with more than ten accounts, as documented, rather than ten
+  (field, value) pairs: an account known by id, name and email hash counts once.
+- `report -o` and `triage -o` with a directory, a missing directory, or (for `report`) the
+  incident file itself are usage errors (exit 2), checked before any work, instead of a
+  traceback.
+- One event with a future timestamp no longer stops `dbt build` from rebuilding every mart (the
+  check is a warning).
+- Lite mode flushes consumer positions and tailer checkpoints to disk before replacing them.
+- An unparseable access-log request is kept as written (`...`) instead of decoded.
+- `LLMSettings.load(environ={})` no longer falls back to the process environment.
+
+### Added
+
+- Releases sign a provenance attestation for the wheel and sdist; the bundle is attached to the
+  GitHub release (`gh attestation verify`).
+- An "All checks passed" CI job that fails when any other job fails, for branch protection.
+- Dependabot also updates the digest-pinned images (stage, Airflow, Redpanda, PostgreSQL,
+  Grafana) and the Airflow image's hash-pinned drivers.
+- Documentation and Security links in the package metadata.
+
+### Changed
+
+- CI fails when `uv.lock` does not match `pyproject.toml` (`UV_LOCKED`), every job has a
+  timeout, and the fuzzer and twine are pinned.
+- Documentation: the docs index lists every document; corrected the model card's false-alert
+  arithmetic, the threat model's dataset-hash claim, the LLM analyst's size cap, and stale
+  README lines; ADR-0032.
+
 ## [1.0.0] - 2026-11-02
 
 The first stable release: the batch core, machine learning and the streaming pipeline from
@@ -400,7 +463,8 @@ offline by default.
 - Contributor, security and code-of-conduct documents.
 - OpenSSF Scorecard workflow, README status badges and a project wiki.
 
-[Unreleased]: https://github.com/UtshaBasak/Prohori/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/UtshaBasak/Prohori/compare/v1.0.1...HEAD
+[1.0.1]: https://github.com/UtshaBasak/Prohori/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/UtshaBasak/Prohori/compare/v0.3.0...v1.0.0
 [0.3.0]: https://github.com/UtshaBasak/Prohori/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/UtshaBasak/Prohori/compare/v0.1.0...v0.2.0
