@@ -66,3 +66,13 @@ def test_paths_match_the_compose_file() -> None:
         assert path in mounts
         assert path in common
     assert airflow["environment"]["DBT_PROFILES_DIR"] == "/opt/prohori-dbt"
+
+
+@pytest.mark.parametrize("path", FILES, ids=lambda p: p.stem)
+def test_parameters_never_reach_a_script(path: Path) -> None:
+    # Run parameters are typed by whoever triggers the DAG; pasted into a bash script, a string
+    # parameter could inject commands. They go through env= and are quoted as "$NAME" instead.
+    for text in _strings(path):
+        if "\n" in text or text.startswith(("prohori ", "dbt ")):
+            assert "params." not in text, path.name
+            assert "xcom_pull" not in text, path.name

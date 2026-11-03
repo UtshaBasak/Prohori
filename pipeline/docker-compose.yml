@@ -211,7 +211,7 @@ services:
       # No usage data is sent.
       AIRFLOW__USAGE_DATA_COLLECTION__ENABLED: "False"
       SCARF_ANALYTICS: "false"
-      # What the jobs use (pipeline/airflow/dags/prohori_jobs.py).
+      # What the jobs use (pipeline/airflow/dags/prohori_common.py).
       PROHORI_KAFKA_BOOTSTRAP: redpanda:9092
       PROHORI_POSTGRES_DSN: postgresql://prohori:${PROHORI_POSTGRES_PASSWORD:-prohori}@postgres:5432/prohori
       PROHORI_POSTGRES_HOST: postgres

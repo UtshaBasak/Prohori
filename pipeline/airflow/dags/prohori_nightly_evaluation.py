@@ -12,6 +12,7 @@ from airflow.sdk import DAG, Param, chain
 from prohori_common import DATA, DEFAULT_ARGS, OUTPUT, PYTHON, SKIP, START, TAGS
 
 # The results file's path is the task's last line of output, which later tasks read from XCom.
+# Run parameters and that path arrive as environment variables, never pasted into a script.
 TRAIN = f"""set -euo pipefail
 if [ ! -d {DATA}/raw/unsw-nb15 ]; then
     echo "{DATA}/raw/unsw-nb15 not found: download the dataset to evaluate (skipping)"
@@ -19,7 +20,7 @@ if [ ! -d {DATA}/raw/unsw-nb15 ]; then
 fi
 out={OUTPUT}/results/ml_unsw-nb15-$(date -u +%Y%m%dT%H%M%SZ).json
 {PYTHON} -m prohori.ml.train --dataset unsw-nb15 --variants cleaned \\
-    --seeds {{{{ params.seed }}}} --data-dir {DATA} --no-cache \\
+    --seeds "$SEED" --data-dir {DATA} --no-cache \\
     --models-dir {OUTPUT}/models --out "$out" >&2
 echo "$out"
 """
@@ -47,21 +48,27 @@ with DAG(
     },
 ) as dag:
     train = BashOperator(
-        task_id="train", bash_command=TRAIN, skip_on_exit_code=SKIP, do_xcom_push=True
+        task_id="train",
+        bash_command=TRAIN,
+        env={"SEED": "{{ params.seed }}"},
+        append_env=True,
+        skip_on_exit_code=SKIP,
+        do_xcom_push=True,
     )
     record = BashOperator(
         task_id="load_results",
-        bash_command=(
-            f'prohori pipeline load-results "{RESULTS}" --postgres "$PROHORI_POSTGRES_DSN"'
-        ),
+        bash_command='prohori pipeline load-results "$RESULTS" --postgres "$PROHORI_POSTGRES_DSN"',
+        env={"RESULTS": RESULTS},
+        append_env=True,
     )
     gate = BashOperator(
         task_id="check_recall",
         bash_command=(
-            f'prohori pipeline check-recall "{RESULTS}" '
-            "--min-recall {{ params.min_recall }} --model hgb --variant cleaned "
-            "--operating-point fpr_0.01"
+            'prohori pipeline check-recall "$RESULTS" --min-recall "$MIN_RECALL" '
+            "--model hgb --variant cleaned --operating-point fpr_0.01"
         ),
+        env={"RESULTS": RESULTS, "MIN_RECALL": "{{ params.min_recall }}"},
+        append_env=True,
         retries=0,
     )
     chain(train, record, gate)

@@ -23,7 +23,8 @@ SCENARIOS = (
 )
 
 # Simulates one scenario, replays it into the broker and loads its labels, with the parser and
-# year the simulator recorded in manifest.json.
+# year the simulator recorded in manifest.json. The run's parameters arrive as environment
+# variables (START, SEED), never pasted into the script, so a parameter cannot inject shell.
 REPLAY = """set -euo pipefail
 when=$({python} -c '
 import sys
@@ -31,9 +32,9 @@ from datetime import UTC, datetime, timedelta
 start = sys.argv[1] or (datetime.now(UTC) - timedelta(days=8)).strftime("%Y-%m-%dT06:00:00Z")
 moment = datetime.fromisoformat(start.replace("Z", "+00:00")) + timedelta(days=int(sys.argv[2]))
 print(moment.strftime("%Y-%m-%dT%H:%M:%SZ"))
-' "{{{{ params.start }}}}" {day})
+' "$START" {day})
 dir="$(mktemp -d)/{scenario}"
-prohori simulate {scenario} --seed {{{{ params.seed }}}} --set start="$when" --out "$dir"
+prohori simulate {scenario} --seed "$SEED" --set start="$when" --out "$dir"
 read -r name parser year < <({python} -c '
 import json, sys
 m = json.load(open(sys.argv[1]))
@@ -59,6 +60,8 @@ with DAG(
         "start": Param(
             "",
             type="string",
+            # Empty, or a UTC time such as 2026-10-25T06:00:00Z; the trigger form enforces it.
+            pattern=r"^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z)?$",
             description="First scenario's start, such as 2026-10-25T06:00:00Z (empty: 8 days ago)",
         ),
         "seed": Param(1, type="integer", minimum=0, description="Simulator seed"),
@@ -68,6 +71,8 @@ with DAG(
         BashOperator(
             task_id=f"replay_{scenario.replace('-', '_')}",
             bash_command=REPLAY.format(python=PYTHON, scenario=scenario, day=day),
+            env={"START": "{{ params.start }}", "SEED": "{{ params.seed }}"},
+            append_env=True,
         )
         for day, scenario in enumerate(SCENARIOS)
     ]

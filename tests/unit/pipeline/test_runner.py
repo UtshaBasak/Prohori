@@ -1,11 +1,14 @@
 """The lite-mode runner: following files, idle flushing, graceful stop."""
 
+import json
 import threading
 from collections.abc import Iterator
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 import pytest
 
+from prohori.pipeline.messages import RawLog, Topic
 from prohori.pipeline.producers import FileTailer, replay
 from prohori.pipeline.runner import LitePipeline, LiteSettings, make_stage, serve
 from prohori.pipeline.stages import IncidentStage
@@ -14,6 +17,7 @@ from prohori.rules import builtin_rules_dir, load_rules
 from prohori.simulate import simulate, write
 
 RULES = [r.rule for r in load_rules([builtin_rules_dir()]) if r.rule is not None]
+T0 = datetime(2026, 10, 1, 12, 0, tzinfo=UTC)
 
 
 @pytest.fixture(scope="module")
@@ -97,16 +101,64 @@ def test_replay_state_survives_a_restart(web_log: Path, tmp_path: Path) -> None:
     assert after["stages"]["detect"]["duplicates"] > 0
 
 
-def test_serve_finishes_the_stages_when_stopped(tmp_path: Path) -> None:
+def test_serve_finishes_only_stateless_stages_when_stopped(tmp_path: Path) -> None:
     transport = MemoryTransport()
     settings = LiteSettings(rules=RULES, database=tmp_path / "p.duckdb")
-    detector = make_stage("detect", transport, settings)
+    stages = [make_stage(name, transport, settings) for name in ("normalise", "detect")]
     finished: list[str] = []
-    detector.finish = lambda: finished.append("detect")  # type: ignore[method-assign]
+    for stage in stages:
+        stage.finish = lambda name=stage.name: finished.append(name)  # type: ignore[method-assign,misc]
     stop = threading.Event()
     stop.set()
-    assert serve([detector], stop, poll_interval=0) == 0
-    assert finished == ["detect"]
+    assert serve(stages, stop, poll_interval=0) == 0
+    assert finished == ["normalise"]  # the detector rebuilds its state on the next start
+
+
+def _failed_sign_ins(transport: MemoryTransport, minutes: list[int], first_line: int) -> None:
+    for i, minute in enumerate(minutes):
+        when = (T0 + timedelta(minutes=minute)).isoformat().replace("+00:00", "Z")
+        text = json.dumps(
+            {
+                "time": when,
+                "event": {"action": "auth.signin.failure", "category": "authentication"},
+                "source": {"ip": "203.0.113.9"},
+                "user": {"name": "alice"},
+            }
+        )
+        raw = RawLog(
+            source="app.jsonl", line=first_line + i, text=text, parser="app_json", read_at=T0
+        )
+        transport.publish(Topic.RAW_LOGS, "app.jsonl", raw.model_dump(mode="json"))
+
+
+def _incidents(transport: MemoryTransport) -> dict[str, int]:
+    records = transport.poll(Topic.INCIDENTS, "t", 10**6)
+    return {str(r.key): len(r.value["alerts"]) for r in records if r.value is not None}
+
+
+def test_serve_never_writes_a_partial_incident_on_shutdown(tmp_path: Path) -> None:
+    # Two bursts 20 minutes apart are one incident. A stack stopped between them (SIGTERM, then
+    # a restart in which the stateful stages rebuild from their topics) must not also write the
+    # first burst as an incident of its own.
+    settings = LiteSettings(rules=RULES, database=tmp_path / "p.duckdb", lateness=timedelta(0))
+    first, second = [m // 3 for m in range(15)], [20 + m // 3 for m in range(15)]
+
+    uninterrupted = MemoryTransport()
+    _failed_sign_ins(uninterrupted, first + second, 1)
+    LitePipeline(uninterrupted, settings).run()
+    expected = _incidents(uninterrupted)
+    assert len(expected) == 1
+
+    transport = MemoryTransport()
+    names = ("normalise", "detect", "incidents")
+    _failed_sign_ins(transport, first, 1)
+    stop = threading.Event()
+    serve([make_stage(n, transport, settings) for n in names], stop, max_rounds=3)
+    stop.set()
+    serve([make_stage(n, transport, settings) for n in names], stop)  # stopped at once
+    _failed_sign_ins(transport, second, len(first) + 1)
+    LitePipeline(transport, settings).run()  # restarted, then the end of the input
+    assert _incidents(transport) == expected
 
 
 def test_make_stage_choices(tmp_path: Path) -> None:

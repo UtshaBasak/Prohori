@@ -111,6 +111,11 @@ pipeline/
   marts. The role's password comes from `PROHORI_GRAFANA_DB_PASSWORD` (local-only default
   `grafana`). The service's statements are idempotent, so it also upgrades a database created by
   an earlier version of the stack.
+- **Bounded queries:** a Viewer can run queries of their own through the data source, so the
+  role is limited: every transaction is read-only, a query stops after 15 seconds and the role
+  has at most five connections (Grafana itself opens up to four). It can still read every row
+  of `raw`, including the original log lines, so treat access to the dashboards like access to
+  the logs; the port is bound to 127.0.0.1 for that reason.
 - **No calls home:** usage reporting, update checks, the news feed, feedback links and plugin
   pre-installation are all turned off.
 - **No data volume:** everything Grafana shows comes from the provisioning files and the
