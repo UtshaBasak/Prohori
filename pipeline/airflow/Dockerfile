@@ -3,7 +3,7 @@
 # dbt project are mounted at run time. Build context: the repository root.
 #   docker compose -p prohori -f pipeline/docker-compose.yml --profile orchestration build airflow
 
-FROM ghcr.io/astral-sh/uv:0.11.6@sha256:b1e699368d24c57cda93c338a57a8c5a119009ba809305cc8e86986d4a006754 AS uv
+FROM ghcr.io/astral-sh/uv:0.13.7@sha256:96f40d3904aad8d0bd010539001d36c8e2188b981e1334471a90c4a1d93bb490 AS uv
 
 FROM apache/airflow:slim-3.3.2-python3.13@sha256:881c35bfb1f6b76d233dd402b7228b5c37003702068b865db5db76061458b2bd
 
