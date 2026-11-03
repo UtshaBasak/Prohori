@@ -22,7 +22,7 @@ uv run prohori pipeline down                  # stops Airflow too
 ## The jobs
 
 | DAG | When | What it does |
-|-----|------|--------------|
+| ----- | ------ | -------------- |
 | `prohori_backfill` | By hand | Simulates the eight scenarios one day apart, replays them through the broker, loads their labels, waits until the pipeline has stored everything and builds the dbt marts |
 | `prohori_data_quality` | Hourly | `dbt build` (the marts behind the Detection quality dashboard, with the 68 checks), then `dbt source freshness` on the events |
 | `prohori_nightly_evaluation` | 02:00 UTC | Retrains the cleaned UNSW-NB15 flow models with one seed, loads the results into the warehouse and **fails if recall dropped** below `min_recall` |
@@ -32,7 +32,7 @@ uv run prohori pipeline down                  # stops Airflow too
 Each task runs a Prohori command, so the same jobs work without Airflow:
 
 | Job | Command |
-|-----|---------|
+| ----- | --------- |
 | Digest | `prohori pipeline digest --hours 24 [--out FILE] [-f json]` |
 | Recall gate | `prohori pipeline check-recall results/ml_unsw-nb15.json --min-recall 0.75` |
 | Enrichment refresh | `prohori pipeline refresh-enrichment --days 7 [--online]` |
@@ -62,7 +62,7 @@ looked up, which covers every simulated address.
 
 ## Running a job by hand
 
-Open http://127.0.0.1:18080, pick a DAG and choose *Trigger*. For the backfill you can set the
+Open <http://127.0.0.1:18080>, pick a DAG and choose *Trigger*. For the backfill you can set the
 first scenario's start date and the seed. From a terminal:
 
 ```bash
@@ -81,7 +81,7 @@ builds the marts, writes a digest and runs the evaluation within a minute of sta
 
 Jobs write to the `airflow-output` volume:
 
-```
+```text
 /opt/prohori-output/
 ├── digests/incidents-YYYY-MM-DD.md and .json
 ├── results/ml_unsw-nb15-<time>.json
@@ -119,7 +119,7 @@ The marts the jobs build show up in the Detection quality dashboard ([DASHBOARD.
   write.
 
 | Profile | Services | Memory limits |
-|---------|----------|--------------:|
+| --------- | ---------- | --------------: |
 | default | Redpanda, PostgreSQL, four stages, Grafana, warehouse-init | about 3.9 GB |
 | `orchestration` | the above and Airflow | about 6.9 GB |
 

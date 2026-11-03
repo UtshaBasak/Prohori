@@ -64,7 +64,7 @@ flowchart LR
 ```
 
 | Stage | Reads | Writes | What it does |
-|-------|-------|--------|--------------|
+| ------- | ------- | -------- | -------------- |
 | Producer | log files | `raw-logs` | `replay` reads a whole file; `tail` follows a growing file through rotation. Each line keeps its line number. |
 | `normalise` | `raw-logs` | `events` | Parses each line with one parser per source, so parser state such as the year of `auth.log` timestamps carries across lines. |
 | `detect` | `events` | `alerts` | Drops events it has seen before, then runs the rule engine (same rules, same reorder buffer as `prohori detect`). |
@@ -91,7 +91,7 @@ duplicate rows.
 ## Topics and messages
 
 | Topic | Key | Payload |
-|-------|-----|---------|
+| ------- | ----- | --------- |
 | `raw-logs` | source file name | `RawLog`: `v`, `source`, `line`, `text`, `parser`, `read_at`, `too_long`, `decode_error` |
 | `events` | event id | [`Event`](SCHEMA.md) |
 | `alerts` | alert id | [`Alert`](SCHEMA.md) |
@@ -179,7 +179,7 @@ JSON, and `stored_at` is when the row was first written. Two more tables, `label
 models in [WAREHOUSE.md](WAREHOUSE.md) build on all six.
 
 | Table | Columns |
-|-------|---------|
+| ------- | --------- |
 | `events` | `id`, `timestamp`, `log_source`, `action`, `category`, `outcome`, `source_ip`, `user_name`, `http_status`, `record` |
 | `alerts` | `id`, `detector_id`, `detector_kind`, `severity`, `first_seen`, `last_seen`, `title`, `event_count`, `record` |
 | `incidents` | `id`, `severity`, `score`, `confidence`, `first_seen`, `last_seen`, `title`, `alert_count`, `record` |
@@ -236,7 +236,7 @@ because the image is built from the checkout with the versions pinned in `uv.loc
 take about a minute.
 
 | Service | Image | Role | Memory limit |
-|---------|-------|------|-------------:|
+| --------- | ------- | ------ | -------------: |
 | `redpanda` | Redpanda v26.2.6, one node, one core | Kafka-compatible broker | 1.5 GB |
 | `postgres` | PostgreSQL 17.11 (Alpine) | Warehouse, `raw` schema | 512 MB |
 | `normalise` | `prohori:local` | `prohori pipeline run --stage normalise` | 256 MB |
@@ -250,7 +250,7 @@ take about a minute.
 The limits add up to about 3.9 GB, or 6.9 GB with `--orchestration`. Measured with `docker stats` on the development laptop:
 
 | Situation | Whole stack | Highest single container |
-|-----------|------------:|--------------------------|
+| ----------- | ------------: | -------------------------- |
 | Idle after a 622-line replay | about 440 MB | Redpanda, about 200 MB |
 | During a 50,700-line replay | about 700 MB at peak | Redpanda 267 MB of 1.5 GB; sink 102 MB of 256 MB |
 | Restarting detect and incidents with that backlog (they rebuild from the start) | | incidents about 100 MB of 384 MB |
@@ -333,6 +333,7 @@ on this schema, and the dashboards in [DASHBOARD.md](DASHBOARD.md) read it.
 ```bash
 docker exec -it prohori-postgres-1 psql -U prohori -d prohori
 ```
+
 ```sql
 SELECT severity, score, title FROM raw.incidents ORDER BY score DESC;
 SELECT record->>'detector_id' AS rule, count(*) FROM raw.alerts GROUP BY 1 ORDER BY 2 DESC;

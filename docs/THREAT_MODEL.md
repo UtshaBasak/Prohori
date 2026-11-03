@@ -32,7 +32,7 @@ anything outside its own output.
 ## Assets
 
 | Asset | Why it matters |
-|-------|----------------|
+| ------- | ---------------- |
 | The analyst's machine | Prohori runs on it with the user's rights |
 | Log content | Holds account names, emails and addresses of real people |
 | API keys (AbuseIPDB, VirusTotal, MaxMind, Gemini) | Quota and accounts belong to the user |
@@ -61,7 +61,7 @@ anything outside its own output.
 ### Malicious log content (boundary 1)
 
 | Threat | Controls |
-|--------|----------|
+| -------- | ---------- |
 | Resource exhaustion from huge lines or files | Lines capped at 16 KiB (`parsers/base.py`, `MAX_LINE_LENGTH`); streaming parsers that never load a file whole; bounded state in the rule engine and incident builder (`incidents/builder.py`: shared-IP account cap, sign-in history limit) |
 | Regular-expression denial of service | Rules match with RE2, linear in the input (`rules/regex_safety.py`) |
 | Crashing the parser | Fuzzing with Atheris in CI, Hypothesis property tests, malformed lines counted and skipped, never fatal |
@@ -73,7 +73,7 @@ anything outside its own output.
 ### Untrusted files from the user (boundary 2)
 
 | Threat | Controls |
-|--------|----------|
+| -------- | ---------- |
 | Code execution from YAML rules or mappings | `yaml.safe_load` only; rule files capped at 128 KiB and one document (`rules/loader.py`); rules validated before they run |
 | Code execution from model files | Models are joblib (pickle) files, which **can run code**. The CLI warns, checks the SHA-256 sidecar written at training (`ml/models.py`) and the docs say to load only models you trained ([MODEL_CARD.md](MODEL_CARD.md)) |
 | Tampered datasets | The download script pins and checks the size and SHA-256 of the CIC-IDS-2017 archive it fetches, and `verify` checks the pinned UNSW-NB15 files (`scripts/download_datasets.py`); training does not re-check hashes. Datasets are never committed or fetched at import time |
@@ -82,7 +82,7 @@ anything outside its own output.
 ### Outside services (boundary 3)
 
 | Threat | Controls |
-|--------|----------|
+| -------- | ---------- |
 | Leaking private addresses to third parties | Private, reserved, documentation and translated addresses are never sent (`enrich/` deny list, [ENRICHMENT.md](ENRICHMENT.md)) |
 | Hostile or oversized responses | Fixed endpoints, no redirects, timeouts, 1 MiB response cap (`enrich/http.py`); responses parsed into typed fields |
 | Key leakage | Keys read from the environment or a git-ignored `.env`; never logged, never in error messages (`enrich/http.py`, `llm/provider.py`), never cached |
@@ -92,7 +92,7 @@ anything outside its own output.
 ### The LLM analyst (boundaries 1 and 3)
 
 | Threat | Controls |
-|--------|----------|
+| -------- | ---------- |
 | Prompt injection from log values | Most log text is never sent (event descriptions dropped, usernames pseudonymised); what is sent is fenced with a per-request nonce that log text cannot forge or close (`llm/guard.py`) |
 | A manipulated answer citing invented facts or links | Every IP, email, pseudonym, incident, rule and technique id must come from the incident's structured fields or the sources, and links only from attack.mitre.org; otherwise the answer is rejected and the local summary shown (`llm/guard.py`, `validate`) |
 | Tool misuse | Three read-only tools, a call limit, argument and result caps (`llm/tools.py`) |
@@ -101,7 +101,7 @@ anything outside its own output.
 ### Output consumers (boundary 4)
 
 | Threat | Controls |
-|--------|----------|
+| -------- | ---------- |
 | Script injection in HTML reports | Jinja2 autoescaping and a Content-Security-Policy with `default-src 'none'` (`reports/templates/report.html.j2`) |
 | Link or markup injection in Markdown | Values escaped, code spans made safe (`reports/render.py`) |
 | Spreadsheet formula injection in CSV | Cells starting with `=`, `+`, `-`, `@`, tab or carriage return are prefixed (`reports/render.py`) |
@@ -110,7 +110,7 @@ anything outside its own output.
 ### The Docker stack (boundary 5)
 
 | Threat | Controls |
-|--------|----------|
+| -------- | ---------- |
 | Access from the network | Every port is published on 127.0.0.1 only (`pipeline/docker-compose.yml`) |
 | A compromised stage | Prohori's containers run as a non-root user with memory limits; Grafana reads the warehouse through a read-only role (`pipeline/postgres/warehouse-init.sql`) |
 | Tampered images | Every image pinned by digest |
@@ -118,7 +118,7 @@ anything outside its own output.
 ### Supply chain (boundary 6)
 
 | Threat | Controls |
-|--------|----------|
+| -------- | ---------- |
 | Compromised dependencies | `uv.lock` with hashes; Dependabot; the Airflow image's drivers installed with `--require-hashes` |
 | Compromised CI actions | Every action pinned to a full commit SHA (repository policy); zizmor and actionlint; least-privilege workflow permissions |
 | Secrets committed | gitleaks in pre-commit and CI, GitHub secret scanning |

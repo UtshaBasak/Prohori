@@ -22,6 +22,7 @@ With ``--check`` nothing is written and the exit code is 1 when a document is ou
 
 import argparse
 import json
+import re
 import sys
 from datetime import datetime
 from pathlib import Path
@@ -190,7 +191,7 @@ def render_ml(results: dict[str, Any]) -> str:
         "rate (FPR) and frozen; the test split is scored once. Generated from "
         f"`results/ml_{results['dataset']}.json`; do not edit by hand."
     )
-    lines = [f"#### {results['dataset_title']}", "", intro, ""]
+    lines = [f"### {results['dataset_title']}", "", intro, ""]
     columns = ["Model", "PR-AUC", "ROC-AUC"]
     for fpr in fprs:
         columns += [f"Test FPR ({_label(fpr)} val.)", "Recall", "False alerts / 10k"]
@@ -857,7 +858,20 @@ def updated(
     if start < 0 or end < start:
         msg = f"{name} has no {start_marker} ... {end_marker} block"
         raise SystemExit(msg)
-    return document[: start + len(start_marker)] + "\n" + block + "\n" + document[end:]
+    return document[: start + len(start_marker)] + "\n" + compact(block) + "\n" + document[end:]
+
+
+_DELIMITER_ROW = re.compile(r"^\|(?:\s*:?-+:?\s*\|)+$")
+
+
+def compact(block: str) -> str:
+    """Table delimiter rows in the docs' style, one space inside each pipe: ``| --- | --: |``."""
+    lines = block.split("\n")
+    for index, line in enumerate(lines):
+        if _DELIMITER_ROW.match(line):
+            cells = [cell.strip() for cell in line.strip("|").split("|")]
+            lines[index] = "| " + " | ".join(cells) + " |"
+    return "\n".join(lines)
 
 
 def main(argv: list[str] | None = None) -> int:

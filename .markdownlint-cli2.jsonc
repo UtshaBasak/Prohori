@@ -1,0 +1,25 @@
+// Markdown style for the repository, read by markdownlint-cli2 (pre-commit and CI) and by the
+// VS Code markdownlint extension.
+{
+  "config": {
+    "default": true,
+    // Prose is wrapped at about 100 characters by hand; tables, links and generated lines are
+    // longer, and wrapping them would not help a reader.
+    "MD013": false,
+    // Keep a Changelog repeats "### Added", "### Fixed" under each release.
+    "MD024": { "siblings_only": true },
+    // Tables: one space inside every pipe, delimiter rows included (| --- |).
+    "MD060": { "style": "compact" }
+  },
+  "gitignore": true,
+  "ignores": [
+    // Generated report output: the Markdown a report template renders, compared byte for byte.
+    "tests/golden/**",
+    "docs/examples/**",
+    // Not Markdown, but some editors open them as such.
+    "LICENSE",
+    ".gitleaksignore",
+    // Editor extensions' own instruction files (not part of the project).
+    ".github/instructions/**"
+  ]
+}

@@ -54,7 +54,7 @@ and tested on, how well they work and where they fail. Design decisions:
 ## Models
 
 | | Gradient boosting | Isolation Forest |
-|--|-------------------|------------------|
+| -- | ------------------- | ------------------ |
 | Implementation | scikit-learn `HistGradientBoostingClassifier` | scikit-learn `IsolationForest` |
 | Learns from | Benign and attack training flows with their 0/1 labels | Benign training flows only; never sees an attack |
 | Score | Predicted probability of an attack | Negated `score_samples`: higher is more anomalous |
@@ -80,7 +80,7 @@ avoids a warning on tiny test data.)
 ## Training and evaluation data
 
 | | UNSW-NB15 | CIC-IDS-2017 (improved) |
-|--|-----------|--------------------------|
+| -- | ----------- | -------------------------- |
 | Captured | 2015, UNSW Canberra cyber range | 2017, one week in the CIC lab, regenerated and relabelled in 2022 |
 | Split | Official training file (minus 20 % for validation) and official testing file | Seeded split stratified by class: 50 % train, 20 % validation, 30 % test |
 | Train / validation / test flows | 79,415 / 19,853 / 52,418 | 857,551 / 343,020 / 514,531 |
@@ -120,19 +120,19 @@ Generated from `results/ml_unsw-nb15.json` and `results/ml_cicids2017.json` by
 `scripts/generate_results_table.py`.
 
 <!-- ml-results:start -->
-#### UNSW-NB15 (official training and testing partition)
+### UNSW-NB15 (official training and testing partition)
 
 Seeds 0, 1, 2; mean ± standard deviation over the seeds. Each threshold is chosen on the validation split for a target false-positive rate (FPR) and frozen; the test split is scored once. Generated from `results/ml_unsw-nb15.json`; do not edit by hand.
 
 | Model | PR-AUC | ROC-AUC | Test FPR (1 % val.) | Recall | False alerts / 10k | Test FPR (0.1 % val.) | Recall | False alerts / 10k |
-|---|---|---|---|---|---|---|---|---|
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | Gradient boosting (supervised) | 0.952 ± 0.002 | 0.968 ± 0.001 | 4.50 ± 0.34 % | 81.75 ± 0.77 % | 290.1 ± 21.8 | 0.07 ± 0.07 % | 46.00 ± 8.53 % | 4.2 ± 4.8 |
 | Isolation Forest (benign only) | 0.522 ± 0.003 | 0.710 ± 0.001 | 0.98 ± 0.15 % | 4.52 ± 0.97 % | 63.3 ± 9.4 | 0.11 ± 0.05 % | 0.71 ± 0.30 % | 6.9 ± 3.5 |
 
 Effect of the leakage controls on gradient boosting. Each variant has its own test split, so this compares what the same pipeline reports about itself, not two models on the same data:
 
 | Variant | Test flows | Attack share | PR-AUC | ROC-AUC | Recall (0.1 % val.) | Test FPR |
-|---------|-----------:|-------------:|-------:|--------:|------:|------:|
+| --------- | -----------: | -------------: | -------: | --------: | ------: | ------: |
 | Cleaned (every leakage control) | 52,418 | 35.6 % | 0.952 ± 0.002 | 0.968 ± 0.001 | 46.0 ± 8.5 % | 0.07 ± 0.07 % |
 | Uncleaned (no deduplication, ids and ports kept) | 82,332 | 55.1 % | 0.989 ± 0.000 | 0.985 ± 0.001 | 78.0 ± 6.7 % | 0.18 ± 0.22 % |
 | Cleaned, without the TTL columns | 52,417 | 35.6 % | 0.945 ± 0.000 | 0.963 ± 0.000 | 46.7 ± 11.0 % | 0.09 ± 0.10 % |
@@ -140,7 +140,7 @@ Effect of the leakage controls on gradient boosting. Each variant has its own te
 Recall per attack class (gradient boosting, cleaned) with the class's test flows, averaged over the seeds:
 
 | Class | Test flows | Recall (1 % val.) | Recall (0.1 % val.) |
-|-------|-----------:|------:|------:|
+| ------- | -----------: | ------: | ------: |
 | Analysis | 58 | 15.5 ± 4.6 % | 0.0 ± 0.0 % |
 | Backdoor | 57 | 84.8 ± 2.7 % | 23.4 ± 18.8 % |
 | DoS | 1,163 | 92.2 ± 0.3 % | 45.2 ± 10.5 % |
@@ -151,26 +151,26 @@ Recall per attack class (gradient boosting, cleaned) with the class's test flows
 | Shellcode | 365 | 89.5 ± 1.5 % | 5.8 ± 9.4 % |
 | Worms | 43 | 97.7 ± 0.0 % | 41.1 ± 22.9 % |
 
-#### CIC-IDS-2017, improved release (Engelen, Liu et al., CNS 2022)
+### CIC-IDS-2017, improved release (Engelen, Liu et al., CNS 2022)
 
 Seeds 0, 1, 2; mean ± standard deviation over the seeds. Each threshold is chosen on the validation split for a target false-positive rate (FPR) and frozen; the test split is scored once. Generated from `results/ml_cicids2017.json`; do not edit by hand.
 
 | Model | PR-AUC | ROC-AUC | Test FPR (1 % val.) | Recall | False alerts / 10k | Test FPR (0.1 % val.) | Recall | False alerts / 10k |
-|---|---|---|---|---|---|---|---|---|
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | Gradient boosting (supervised) | 0.999 ± 0.000 | 1.000 ± 0.000 | 1.00 ± 0.04 % | 99.99 ± 0.00 % | 83.8 ± 3.5 | 0.10 ± 0.01 % | 99.98 ± 0.00 % | 8.7 ± 0.7 |
 | Isolation Forest (benign only) | 0.527 ± 0.044 | 0.926 ± 0.013 | 1.03 ± 0.02 % | 0.63 ± 0.32 % | 85.7 ± 2.0 | 0.10 ± 0.01 % | 0.00 ± 0.00 % | 8.7 ± 0.8 |
 
 Effect of the leakage controls on gradient boosting. Each variant has its own test split, so this compares what the same pipeline reports about itself, not two models on the same data:
 
 | Variant | Test flows | Attack share | PR-AUC | ROC-AUC | Recall (0.1 % val.) | Test FPR |
-|---------|-----------:|-------------:|-------:|--------:|------:|------:|
+| --------- | -----------: | -------------: | -------: | --------: | ------: | ------: |
 | Cleaned (every leakage control) | 514,531 | 16.5 % | 0.999 ± 0.000 | 1.000 ± 0.000 | 100.0 ± 0.0 % | 0.10 ± 0.01 % |
 | Uncleaned (no deduplication, ids and ports kept) | 629,993 | 24.1 % | 1.000 ± 0.000 | 1.000 ± 0.000 | 100.0 ± 0.0 % | 0.09 ± 0.01 % |
 
 Recall per attack class (gradient boosting, cleaned) with the class's test flows, averaged over the seeds:
 
 | Class | Test flows | Recall (1 % val.) | Recall (0.1 % val.) |
-|-------|-----------:|------:|------:|
+| ------- | -----------: | ------: | ------: |
 | Botnet | 221 | 99.8 ± 0.3 % | 99.8 ± 0.3 % |
 | DDoS | 28,543 | 100.0 ± 0.0 % | 100.0 ± 0.0 % |
 | DoS GoldenEye | 2,270 | 100.0 ± 0.0 % | 100.0 ± 0.0 % |
@@ -199,7 +199,7 @@ scores the other, using only the features both have.
 packet-length extremes, flag counts, bulk and idle statistics) has no counterpart:
 
 | Common feature | UNSW-NB15 | CIC-IDS-2017 |
-|----------------|-----------|--------------|
+| ---------------- | ----------- | -------------- |
 | `duration_s` | `dur` (seconds) | `flow_duration` / 10^6 (microseconds) |
 | `fwd_packets`, `bwd_packets` | `spkts`, `dpkts` | `total_fwd_packet`, `total_bwd_packets` |
 | `fwd_bytes`, `bwd_bytes` | `sbytes`, `dbytes` (headers included, as measured) | payload + transport headers + 34 bytes a packet |
@@ -227,7 +227,7 @@ Seeds 0, 1, 2; mean ± standard deviation. Each model is trained on the source d
 PR-AUC depends on the share of attacks, which differs between the datasets, so each PR-AUC has its chance level (the attack share) next to it. ROC-AUC does not depend on it (0.5 is chance) and is the fairer comparison across datasets.
 
 | Direction | Model | PR-AUC, all features | PR-AUC, common features | Chance, source | PR-AUC, cross-dataset | Chance, target | ROC-AUC, in-dataset | ROC-AUC, cross-dataset |
-|-----------|-------|------:|------:|------:|------:|------:|------:|------:|
+| ----------- | ------- | ------: | ------: | ------: | ------: | ------: | ------: | ------: |
 | unsw-nb15 → cicids2017 | Gradient boosting (supervised) | 0.952 ± 0.002 | 0.918 ± 0.001 | 0.329 | 0.323 ± 0.086 | 0.164 | 0.952 ± 0.000 | 0.639 ± 0.064 |
 | unsw-nb15 → cicids2017 | Isolation Forest (benign only) | 0.522 ± 0.003 | 0.354 ± 0.006 | 0.329 | 0.213 ± 0.013 | 0.164 | 0.469 ± 0.019 | 0.681 ± 0.024 |
 | cicids2017 → unsw-nb15 | Gradient boosting (supervised) | 0.999 ± 0.000 | 0.999 ± 0.001 | 0.164 | 0.404 ± 0.016 | 0.329 | 1.000 ± 0.000 | 0.614 ± 0.020 |
@@ -236,7 +236,7 @@ PR-AUC depends on the share of attacks, which differs between the datasets, so e
 At the threshold chosen for a 1 % false-positive rate on the source's validation split:
 
 | Direction | Model | In-dataset recall | In-dataset test FPR | Cross-dataset recall | Cross-dataset FPR | False alerts / 10k |
-|-----------|-------|------:|------:|------:|------:|------:|
+| ----------- | ------- | ------: | ------: | ------: | ------: | ------: |
 | unsw-nb15 → cicids2017 | Gradient boosting (supervised) | 66.8 ± 2.2 % | 2.54 ± 0.42 % | 58.8 ± 10.8 % | 42.19 ± 1.15 % | 3525 ± 96 |
 | unsw-nb15 → cicids2017 | Isolation Forest (benign only) | 1.3 ± 0.3 % | 0.78 ± 0.22 % | 1.1 ± 0.3 % | 3.71 ± 0.77 % | 310 ± 64 |
 | cicids2017 → unsw-nb15 | Gradient boosting (supervised) | 100.0 ± 0.0 % | 0.98 ± 0.02 % | 75.4 ± 0.1 % | 60.49 ± 2.20 % | 4058 ± 147 |
@@ -245,7 +245,7 @@ At the threshold chosen for a 1 % false-positive rate on the source's validation
 At the threshold chosen for a 0.1 % false-positive rate on the source's validation split:
 
 | Direction | Model | In-dataset recall | In-dataset test FPR | Cross-dataset recall | Cross-dataset FPR | False alerts / 10k |
-|-----------|-------|------:|------:|------:|------:|------:|
+| ----------- | ------- | ------: | ------: | ------: | ------: | ------: |
 | unsw-nb15 → cicids2017 | Gradient boosting (supervised) | 24.3 ± 8.1 % | 0.06 ± 0.04 % | 27.9 ± 6.0 % | 11.33 ± 6.88 % | 947 ± 575 |
 | unsw-nb15 → cicids2017 | Isolation Forest (benign only) | 0.5 ± 0.0 % | 0.05 ± 0.04 % | 0.3 ± 0.2 % | 2.14 ± 0.19 % | 179 ± 16 |
 | cicids2017 → unsw-nb15 | Gradient boosting (supervised) | 99.9 ± 0.0 % | 0.10 ± 0.01 % | 48.7 ± 2.8 % | 35.61 ± 4.71 % | 2389 ± 316 |
@@ -254,7 +254,7 @@ At the threshold chosen for a 0.1 % false-positive rate on the source's validati
 Recall per attack class in the target, unsw-nb15 → cicids2017 (gradient boosting, 1 % source-validation threshold):
 
 | Class | Test flows | Recall |
-|-------|------:|------:|
+| ------- | ------: | ------: |
 | Botnet | 221 | 0.3 ± 0.3 % |
 | DDoS | 28,543 | 46.7 ± 29.1 % |
 | DoS GoldenEye | 2,270 | 77.3 ± 7.5 % |
@@ -274,7 +274,7 @@ Recall per attack class in the target, unsw-nb15 → cicids2017 (gradient boosti
 Recall per attack class in the target, cicids2017 → unsw-nb15 (gradient boosting, 1 % source-validation threshold):
 
 | Class | Test flows | Recall |
-|-------|------:|------:|
+| ------- | ------: | ------: |
 | Analysis | 58 | 96.6 ± 3.0 % |
 | Backdoor | 57 | 84.2 ± 0.0 % |
 | DoS | 1,123 | 71.7 ± 1.4 % |

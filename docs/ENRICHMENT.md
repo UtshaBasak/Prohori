@@ -17,7 +17,7 @@ lookup, so a mistyped hostname is never sent anywhere.
 ## Providers
 
 | Provider | Kind | Needs | Free-tier limits (checked 2026-10-26) |
-|----------|------|-------|----------------------------------------|
+| ---------- | ------ | ------- | ---------------------------------------- |
 | `offline` | Bundled synthetic fixture | Nothing; only with `--offline` | None |
 | `geolite2` | Local MaxMind GeoLite2 databases | Free MaxMind account, downloaded `.mmdb` files, `pip install "prohori[geoip]"` | None (local files) |
 | `abuseipdb` | AbuseIPDB API v2 `check` | `ABUSEIPDB_API_KEY` | 1,000 checks per day on the Standard plan |
@@ -31,7 +31,7 @@ trusted. Providers map their answers onto shared keys so later steps can score t
 knowing the source:
 
 | Key | Meaning | From |
-|-----|---------|------|
+| ----- | --------- | ------ |
 | `country`, `city` | ISO country code, city name | GeoLite2, AbuseIPDB, VirusTotal |
 | `asn`, `as_org`, `network` | Autonomous system, its owner or ISP, network range | GeoLite2, AbuseIPDB, VirusTotal |
 | `abuse_score`, `reports` | Abuse confidence 0-100, number of reports (last 90 days) | AbuseIPDB |
@@ -99,7 +99,7 @@ Settings come from environment variables, then a `.env` file in the working dire
 `--env-file PATH`). Only the variables below are read; provider endpoints are fixed in code.
 
 | Variable | Default | Meaning |
-|----------|---------|---------|
+| ---------- | --------- | --------- |
 | `ABUSEIPDB_API_KEY` | - | Enables AbuseIPDB |
 | `VIRUSTOTAL_API_KEY` | - | Enables VirusTotal |
 | `GEOLITE2_CITY_DB` | - | Path to `GeoLite2-City.mmdb` or `GeoLite2-Country.mmdb` |

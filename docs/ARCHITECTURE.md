@@ -5,7 +5,7 @@
 
 ## Data flow
 
-```
+```text
  log files / app JSON events / dataset CSVs
               |
         +-----v------+      +----------------------+
@@ -53,7 +53,7 @@ Both modes share the same core library.
 ## Package layout
 
 | Package | Responsibility |
-|---------|----------------|
+| --------- | ---------------- |
 | `prohori.cli` | Typer application and commands |
 | `prohori.schema` | Pydantic models: `Event`, `Alert`, `Incident` |
 | `prohori.parsers` | Streaming log parsers and the parser registry |

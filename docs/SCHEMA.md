@@ -24,7 +24,7 @@ smaller and is not ECS-compatible.
 ## Event
 
 | Field | Type | Notes |
-|-------|------|-------|
+| ------- | ------ | ------- |
 | `id` | str | `evt-` + 24 hex characters. Derived from `log_source`, `timestamp` and `raw` when not given |
 | `timestamp` | datetime (UTC) | Required |
 | `log_source` | str (1-64) | For example `sshd`, `nginx`, `app-security` |
@@ -51,7 +51,7 @@ smaller and is not ECS-compatible.
 ### Length limits
 
 | Fields | Maximum characters |
-|--------|--------------------|
+| -------- | -------------------- |
 | `raw` | 8,192 |
 | `user_agent`, `http.path`, `extra` string values, free-text descriptions | 1,024 |
 | `user.*`, `client`, `host`, `request_id`, `event.reason`, `extra` keys | 256 |
@@ -87,7 +87,7 @@ must keep such lines apart (for example two identical failures within one second
 ## Alert
 
 | Field | Type | Notes |
-|-------|------|-------|
+| ------- | ------ | ------- |
 | `id` | str | `alr-` + 24 hex characters, derived from `detector_id` and the sorted `event_ids` when not given |
 | `detector_id` | str | Rule id (`PRH-AUTH-001`) or model name |
 | `detector_kind` | enum | `rule` (default) or `model` |
@@ -103,7 +103,7 @@ must keep such lines apart (for example two identical failures within one second
 ## Incident
 
 | Field | Type | Notes |
-|-------|------|-------|
+| ------- | ------ | ------- |
 | `id` | str | `INC-` followed by letters, digits or hyphens. The incident builder derives it from the alert ids (`INC-` and 16 hex digits), so the same input gives the same id |
 | `title` | str | |
 | `status` | enum | `open` (default), `investigating`, `resolved`, `false_positive` |

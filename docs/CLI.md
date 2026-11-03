@@ -5,7 +5,7 @@ file is `-`. Nothing uses the network unless you configure API keys and ask for 
 (`prohori enrich` without `--offline`, or `--online` for `incidents` and `triage`).
 
 | Command | What it does |
-|---------|--------------|
+| --------- | -------------- |
 | [`prohori demo`](#prohori-demo) | Simulate attacks, triage them and show the results; no configuration, offline |
 | [`prohori triage FILE`](#prohori-triage) | Log file in, incidents and a report for each out |
 | [`prohori parse FILE`](#prohori-parse) | Parse and normalise a log |
@@ -32,7 +32,7 @@ Tables never interpret text from logs as markup, and every report format escapes
 ## Exit codes
 
 | Code | Meaning |
-|------|---------|
+| ------ | --------- |
 | `0` | Success, nothing found (or `--exit-zero`) |
 | `1` | Nothing could be processed: every line failed to parse, a rule file is invalid, redaction could not hide every value (nothing is written), `score` lacks the `ml` extra, a loadable model or a scorable file, or `pipeline` lacks the `pipeline` extra, cannot reach the broker, Docker or the database, found an unhealthy stack, or every replayed line was rejected |
 | `2` | Invalid usage, input or setting |
@@ -45,7 +45,7 @@ Code `3` lets scripts and CI pipelines react to findings; add `--exit-zero` to g
 `parse`, `detect`, `incidents`, `triage` and `pipeline replay` / `tail` accept:
 
 | Option | Meaning |
-|--------|---------|
+| -------- | --------- |
 | `--parser`, `-p` | `auto` (default: detect the format), `auth_log`, `access_log`, `app_json`, `generic_json` |
 | `--year` | `auth_log`: year of the first line (syslog lines have none; default: from the file date) |
 | `--timezone` | `auth_log`: IANA timezone for timestamps without an offset (default `UTC`) |
@@ -247,7 +247,7 @@ prohori pipeline down --volumes                              # stop and delete t
   another), building the image first unless `--no-build`. `--timeout` (default 300 seconds)
   bounds the wait. Exits `1` if a service does not become healthy. Prints where the dashboards
   are ([DASHBOARD.md](DASHBOARD.md)); `PROHORI_GRAFANA_PORT` moves them. `--orchestration` also
-  starts Airflow on http://127.0.0.1:18080 with the scheduled jobs
+  starts Airflow on <http://127.0.0.1:18080> with the scheduled jobs
   ([ORCHESTRATION.md](ORCHESTRATION.md)); `down` always stops it too.
 - **`status`** lists the services with their state and health, and the row counts in the
   warehouse's `raw` schema (`--postgres DSN`; default: the stack's). `-f json` gives the same as

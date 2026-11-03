@@ -4,7 +4,7 @@ The Docker stack for pipeline mode and what it is built from. A file-based "lite
 same stages without Docker.
 
 | Path | What it is | Docs |
-|------|------------|------|
+| ------ | ------------ | ------ |
 | `docker-compose.yml` | Redpanda, PostgreSQL, one container per stage, Grafana | [PIPELINE.md](../docs/PIPELINE.md) |
 | `Dockerfile` | The `prohori:local` image the stage containers run | [PIPELINE.md](../docs/PIPELINE.md) |
 | `postgres/` | Schemas, Grafana's read-only role and Airflow's database, set up on every start | [DASHBOARD.md](../docs/DASHBOARD.md) |

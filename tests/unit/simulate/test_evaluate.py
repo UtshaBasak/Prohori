@@ -112,3 +112,8 @@ def test_script_rejects_bad_seed_counts(capsys: pytest.CaptureFixture[str]) -> N
     with pytest.raises(SystemExit):
         evaluate_rules.main(["--seeds", "0"])
     assert "--seeds must be between 1 and 100" in capsys.readouterr().err
+
+
+def test_generated_tables_use_the_docs_table_style() -> None:
+    block = "| A | B |\n|---|--:|\n| 1 | 2 |\n|:-|"
+    assert generate_results_table.compact(block) == "| A | B |\n| --- | --: |\n| 1 | 2 |\n| :- |"

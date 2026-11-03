@@ -7,6 +7,12 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Changed
+
+- Markdown is checked with markdownlint-cli2 in pre-commit and CI, with the rules in
+  `.markdownlint-cli2.jsonc`; every document now follows them (one table style, fenced code with a
+  language, links in angle brackets), and the generated result tables are written the same way.
+
 ### Fixed
 
 - The stage image builds again: an automatic update had moved it to Python 3.15, which Prohori
@@ -172,7 +178,7 @@ semantic versioning from here on.
 
 - Scheduled jobs with Apache Airflow 3.3.2 (`pipeline/airflow/`, `docs/ORCHESTRATION.md`,
   ADR-0027), in the stack's new `orchestration` profile (`prohori pipeline up --orchestration`,
-  Airflow on http://127.0.0.1:18080):
+  Airflow on <http://127.0.0.1:18080>):
   - `prohori_backfill`: replays the eight simulated scenarios with their labels and builds the
     marts;
   - `prohori_data_quality`: hourly `dbt build` and a freshness check on the events;
@@ -188,7 +194,7 @@ semantic versioning from here on.
   linux/arm64 with a provenance attestation, published by the release workflow.
 
 - Grafana dashboards in the Docker stack (`pipeline/grafana/`, `docs/DASHBOARD.md`, ADR-0026),
-  provisioned from files and open without a login at http://127.0.0.1:13000:
+  provisioned from files and open without a login at <http://127.0.0.1:13000>:
   - **Overview**: events, alerts and incidents over time, rule hits, top source addresses and the
     latest incidents, from the raw tables, so it fills right after a replay;
   - **Detection quality**: rule precision, time to detect each simulated attack, detection
