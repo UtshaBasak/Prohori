@@ -121,7 +121,7 @@ Checked on **2026-11-02** from each installed package's own metadata (the versio
 from PyPI.
 
 | Package | Installed with | Licence |
-|---------|----------------|---------|
+| --------- | ---------------- | --------- |
 | pydantic | always | MIT |
 | PyYAML | always | MIT |
 | rich | always | MIT |
@@ -152,7 +152,7 @@ of this software: the `pipeline` extra installs the Python packages from PyPI, a
 The published image is covered [below](#the-container-image-on-github-packages).
 
 | Software | Used for | Licence |
-|----------|----------|---------|
+| ---------- | ---------- | --------- |
 | [Redpanda](https://github.com/redpanda-data/redpanda/tree/dev/licenses) Community Edition (container image) | Kafka-compatible message broker | Business Source License 1.1 for the core (it converts to Apache 2.0 four years after each release); enterprise features under the Redpanda Community License. Running it yourself, as the stack does, is allowed; offering it as a hosted streaming service is not. |
 | [PostgreSQL](https://www.postgresql.org/about/licence/) (container image) | The warehouse | PostgreSQL Licence (permissive, BSD-style) |
 | [Apache Airflow](https://github.com/apache/airflow/blob/main/LICENSE) (container image) | Scheduled jobs (orchestration profile) | Apache 2.0 |

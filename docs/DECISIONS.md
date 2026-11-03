@@ -45,6 +45,7 @@ range on both platforms; if not, the dependency stays behind an extra and the ga
 backend and fast CI.
 
 **Decision.**
+
 - **uv** manages environments and the lock file (`uv.lock`, committed for reproducible CI).
 - **Hatchling** is the build backend; the version lives in `src/prohori/version.py`.
 - Development tools are a PEP 735 **dependency group** (`[dependency-groups] dev`) rather than a
@@ -118,6 +119,7 @@ v0.2.0 after ML, v0.3.0 after the pipeline, v1.0.0 after final polish).
 untrusted logs. Rules refer to fields by dotted names such as `event.action`.
 
 **Decision.**
+
 - **Nested models with a dotted-path accessor.** Events are nested Pydantic models that mirror
   the JSON shape (`event`, `source`, `user`, `http`); `prohori.schema.get_field(event, "event.action")`
   and `FIELD_PATHS` give flat dotted access for rules and features. One mapping, derived from the
@@ -150,6 +152,7 @@ duplicate lines. Changes to field names are breaking and require updating `docs/
 timestamps carry neither a year nor a timezone, and identical lines can occur within one second.
 
 **Decision.**
+
 - **Lines are read in binary with a hard length limit** (16,384 characters). Oversized lines are
   errors and are skipped in chunks, so neither memory nor regular-expression work depends on the
   input. Input is decoded as UTF-8 with replacement.
@@ -183,6 +186,7 @@ timestamps carry neither a year nor a timezone, and identical lines can occur wi
 addition to `auth.log`, plus a command that shows what was parsed and what failed.
 
 **Decision.**
+
 - **Query strings go to `extra.query`**, not `http.path`, by default. Paths then group cleanly
   for scanning rules, while injection rules can still inspect the query. `--keep-query` restores
   the full target.
@@ -217,6 +221,7 @@ type changed from plain scalars to bounded scalars (no effect on valid data).
 attacker-controlled log fields without risk of hangs.
 
 **Decision.**
+
 - **Sigma-inspired, not Sigma-compatible.** Selections, `|modifiers` and a boolean condition follow
   Sigma conventions (including case-insensitive string matching and `1 of x*`), plus Prohori's own
   `aggregate` and `sequence` blocks. `aggregate` and `sequence` appear in the condition only as
@@ -261,6 +266,7 @@ rules, incidents, the streaming pipeline) depend on them, and logs arrive out of
 duplicate timestamps and sometimes with bogus times.
 
 **Decision.**
+
 - **One total order** (timestamp, then event id) enforced by a reorder buffer with configurable
   `lateness`; events are released only once strictly older than `watermark - lateness`, so ties at
   the watermark are never split. Any arrival order within the bound gives identical alerts
@@ -304,6 +310,7 @@ tactics change between releases (v20 has Stealth and Defense Impairment in place
 Evasion), so unverified tags would silently go stale.
 
 **Decision.**
+
 - Runbooks live in `src/prohori/runbooks/` and ship in the wheel. A built-in rule's
   `response: runbooks/<name>.md` resolves against the `prohori` package. Every runbook uses the
   same sections so later steps can extract recommended actions mechanically.
@@ -329,6 +336,7 @@ selection and handling of untrusted input set the pattern for `triage` and the s
 consumers. The second rule batch needed decisions where the plan's wording did not fit the data.
 
 **Decision.**
+
 - **Exit codes:** `0` no alerts, `3` alerts found, `1` unparseable input or an invalid rule file,
   `2` usage. Alerts get their own code so scripts can tell "found something" from "failed";
   `--exit-zero` turns it off for pipelines that only want the output.
@@ -365,6 +373,7 @@ regenerate them with `PROHORI_UPDATE_GOLDEN=1`.
 terms, and must keep working offline for tests and demos.
 
 **Decision.**
+
 - **Explicit deny list** of non-public ranges instead of `ipaddress.is_global`, whose results
   changed across Python patch releases; embedded IPv4 (mapped, 6to4, NAT64) and zone ids are
   handled. The check applies only to external providers; local ones answer for any address.
@@ -399,6 +408,7 @@ by IP), a successful sign-in after it (by IP) and an account change (by user) wo
 their own entities. Scoring must be explainable, and incidents must be reproducible.
 
 **Decision.**
+
 - **Link on `(field, value)` pairs** of IP, account, request id and `extra.session_id`; never on
   `host` or `log_source`. An alert also links on every such field with exactly one value across
   its matched events. Alerts within a gap (default 30 minutes, inclusive) of the last alert with
@@ -433,6 +443,7 @@ Both are visible in the incident (entities, limitations).
 log lines or third-party data. Redacted reports must not leak, and reports must be reproducible.
 
 **Decision.**
+
 - **Clean once, escape per format.** A view model cleans every value (control characters and ANSI
   escapes removed, one line, at most 500 characters). HTML uses Jinja2 autoescaping plus a CSP of
   `default-src 'none'` and builds no links from data. Markdown escapes through Jinja2's
@@ -466,6 +477,7 @@ and action names are protected.
 mistake, without real logs, network activity or real addresses, and without flattering them.
 
 **Decision.**
+
 - **Scenarios as code** (`prohori.simulate.scenarios`), each declaring its expected rules before
   any evaluation, written in the exact formats the parsers read, mixed into benign background
   that includes known false-positive sources (typos, shared NAT, crawlers, owners' own changes,
@@ -501,6 +513,7 @@ the committed results and golden files, which the tests make visible.
 duplicating the pipeline in each command.
 
 **Decision.**
+
 - **`triage` composes the existing pieces** (`run_incidents` from `prohori incidents`,
   `make_report` from `prohori report`) and writes a directory: `incidents.jsonl`, one report per
   incident and `summary.md`. HTML is the default report format because it is the one people open.
@@ -528,6 +541,7 @@ want JSON use `prohori incidents -f json`.
 long-lived upload tokens are a supply-chain risk.
 
 **Decision.**
+
 - **Trusted publishing (OIDC)** from one workflow, `release.yml`, with GitHub environments:
   `testpypi` publishes automatically, `pypi` needs a maintainer's approval. No API token is stored
   anywhere; the publish action adds build attestations.
@@ -558,6 +572,7 @@ trains models on these datasets, so the data preparation must make leakage hard 
 and test it.
 
 **Decision.**
+
 - **Datasets.** UNSW-NB15's official training and testing partition files, and the improved
   CIC-IDS-2017 release from the CNS 2022 paper (`CICIDS2017_improved.zip`), which regenerates
   the flows with a fixed CICFlowMeter and relabels them. It supersedes the same group's WTMC 2021
@@ -622,6 +637,7 @@ tuned on the test data, a single lucky seed. The evaluation has to answer the qu
 asks: how many attacks are caught for a tolerable number of false alerts.
 
 **Decision.**
+
 - **Two models, fixed in advance.** Histogram gradient boosting (supervised; scikit-learn, no
   extra dependency) and an Isolation Forest fitted on benign training flows only (unsupervised).
   Hyper-parameters are fixed in `prohori.ml.models.PARAMS` and were not tuned; gradient boosting's
@@ -668,6 +684,7 @@ CIC-IDS-2017 were captured by different tools, so a model trained on one cannot 
 columns. Users also need a way to run a saved model on their own flows.
 
 **Decision.**
+
 - **Twelve common features** (`prohori.ml.transfer.COMMON_FEATURES`), derived from both
   datasets: duration, packets and bytes each way, mean packet size each way, mean inter-arrival
   time each way, packet and byte rates, and protocol. Units are converted to seconds and bytes;
@@ -710,6 +727,7 @@ normalised events and compares it honestly with the rules, using the simulator's
 attacks and its held-out variants.
 
 **Decision.**
+
 - **Unit of analysis:** one source IP in one five-minute tumbling window, with thirteen
   behaviour features (`prohori.ml.features`). Ratios and entropy need five events of their kind,
   so a single failure is not a 100 % failure ratio. Standard library only.
@@ -752,6 +770,7 @@ in Docker; before that, the same consumers must run without Docker, on Windows a
 tested end to end in CI.
 
 **Decision.**
+
 - **Topics and messages:** `raw-logs`, `events`, `alerts`, `incidents` and `dead-letter`, carrying
   keyed JSON objects. Events, alerts and incidents are the schema models unchanged; `RawLog` and
   `DeadLetter` are new payloads with a schema version. Raw lines are keyed by source file (order
@@ -810,6 +829,7 @@ warehouse in Docker. It has to fit next to other work on a 15.7 GB laptop where 
 and it has to be testable in CI.
 
 **Decision.**
+
 - **Broker:** Redpanda v26.2.4 Community Edition, a single node with one core and `--memory 1G`
   in a 1.5 GB container (Seastar needs headroom above its own limit). It has no ZooKeeper and no
   JVM and starts in seconds. Its Business Source License allows running it ourselves (see
@@ -876,6 +896,7 @@ performance over time. The same models must build on the lite-mode DuckDB file (
 Docker stack's PostgreSQL.
 
 **Decision.**
+
 - **dbt in its own dependency group.** dbt-core 1.12.6, dbt-duckdb 1.11.0 and dbt-postgres 1.11.0
   live in a `dbt` dependency group (`uv sync --group dbt`), not in the package or its extras.
   The project in `pipeline/dbt/` is a repository tool, not something `pip install prohori`
@@ -922,6 +943,7 @@ hits, model metrics and pipeline health. They must load with data after `prohori
 and a replay, with no manual setup, and fit the memory budget beside the rest of the stack.
 
 **Decision.**
+
 - **Grafana** (open question 4, resolved) rather than Metabase. Its dashboards and data sources
   are files that can be reviewed and tested, it reads PostgreSQL directly, and it is lighter
   than Metabase's JVM. The image is `grafana/grafana:13.2.5`, pinned by digest. 13.2.5 was six
@@ -970,6 +992,7 @@ Airflow on Windows, and must run in the stack. The step ends with the v0.3.0 rel
 publishes the Prohori image to GitHub Packages.
 
 **Decision.**
+
 - **Airflow 3.3.2 in its own compose profile** (`orchestration`, `prohori pipeline up
   --orchestration`). It is the largest service, so the default stack stays at about 3.9 GB of
   memory limits. 3.3.2 is the newest release older than two weeks; 3.4 is still a release
@@ -1028,6 +1051,7 @@ Gemini tier lets Google use what is sent to improve its products, so the design 
 sending deliberate, minimal and redacted, and must work fully without a model.
 
 **Decision.**
+
 - **Off by default, three providers.**
   - `none` (default) sends nothing; `explain` says so and exits 0.
   - `mock` answers offline and records its requests; the tests assert on exactly what it
@@ -1077,6 +1101,7 @@ Logs are attacker-controlled; an incident can quote a user agent, a username or 
 to instruct the model.
 
 **Decision.**
+
 - **Retrieval with BM25 in pure Python** (`prohori.llm.knowledge`), with no new dependency.
   - The ATT&CK corpus is built from the pinned Enterprise ATT&CK v20.0 STIX bundle (SHA-256
     checked) by `scripts/build_attack_corpus.py`. It covers the 706 active techniques: id, name,
@@ -1128,6 +1153,7 @@ so. Step 25 measures the analyst.
 vary between runs, and no API key was available while the step was built.
 
 **Decision.**
+
 - **30 cases with truth from the simulator** (`evaluation/llm/`, built by
   `scripts/build_llm_eval_set.py`, rebuilt byte for byte in a test):
   - 15 attack incidents (each scenario's main incident, default and held-out variants);
@@ -1183,6 +1209,7 @@ logs of at least a million lines, every README number generated from result file
 project's success criteria checked with evidence.
 
 **Decision.**
+
 - **Stable means the interfaces.** The command line, its exit codes, the output formats and the
   rule format follow semantic versioning from 1.0.0. The classifier is Production/Stable. The
   detections themselves are still evaluated on synthetic data, and the README says so.
@@ -1226,6 +1253,7 @@ the ML and LLM code, and the repository's CI and release. Each finding was repro
 was fixed. All fixes keep the command line, the file formats and the rule format of 1.0.0.
 
 **Decision.**
+
 - **Redaction covers enrichment data.** An indicator's `enrichment` was skipped as structural, so
   `--redact-ips` left the network (`203.0.113.0/24`) and any address or email in provider data,
   and the leak check skipped it too. Now only `provenance.enrichment` (the run's mode, a string)

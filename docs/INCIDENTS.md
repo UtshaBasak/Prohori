@@ -27,7 +27,7 @@ Alerts that share an **entity** within a **time gap** (default 30 minutes, `--ga
 incident. Entities are these fields:
 
 | Field | Why |
-|-------|-----|
+| ------- | ----- |
 | `source.ip` | The attacker's (or victim's) address |
 | `user.id`, `user.name`, `user.email_hash` | The account involved |
 | `request_id` | One request seen by several rules |
@@ -53,7 +53,7 @@ The score is a sum of points, each with a reason, shown as the incident's `score
 breakdown always adds up to the score.
 
 | Component | Points |
-|-----------|--------|
+| ----------- | -------- |
 | Most severe alert | low 10, medium 20, high 35, critical 50 |
 | Each further distinct rule | +10, at most +30 |
 | A sign-in succeeded after failed attempts from the same IP or for the same account (or `PRH-AUTH-003` fired) | +20 |
@@ -76,7 +76,7 @@ reported as unknown.
 ## Confidence
 
 | Confidence | When |
-|------------|------|
+| ------------ | ------ |
 | `high` | At least two distinct rules, corroborated by a second log source, bad IP reputation or a sign-in after failures |
 | `low` | A single low- or medium-severity alert with no bad reputation |
 | `medium` | Everything else |

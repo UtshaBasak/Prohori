@@ -25,7 +25,7 @@ that does not exist, or is the incident file itself (checked before anything is 
 ## Formats
 
 | Format | Contents | Use |
-|--------|----------|-----|
+| -------- | ---------- | ----- |
 | `md` (default) | Every section below as GitHub-flavoured Markdown | Tickets, wikis, pull requests |
 | `html` | The same as one self-contained file: inline CSS, no scripts, no external resources, light and dark themes | Sharing by email or attaching to a case |
 | `json` | `format: prohori.report/1`, summary, ATT&CK table, appendix and the full incident | Other tools |

@@ -23,7 +23,7 @@ each user into the git-ignored `data/` directory, and the test fixtures are synt
 ## The datasets
 
 | | UNSW-NB15 | CIC-IDS-2017 (improved) |
-|--|-----------|--------------------------|
+| -- | ----------- | -------------------------- |
 | Publisher | UNSW Canberra (Moustafa and Slay) | imec-DistriNet, KU Leuven (Liu, Engelen et al.), from the Canadian Institute for Cybersecurity's original |
 | Files used | `UNSW_NB15_training-set.csv` (175,341 rows), `UNSW_NB15_testing-set.csv` (82,332 rows) | `CICIDS2017_improved.zip`: `monday.csv` to `friday.csv` (1.15 GB) |
 | Split | Official training/testing partition | None; Prohori makes one |
@@ -94,7 +94,7 @@ would be reported as `UNPINNED` with its hash rather than pass silently. The UNS
 start with a UTF-8 byte-order mark, which the loader ignores.
 
 | File | Bytes | SHA-256 |
-|------|------:|---------|
+| ------ | ------: | --------- |
 | `CICIDS2017_improved.zip` | 343,549,013 | `97fdb91d339e2d8cf5627f981b831e5e7e400b981c58181c451a38fd03c48883` |
 | `monday.csv` | 207,875,155 | `51fe5dc962626efb4ae70dce0303072fb780da0932822b651202ee9c2fbc1aff` |
 | `tuesday.csv` | 178,397,720 | `e2a0a5b631dfc6b455cc9f9a88b944110637d70a7f74171473925f76f38b6b0c` |
@@ -174,7 +174,7 @@ identifier left among the features.
 ## Columns removed
 
 | Dataset | Column | Reason |
-|---------|--------|--------|
+| --------- | -------- | -------- |
 | UNSW-NB15 | `id` | identifier: the row number |
 | CIC-IDS-2017 | `id`, `flow_id` | identifier: row number; addresses, ports and protocol joined together |
 | CIC-IDS-2017 | `src_ip`, `dst_ip` | address: the lab's hosts, not the attack's behaviour |
@@ -201,7 +201,7 @@ without them rather than deciding by assumption.
 `prepare` prints, and `Prepared.report` holds, everything cleaning changed:
 
 | Field | Meaning |
-|-------|---------|
+| ------- | --------- |
 | `rows_loaded` | Rows read per file group (`train`/`test`, or `all`) |
 | `attempted_relabelled` | "Attempted" flows turned benign |
 | `label_mismatches` | UNSW-NB15 rows whose 0/1 label disagreed with the class |
@@ -221,7 +221,7 @@ without them rather than deciding by assumption.
 laptop, most of it the first conversion to Parquet):
 
 | Step | Rows |
-|------|-----:|
+| ------ | -----: |
 | Read from the five CSVs | 2,099,976 |
 | "Attempted" flows relabelled benign | 11,979 |
 | Exact duplicates removed | 384,648 |
@@ -231,7 +231,7 @@ laptop, most of it the first conversion to Parquet):
 | Validation or test rows also in an earlier split | 0 |
 
 | Class | Rows as published | After cleaning (all splits) |
-|-------|------------------:|----------------------------:|
+| ------- | ------------------: | ----------------------------: |
 | Benign (incl. relabelled "Attempted") | 1,594,545 | 1,432,906 |
 | DoS Hulk | 158,468 | 158,468 |
 | Portscan | 159,066 | 1,572 |
@@ -262,7 +262,7 @@ rows, so their per-class results are noisy and always reported with their counts
 `prepare unsw-nb15` with seed 0, run on 2026-10-30 (5 seconds):
 
 | Step | Training file | Testing file |
-|------|--------------:|-------------:|
+| ------ | --------------: | -------------: |
 | Rows as published | 175,341 | 82,332 |
 | Exact duplicates removed | 67,601 | 26,387 |
 | Rows with equal features but different classes removed | 8,472 | 2,574 |
@@ -270,7 +270,7 @@ rows, so their per-class results are noisy and always reported with their counts
 | Left | 79,415 train + 19,853 validation | 52,418 test |
 
 | Class | Rows as published (both files) | After cleaning (all splits) |
-|-------|-------------------------------:|----------------------------:|
+| ------- | -------------------------------: | ----------------------------: |
 | Benign (`Normal`) | 93,000 | 85,417 |
 | Generic | 58,871 | 7,303 |
 | Exploits | 44,525 | 25,458 |

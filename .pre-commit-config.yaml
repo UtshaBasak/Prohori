@@ -29,6 +29,13 @@ repos:
     hooks:
       - id: gitleaks
 
+  # Markdown style; the rules and ignored paths are in .markdownlint-cli2.jsonc.
+  - repo: https://github.com/DavidAnson/markdownlint-cli2
+    rev: v0.24.0
+    hooks:
+      - id: markdownlint-cli2
+        language_version: 22.14.0  # a fixed Node.js; resolving "latest" fails in nodeenv
+
   - repo: local
     hooks:
       - id: mypy

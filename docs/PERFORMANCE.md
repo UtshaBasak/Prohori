@@ -38,7 +38,7 @@ incident building and JSON output), `prohori pipeline replay` in lite mode on th
 Generated from `results/performance.json` by `scripts/benchmark.py`, run on 2026-11-02 with Prohori 1.0.0 and Python 3.13.14 on Windows 11 (AMD64, 12 logical CPUs, Intel64 Family 6 Model 141 Stepping 1, GenuineIntel). Do not edit by hand.
 
 | Run | Lines | Size | Time | Lines a second | Peak memory | Exit code |
-|-----|------:|-----:|-----:|------:|------:|------:|
+| ----- | ------: | -----: | -----: | ------: | ------: | ------: |
 | `incidents`, nginx/Apache access log | 1,068,043 | 202 MiB | 150.4 s | 7,102 | 142 MiB | 0 |
 | `pipeline replay` (lite mode), access log | 1,068,043 | 202 MiB | 478.1 s | 2,234 | 1,078 MiB | 0 |
 | `incidents`, auth.log (sshd) | 1,000,198 | 100 MiB | 77.8 s | 12,859 | 181 MiB | 0 |

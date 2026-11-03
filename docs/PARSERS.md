@@ -4,7 +4,7 @@ Parsers turn raw log lines into [common-schema events](SCHEMA.md). They live in
 `prohori.parsers` and share one framework.
 
 | Parser | Registry name | Input | Status |
-|--------|---------------|-------|--------|
+| -------- | --------------- | ------- | -------- |
 | Linux `auth.log` / `secure` | `auth_log` | sshd, sudo and PAM lines from syslog | Available |
 | nginx / Apache access logs | `access_log` | Combined or common log format, or a custom pattern | Available |
 | App security events | `app_json` | JSON Lines in the documented application format | Available |
@@ -21,7 +21,7 @@ prohori parse samples/logs/payments.jsonl --parser generic_json \
 ```
 
 | Option | Applies to | Meaning |
-|--------|------------|---------|
+| -------- | ------------ | --------- |
 | `--parser`, `-p` | all | `auto` (default) or a parser name |
 | `--format`, `-f` | all | `table` (summary and the first `--limit` events) or `json` (events on standard output as JSON Lines, summary as JSON on standard error) |
 | `--year` | `auth_log` | Year of the first line (default: from the file date) |
@@ -67,7 +67,7 @@ Detection is a convenience. Use `--parser` in scripts.
 Every run fills a `ParseStats`. Each line read is counted in exactly one of:
 
 | Counter | Meaning |
-|---------|---------|
+| --------- | --------- |
 | `events` | Parsed into an event |
 | `skipped` | Well-formed but not relevant to this parser (for example a `CRON` line in `auth.log`) |
 | `blank` | Empty or whitespace only |
@@ -86,7 +86,7 @@ in the same second remain two events, and re-parsing the same file gives the sam
 ### Supported messages
 
 | Program | Message | `event.action` | Outcome | `event.reason` |
-|---------|---------|----------------|---------|----------------|
+| --------- | --------- | ---------------- | --------- | ---------------- |
 | sshd | `Failed <method> for <user> from <ip> port <n>` | `ssh.login.failure` | failure | `bad_password`, `bad_key` or `auth_failed` |
 | sshd | `Failed <method> for invalid user <user> from ...` | `ssh.login.failure` | failure | `unknown_user` |
 | sshd | `Accepted <method> for <user> from ...` | `ssh.login.success` | success | |
@@ -117,7 +117,7 @@ IPv4-mapped IPv6 addresses (`::ffff:203.0.113.7`) are stored as IPv4.
 Two syslog header formats are accepted:
 
 | Format | Example | Year | Timezone |
-|--------|---------|------|----------|
+| -------- | --------- | ------ | ---------- |
 | RFC 3164 (traditional) | `Oct 24 13:50:12 web01 sshd[1]: ...` | Not in the line | Not in the line |
 | RFC 3339 (rsyslog high precision, default on recent distributions) | `2026-10-24T13:50:12.345678+06:00 web01 sshd[1]: ...` | In the line | In the line |
 
@@ -169,7 +169,7 @@ Every line becomes a `web.request` event in category `web`; the outcome is `fail
 status 400 and above, `success` otherwise.
 
 | Source | Field |
-|--------|-------|
+| -------- | ------- |
 | Remote address | `source.ip` (or `extra.source_host` if it is not an address) |
 | Authenticated user (`-` means none) | `user.name` |
 | `[24/Oct/2026:13:50:12 +0600]` | `timestamp` (converted to UTC; month names are parsed independently of the locale) |
@@ -212,7 +212,7 @@ Parses application security events, one JSON object per line:
 - If `event.category` is missing or not a schema category, it is derived from the action prefix:
 
 | Prefix | Category |
-|--------|----------|
+| -------- | ---------- |
 | `auth.` | `authentication` |
 | `session.` | `session` |
 | `account.` | `account` |

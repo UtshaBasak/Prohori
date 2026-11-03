@@ -4,7 +4,7 @@ Public datasets live here and are **never committed**: everything in this direct
 file is git-ignored. See [docs/DATASETS.md](../docs/DATASETS.md) for licences and details.
 
 | Path | Contents |
-|------|----------|
+| ------ | ---------- |
 | `raw/<dataset>/` | The files as published: `unsw-nb15/` (two CSVs you download by hand), `cicids2017/` (the archive and five CSVs from `fetch`) |
 | `processed/<dataset>/` | Parquet copies of the CSVs, keyed by each raw file's SHA-256; safe to delete |
 

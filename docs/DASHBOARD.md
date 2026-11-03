@@ -29,6 +29,7 @@ and in the links at the top of each dashboard.
 ![Overview dashboard: events, alerts and incidents over a week of simulated attacks](images/dashboard-overview.png)
 
 What the pipeline saw in the selected time range:
+
 - totals for events, failed events, alerts, incidents, and incidents of high or critical
   severity;
 - incidents and alerts per hour by severity, and events per hour by outcome;
@@ -48,7 +49,7 @@ simulator scenarios replayed one day apart.
 How good the detection is, from the dbt marts ([WAREHOUSE.md](WAREHOUSE.md)):
 
 | Panel | Mart |
-|-------|------|
+| ------- | ------ |
 | Rule precision: judged alerts, true and false positives per rule | `marts.rule_precision` |
 | Attack detection: whether and how fast each simulated attack was caught | `marts.attack_detection` |
 | Detection latency: how long activity ran before a rule fired, and how long the pipeline took | `marts.detection_latency` |
@@ -78,6 +79,7 @@ adds model results ([ORCHESTRATION.md](ORCHESTRATION.md)).
 ![Pipeline health dashboard: time since the last stored event, rows stored per minute, tables and dead letters](images/dashboard-pipeline-health.png)
 
 Whether the pipeline is keeping up, by wall-clock time (`stored_at`), not event time:
+
 - time since the sink last stored an event;
 - events stored and dead letters in the range, and dead letters of all time;
 - rows stored per minute and table;
@@ -89,7 +91,7 @@ containers' own health.
 
 ## How it is set up
 
-```
+```text
 pipeline/
 ├── docker-compose.yml               grafana and warehouse-init services
 ├── postgres/warehouse-init.sql      schemas and Grafana's read-only role
@@ -131,11 +133,13 @@ logs widen the range with the time picker. Pipeline health opens on the last 6 h
 
 The JSON files in `pipeline/grafana/dashboards/` are the source. Grafana re-reads them every 30
 seconds, so you can:
+
 1. Edit a panel in Grafana as `admin`. It will say the dashboard cannot be saved.
 2. Copy the JSON through *Export → Export as JSON*.
 3. Replace the file and commit it.
 
 `tests/unit/pipeline/test_dashboards.py` checks every dashboard:
+
 - the JSON is valid and every uid is unique;
 - each panel uses the provisioned data source;
 - each query only reads tables that exist in `raw` or in the dbt marts, and only reads.

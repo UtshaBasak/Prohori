@@ -31,7 +31,7 @@ prohori detect app.jsonl --rules my-rules/ --no-builtin
 ```
 
 | Option | Meaning |
-|--------|---------|
+| -------- | --------- |
 | `--rules PATH` | Extra rule file or directory, run together with the built-in rules (repeatable) |
 | `--no-builtin` | Run only the rules given with `--rules` |
 | `--format table\|json` | Table of alerts and a summary, or JSON Lines alerts on stdout with a JSON summary on stderr |
@@ -51,7 +51,7 @@ Run `prohori rules list` for the current set. Each rule ships with a fixture fil
 verified ATT&CK tags.
 
 | Id | Severity | Detects | Logic |
-|----|----------|---------|-------|
+| ---- | ---------- | --------- | ------- |
 | PRH-AUTH-001 | high | Brute-force sign-ins from one IP | >= 10 app or SSH sign-in failures per `source.ip` in 5 min (sliding) |
 | PRH-AUTH-002 | high | Password spraying or credential stuffing | app sign-in failures for >= 5 distinct `user.email_hash` per `source.ip` in 10 min |
 | PRH-AUTH-003 | critical | Successful sign-in after many failures | >= 5 failures then a success, same `source.ip`, within 15 min |
@@ -107,7 +107,7 @@ uv run python scripts/verify_attack.py
 ```
 
 | Technique | Name | Used by |
-|-----------|------|---------|
+| ----------- | ------ | --------- |
 | T1110 | Brute Force | AUTH-001, AUTH-003, AUTH-004, SSH-001 |
 | T1110.001 | Password Guessing | AUTH-001, SSH-001 |
 | T1110.003 | Password Spraying | AUTH-002 |
@@ -159,7 +159,7 @@ response: runbooks/brute-force.md
 ## Top-level keys
 
 | Key | Required | Rules |
-|-----|----------|-------|
+| ----- | ---------- | ------- |
 | `id` | yes | Upper-case words joined by hyphens, for example `PRH-AUTH-001`. Unique across all loaded rules |
 | `title` | yes | 3-200 characters |
 | `status` | yes | `stable`, `test`, `experimental` or `deprecated` |
@@ -216,7 +216,7 @@ detection:
 ### Matching rules
 
 | Rule | Example |
-|------|---------|
+| ------ | --------- |
 | Keys within one mapping must **all** match | `{http.method: GET, http.status: 404}` |
 | A list of mappings matches if **any** mapping matches | `- {a: 1}` / `- {b: 2}` |
 | A list of values matches if **any** value matches | `event.action: [x, y]` |
@@ -236,7 +236,7 @@ Append modifiers to the field name with `|`. Use at most one operator, optionall
 flags `all`, `cased` and `urldecode`.
 
 | Modifier | Meaning |
-|----------|---------|
+| ---------- | --------- |
 | *(none)* | Equality, with wildcards for strings |
 | `contains` | Substring |
 | `startswith` / `endswith` | Prefix / suffix |
@@ -261,7 +261,7 @@ Patterns are searched (they may match anywhere in the value) and are case-insens
 What RE2 does not support, and rejects when the rule is validated:
 
 | Not supported | Example |
-|---------------|---------|
+| --------------- | --------- |
 | Backreferences | `(a)\1` |
 | Look-ahead and look-behind | `(?=admin)`, `(?<!x)` |
 | Atomic groups and possessive quantifiers | `(?>a+)`, `a++` |
@@ -346,7 +346,7 @@ The engine (`prohori.rules.engine.RuleEngine`) evaluates every rule in a single 
 events, holding only bounded state.
 
 | Topic | Behaviour |
-|-------|-----------|
+| ------- | ----------- |
 | Order | Events are evaluated in one total order: by timestamp, ties broken by event id. A reorder buffer holds events until the newest timestamp seen (the *watermark*) is more than `lateness` past them |
 | Out-of-order events | An event that arrives with a timestamp of at least `watermark - lateness` is never late, so any arrival order within that bound produces identical alerts |
 | Late events | An event that would sort before one already evaluated is dropped and counted (`late_events`) |

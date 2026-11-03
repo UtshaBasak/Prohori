@@ -1,7 +1,7 @@
 # Documentation
 
 | Document | Contents |
-|----------|----------|
+| ---------- | ---------- |
 | [CLI.md](CLI.md) | Command-line reference: commands, shared options, formats and exit codes |
 | [ARCHITECTURE.md](ARCHITECTURE.md) | Components, data flow and run modes |
 | [examples/](examples/) | Sample incident reports (Markdown, HTML, redacted) |

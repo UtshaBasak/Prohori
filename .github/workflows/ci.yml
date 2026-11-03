@@ -38,6 +38,10 @@ jobs:
         run: uv run ruff format --check .
       - name: Mypy (strict)
         run: uv run mypy
+      - name: Markdown (rules in .markdownlint-cli2.jsonc)
+        uses: DavidAnson/markdownlint-cli2-action@696eb3f2509270d7b882d2aa68347bc676e7af34 # v25.0.0
+        with:
+          globs: "**/*.md"
 
   test:
     name: Test (${{ matrix.os }}, Python ${{ matrix.python-version }})

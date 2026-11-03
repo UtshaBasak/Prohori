@@ -16,9 +16,11 @@ uv run ruff check .
 uv run ruff format --check .
 uv run mypy
 uv run pytest --cov
+uv run pre-commit run --all-files   # also checks Markdown with markdownlint-cli2
 ```
 
-All four must pass; CI runs the same checks on Linux, Windows and macOS.
+All of them must pass; CI runs the same checks on Linux, Windows and macOS. Markdown style rules
+are in `.markdownlint-cli2.jsonc` (the VS Code markdownlint extension reads the same file).
 
 ## Conventions
 

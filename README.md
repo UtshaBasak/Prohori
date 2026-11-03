@@ -97,7 +97,7 @@ flowchart LR
 ```
 
 | Stage | Today |
-|-------|-------|
+| ------- | ------- |
 | **Parse** | Linux `auth.log` (sshd, sudo, PAM), nginx/Apache access logs, application security events (JSON Lines) and any JSON Lines layout through a YAML field mapping, into one typed event schema. Format detection, streaming with bounded memory, hostile input handled (oversized lines, bad encodings, control characters). |
 | **Detect** | 15 readable YAML rules (Sigma-inspired) with field modifiers, thresholds, distinct counts, ratios, sliding and tumbling windows and ordered sequences. Every rule ships with test fixtures and a runbook; regular expressions run on RE2, so no pattern can hang a run. With `--models`, anomaly detectors (robust z-score, Isolation Forest) also flag source IPs that behave unlike the rest of the log. |
 | **Enrich** | IP geolocation, network owner and reputation from local GeoLite2 files, AbuseIPDB and VirusTotal, all optional. SQLite cache, daily budgets, rate limiting and bounded retries. Private and documentation addresses never leave the machine. |
@@ -147,7 +147,6 @@ incident. Open a report in a browser: one file, no scripts, no external resource
 logs, `prohori triage /var/log/auth.log --year 2026 -o triage/` works the same way (add
 `--redact-ips` before sharing the output).
 
-
 ## Example: an account takeover
 
 <!-- example:start -->
@@ -167,7 +166,7 @@ entities    source.ip: 203.0.113.7
 Every point of the score is explained (from `prohori report`):
 
 | Points | Reason |
-|-------:|--------|
+| -------: | -------- |
 | +50 | Most severe alert: PRH-AUTH-003 (critical) |
 | +20 | 2 more rules fired: PRH-ACCT-001, PRH-AUTH-001 |
 | +20 | A sign-in succeeded after failed attempts |
@@ -187,7 +186,7 @@ To see it yourself: `uv run prohori incidents samples/logs/account-takeover.json
 ## Commands
 
 | Command | What it does | Docs |
-|---------|--------------|------|
+| --------- | -------------- | ------ |
 | `prohori demo` | Simulate attacks, triage them and show the results; no configuration, offline | [CLI.md](docs/CLI.md#prohori-demo) |
 | `prohori triage FILE` | Log in, incidents and a report per incident out (`--format`, `--redact`, `--online`) | [CLI.md](docs/CLI.md#prohori-triage) |
 | `prohori parse FILE` | Parse and normalise a log; table or JSON Lines | [PARSERS.md](docs/PARSERS.md) |
@@ -212,7 +211,7 @@ usage. The full reference is [docs/CLI.md](docs/CLI.md).
 ## Built-in detection rules
 
 | Rule | Detects | Severity | ATT&CK |
-|------|---------|----------|--------|
+| ------ | --------- | ---------- | -------- |
 | PRH-AUTH-001 | Brute-force sign-in attempts from one IP | high | T1110, T1110.001 |
 | PRH-AUTH-002 | Password spraying or credential stuffing from one IP | high | T1110.003, T1110.004 |
 | PRH-AUTH-003 | Successful sign-in after many failures from one IP | critical | T1110, T1078 |
@@ -243,7 +242,7 @@ the line labels.
 
 <!-- results:start -->
 | | Default | Held-out |
-|--|--------:|---------:|
+| -- | --------: | ---------: |
 | Attacks caught by at least one expected rule | 40/40 | 35/40 |
 
 Expected rules that missed in the held-out variants (runs missed out of runs):
@@ -276,7 +275,7 @@ and join the incidents. Compared with the rules on the simulator's held-out atta
 
 <!-- anomaly:start -->
 | Detector | Attacks caught | Precision | False alerts a run | Caught only by it |
-|----------|------:|------:|------:|------:|
+| ---------- | ------: | ------: | ------: | ------: |
 | Detection rules (any rule) | 36/40 | 39 % | 6.47 | - |
 | Robust z-score | 15/40 | 100 % | 0.0 | 0 |
 | Fixed thresholds | 10/40 | 49 % | 0.93 | 0 |
@@ -308,7 +307,7 @@ improved CIC-IDS-2017:
 
 <!-- ml-results:start -->
 | Dataset | Model | PR-AUC | Recall | Test FPR | False alerts / 10k |
-|---------|-------|-------:|-------:|---------:|-------------------:|
+| --------- | ------- | -------: | -------: | ---------: | -------------------: |
 | unsw-nb15 | Gradient boosting (supervised) | 0.952 | 46.00 % | 0.07 % | 4.2 |
 | unsw-nb15 | Isolation Forest (benign only) | 0.522 | 0.71 % | 0.11 % | 6.9 |
 | cicids2017 | Gradient boosting (supervised) | 0.999 | 99.98 % | 0.10 % | 8.7 |
@@ -327,7 +326,7 @@ Details, failure cases and limitations: [docs/MODEL_CARD.md](docs/MODEL_CARD.md)
 Trained on the 12 features both datasets share and tested on the *other* dataset, gradient boosting's ROC-AUC falls from 0.95 and 1.00 to 0.64 and 0.61, weak but above chance, and the threshold that gave 1 % false positives at home flags 42 % to 60 % of the other dataset's benign flows:
 
 | Trained on → tested on | ROC-AUC, same dataset | ROC-AUC, other dataset | PR-AUC (chance), same dataset | PR-AUC (chance), other dataset | Benign flows flagged on the other dataset (1 % threshold) |
-|------------------------|------:|------:|------:|------:|------:|
+| ------------------------ | ------: | ------: | ------: | ------: | ------: |
 | unsw-nb15 → cicids2017 | 0.952 | 0.639 | 0.918 (0.33) | 0.323 (0.16) | 42.2 % |
 | cicids2017 → unsw-nb15 | 1.000 | 0.614 | 0.999 (0.16) | 0.404 (0.33) | 60.5 % |
 
@@ -398,7 +397,7 @@ uv run prohori pipeline down                  # --volumes also deletes the data
 ```
 
 | Service | What it is | Memory limit |
-|---------|------------|-------------:|
+| --------- | ------------ | -------------: |
 | `redpanda` | Kafka-compatible broker, one node | 1.5 GB |
 | `postgres` | Warehouse (`raw` schema) | 512 MB |
 | `normalise`, `detect`, `incidents`, `sink` | One Prohori container per stage | 256-384 MB each |
@@ -412,6 +411,7 @@ Details: [docs/PIPELINE.md](docs/PIPELINE.md).
 
 **Warehouse models.** A dbt project (`pipeline/dbt/`) turns the stored rows into tested tables
 on either database:
+
 - daily attack counts, alerts per rule, top source addresses and incident durations;
 - rule precision and detection latency, and time to detect each simulated attack (from the
   simulator's labels);
@@ -429,8 +429,9 @@ the simulator's eight scenarios, the models' rule precision equals the simulator
 evaluation alert for alert, which CI checks. Every attack was detected; the detection delay per
 scenario is in [docs/WAREHOUSE.md](docs/WAREHOUSE.md#results-on-the-simulator).
 
-**Dashboards.** `prohori pipeline up` also starts Grafana on http://127.0.0.1:13000, with three
+**Dashboards.** `prohori pipeline up` also starts Grafana on <http://127.0.0.1:13000>, with three
 dashboards provisioned from `pipeline/grafana/`. They open without a login or any setup:
+
 - **Overview**: events, alerts and incidents over time, rule hits and top sources. It reads the
   raw tables, so it fills as soon as a replay is stored.
 - **Detection quality**: rule precision, time to detect, detection latency and flow-model
@@ -442,11 +443,11 @@ dashboards provisioned from `pipeline/grafana/`. They open without a login or an
 Grafana reads through its own database role, which can only `SELECT`. The smoke test runs every
 panel's query through Grafana after a replay. Details: [docs/DASHBOARD.md](docs/DASHBOARD.md).
 
-**Scheduled jobs.** `prohori pipeline up --orchestration` adds Airflow (http://127.0.0.1:18080)
+**Scheduled jobs.** `prohori pipeline up --orchestration` adds Airflow (<http://127.0.0.1:18080>)
 with five DAGs:
 
 | Job | When | What it does |
-|-----|------|--------------|
+| ----- | ------ | -------------- |
 | Backfill | By hand | Replays all eight simulated scenarios with their labels, then builds the marts |
 | Data quality | Hourly | `dbt build` with its 68 checks, and a freshness check on the events |
 | Nightly evaluation | 02:00 UTC | Retrains the flow models; the run fails if recall drops below 0.75 |
@@ -462,6 +463,7 @@ each one in the stack. Details: [docs/ORCHESTRATION.md](docs/ORCHESTRATION.md).
 `prohori explain` and `prohori ask` can use a language model (Gemini, or an offline mock) to
 explain an incident or answer a question from ATT&CK and the runbooks. They are off by default
 and use the `llm` extra.
+
 - **Redacted:** usernames and emails are replaced with pseudonyms, and event descriptions are
   never sent.
 - **Fenced:** text from logs is marked as data.
@@ -475,11 +477,11 @@ errors, missing indicators and whether injected instructions were followed:
 30 cases: 15 attacks, 7 false positives and 8 incidents with a hidden instruction.
 
 | Model | Recorded | Answers accepted | With a factual error | Indicators named | Points covered |
-|-------|----------|------:|------:|------:|------:|
+| ------- | ---------- | ------: | ------: | ------: | ------: |
 | Gemini (gemini-3.5-flash-lite) | 2026-11-02 | 30/30 | 0/30 | 112/112 | 84/89 |
 
 | System | Injections the answer followed | Followed and shown to the analyst |
-|--------|------:|------:|
+| -------- | ------: | ------: |
 | Mock (a template, offline) | 0/8 | 0/8 |
 | Scripted adversary (obeys every injection) | 8/8 | 3/8 |
 | Gemini (gemini-3.5-flash-lite) | 0/8 | 0/8 |
@@ -495,7 +497,7 @@ Measured on logs of more than a million lines each, one process per run:
 
 <!-- performance:start -->
 | Run | Lines | Lines a second | Peak memory |
-|-----|------:|------:|------:|
+| ----- | ------: | ------: | ------: |
 | `incidents`, nginx/Apache access log | 1,068,043 | 7,102 | 142 MiB |
 | `pipeline replay` (lite mode), access log | 1,068,043 | 2,234 | 1,078 MiB |
 | `incidents`, auth.log (sshd) | 1,000,198 | 12,859 | 181 MiB |
@@ -531,7 +533,7 @@ Third-party data terms (MITRE ATT&CK, GeoLite2, AbuseIPDB, VirusTotal, the Gemin
 ## Documentation
 
 | Document | Contents |
-|----------|----------|
+| ---------- | ---------- |
 | [CLI reference](docs/CLI.md) | Every command, the shared options, formats and exit codes |
 | [Architecture](docs/ARCHITECTURE.md) | Components, data flow and run modes |
 | [Event schema](docs/SCHEMA.md) | Event, Alert and Incident fields |
@@ -580,7 +582,7 @@ Prohori is honest about what it does not do:
 ## Roadmap
 
 | Release | Contents | State |
-|---------|----------|-------|
+| --------- | ---------- | ------- |
 | v0.1.0 | Batch core: parsers, rules, enrichment, incidents, reports, log simulator with rule evaluation, `triage` and `demo` commands | Released |
 | v0.2.0 | Machine learning: leakage-controlled intrusion detection on public flow datasets, log-derived anomaly detection, model cards | Released |
 | v0.3.0 | Pipeline: streaming core and lite mode, Redpanda and PostgreSQL in Docker, dbt models and data-quality checks, Grafana dashboards, Airflow jobs; Docker image on GitHub Packages | Released |

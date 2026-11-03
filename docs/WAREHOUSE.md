@@ -3,6 +3,7 @@
 The pipeline stores raw events, alerts, incidents and rejected messages (see
 [PIPELINE.md](PIPELINE.md)). A [dbt](https://www.getdbt.com/) project in `pipeline/dbt/` turns
 them into tested tables that answer a SOC's everyday questions:
+
 - What happened each day?
 - Which addresses keep coming back?
 - How long do incidents last?
@@ -45,6 +46,7 @@ uv run dbt build --project-dir pipeline/dbt --profiles-dir pipeline/dbt --target
 
 **Settings.** `pipeline/dbt/profiles.yml` reads its connection settings from the environment
 and stores no secrets:
+
 - the DuckDB file comes from `PROHORI_DUCKDB` (default `.prohori/pipeline/prohori.duckdb`);
 - PostgreSQL comes from `PROHORI_POSTGRES_HOST`, `PROHORI_POSTGRES_PORT` and
   `PROHORI_POSTGRES_PASSWORD`, with the stack's defaults.
@@ -64,7 +66,7 @@ SELECT * FROM marts.top_source_ips WHERE rank <= 10;
 ## Inputs
 
 | Table | Written by | Holds |
-|-------|------------|-------|
+| ------- | ------------ | ------- |
 | `events`, `alerts`, `incidents`, `dead_letters` | the pipeline's sink | Everything the stream produced (see [PIPELINE.md](PIPELINE.md#the-database)) |
 | `labels` | `prohori pipeline load-labels LOG` | The simulator's ground truth: one row per event of a simulated log, with its attack id or null for a benign line |
 | `model_evaluations` | `prohori pipeline load-results results/ml_*.json` | Flow-model results: one row per dataset, variant, model, seed and operating point, on the test split |
@@ -84,6 +86,7 @@ Every table has a `stored_at` column, set by the database when the row is first 
 ## Models
 
 **Staging** (views): one per input table, renamed and typed.
+
 - Each gets a UTC calendar date: the conversion is explicit, so the session's time zone never
   matters.
 - Incidents also get their duration in seconds.
@@ -98,7 +101,7 @@ belong to. Alerts on unlabelled events are not judged.
 **Marts** (tables):
 
 | Model | One row per | Columns |
-|-------|-------------|---------|
+| ------- | ------------- | --------- |
 | `daily_attack_counts` | UTC day | events, failed events, source addresses, alerts, high and critical alerts, rules that fired, incidents, high and critical incidents |
 | `daily_alerts_by_rule` | day, rule and severity | alerts |
 | `top_source_ips` | source address | rank (by alerts, then events), events, failed events, accounts, alerts, incidents, first and last seen |
@@ -118,7 +121,7 @@ the broker and the containers.
 `dbt build` runs 68 checks; `dbt source freshness` runs the freshness check.
 
 | Kind | Checks |
-|------|--------|
+| ------ | -------- |
 | Schema and nulls | Every id is unique and not null, in the inputs and in each model. |
 | Accepted values | Severity is `low`, `medium`, `high` or `critical`. The detector kind is `rule` or `model`. The outcome is `success`, `failure` or `unknown`. |
 | Ranges | HTTP status is 100 to 599. Score is 0 to 100. An alert counts at least one event. Precision and recall are 0 to 1. Durations and latencies are not negative. No timestamp is more than a day in the future (a warning only: a log line with a bogus future time, which anyone who can write to the log can add, must not stop the marts from being rebuilt). |
@@ -138,13 +141,13 @@ and checks that `rule_precision` equals the simulator's own rule evaluation for 
 alert for alert. The models gave:
 
 | Rule | Alerts | True positives | Precision |
-|------|-------:|---------------:|----------:|
+| ------ | -------: | ---------------: | ----------: |
 | PRH-ACCT-001 | 57 | 2 | 0.04 |
 | PRH-ADMIN-001 | 2 | 1 | 0.50 |
 | PRH-ADMIN-002, AUTH-001, AUTH-002, AUTH-003, SESS-001, SSH-001, WEB-001 to WEB-004 | 91 | 91 | 1.00 |
 
 | Scenario | Detected | Time to detect |
-|----------|----------|---------------:|
+| ---------- | ---------- | ---------------: |
 | account-takeover | yes | 27 s |
 | admin-misuse | yes | 252 s |
 | credential-stuffing | yes | 22 s |
