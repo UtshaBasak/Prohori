@@ -88,3 +88,13 @@ def test_pipeline_shapes(dagbag: Any) -> None:
     assert nightly.get_task("check_recall").upstream_task_ids == {"load_results"}
     quality = dagbag.dags["prohori_data_quality"]
     assert quality.get_task("source_freshness").upstream_task_ids == {"dbt_build"}
+
+
+def test_backfill_start_is_optional_and_checked(dagbag: Any) -> None:
+    # The trigger form requires every parameter whose type does not allow null.
+    start = dagbag.dags["prohori_backfill"].params.get_param("start")
+    assert "null" in start.schema["type"]
+    assert start.resolve(None) is None
+    assert start.resolve("2026-10-26T06:00:00Z") == "2026-10-26T06:00:00Z"
+    with pytest.raises(Exception, match="does not match"):
+        start.resolve("026-10-26T06:00:00Z")

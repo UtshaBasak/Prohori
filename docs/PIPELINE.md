@@ -186,8 +186,10 @@ models in [WAREHOUSE.md](WAREHOUSE.md) build on all six.
 | `dead_letters` | `id`, `stage`, `topic`, `key`, `reason`, `payload` |
 
 ```sql
--- with the DuckDB command-line tool (a separate download from duckdb.org):
--- duckdb .prohori/pipeline/prohori.duckdb
+-- With the DuckDB command-line tool, version 2.0 or newer (a separate download from
+-- duckdb.org; older tools cannot open the file): duckdb -readonly .prohori/pipeline/prohori.duckdb
+-- Without it, from Python (installed with the pipeline extra):
+--   python -c "import duckdb; c = duckdb.connect('.prohori/pipeline/prohori.duckdb', read_only=True); print(c.sql('SELECT ...'))"
 SELECT detector_id, count(*) FROM alerts GROUP BY 1 ORDER BY 2 DESC;
 SELECT id, severity, score, title FROM incidents ORDER BY score DESC;
 SELECT source_ip, count(*) FROM events WHERE outcome = 'failure' GROUP BY 1 ORDER BY 2 DESC;

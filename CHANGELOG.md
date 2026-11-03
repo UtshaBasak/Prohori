@@ -19,6 +19,11 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   does not support yet (no wheels for its dependencies). It is back on Python 3.13, and
   PostgreSQL is back on 17: version 18 cannot open a data volume written by 17. Dependency
   updates no longer propose new major versions of the images, or a new Python minor version.
+- The Airflow backfill can be triggered from the form with `start` left empty (eight days ago):
+  Airflow 3's form treated the parameter as required, so the *Trigger* button stayed disabled.
+- The docs' DuckDB example queries the lite-mode database with the Python library the
+  `pipeline` extra installs, and say that the `duckdb` command-line tool must be 2.0 or newer:
+  older ones (1.5.x, still what some package managers install) cannot open the file.
 
 ## [1.0.1] - 2026-11-03
 

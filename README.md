@@ -357,9 +357,15 @@ pip install "prohori[pipeline]"
 prohori simulate web-scanning --seed 1 --out logs   # write a simulated log to replay
 prohori pipeline replay logs/web-scanning.log --times 2   # replay twice: each row stored once
 prohori pipeline tail /var/log/auth.log --year 2026       # follow a live log until Ctrl+C
-# query the results with the DuckDB command-line tool (a separate download):
-duckdb .prohori/pipeline/prohori.duckdb "SELECT severity, score, title FROM incidents"
+# query the results (the DuckDB Python library is already installed with the extra):
+python -c "import duckdb; print(duckdb.connect('.prohori/pipeline/prohori.duckdb', read_only=True).sql('SELECT severity, score, title FROM incidents'))"
 ```
+
+The `duckdb` command-line tool works too, but it must be **version 2.0 or newer**: the pipeline
+extra writes DuckDB 2.0 files, which older tools (such as 1.5.x, still what some package managers
+install) cannot open ("version number 69, but we can only read versions between 64 and 68").
+Download it from [duckdb.org](https://duckdb.org/install/) or the
+[GitHub releases](https://github.com/duckdb/duckdb/releases).
 
 ```mermaid
 flowchart LR

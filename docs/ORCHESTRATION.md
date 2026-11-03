@@ -63,7 +63,8 @@ looked up, which covers every simulated address.
 ## Running a job by hand
 
 Open <http://127.0.0.1:18080>, pick a DAG and choose *Trigger*. For the backfill you can set the
-first scenario's start date and the seed. From a terminal:
+first scenario's start, as a UTC time in exactly this form: `2026-10-26T06:00:00Z` (leave it empty
+for eight days ago), and the seed. From a terminal:
 
 ```bash
 docker compose -p prohori -f pipeline/docker-compose.yml --profile orchestration exec airflow \
