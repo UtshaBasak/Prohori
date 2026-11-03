@@ -58,9 +58,10 @@ with DAG(
     tags=[*TAGS, "backfill"],
     params={
         "start": Param(
-            "",
-            type="string",
-            # Empty, or a UTC time such as 2026-10-25T06:00:00Z; the trigger form enforces it.
+            None,
+            # Optional: the trigger form requires every parameter whose type does not allow null.
+            # A value must be a UTC time such as 2026-10-25T06:00:00Z; the form enforces it.
+            type=["null", "string"],
             pattern=r"^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z)?$",
             description="First scenario's start, such as 2026-10-25T06:00:00Z (empty: 8 days ago)",
         ),
@@ -71,7 +72,7 @@ with DAG(
         BashOperator(
             task_id=f"replay_{scenario.replace('-', '_')}",
             bash_command=REPLAY.format(python=PYTHON, scenario=scenario, day=day),
-            env={"START": "{{ params.start }}", "SEED": "{{ params.seed }}"},
+            env={"START": "{{ params.start or '' }}", "SEED": "{{ params.seed }}"},
             append_env=True,
         )
         for day, scenario in enumerate(SCENARIOS)
