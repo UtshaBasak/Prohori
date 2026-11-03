@@ -388,6 +388,14 @@ class TestSudo:
         )
         assert event.extra["command"] == "/bin/sh -c echo a;b"
 
+    def test_fields_inside_the_command_cannot_overwrite_the_real_ones(self) -> None:
+        event = one(
+            f"{HDR} sudo: alice : TTY=pts/0 ; PWD=/ ; USER=root ; "
+            "COMMAND=/bin/echo x ; USER=nobody ; COMMAND=/bin/true"
+        )
+        assert event.extra["target_user"] == "root"
+        assert event.extra["command"] == "/bin/echo x ; USER=nobody ; COMMAND=/bin/true"
+
     def test_newer_format_with_env(self) -> None:
         event = one(
             f"{HDR} sudo: alice : TTY=pts/0 ; PWD=/ ; USER=root ; ENV=A=1 ; COMMAND=/usr/bin/id"

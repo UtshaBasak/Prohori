@@ -51,6 +51,8 @@ from prohori.enrich.addresses import canonical, embedded_ipv4, is_public, parse_
         "::ffff:203.0.113.7",
         "64:ff9b::10.1.2.3",
         "2002:c0a8:0101::1",  # 6to4 for 192.168.1.1
+        "::10.0.0.1",  # deprecated IPv4-compatible
+        "::8.8.8.8",
     ],
 )
 def test_not_public(address: str) -> None:

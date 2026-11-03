@@ -77,6 +77,11 @@ class _Chain:
     accounts: set[Key]
 
 
+def _account_count(keys: set[Key]) -> int:
+    """How many accounts ``keys`` name: an account seen by id, name and email hash is one."""
+    return max((sum(1 for k in keys if k[0] == field) for field in USER_FIELDS), default=0)
+
+
 def group_alerts(
     alerts: Iterable[Alert],
     context: EventContext | None = None,
@@ -105,8 +110,8 @@ def group_alerts(
             if chain is not None and alert.first_seen - chain.last_seen <= gap:
                 if key[0] == "source.ip":
                     combined = chain.accounts | accounts
-                    if len(combined) > max_ip_fanout:
-                        shared[key[1]] = len(combined)
+                    if _account_count(combined) > max_ip_fanout:
+                        shared[key[1]] = _account_count(combined)
                         continue
                     chain.accounts = combined
                 sets.union(chain.member, index)

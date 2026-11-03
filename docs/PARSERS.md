@@ -142,8 +142,12 @@ Invalid dates (for example `Feb 29` in a non-leap year) are counted as errors.
 - Logs that span more than one New Year without lines in December or January are not detected
   as rolling over.
 - Only the sshd, sudo and `pam_unix` messages listed above produce events.
-- Throughput is roughly 25,000 lines per second on a laptop CPU (Python 3.13); performance work
-  is planned for a later release.
+- Throughput and memory on logs of a million lines are measured in
+  [PERFORMANCE.md](PERFORMANCE.md).
+- In an ambiguous local hour (the hour repeated when daylight saving time ends), a timestamp
+  resolves to the first occurrence. Lines from the repeated hour then seem to go back in time,
+  and the rule engine drops those older than its lateness as late (counted in `detect`'s
+  summary). Use `--timezone UTC` for hosts that log in UTC.
 
 ### Example
 
@@ -176,9 +180,12 @@ status 400 and above, `success` otherwise.
 - **Query strings** are removed from `http.path` and kept in `extra.query`, so paths group cleanly
   while injection rules can still inspect the query. `--keep-query` keeps them in the path.
 - **Unparseable request lines** (for example a TLS handshake sent to a plain-HTTP port) leave
-  method and path empty and keep the request text in `extra.request`.
+  method and path empty and keep the request text in `extra.request` as written, escapes and
+  all (`\x16\x03...`).
 - **Escapes** written by nginx (`\x22`) and Apache (`\"`) are decoded in the request, referer
-  and user agent.
+  and user agent. Control characters an escape decodes to (`\x1B`) are removed again, as are
+  those decoded from JSON escapes (`\u001b`) by the JSON parsers, so no log value can reach a
+  terminal as an escape sequence.
 - **Custom formats:** pass a regular expression with named groups `ip`, `time`, `status`, and
   either `request` or `method` and `path`; `user`, `bytes`, `referer`, `agent`, `host` and
   `protocol` are optional.

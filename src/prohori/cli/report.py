@@ -55,6 +55,8 @@ def report_command(
     Exit codes: 0 written, 1 redaction could not remove every personal value (nothing is
     written), 2 invalid usage or input.
     """
+    if output is not None:
+        _check_output(output, file)
     data, name = _read(file)
     incident = _select(_parse(data), incident_id)
     source = ReportSource(name=name, sha256=hashlib.sha256(data).hexdigest())
@@ -71,8 +73,24 @@ def report_command(
         sys.stdout.buffer.write(payload)
         sys.stdout.buffer.flush()
     else:
-        output.write_bytes(payload)
+        try:
+            output.write_bytes(payload)
+        except OSError as exc:
+            msg = f"cannot write {output}: {exc.strerror or exc}"
+            raise typer.BadParameter(msg, param_hint="--output") from None
         typer.echo(f"wrote {output} ({output_format.value}, {incident.id})", err=True)
+
+
+def _check_output(output: Path, file: str) -> None:
+    """Refuse an output path that cannot work, before anything is read."""
+    if output.is_dir():
+        raise typer.BadParameter(f"{output} is a directory", param_hint="--output")
+    if not output.parent.is_dir():
+        msg = f"directory not found: {output.parent}"
+        raise typer.BadParameter(msg, param_hint="--output")
+    if file != "-" and output.exists() and output.resolve() == Path(file).resolve():
+        msg = "the report would overwrite the incident file it is made from"
+        raise typer.BadParameter(msg, param_hint="--output")
 
 
 def _read(file: str) -> tuple[bytes, str]:

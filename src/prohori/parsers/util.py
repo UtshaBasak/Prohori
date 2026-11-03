@@ -4,7 +4,7 @@ import json
 from ipaddress import IPv4Address, IPv6Address, ip_address
 from typing import Any
 
-from prohori.parsers.base import ParseError
+from prohori.parsers.base import ParseError, sanitize
 
 
 def normalise_ip(text: str | None) -> IPv4Address | IPv6Address | None:
@@ -20,10 +20,26 @@ def normalise_ip(text: str | None) -> IPv4Address | IPv6Address | None:
     return address
 
 
+def _clean(value: object) -> object:
+    if isinstance(value, str):
+        return sanitize(value)
+    if isinstance(value, list):
+        return [_clean(item) for item in value]
+    return value
+
+
+def _clean_object(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+    return {sanitize(key): _clean(value) for key, value in pairs}
+
+
 def load_json_object(line: str) -> dict[str, Any]:
-    """Decode one JSON Lines record, which must be an object."""
+    """Decode one JSON Lines record, which must be an object.
+
+    The line was sanitised before decoding, but JSON escapes such as ``\u001b`` decode to
+    control characters again; every key and string value is sanitised once more.
+    """
     try:
-        value = json.loads(line)
+        value = json.loads(line, object_pairs_hook=_clean_object)
     except RecursionError:  # deeply nested input
         raise ParseError("JSON nested too deeply") from None
     except json.JSONDecodeError as exc:

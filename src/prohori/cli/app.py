@@ -29,6 +29,8 @@ app = typer.Typer(
     help="Prohori: from raw logs to detections, enriched incidents and analyst-ready reports.",
     no_args_is_help=True,
     add_completion=False,
+    # A crash must never print local variables: they can hold API keys and log content.
+    pretty_exceptions_show_locals=False,
 )
 
 

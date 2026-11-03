@@ -410,13 +410,17 @@ def _parse_sudo(message: str, b: _EventBuilder) -> Event | None:
     if match is None:
         return None
     user = match["user"]
-    parts = [part.strip() for part in match["fields"].split(" ; ")]
-    keyed: dict[str, str] = {}
+    # sudo writes COMMAND= last, and the command line is the user's own text: everything after
+    # the first COMMAND= is the command, so " ; USER=root ; COMMAND=..." inside it cannot
+    # overwrite the fields before it.
+    fields, has_command, command = match["fields"].partition("COMMAND=")
+    parts = [part.strip() for part in fields.split(" ; ") if part.strip()]
+    keyed: dict[str, str] = {"COMMAND": command.strip()} if has_command else {}
     notes: list[str] = []
     for part in parts:
         key, sep, value = part.partition("=")
         if sep and key.isupper() and key.isalpha():
-            keyed[key] = value
+            keyed.setdefault(key, value)
         else:
             notes.append(part)
     if "COMMAND" not in keyed:

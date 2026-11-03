@@ -148,3 +148,10 @@ def test_redaction_works_for_account_names_that_are_common_words(tmp_path: Path,
     for fmt in ("md", "html", "json", "csv"):
         result = runner.invoke(app, ["report", str(path), "--redact", "-f", fmt])
         assert result.exit_code == 0, (name, fmt, result.output)
+
+
+def test_unusable_output_paths_are_usage_errors(tmp_path: Path) -> None:
+    for output in (tmp_path, tmp_path / "missing" / "x.md", SAMPLE):
+        result = runner.invoke(app, ["report", str(SAMPLE), "-o", str(output)])
+        assert result.exit_code == ExitCode.USAGE, output
+        assert "Traceback" not in result.output

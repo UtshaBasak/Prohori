@@ -35,7 +35,7 @@ _NOT_PUBLIC_V4 = tuple(
 _NOT_PUBLIC_V6 = tuple(
     IPv6Network(net)
     for net in (
-        "::/128",  # unspecified
+        "::/96",  # unspecified, loopback and deprecated IPv4-compatible (::10.0.0.1)
         "::1/128",  # loopback
         "100::/64",  # discard-only
         "2001::/23",  # IETF protocol assignments: Teredo, benchmarking, ORCHID, ...

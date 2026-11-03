@@ -207,7 +207,9 @@ class LineParser(ABC):
             return None
         try:
             event = self.parse_line(text, raw.number, source)
-        except ValueError as exc:  # ParseError and pydantic.ValidationError
+        # ParseError and pydantic.ValidationError are ValueErrors; OverflowError comes from a
+        # timestamp at the edge of the calendar (year 1 or 9999 with an offset) moved to UTC.
+        except (ValueError, OverflowError) as exc:
             reason = _short_reason(exc)
             stats.record_error(raw.number, reason)
             raise ParseError(reason) from exc
@@ -223,7 +225,7 @@ class LineParser(ABC):
             yield from self.parse(read_lines(stream), source=path.name, stats=stats)
 
 
-def _short_reason(exc: ValueError) -> str:
+def _short_reason(exc: ValueError | OverflowError) -> str:
     if isinstance(exc, ValidationError) and exc.errors():
         first = exc.errors()[0]
         location = ".".join(str(part) for part in first["loc"]) or "record"

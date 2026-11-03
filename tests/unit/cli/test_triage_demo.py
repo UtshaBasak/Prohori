@@ -217,3 +217,14 @@ def test_demo_json_reports(tmp_path: Path) -> None:
     reports = sorted((tmp_path / "token-reuse").glob("INC-*.json"))
     assert reports
     assert json.loads(reports[0].read_text(encoding="utf-8"))["format"] == "prohori.report/1"
+
+
+def test_triage_into_a_file_is_a_usage_error(tmp_path: Path) -> None:
+    taken = tmp_path / "afile"
+    taken.write_text("keep", encoding="utf-8")
+    result = runner.invoke(
+        app, ["triage", str(SAMPLES / "auth.log"), "--year", "2026", "-o", str(taken)]
+    )
+    assert result.exit_code == ExitCode.USAGE
+    assert "not a directory" in _plain(result.output)
+    assert taken.read_text(encoding="utf-8") == "keep"

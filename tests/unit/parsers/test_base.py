@@ -151,3 +151,36 @@ class TestRegistry:
 
     def test_reregistering_same_class_is_allowed(self) -> None:
         assert register(AuthLogParser) is AuthLogParser
+
+
+@pytest.mark.parametrize(
+    ("parser", "line"),
+    [
+        ("auth_log", "0001-01-01T00:00:00+14:00 h sshd[1]: Failed password for root from 1.2.3.4"),
+        ("auth_log", "9999-12-31T23:59:59-14:00 h sshd[1]: Failed password for root from 1.2.3.4"),
+        ("access_log", '192.0.2.1 - - [01/Jan/0001:00:00:00 +1400] "GET / HTTP/1.1" 200 1 "-" "-"'),
+        ("app_json", '{"time": "0001-01-01T00:00:00+14:00", "event": {"action": "x"}}'),
+    ],
+)
+def test_timestamps_at_the_edge_of_the_calendar_are_line_errors(parser: str, line: str) -> None:
+    # Moving year 1 or 9999 with an offset to UTC overflows; that is one bad line, not a crash.
+    stats = ParseStats()
+    events = list(get_parser(parser).parse(iter_text_lines([line]), source="x", stats=stats))
+    assert events == []
+    assert stats.errors == 1
+
+
+@pytest.mark.parametrize(
+    ("parser", "line"),
+    [
+        ("app_json", '{"time": "2026-10-24T21:00:00Z", "event": {"action": "auth.signin.failure"},'
+         ' "user": {"id": "u-\u001b[31m1001"}, "reason": "bad\u001b]0;PWNED\u0007x"}'),
+        ("access_log", '192.0.2.1 - - [24/Oct/2026:21:00:00 +0000] '
+         '"GET /\x1B]0;PWNED\x07\x1B[31mred HTTP/1.1" 404 1 "-" "a\x1Bb"'),
+    ],
+)  # fmt: skip
+def test_escaped_control_characters_are_removed_after_decoding(parser: str, line: str) -> None:
+    (event,) = get_parser(parser).parse(iter_text_lines([line]), source="x")
+    text = event.model_dump_json(exclude={"raw"})
+    assert "\u001b" not in text
+    assert "\u0007" not in text
