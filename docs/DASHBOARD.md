@@ -99,7 +99,7 @@ pipeline/
     └── dashboards/*.json            the three dashboards
 ```
 
-- **Image:** `grafana/grafana:13.2.5` (Alpine), pinned by digest, with a 512 MB memory limit.
+- **Image:** `grafana/grafana:13.3.0` (Alpine), pinned by digest, with a 512 MB memory limit.
   Measured use is about 250 MB with the dashboards open.
 - **Port:** 127.0.0.1:13000 only. Set `PROHORI_GRAFANA_PORT` to change it.
 - **Access:** anonymous visitors get the Viewer role, so the dashboards open without a login. The

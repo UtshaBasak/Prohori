@@ -27,6 +27,13 @@ updates:
     directories: [/pipeline, /pipeline/airflow]
     schedule:
       interval: weekly
+    ignore:
+      # The image's Python must be one Prohori supports (3.11-3.14) with wheels for every
+      # dependency; moving to a new Python minor version is a deliberate change.
+      - dependency-name: python
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
     groups:
       docker-images:
         patterns: ["*"]
@@ -36,6 +43,11 @@ updates:
     directory: /pipeline
     schedule:
       interval: weekly
+    ignore:
+      # A new PostgreSQL major version cannot open the previous one's data volume, and major
+      # releases of the broker or Grafana change behaviour: those are deliberate upgrades.
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
     groups:
       stack-images:
         patterns: ["*"]
