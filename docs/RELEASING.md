@@ -15,13 +15,17 @@ The workflow is [`.github/workflows/release.yml`](../.github/workflows/release.y
      `samples/incidents/`), the golden files (`PROHORI_UPDATE_GOLDEN=1 uv run pytest`) and the
      examples (`uv run python scripts/generate_examples.py`).
 2. **Merge it** once CI is green.
-3. **Tag the merge commit** on `main` and push the tag:
+3. **Tag the merge commit** on `main` with a signed tag and push it (one-time set-up in
+   [Signing tags](#signing-tags)):
 
    ```bash
    git switch main && git pull
-   git tag -a v0.2.0 -m "Prohori 0.2.0"
+   git tag -s v0.2.0 -m "Prohori 0.2.0"
    git push origin v0.2.0
    ```
+
+   Only the owner can create `v*` tags (a repository ruleset), and a signed tag shows as
+   *Verified* on GitHub, so anyone can tell an official release from a copy.
 
 4. **The workflow then:**
    1. checks that the tag matches the package version and that the changelog has the section;
@@ -60,6 +64,49 @@ The workflow is [`.github/workflows/release.yml`](../.github/workflows/release.y
 
 Running the workflow by hand (*Actions > Release > Run workflow*), or on a pull request that
 changes packaging, only builds and tests; it never publishes.
+
+## Verifying a release
+
+Official Prohori releases come only from this repository's release workflow (see
+[TRADEMARKS.md](../TRADEMARKS.md) for the official channels). To check that a file really is
+one:
+
+```bash
+# A wheel, sdist or other file attached to a GitHub release (needs the GitHub CLI):
+gh attestation verify prohori-1.1.0-py3-none-any.whl --owner UtshaBasak
+# The container image:
+gh attestation verify oci://ghcr.io/utshabasak/prohori:1.1.0 --owner UtshaBasak
+# The release tag (after git fetch --tags):
+git verify-tag v1.1.0
+```
+
+Without the GitHub CLI, compare the file's SHA-256 with the one GitHub shows next to the asset
+on the release page: `Get-FileHash .\prohori-1.1.0-py3-none-any.whl` in PowerShell, or
+`sha256sum prohori-1.1.0-py3-none-any.whl` on Linux and macOS. PyPI shows the same attestation
+under the file's *Verified details*.
+
+## Signing tags
+
+Tags are signed with an SSH key (free, no extra tools). One-time set-up on the owner's machine:
+
+1. Create a signing key with a passphrase:
+   `ssh-keygen -t ed25519 -C "prohori tag signing" -f "$HOME/.ssh/prohori_signing"`.
+2. Add `prohori_signing.pub` on GitHub under *Settings > SSH and GPG keys > New SSH key*, with
+   *Key type: Signing Key*.
+3. Tell git to use it:
+
+   ```bash
+   git config --global gpg.format ssh
+   git config --global user.signingkey "$HOME/.ssh/prohori_signing.pub"
+   git config --global tag.gpgSign true
+   ```
+
+4. Let `git verify-tag` check signatures locally: add a line
+   `<your GitHub email> <contents of prohori_signing.pub>` to `~/.ssh/allowed_signers` and run
+   `git config --global gpg.ssh.allowedSignersFile "$HOME/.ssh/allowed_signers"`.
+5. On Windows, start the OpenSSH agent once (PowerShell as administrator:
+   `Set-Service ssh-agent -StartupType Automatic; Start-Service ssh-agent`), then
+   `ssh-add "$HOME\.ssh\prohori_signing"` so tagging does not ask for the passphrase every time.
 
 ## Things to know
 

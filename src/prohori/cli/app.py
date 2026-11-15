@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+# Copyright (c) 2026 Utsha Basak
 """Root Typer application. Feature commands are registered here as they are built."""
 
 import hashlib
@@ -22,7 +24,7 @@ from prohori.cli.simulate import simulate_command
 from prohori.cli.triage import triage_command
 from prohori.rules import builtin_rules_dir
 from prohori.rules.attack import ATTACK_VERSION
-from prohori.version import __version__
+from prohori.version import COPYRIGHT, LICENCE_SUMMARY, __version__
 
 app = typer.Typer(
     name="prohori",
@@ -68,6 +70,8 @@ def version_command() -> None:
     typer.echo(f"ATT&CK Enterprise v{ATTACK_VERSION}")
     typer.echo(f"built-in rules: {len(rule_files)} (rule set {digest.hexdigest()[:12]})")
     typer.echo(f"Python {platform.python_version()} on {platform.system()}")
+    typer.echo(f"Licence: {LICENCE_SUMMARY}")
+    typer.echo(COPYRIGHT)
 
 
 app.command("parse")(parse_command)

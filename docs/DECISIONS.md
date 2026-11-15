@@ -8,12 +8,13 @@ consequences. Superseded decisions are kept and marked as such.
 ## ADR-0001: Package name and licence
 
 - **Date:** 2026-10-25
-- **Status:** Accepted
+- **Status:** Accepted; the licence part superseded by ADR-0033
 
 **Context.** The distribution needs a name that is free on PyPI and matches the repository.
 
 **Decision.** Publish as `prohori` (checked free on PyPI on 2026-10-25; `prohori-soc` is the
-fallback if it is taken before the first release). Licence: MIT. Repository:
+fallback if it is taken before the first release). Licence: MIT (replaced by PolyForm Strict
+from 1.1.0, ADR-0033). Repository:
 `github.com/UtshaBasak/Prohori`.
 
 **Consequences.** The name is not reserved until the first upload; the release step re-checks it.
@@ -1302,3 +1303,63 @@ run dropped as late; a daylight-saving fall-back hour in `auth.log` can drop eve
 SSH lines with a host name instead of an address are not grouped by source; alerts of a batch
 run are held in memory; the raw tables have no indexes beyond their keys; the stages use the
 database superuser; Redpanda runs in its development mode.
+
+## ADR-0033: Source-available licence and project control
+
+- **Date:** 2026-11-16
+- **Status:** Accepted
+
+**Context.** The owner wants the repository to stay public, to show the work, while nobody may
+copy Prohori and build their own product from it. Prohori was MIT-licensed up to 1.0.1, which
+allows exactly that. Public code can always be read and downloaded, and GitHub's terms let
+anyone fork a public repository inside GitHub, so no technical measure can prevent copying;
+what can be controlled is what others may legally do, who owns the code, the name, and which
+builds are official. Making the repository private until the project is finished was
+considered and rejected: it would lose the free Actions minutes (Windows and macOS runners
+count double and tenfold against a private repository's 2,000 free minutes), free CodeQL and
+secret scanning, GitHub Pages and the OpenSSF Scorecard, against the project's free-of-cost
+rule.
+
+**Decision.**
+
+- **Licence:** the PolyForm Strict License 1.0.0 for everything from this change on, with the
+  required notice `Copyright (c) 2026 Utsha Basak`. It allows use for any non-commercial purpose
+  (personal use, study, research, hobby projects; charities, schools, public research and
+  government bodies) and forbids distributing the software and making changes or new works,
+  for everyone but the licensor. Commercial use needs a separate licence from the owner. Of the
+  source-available licences considered, it gives the owner the most control while keeping
+  personal use free (PolyForm Noncommercial and Shield allow changes and redistribution; the
+  Business Source License allows non-production use and becomes open source after a set
+  time). A licence can be loosened later but not tightened for code already released, which is
+  why the strictest suitable one is chosen now. The text is the official one, unmodified.
+- **The MIT releases stay MIT.** Versions up to 1.0.1 were released under MIT; that cannot be
+  withdrawn. Its text is kept in `docs/legal/MIT-LICENSE-up-to-1.0.1.txt` and the LICENSE file
+  says which versions it covers.
+- **Package metadata:** `license = "LicenseRef-PolyForm-Strict-1.0.0"` (PolyForm Strict is not
+  on the SPDX list, so a `LicenseRef-` identifier is used, which PEP 639 and PyPI accept), the
+  same identifier in the container image label, `prohori version` prints a one-line summary.
+- **Every own source file carries the SPDX identifier and copyright line** (Python, SQL,
+  Dockerfiles, the report templates and the built-in rules), added by
+  `scripts/licence_headers.py` and checked by a pre-commit hook and a test. Templates use a Jinja
+  comment that leaves rendered reports byte-identical. Reports themselves carry no licence
+  notice: they are the user's documents.
+- **One copyright holder:** outside code contributions are not accepted (CONTRIBUTING.md), so
+  the owner stays the only author and can relicense later. Dependabot's version bumps are
+  mechanical and accepted.
+- **Name:** TRADEMARKS.md claims "Prohori" and the logo as unregistered marks (registration
+  costs money); copies may not use them.
+- **Official builds:** releases only from the protected release workflow (only the owner can
+  create `v*` tags), with signed provenance (ADR-0032) and now signed tags; RELEASING.md shows
+  how anyone can verify a download.
+- **Dependency licences:** a test walks every installed runtime dependency and fails on GPL
+  (other than LGPL), AGPL, SSPL, Commons Clause or non-commercial terms, so a new dependency
+  cannot restrict how Prohori may be distributed. LGPL libraries (psycopg) stay separate and
+  replaceable, which the later frozen builds must keep.
+
+**Consequences.** Prohori is no longer open source in the OSI sense: GitHub shows the licence as
+"Other", and directories that list only open-source software (such as Homebrew's core
+repository) will not take it; the plan already uses its own Homebrew tap and Scoop bucket.
+Contributors are fewer, as intended. Commercial users must ask. The research code of the
+cross-dataset study can be run by readers for non-commercial research but not changed or
+redistributed, which its reproducibility statement says. This is not legal advice; the owner
+may ask a lawyer or a free legal clinic to review it.

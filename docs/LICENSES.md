@@ -1,6 +1,7 @@
 # Third-Party Data and Services
 
-Prohori's own code is MIT-licensed (see [LICENSE](../LICENSE)). It uses third-party data,
+Prohori's own code is under the PolyForm Strict License 1.0.0 (see [LICENSE](../LICENSE));
+versions up to 1.0.1 were MIT-licensed and those copies stay MIT. It uses third-party data,
 services and software whose terms apply in addition. This page summarises those terms as
 checked on the date given in each section (first on **2026-10-26**, completed on
 **2026-11-02**). It is not legal advice, and the linked originals are authoritative. Terms
@@ -140,9 +141,14 @@ from PyPI.
 
 Their dependencies, installed with them, are under permissive licences (MIT, BSD, Apache 2.0,
 ISC, PSF) except **certifi** (MPL 2.0) and **psycopg** above. Both are used unmodified as
-separate, replaceable libraries, which their licences allow from MIT-licensed code. The
-development tools (pytest, ruff, mypy, dbt and others in the `dev` group) are not installed with
-the package.
+separate, replaceable libraries, which their licences allow whatever Prohori's own licence is.
+The development tools (pytest, ruff, mypy, dbt and others in the `dev` group) are not installed
+with the package.
+
+A test (`tests/unit/test_licensing.py`) reads the licence of every installed runtime dependency
+and fails on a strong-copyleft or non-commercial licence (GPL other than LGPL, AGPL, SSPL,
+Commons Clause), so a new dependency cannot quietly change what Prohori may be distributed
+under. Dual-licensed packages that offer a permissive choice are listed there with the reason.
 
 ## Pipeline software (Docker stack and the `pipeline` extra)
 
@@ -156,9 +162,9 @@ The published image is covered [below](#the-container-image-on-github-packages).
 | [Redpanda](https://github.com/redpanda-data/redpanda/tree/dev/licenses) Community Edition (container image) | Kafka-compatible message broker | Business Source License 1.1 for the core (it converts to Apache 2.0 four years after each release); enterprise features under the Redpanda Community License. Running it yourself, as the stack does, is allowed; offering it as a hosted streaming service is not. |
 | [PostgreSQL](https://www.postgresql.org/about/licence/) (container image) | The warehouse | PostgreSQL Licence (permissive, BSD-style) |
 | [Apache Airflow](https://github.com/apache/airflow/blob/main/LICENSE) (container image) | Scheduled jobs (orchestration profile) | Apache 2.0 |
-| [Grafana](https://github.com/grafana/grafana/blob/main/LICENSE) OSS (container image) | Dashboards | AGPL 3.0. The stack runs the official image unmodified; the dashboards and provisioning files are Prohori's own (MIT). |
+| [Grafana](https://github.com/grafana/grafana/blob/main/LICENSE) OSS (container image) | Dashboards | AGPL 3.0. The stack runs the official image unmodified; the dashboards and provisioning files are Prohori's own (PolyForm Strict). |
 | [confluent-kafka](https://github.com/confluentinc/confluent-kafka-python) and librdkafka | Kafka client | Apache 2.0; librdkafka BSD 2-Clause |
-| [psycopg 3](https://www.psycopg.org/) | PostgreSQL client | LGPL 3.0 (used unmodified as a library, which the LGPL permits from MIT code) |
+| [psycopg 3](https://www.psycopg.org/) | PostgreSQL client | LGPL 3.0 (used unmodified as a separate, replaceable library, which the LGPL permits) |
 | [DuckDB](https://duckdb.org/) | Lite-mode database | MIT |
 | [dbt-core](https://github.com/dbt-labs/dbt-core), dbt-duckdb, dbt-postgres | Warehouse models (a development dependency group, not installed with the package) | Apache 2.0 |
 | [psycopg2-binary](https://www.psycopg.org/) and [asyncpg](https://github.com/MagicStack/asyncpg), in the locally built Airflow image | Airflow's own PostgreSQL database | psycopg2: LGPL with exceptions (unmodified); asyncpg: Apache 2.0 |
@@ -178,8 +184,8 @@ redistribute third-party software. Checked on **2026-11-02**:
 - **Not included:** uv (build stage only), the broker, PostgreSQL, Grafana and Airflow, which the
   stack pulls from their own publishers.
 
-The image's `org.opencontainers.image.licenses` label is `MIT`, which is Prohori's own licence;
-the components above keep theirs.
+The image's `org.opencontainers.image.licenses` label is `LicenseRef-PolyForm-Strict-1.0.0`,
+Prohori's own licence; the components above keep theirs.
 
 ## Sample data
 
