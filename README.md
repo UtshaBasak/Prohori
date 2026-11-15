@@ -3,6 +3,7 @@
 <!-- Build and security -->
 [![CI](https://github.com/UtshaBasak/Prohori/actions/workflows/ci.yml/badge.svg)](https://github.com/UtshaBasak/Prohori/actions/workflows/ci.yml)
 [![CodeQL](https://github.com/UtshaBasak/Prohori/actions/workflows/codeql.yml/badge.svg)](https://github.com/UtshaBasak/Prohori/actions/workflows/codeql.yml)
+[![Lint](https://github.com/UtshaBasak/Prohori/actions/workflows/lint.yml/badge.svg)](https://github.com/UtshaBasak/Prohori/actions/workflows/lint.yml)
 [![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/UtshaBasak/Prohori/badge)](https://scorecard.dev/viewer/?uri=github.com/UtshaBasak/Prohori)
 [![Secret scanning: gitleaks](https://img.shields.io/badge/secrets-gitleaks-blue?logo=git)](https://github.com/gitleaks/gitleaks)
 [![Dependabot](https://img.shields.io/badge/dependabot-enabled-025E8C?logo=dependabot)](https://github.com/UtshaBasak/Prohori/blob/main/.github/dependabot.yml)
@@ -612,7 +613,10 @@ uv sync --group dbt && uv run pytest tests/integration/test_dbt.py  # the dbt mo
 ```
 
 CI runs on Linux and Windows with Python 3.11 to 3.14 and on macOS with 3.13, plus CodeQL,
-secret scanning, parser fuzzing and the OpenSSF Scorecard. All GitHub Actions are pinned to commit SHAs. See
+secret scanning (gitleaks and GitGuardian), parser fuzzing and the OpenSSF Scorecard. Super-Linter
+checks changed workflow files (actionlint) and Dockerfiles (hadolint). PR-Agent reviews the owner's
+pull requests with the Gemini API; it only reads the diff and never edits the description. All
+GitHub Actions are pinned to commit SHAs. See
 [CONTRIBUTING.md](CONTRIBUTING.md) for conventions.
 
 ## Security
