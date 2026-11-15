@@ -15,6 +15,11 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- The two Dockerfiles say `HEALTHCHECK NONE` on purpose: each service's health check lives in
+  `docker-compose.yml`, because one image serves several roles. This closes Prowler's
+  "No HEALTHCHECK defined" findings.
+- The GitGuardian workflow no longer passes `github.event.base`, which push events don't have
+  (it was always empty, and editors flagged it as an invalid context).
 - The stage image builds again: an automatic update had moved it to Python 3.15, which Prohori
   does not support yet (no wheels for its dependencies). It is back on Python 3.13, and
   PostgreSQL is back on 17: version 18 cannot open a data volume written by 17. Dependency

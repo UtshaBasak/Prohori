@@ -23,6 +23,10 @@ COPY --from=build /opt/prohori /opt/prohori
 ENV PATH=/opt/prohori/bin:$PATH \
     PYTHONUNBUFFERED=1 \
     PROHORI_CACHE_PATH=/home/prohori/.cache/prohori/enrichment.sqlite
+# No image-level health check: one image runs several roles (a one-off CLI command, the
+# streaming stages, the Airflow services), so docker-compose.yml defines a fitting check for
+# each service instead.
+HEALTHCHECK NONE
 USER prohori
 WORKDIR /home/prohori
 ENTRYPOINT ["prohori"]

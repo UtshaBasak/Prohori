@@ -34,4 +34,8 @@ ENV PATH=$PATH:/opt/prohori/bin
 WORKDIR /opt/airflow
 # Runs as the stage containers' uid with group 0, which the Airflow image supports, so both can
 # write the shared volumes.
+# No image-level health check: one image runs several roles (a one-off CLI command, the
+# streaming stages, the Airflow services), so docker-compose.yml defines a fitting check for
+# each service instead.
+HEALTHCHECK NONE
 USER 10001:0
