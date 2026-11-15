@@ -9,6 +9,10 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- CircleCI runs the test suite with Smarter Testing: `.circleci/test-suites.yml` describes the
+  pytest suite and the CircleCI job runs `circleci testsuite run "pytest"` in place of the
+  starter job. Rerunning a failed workflow reruns only the failed tests, and results show on
+  the job's Tests tab.
 - Markdown is checked with markdownlint-cli2 in pre-commit and CI, with the rules in
   `.markdownlint-cli2.jsonc`; every document now follows them (one table style, fenced code with a
   language, links in angle brackets), and the generated result tables are written the same way.
