@@ -1,0 +1,36 @@
+name: Prowler IaC scan
+
+# Scans the repository's infrastructure files (Dockerfiles, Compose, Kubernetes and similar) for
+# security misconfigurations and uploads the findings to the Security tab. Findings don't fail
+# the build; they show up under Security > Code scanning.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    - cron: "17 4 * * 1"
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  prowler:
+    name: Prowler (IaC)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Prowler Security Scan
+        uses: prowler-cloud/prowler@9cd1a8ee450049195b1484e274fa626b72bd26e7 # 5.49.0
+        with:
+          provider: iac
+          image-tag: 5.49.0
+          flags: --scan-path .
+          output-formats: sarif json-ocsf
+          upload-sarif: "true"

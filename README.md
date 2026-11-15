@@ -614,7 +614,8 @@ uv sync --group dbt && uv run pytest tests/integration/test_dbt.py  # the dbt mo
 
 CI runs on Linux and Windows with Python 3.11 to 3.14 and on macOS with 3.13, plus CodeQL,
 secret scanning (gitleaks and GitGuardian), parser fuzzing and the OpenSSF Scorecard. Super-Linter
-checks changed workflow files (actionlint) and Dockerfiles (hadolint). PR-Agent reviews the owner's
+checks changed workflow files (actionlint) and Dockerfiles (hadolint), and Prowler scans the
+Docker and Compose files for security misconfigurations (results in the Security tab). PR-Agent reviews the owner's
 pull requests with the Gemini API; it only reads the diff and never edits the description. All
 GitHub Actions are pinned to commit SHAs. See
 [CONTRIBUTING.md](CONTRIBUTING.md) for conventions.
