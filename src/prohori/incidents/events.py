@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+# Copyright (c) 2026 Utsha Basak
 """What the incident builder remembers about events: a slim, bounded copy of each one.
 
 Alerts only carry event ids. The builder needs the events behind them for linking, the timeline

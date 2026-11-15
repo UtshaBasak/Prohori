@@ -1,3 +1,5 @@
+-- SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+-- Copyright (c) 2026 Utsha Basak
 -- Per UTC day: events, failures, alerts, incidents.
 with events as (
     select

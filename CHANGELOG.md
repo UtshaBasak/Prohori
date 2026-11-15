@@ -9,6 +9,20 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- **New licence.** From this release on Prohori is source-available under the
+  [PolyForm Strict License 1.0.0](LICENSE): free for personal and other non-commercial use, but
+  no copying, changes or redistribution without the owner's written permission, and commercial
+  use needs a separate licence. Versions up to 1.0.1 were MIT and stay MIT
+  (`docs/legal/MIT-LICENSE-up-to-1.0.1.txt`). The package metadata, the container image label
+  and `prohori version` show the new licence; see ADR-0033.
+- Outside code contributions are no longer accepted (issues, ideas and security reports are);
+  the name and logo are covered by the new `TRADEMARKS.md`.
+- Every source file starts with an SPDX licence identifier and copyright line, added by
+  `scripts/licence_headers.py` and checked by a pre-commit hook and a test. Rendered reports are
+  unchanged.
+- A test checks that no runtime dependency has a GPL (other than LGPL), AGPL, SSPL or
+  non-commercial licence.
+- Release tags are signed, and `docs/RELEASING.md` has a "Verifying a release" section.
 - CircleCI runs the test suite with Smarter Testing: `.circleci/test-suites.yml` describes the
   pytest suite and the CircleCI job runs `circleci testsuite run "pytest"` in place of the
   starter job. Rerunning a failed workflow reruns only the failed tests, and results show on

@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+# Copyright (c) 2026 Utsha Basak
 """DAG integrity: every DAG in pipeline/airflow/dags imports, has no cycle and is configured.
 
 Needs Apache Airflow, which is not a Prohori dependency (and does not run on Windows), so the

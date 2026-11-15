@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+# Copyright (c) 2026 Utsha Basak
 """Running the stages: the lite-mode runner, and :func:`serve` for one stage per process.
 
 **Lite mode** (:class:`LitePipeline`) runs every stage in one process, taking turns.

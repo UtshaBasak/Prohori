@@ -1,3 +1,5 @@
+-- SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+-- Copyright (c) 2026 Utsha Basak
 {#- Range check: no value below min_value or above max_value (nulls are not checked). -#}
 {% test value_between(model, column_name, min_value=none, max_value=none) %}
 select {{ column_name }}

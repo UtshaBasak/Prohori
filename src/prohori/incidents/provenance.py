@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+# Copyright (c) 2026 Utsha Basak
 """Record how incidents were produced: tool version, input hashes and the rules that fired."""
 
 import hashlib

@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+# Copyright (c) 2026 Utsha Basak
 """YAML detection rules: format, safe loading, validation, matching and evaluation."""
 
 from importlib.resources import files

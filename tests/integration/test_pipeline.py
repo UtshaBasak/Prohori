@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+# Copyright (c) 2026 Utsha Basak
 """End to end: simulator -> triage -> incidents, checked against the simulator's ground truth."""
 
 from pathlib import Path

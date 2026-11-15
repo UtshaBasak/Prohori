@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+# Copyright (c) 2026 Utsha Basak
 """Coverage-guided fuzzing of every line parser with Atheris (Linux only).
 
 Run: uv run --with atheris python fuzz/fuzz_parsers.py -max_total_time=60

@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+# Copyright (c) 2026 Utsha Basak
 """Shared fixtures: no network, no real settings, and an incident full of personal data."""
 
 import json

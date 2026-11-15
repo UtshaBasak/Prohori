@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+# Copyright (c) 2026 Utsha Basak
 """The Airflow DAG files, checked without Airflow: they call commands and scenarios that exist.
 
 The import and cycle checks need Airflow and run in CI on Linux (tests/dags).

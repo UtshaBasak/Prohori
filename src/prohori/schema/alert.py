@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+# Copyright (c) 2026 Utsha Basak
 """Alerts raised by detection rules and machine-learning models."""
 
 from enum import StrEnum

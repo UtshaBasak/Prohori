@@ -1,3 +1,5 @@
+-- SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+-- Copyright (c) 2026 Utsha Basak
 {{ config(severity='warn') }}
 -- Rejected messages are kept, not lost, but any at all deserve a look.
 select dead_letter_id, stage, topic, reason

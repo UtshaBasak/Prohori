@@ -44,3 +44,8 @@ repos:
         language: system
         types: [python]
         pass_filenames: false
+      - id: licence-headers
+        name: licence headers (SPDX)
+        entry: uv run --frozen python scripts/licence_headers.py
+        language: system
+        files: '(\.py|\.sql|Dockerfile|\.j2|^src/prohori/rules/builtin/.*\.yml)$'

@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+# Copyright (c) 2026 Utsha Basak
 """Producers: put log lines on the ``raw-logs`` topic.
 
 - :func:`replay` reads whole files (for example the simulator's labelled logs) once.

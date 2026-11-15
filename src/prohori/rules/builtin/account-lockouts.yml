@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+# Copyright (c) 2026 Utsha Basak
 id: PRH-AUTH-004
 title: Account lockouts across many accounts
 status: stable

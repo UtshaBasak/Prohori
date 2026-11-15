@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+# Copyright (c) 2026 Utsha Basak
 """ATT&CK mapping and recommended actions from runbooks."""
 
 from pathlib import Path

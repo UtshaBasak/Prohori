@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+# Copyright (c) 2026 Utsha Basak
 """Benign background activity: the normal traffic every attack is hidden in.
 
 Background includes the awkward cases rules must not alert on, or are known to: users who mistype

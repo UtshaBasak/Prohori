@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+# Copyright (c) 2026 Utsha Basak
 """Score a CSV of flows with a model saved by ``python -m prohori.ml.train``.
 
 The CSV must have the columns of the dataset the model was trained on (UNSW-NB15 partition

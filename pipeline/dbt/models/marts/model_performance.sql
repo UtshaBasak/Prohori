@@ -1,3 +1,5 @@
+-- SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+-- Copyright (c) 2026 Utsha Basak
 -- Flow-model performance per evaluation, averaged over seeds, with the change since the
 -- previous evaluation of the same model, variant and operating point.
 with runs as (

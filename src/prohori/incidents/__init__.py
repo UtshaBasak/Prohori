@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+# Copyright (c) 2026 Utsha Basak
 """Alert grouping, transparent severity scoring and ATT&CK mapping."""
 
 from prohori.incidents.attack import AttackMapping, TacticRef, TechniqueRef, map_attack

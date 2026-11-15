@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+# Copyright (c) 2026 Utsha Basak
 """``prohori pipeline``: the streaming pipeline, in lite mode or as a Docker stack.
 
 Lite mode (no Docker): ``replay`` pushes whole log files through every stage in this process and

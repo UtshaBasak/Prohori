@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+# Copyright (c) 2026 Utsha Basak
 """Persistent SQLite cache for enrichment results and daily request counts.
 
 Only successful lookups and "no data" answers are cached; failures never are, so a transient

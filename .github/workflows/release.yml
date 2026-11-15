@@ -291,7 +291,7 @@ jobs:
           labels: |
             org.opencontainers.image.title=Prohori
             org.opencontainers.image.description=Security log analysis: parsing, detection rules, incidents and the streaming pipeline's stage containers.
-            org.opencontainers.image.licenses=MIT
+            org.opencontainers.image.licenses=LicenseRef-PolyForm-Strict-1.0.0
             org.opencontainers.image.documentation=https://github.com/UtshaBasak/Prohori/blob/main/docs/PIPELINE.md
       - name: Build and push (linux/amd64, linux/arm64)
         id: push

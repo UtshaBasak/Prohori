@@ -1,3 +1,5 @@
+-- SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+-- Copyright (c) 2026 Utsha Basak
 -- alert_count matches the alerts the incident holds, and every one of them was stored.
 select i.incident_id, i.alert_count, count(a.alert_id) as stored
 from {{ ref('stg_incidents') }} as i

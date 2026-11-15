@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+# Copyright (c) 2026 Utsha Basak
 """The two flow detectors, and saving and loading them.
 
 * ``hgb``: scikit-learn's histogram gradient boosting, supervised on attack and benign labels.

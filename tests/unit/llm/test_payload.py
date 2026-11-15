@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+# Copyright (c) 2026 Utsha Basak
 """The payload sent to an LLM: redacted, no log content, size-capped, leak-checked."""
 
 import json

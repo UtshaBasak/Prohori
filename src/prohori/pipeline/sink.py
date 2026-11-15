@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+# Copyright (c) 2026 Utsha Basak
 """Sinks: events, alerts, incidents and dead letters in a database.
 
 :class:`Sink` holds what every database sink shares; :class:`DuckDBSink` writes a local DuckDB

@@ -20,7 +20,7 @@
 [![Docker image](https://img.shields.io/badge/ghcr.io-utshabasak%2Fprohori-2496ED?logo=docker&logoColor=white)](https://github.com/UtshaBasak/Prohori/pkgs/container/prohori)
 ![Status: stable](https://img.shields.io/badge/status-stable-brightgreen)
 ![Platforms](https://img.shields.io/badge/platform-Linux%20%7C%20Windows%20%7C%20macOS-lightgrey)
-[![License: MIT](https://img.shields.io/github/license/UtshaBasak/Prohori)](LICENSE)
+[![License: PolyForm Strict 1.0.0](https://img.shields.io/badge/license-PolyForm%20Strict%201.0.0-blue)](LICENSE)
 
 <!-- Tooling and conventions -->
 [![uv](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/uv/main/assets/badge/v0.json)](https://github.com/astral-sh/uv)
@@ -37,13 +37,13 @@
 [![Open issues](https://img.shields.io/github/issues/UtshaBasak/Prohori)](https://github.com/UtshaBasak/Prohori/issues)
 [![Pull requests](https://img.shields.io/github/issues-pr/UtshaBasak/Prohori)](https://github.com/UtshaBasak/Prohori/pulls)
 [![Wiki](https://img.shields.io/badge/docs-wiki-blue?logo=github)](https://github.com/UtshaBasak/Prohori/wiki)
-[![PRs welcome](https://img.shields.io/badge/PRs-welcome-brightgreen)](CONTRIBUTING.md)
 
 **A laptop-sized mini-SOC: from raw logs to detections, enriched incidents and analyst-ready
 reports, with honest machine-learning evaluation and a streaming data pipeline.**
 
-*Prohori* (প্রহরী) is Bengali for "guard". It is an open-source, defensive security-operations
-toolkit in Python that runs on a single laptop with free tools only, offline by default.
+*Prohori*™ (প্রহরী) is Bengali for "guard". It is a source-available, defensive
+security-operations toolkit in Python that runs on a single laptop with free tools only, offline
+by default. It is free for personal and other non-commercial use ([License](#license)).
 
 > **Status: v1.0.1, stable.** One command goes from a log file to scored incidents and
 > shareable reports, and a labelled attack simulator measures the rules. Machine learning
@@ -129,6 +129,10 @@ on macOS (Python 3.13), and every release is installed and its demo run on all t
 - **From source:** install [uv](https://docs.astral.sh/uv/), then
   `git clone https://github.com/UtshaBasak/Prohori.git && cd Prohori && uv sync`, and run
   commands as `uv run prohori ...`. The sample files used below are in the repository.
+
+Official builds come only from this repository's releases, PyPI (`prohori`) and
+`ghcr.io/utshabasak/prohori`, each with a signed provenance attestation;
+[docs/RELEASING.md](docs/RELEASING.md#verifying-a-release) shows how to check a download.
 
 ## Quick start
 
@@ -596,6 +600,10 @@ Prohori is honest about what it does not do:
 | v0.3.0 | Pipeline: streaming core and lite mode, Redpanda and PostgreSQL in Docker, dbt models and data-quality checks, Grafana dashboards, Airflow jobs; Docker image on GitHub Packages | Released |
 | v1.0.0 | Optional LLM analyst: providers, redaction, `explain` and `ask`, retrieval, prompt-injection defences, answer validation and an evaluation; threat model, performance notes, completed licence notes, macOS in CI | Released |
 | v1.0.1 | Fixes from a full review: stricter redaction and answer checks, parser and output-path robustness, safer stack shutdown and Airflow parameters, signed provenance for release files | Released |
+| v1.1.0 | New licence (PolyForm Strict), deterministic stream rebuilds, evasion-resistant per-account sign-in rules with a before-and-after score, warehouse and broker hardening, safer model files, a cross-dataset generalisation study, logins for the stack, SBOMs, suppressions | Planned |
+| v1.2.0 | More log sources: Suricata, Zeek, Windows Security events, Sysmon, the systemd journal, AWS CloudTrail; a Sigma rule importer | Planned |
+| v1.3.0 to v1.7.0 | A real-time defender for your own PC: a Windows security checkup, behaviour-based detection with reversible containment, ransomware, network, spyware, boot and device defenses, a guard for AI coding agents and MCP tools, supply-chain and phishing checks, attack drills, Linux | Planned |
+| v1.8.0, v2.0.0 | A desktop security assistant, web UI, package-manager installs, VS Code and browser extensions, a documentation website and a GitHub Action | Planned |
 
 ## Development
 
@@ -621,7 +629,8 @@ pull requests with the Gemini API; it only reads the diff and never edits the de
 CircleCI also runs the test suite on Linux with Smarter Testing (`circleci testsuite run "pytest"`,
 defined in `.circleci/test-suites.yml`), which reruns only the failed tests when a workflow is
 rerun and shows results on the job's Tests tab. All GitHub Actions are pinned to commit SHAs. See
-[CONTRIBUTING.md](CONTRIBUTING.md) for conventions.
+[CONTRIBUTING.md](CONTRIBUTING.md) for conventions; outside code contributions are not
+accepted, but issues and ideas are welcome.
 
 ## Security
 
@@ -629,4 +638,17 @@ To report a vulnerability, see [SECURITY.md](SECURITY.md).
 
 ## License
 
-[MIT](LICENSE). Third-party data has its own terms; see [docs/LICENSES.md](docs/LICENSES.md).
+Copyright (c) 2026 Utsha Basak. Prohori is **source-available** under the
+[PolyForm Strict License 1.0.0](LICENSE), from version 1.1.0 onwards:
+
+- **You may** read the code, and install and use the official releases for free for personal
+  use, study, research, hobby projects and other non-commercial purposes; charities, schools,
+  public research and government bodies may use it too.
+- **You may not**, without written permission, copy the code into other projects, change it,
+  publish changed or unchanged copies, or build products or services from it.
+- **Commercial use** needs a separate licence: open an issue or contact the owner on GitHub.
+
+Versions up to and including 1.0.1 were released under the MIT License, which still applies to
+copies of those versions ([text](docs/legal/MIT-LICENSE-up-to-1.0.1.txt)). The name and logo
+are trademarks ([TRADEMARKS.md](TRADEMARKS.md)). Third-party data, services and dependencies
+keep their own terms; see [docs/LICENSES.md](docs/LICENSES.md).

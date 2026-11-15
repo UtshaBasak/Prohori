@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+# Copyright (c) 2026 Utsha Basak
 """Producers: replay and the rotation-aware tailer (run on Linux and Windows in CI)."""
 
 import json

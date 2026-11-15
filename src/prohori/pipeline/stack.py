@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+# Copyright (c) 2026 Utsha Basak
 """The Docker stack: start, stop and inspect it with ``docker compose``.
 
 The stack (``pipeline/docker-compose.yml`` in the repository) runs Redpanda, PostgreSQL, one

@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+# Copyright (c) 2026 Utsha Basak
 """Shared enums and constrained types for the common schema.
 
 Log content is attacker-controlled, so free-text fields are truncated to fixed maximum lengths

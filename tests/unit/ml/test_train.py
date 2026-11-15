@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+# Copyright (c) 2026 Utsha Basak
 """Training on the fixture datasets: reproducible, frozen thresholds, saved models."""
 
 import copy

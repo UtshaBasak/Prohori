@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+# Copyright (c) 2026 Utsha Basak
 """Recommended actions from the rules' Markdown runbooks.
 
 A rule's ``response`` names its runbook. Built-in runbooks are packaged with Prohori; for other

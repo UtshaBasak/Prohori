@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+# Copyright (c) 2026 Utsha Basak
 """The incident score: a documented points system with a breakdown, not machine learning.
 
 Every component is an integer number of points with a reason, so the breakdown always adds up to

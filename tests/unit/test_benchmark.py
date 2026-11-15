@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+# Copyright (c) 2026 Utsha Basak
 """The benchmark script on tiny logs: log building, measuring a real process, the tables."""
 
 import json

@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+# Copyright (c) 2026 Utsha Basak
 """Enrichment refresh: keep the incident stage's enrichment cache current.
 
 Daily: removes expired answers from the cache the incident stage reads (a volume both

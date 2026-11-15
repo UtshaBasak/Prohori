@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+# Copyright (c) 2026 Utsha Basak
 """Regular expressions for detection rules, evaluated with RE2 in linear time.
 
 Rule patterns run against attacker-controlled log fields. Python's ``re`` module backtracks and

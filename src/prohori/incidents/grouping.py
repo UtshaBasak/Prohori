@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+# Copyright (c) 2026 Utsha Basak
 """Group alerts that share an entity within a time gap.
 
 Two alerts are linked when they share a ``(field, value)`` pair from :data:`LINK_FIELDS` and the

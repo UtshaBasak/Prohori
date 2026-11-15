@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+# Copyright (c) 2026 Utsha Basak
 """The interface every enrichment provider implements, and the errors providers raise.
 
 Providers return their findings as a flat mapping using the shared keys in :data:`RESULT_KEYS`

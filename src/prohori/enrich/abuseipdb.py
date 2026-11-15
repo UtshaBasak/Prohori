@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+# Copyright (c) 2026 Utsha Basak
 """AbuseIPDB reputation lookups (API v2 ``check`` endpoint).
 
 Docs: https://docs.abuseipdb.com/ (checked 2026-10-26). The free (Standard) plan allows 1,000

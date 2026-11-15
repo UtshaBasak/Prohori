@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+# Copyright (c) 2026 Utsha Basak
 """Smoke tests for the project skeleton: the package imports and the CLI reports its version."""
 
 import importlib

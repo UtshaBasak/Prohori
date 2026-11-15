@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+# Copyright (c) 2026 Utsha Basak
 """Nightly evaluation: retrain the flow models, record the results and fail if recall dropped.
 
 Trains the cleaned UNSW-NB15 models with one seed (``prohori.ml.train``), loads the results into

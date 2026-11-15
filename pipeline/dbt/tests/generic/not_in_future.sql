@@ -1,3 +1,5 @@
+-- SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+-- Copyright (c) 2026 Utsha Basak
 {#- No timestamp more than slack_days after now: a clock or parsing problem. -#}
 {% test not_in_future(model, column_name, slack_days=1) %}
 select {{ column_name }}

@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+# Copyright (c) 2026 Utsha Basak
 """IP enrichment: geolocation and reputation, offline-first, cached and rate limited."""
 
 from prohori.enrich.addresses import is_public, parse_ip

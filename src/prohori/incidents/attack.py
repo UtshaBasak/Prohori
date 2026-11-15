@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+# Copyright (c) 2026 Utsha Basak
 """Map an incident's rule tags onto ATT&CK tactics and techniques.
 
 Tags come from the rules that fired. Built-in rules only use tags verified against the pinned

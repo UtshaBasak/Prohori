@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+# Copyright (c) 2026 Utsha Basak
 """``--models``: run the anomaly detectors next to the rules on the same parsed events."""
 
 from collections.abc import Iterable, Iterator

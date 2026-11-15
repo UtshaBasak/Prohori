@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+# Copyright (c) 2026 Utsha Basak
 """``prohori explain`` and ``prohori ask``: the opt-in LLM analyst, redacted and checked."""
 
 from pathlib import Path

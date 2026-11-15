@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+# Copyright (c) 2026 Utsha Basak
 """The public flow datasets Prohori prepares: where they come from, their files and columns.
 
 Standard library only, so ``scripts/download_datasets.py list`` and ``verify`` work without the

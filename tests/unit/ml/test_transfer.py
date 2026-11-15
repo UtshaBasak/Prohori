@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+# Copyright (c) 2026 Utsha Basak
 """The cross-dataset test: the common-feature mapping and both directions on the fixtures."""
 
 import json

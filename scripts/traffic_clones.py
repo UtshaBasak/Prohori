@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+# Copyright (c) 2026 Utsha Basak
 """Keep an all-time count of git clones for the README badge.
 
 GitHub shows clone numbers for the last 14 days only. Each run folds the latest 14 days into a

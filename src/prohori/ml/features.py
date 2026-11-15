@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+# Copyright (c) 2026 Utsha Basak
 """Behaviour features per source IP and time window, from normalised events.
 
 Each event with a source address is put in a tumbling window (five minutes by default) of its

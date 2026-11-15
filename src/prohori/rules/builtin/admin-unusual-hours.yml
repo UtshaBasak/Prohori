@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+# Copyright (c) 2026 Utsha Basak
 id: PRH-ADMIN-002
 title: Admin action at an unusual hour
 status: stable

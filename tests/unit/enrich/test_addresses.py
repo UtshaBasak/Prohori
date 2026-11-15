@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+# Copyright (c) 2026 Utsha Basak
 """Tests for the "may this address leave the machine?" check."""
 
 from ipaddress import IPv4Address, IPv6Address, ip_address

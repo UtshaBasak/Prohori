@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+# Copyright (c) 2026 Utsha Basak
 """Parser for nginx and Apache access logs (combined and common log formats).
 
 The default pattern accepts both::

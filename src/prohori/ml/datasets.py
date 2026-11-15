@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+# Copyright (c) 2026 Utsha Basak
 """Read the raw dataset CSVs in chunks, with fixed column types, through a Parquet cache.
 
 A CSV is read ``CHUNK_ROWS`` rows at a time, so a file larger than memory can still be

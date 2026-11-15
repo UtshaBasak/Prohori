@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+# Copyright (c) 2026 Utsha Basak
 """Deterministic identifiers.
 
 Ids are content hashes so that re-processing the same input yields the same ids, which makes

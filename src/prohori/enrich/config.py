@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+# Copyright (c) 2026 Utsha Basak
 """Enrichment settings from environment variables and an optional ``.env`` file.
 
 Environment variables win over ``.env``. Only the variables listed in :data:`ENV_VARS` are read

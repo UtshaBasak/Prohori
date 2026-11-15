@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+# Copyright (c) 2026 Utsha Basak
 """Geolocation and network ownership from local MaxMind GeoLite2 databases.
 
 Lookups never leave the machine, so this provider also answers for private and documentation

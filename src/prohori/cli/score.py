@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+# Copyright (c) 2026 Utsha Basak
 """``prohori score``: score a CSV of network flows with a saved flow model.
 
 The machine-learning code is imported only when the command runs, so the base install (without

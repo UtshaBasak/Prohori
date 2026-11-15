@@ -1,3 +1,5 @@
+-- SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+-- Copyright (c) 2026 Utsha Basak
 {#- Use the configured schema name as it is (staging, intermediate, marts), not prefixed with the
     target schema, so the same names exist in DuckDB and PostgreSQL. -#}
 {% macro generate_schema_name(custom_schema_name, node) -%}

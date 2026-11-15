@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+# Copyright (c) 2026 Utsha Basak
 """The warehouse tables, defined once for DuckDB (lite mode) and PostgreSQL (the Docker stack).
 
 The stream tables (``events``, ``alerts``, ``incidents``, ``dead_letters``) are written by the

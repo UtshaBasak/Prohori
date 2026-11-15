@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+# Copyright (c) 2026 Utsha Basak
 """Data quality: rebuild the dbt models with their checks, then check the inputs are fresh.
 
 Every hour: ``dbt build`` on the stack's warehouse (the marts behind the "Detection quality"

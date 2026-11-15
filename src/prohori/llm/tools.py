@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+# Copyright (c) 2026 Utsha Basak
 """Read-only tools the model may call, and the bounded loop that runs them.
 
 The protocol is plain text, so it works with every provider: to use a tool the model answers

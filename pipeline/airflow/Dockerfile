@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+# Copyright (c) 2026 Utsha Basak
 # Airflow for the Docker stack's orchestration profile, with Prohori and dbt in their own
 # environment (/opt/prohori) so Airflow's dependencies and Prohori's never mix. The DAGs and the
 # dbt project are mounted at run time. Build context: the repository root.

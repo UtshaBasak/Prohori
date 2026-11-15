@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+# Copyright (c) 2026 Utsha Basak
 """ATT&CK techniques and tactics used by the built-in rules, verified against a pinned release.
 
 Every entry was checked against the official Enterprise ATT&CK STIX bundle named below (id, name,

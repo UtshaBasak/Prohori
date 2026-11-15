@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+# Copyright (c) 2026 Utsha Basak
 """Stateless field matching for rule selections.
 
 A selection is a mapping of ``field[|modifier...]`` keys to expected values, or a list of such

@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+# Copyright (c) 2026 Utsha Basak
 """Safe loading of rule files, with line numbers for every error.
 
 * Files are limited to :data:`MAX_RULE_BYTES`, must be UTF-8 and contain one YAML document.

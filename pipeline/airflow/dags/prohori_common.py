@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+# Copyright (c) 2026 Utsha Basak
 """Settings and shell snippets shared by the Prohori DAGs.
 
 Every task runs a ``prohori`` or ``dbt`` command from the image's /opt/prohori environment. The

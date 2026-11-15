@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+# Copyright (c) 2026 Utsha Basak
 """Topics, message payloads and keys.
 
 Every message is a JSON object with a key. ``events``, ``alerts`` and ``incidents`` carry the

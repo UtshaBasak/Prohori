@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+# Copyright (c) 2026 Utsha Basak
 """Measure the detection rules against simulated, labelled attacks.
 
 For every scenario, variant and seed the simulated log goes through the same path as

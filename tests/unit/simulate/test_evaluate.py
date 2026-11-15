@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+# Copyright (c) 2026 Utsha Basak
 """Rule evaluation: scoring semantics, the golden seed-1 results and the documentation table."""
 
 import json

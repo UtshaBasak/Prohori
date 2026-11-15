@@ -1,3 +1,5 @@
+-- SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+-- Copyright (c) 2026 Utsha Basak
 {#- The few expressions that differ between DuckDB and PostgreSQL. -#}
 
 {#- The UTC calendar date of a timestamp with time zone, whatever the session's time zone. -#}

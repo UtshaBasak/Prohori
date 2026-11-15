@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+# Copyright (c) 2026 Utsha Basak
 """Anomaly detectors over per-IP windows, and the alerts they raise.
 
 Every detector compares a log's windows with each other: "unusual" means unusual for this log.

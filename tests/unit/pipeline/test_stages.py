@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+# Copyright (c) 2026 Utsha Basak
 """Stages: dead letters, duplicates, incident closing and the at-least-once stage loop."""
 
 import json

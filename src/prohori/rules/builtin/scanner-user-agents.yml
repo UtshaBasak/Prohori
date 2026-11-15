@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+# Copyright (c) 2026 Utsha Basak
 id: PRH-WEB-003
 title: Scanner or empty user agent at a high request rate
 status: stable

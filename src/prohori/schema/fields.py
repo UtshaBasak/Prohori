@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+# Copyright (c) 2026 Utsha Basak
 """Flat, dotted-path access to event fields (``event.action``, ``source.ip``, ...).
 
 Models are nested, but rules and features refer to fields by dotted name as in the schema

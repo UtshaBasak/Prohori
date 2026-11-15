@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+# Copyright (c) 2026 Utsha Basak
 """Golden files for the human-readable (table) output of the main commands.
 
 Rich draws boxes with different characters depending on the platform and terminal, so the

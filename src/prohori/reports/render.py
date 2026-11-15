@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+# Copyright (c) 2026 Utsha Basak
 """Render an incident as Markdown, self-contained HTML, JSON or CSV.
 
 Everything in an incident can come from attacker-controlled log lines or third-party data, so

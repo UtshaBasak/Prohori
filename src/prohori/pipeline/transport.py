@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+# Copyright (c) 2026 Utsha Basak
 """Transports move keyed JSON messages between stages.
 
 A transport keeps one ordered log per topic and one read position per (consumer group, topic).

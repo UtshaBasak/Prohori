@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+# Copyright (c) 2026 Utsha Basak
 """Lite mode end to end: simulated logs in, incidents in DuckDB.
 
 The streaming pipeline must produce exactly the incidents of the batch command, store each event,

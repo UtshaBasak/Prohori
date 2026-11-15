@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+# Copyright (c) 2026 Utsha Basak
 """The incident builder end to end: parse -> detect -> group -> score -> map -> recommend."""
 
 from datetime import UTC, datetime

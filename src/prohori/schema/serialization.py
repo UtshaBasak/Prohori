@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+# Copyright (c) 2026 Utsha Basak
 """JSON and JSON Lines helpers for schema models."""
 
 from collections.abc import Iterable, Iterator

@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+# Copyright (c) 2026 Utsha Basak
 """Compare the anomaly detectors with the detection rules on the simulator's labelled attacks.
 
 For every scenario, variant and seed, the simulated log is parsed once; the built-in rules run

@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+# Copyright (c) 2026 Utsha Basak
 """``prohori triage``: from a log file to incidents and reports in one command."""
 
 import hashlib

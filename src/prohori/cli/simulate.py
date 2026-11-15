@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+# Copyright (c) 2026 Utsha Basak
 """``prohori simulate``: write a labelled attack scenario as a log file."""
 
 from pathlib import Path

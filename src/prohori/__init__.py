@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+# Copyright (c) 2026 Utsha Basak
 """Prohori: a laptop-sized security-operations pipeline.
 
 Parses logs into a common event schema, detects suspicious activity with YAML rules and

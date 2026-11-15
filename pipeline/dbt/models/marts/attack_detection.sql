@@ -1,3 +1,5 @@
+-- SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+-- Copyright (c) 2026 Utsha Basak
 -- Per simulated attack: when it started, whether a true-positive alert was credited to it,
 -- and how long that took (time to detect, in log time).
 with attacks as (

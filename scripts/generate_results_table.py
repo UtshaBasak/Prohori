@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+# Copyright (c) 2026 Utsha Basak
 """Write the evaluation results into the docs from the files in ``results/``.
 
 * Rules (``rules_eval.json``): full tables in ``docs/SIMULATOR.md``, a summary in ``README.md``,
