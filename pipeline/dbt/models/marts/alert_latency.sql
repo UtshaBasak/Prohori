@@ -1,3 +1,5 @@
+-- SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+-- Copyright (c) 2026 Utsha Basak
 -- Per alert, two latencies:
 --   activity_seconds: from the first event the alert counts to the event that raised it, in log
 --     time (how long the activity ran before the rule fired);

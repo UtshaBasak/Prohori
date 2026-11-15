@@ -1,3 +1,5 @@
+-- SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+-- Copyright (c) 2026 Utsha Basak
 -- Per rule: how long activity ran before it fired, and how long the pipeline took.
 select
     detector_id,

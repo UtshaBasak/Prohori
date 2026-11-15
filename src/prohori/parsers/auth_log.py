@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+# Copyright (c) 2026 Utsha Basak
 """Parser for Linux ``auth.log`` / ``secure`` files (sshd, sudo and PAM lines).
 
 Two syslog header formats are supported:

@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+# Copyright (c) 2026 Utsha Basak
 """Build a lite-mode warehouse from the simulator, for the dbt models.
 
 Every scenario is simulated, replayed through its own lite pipeline (its own topics, so the

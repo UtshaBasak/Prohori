@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+# Copyright (c) 2026 Utsha Basak
 """Safeguards around the model: fencing untrusted text in, validating answers out.
 
 **Fencing.** Text that can come from logs (titles and explanations that quote log values, score

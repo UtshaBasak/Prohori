@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+# Copyright (c) 2026 Utsha Basak
 """The attack scenarios. Each declares, before any evaluation is run, which rules should detect it.
 
 Every scenario has a ``default`` variant and a ``heldout`` variant. The held-out variants change

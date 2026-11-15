@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+# Copyright (c) 2026 Utsha Basak
 """Streaming pipeline: producers, consumers, sinks and the lite-mode runner.
 
 Lite mode runs every stage in one process over a file-based transport, without Docker. Importing

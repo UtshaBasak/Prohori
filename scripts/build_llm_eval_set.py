@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+# Copyright (c) 2026 Utsha Basak
 """Build the LLM analyst evaluation cases in ``evaluation/llm/cases/`` from the simulator.
 
 The cases are committed; this script shows where each one came from and rebuilds them

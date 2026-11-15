@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+# Copyright (c) 2026 Utsha Basak
 """Leakage controls for flow datasets, applied in this order.
 
 1. **Labels.** Every dataset gets the same two columns: ``attack_cat`` (``"Benign"`` or the

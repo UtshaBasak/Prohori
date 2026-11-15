@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+# Copyright (c) 2026 Utsha Basak
 """Incident report renderers (Markdown, HTML, JSON, CSV) and redaction."""
 
 from prohori.reports.make import RedactionError, make_report

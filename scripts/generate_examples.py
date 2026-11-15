@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+# Copyright (c) 2026 Utsha Basak
 """Regenerate the committed examples: sample reports in ``docs/examples/`` and the demo image.
 
 * ``docs/examples/account-takeover.md`` and ``.html``: the report of the sample incident.

@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+# Copyright (c) 2026 Utsha Basak
 """Deterministic, labelled attack scenarios written as log files (no network activity)."""
 
 from prohori.simulate.addresses import DOCUMENTATION_NETWORKS, AddressPool, is_documentation

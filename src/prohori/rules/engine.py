@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+# Copyright (c) 2026 Utsha Basak
 """Single-pass, bounded-state evaluation of compiled rules over a stream of events.
 
 Evaluation semantics (see ``docs/RULES.md``, "Evaluation semantics"):

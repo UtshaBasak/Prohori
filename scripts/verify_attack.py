@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+# Copyright (c) 2026 Utsha Basak
 """Check prohori.rules.attack against the pinned official ATT&CK STIX bundle.
 
 Downloads the bundle named by ``ATTACK_STIX_URL`` (about 50 MB), checks its SHA-256, and confirms

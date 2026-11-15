@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+# Copyright (c) 2026 Utsha Basak
 """Turn alerts into scored, ATT&CK-mapped incidents with recommended actions.
 
 The output depends only on the input: no clock is read, everything is sorted, and the incident

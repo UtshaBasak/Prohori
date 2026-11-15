@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+# Copyright (c) 2026 Utsha Basak
 """Rate limiting for external providers: a token bucket, a daily budget and bounded retries.
 
 Clocks and sleep functions are injected so tests never wait. Nothing here retries forever: waits

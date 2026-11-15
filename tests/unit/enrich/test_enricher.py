@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+# Copyright (c) 2026 Utsha Basak
 """Tests for the enricher: privacy short-circuit, caching, offline mode and failure handling."""
 
 from collections.abc import Iterator

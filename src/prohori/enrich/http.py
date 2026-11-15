@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+# Copyright (c) 2026 Utsha Basak
 """Shared HTTP behaviour for external providers: limits, retries, timeouts and safe errors.
 
 Endpoints are fixed in code (never read from configuration), keys travel only in headers,

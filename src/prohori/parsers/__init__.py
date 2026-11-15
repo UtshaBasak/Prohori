@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+# Copyright (c) 2026 Utsha Basak
 """Streaming parsers that turn raw log formats into common-schema events."""
 
 from prohori.parsers.access_log import AccessLogParser

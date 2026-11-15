@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+# Copyright (c) 2026 Utsha Basak
 """Explain an incident or answer a question with an LLM, grounded, checked, with a local fallback.
 
 Both :func:`explain` and :func:`ask` give the model the redacted incident payload (untrusted

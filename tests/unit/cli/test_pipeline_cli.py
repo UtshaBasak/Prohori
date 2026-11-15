@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+# Copyright (c) 2026 Utsha Basak
 """``prohori pipeline``: lite mode, publishing to Kafka, ``run`` and the Docker stack commands."""
 
 import json

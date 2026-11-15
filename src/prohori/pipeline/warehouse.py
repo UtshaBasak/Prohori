@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+# Copyright (c) 2026 Utsha Basak
 """Loaders for the warehouse tables the stream does not fill.
 
 - :func:`label_rows`: the simulator's per-line ground truth, keyed by the id of the event each

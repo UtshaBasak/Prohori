@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+# Copyright (c) 2026 Utsha Basak
 """Backfill: simulate every scenario one day apart, replay them, then build the marts.
 
 Run it by hand on an empty stack (Trigger DAG). Each scenario is simulated with the run's seed,

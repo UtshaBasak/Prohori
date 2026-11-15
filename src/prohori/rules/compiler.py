@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+# Copyright (c) 2026 Utsha Basak
 """Turn a rule document into a validated, compiled rule.
 
 Every problem is reported as a :class:`RuleError` with its path in the document, so the loader can

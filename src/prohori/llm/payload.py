@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+# Copyright (c) 2026 Utsha Basak
 """What is sent to an LLM about an incident: an allow-list of fields, redacted, size-capped.
 
 The payload is built from chosen fields, never by dumping the incident:

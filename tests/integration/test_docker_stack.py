@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+# Copyright (c) 2026 Utsha Basak
 """Docker smoke test: the real stack (Redpanda, PostgreSQL, one container per stage, Grafana).
 
 Skipped unless ``PROHORI_DOCKER_TESTS=1`` and Docker is running, because it builds an image,

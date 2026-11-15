@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+# Copyright (c) 2026 Utsha Basak
 """Parser for arbitrary JSON Lines logs, driven by a YAML field-mapping file.
 
 Example mapping::

@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+# Copyright (c) 2026 Utsha Basak
 """Account novelty: was a sign-in's IP address or client seen earlier for the same account?
 
 Rules stay history-free; this bounded history is incident context. It records every successful

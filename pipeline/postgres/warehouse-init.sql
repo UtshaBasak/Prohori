@@ -1,3 +1,5 @@
+-- SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+-- Copyright (c) 2026 Utsha Basak
 -- Prepares the database server for the stage containers, Grafana and Airflow. Run by the
 -- warehouse-init service on every 'prohori pipeline up' as the prohori user; every statement is
 -- idempotent.

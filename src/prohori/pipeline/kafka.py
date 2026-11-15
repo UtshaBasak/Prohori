@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+# Copyright (c) 2026 Utsha Basak
 """Kafka transport for the Docker stack (Redpanda, or any Kafka-compatible broker).
 
 The same protocol as the lite-mode transports, over a broker:

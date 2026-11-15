@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+# Copyright (c) 2026 Utsha Basak
 """LLM providers behind one small interface: ``none``, ``mock`` and ``gemini``.
 
 A provider turns a :class:`Request` (system instruction and prompt) into a :class:`Response`, or

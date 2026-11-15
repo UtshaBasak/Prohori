@@ -1,3 +1,5 @@
+-- SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+-- Copyright (c) 2026 Utsha Basak
 -- Every source address with its activity, alerts and incidents, ranked by alerts.
 with activity as (
     select

@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+# Copyright (c) 2026 Utsha Basak
 rule: PRH-WEB-003
 start: 2026-10-24T13:42:00Z
 defaults:

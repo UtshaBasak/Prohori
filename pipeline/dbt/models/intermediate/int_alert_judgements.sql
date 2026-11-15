@@ -1,3 +1,5 @@
+-- SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+-- Copyright (c) 2026 Utsha Basak
 -- Each alert judged against the simulator's labels, as the rule evaluation does
 -- (docs/SIMULATOR.md): a true positive when at least half of its labelled events are attack
 -- events, credited to the attack most of them belong to. Alerts without labelled events are

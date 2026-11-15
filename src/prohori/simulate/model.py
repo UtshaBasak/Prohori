@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+# Copyright (c) 2026 Utsha Basak
 """Building blocks of a simulation: parameters, attacks and the line recorder.
 
 A scenario writes log lines through a :class:`Recorder`, marking each line as benign background

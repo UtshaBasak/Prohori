@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+# Copyright (c) 2026 Utsha Basak
 """Pydantic models for the common event schema: Event, Alert and Incident."""
 
 from prohori.schema.alert import ATTACK_TAG_PATTERN, Alert, AttackTag, DetectorKind

@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+# Copyright (c) 2026 Utsha Basak
 """Redaction for shareable reports: replace account names, ids, emails and optionally IPs.
 
 Values are replaced by keyed pseudonyms such as ``[user:3f2a9c1e07]`` (HMAC-SHA256 with a key

@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+# Copyright (c) 2026 Utsha Basak
 """Prompt-injection fixtures: instructions hidden in user agents, usernames and paths.
 
 Each fixture is a real log, turned into an incident by the normal pipeline. The checks:

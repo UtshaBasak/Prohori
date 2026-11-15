@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+# Copyright (c) 2026 Utsha Basak
 """Rule test harness: run each rule against its positive and negative fixtures.
 
 Every rule ``<name>.yml`` must have a fixture file ``<name>.tests.yml`` next to it::

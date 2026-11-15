@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+# Copyright (c) 2026 Utsha Basak
 """SOC metrics: thresholds from validation, operating points, PR-AUC and the seed summary."""
 
 import numpy as np

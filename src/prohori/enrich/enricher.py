@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+# Copyright (c) 2026 Utsha Basak
 """Run IP addresses through the configured providers, with caching and safe failure handling.
 
 * External providers only ever see public addresses (:func:`prohori.enrich.addresses.is_public`).

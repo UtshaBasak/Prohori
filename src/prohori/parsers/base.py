@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+# Copyright (c) 2026 Utsha Basak
 """Parser framework: bounded line reading, sanitising, error accounting and the parser base class.
 
 Parsers are streaming generators. A malformed line is counted and reported, never fatal: one

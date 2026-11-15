@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+# Copyright (c) 2026 Utsha Basak
 """What the analyst can look things up in: ATT&CK techniques and Prohori's runbooks, with BM25.
 
 The ATT&CK corpus (``data/attack.jsonl``) is built from the pinned Enterprise ATT&CK release by

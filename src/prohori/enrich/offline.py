@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+# Copyright (c) 2026 Utsha Basak
 """Bundled, synthetic enrichment data for offline runs, tests and demos.
 
 The fixture covers only documentation addresses (RFC 5737 and RFC 3849), which never reach real

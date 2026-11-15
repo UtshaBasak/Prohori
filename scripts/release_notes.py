@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+# Copyright (c) 2026 Utsha Basak
 """Print the CHANGELOG section of one version, for the GitHub release notes.
 
 Exits with code 1 when the changelog has no section for the version, so a release cannot be

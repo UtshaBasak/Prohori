@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+# Copyright (c) 2026 Utsha Basak
 """Which IP addresses may be sent to external enrichment services.
 
 Private, reserved, loopback, link-local, multicast, shared, benchmarking and documentation ranges

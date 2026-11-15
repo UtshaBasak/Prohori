@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+# Copyright (c) 2026 Utsha Basak
 """Tests for the GeoLite2 provider (with a fake reader), the offline fixture and settings."""
 
 import json

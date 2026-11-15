@@ -1,3 +1,5 @@
+-- SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+-- Copyright (c) 2026 Utsha Basak
 -- Per rule: alerts, and how many were true positives against the simulator's labels.
 -- precision is null for a rule none of whose alerts could be judged (real logs have no labels).
 select

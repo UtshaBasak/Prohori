@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+# Copyright (c) 2026 Utsha Basak
 """Optional LLM incident analyst: providers, redaction before sending, and explanations.
 
 Off by default. Nothing is sent anywhere unless ``PROHORI_LLM_PROVIDER`` names a provider that

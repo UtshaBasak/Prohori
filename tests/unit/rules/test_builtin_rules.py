@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+# Copyright (c) 2026 Utsha Basak
 """Checks every built-in rule ships complete: fixtures, a runbook and verified ATT&CK tags."""
 
 import re

@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+# Copyright (c) 2026 Utsha Basak
 """PostgreSQL sink over a fake psycopg connection (the Docker smoke test uses a real server)."""
 
 from collections.abc import Iterator, Sequence

@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+# Copyright (c) 2026 Utsha Basak
 """Cross-dataset test: train on one flow dataset, test on the other.
 
 UNSW-NB15 (Argus and Bro features) and CIC-IDS-2017 (CICFlowMeter features) describe flows

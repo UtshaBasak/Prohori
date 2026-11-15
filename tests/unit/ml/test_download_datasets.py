@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+# Copyright (c) 2026 Utsha Basak
 """scripts/download_datasets.py: listing, verifying, safe fetching, preparing. No network."""
 
 import hashlib

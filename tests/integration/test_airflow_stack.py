@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+# Copyright (c) 2026 Utsha Basak
 """Docker smoke test for the orchestration profile: every DAG runs in the stack with Airflow.
 
 Skipped unless ``PROHORI_DOCKER_TESTS=1`` and Docker is running. It builds two images, starts

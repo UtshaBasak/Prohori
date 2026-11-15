@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+# Copyright (c) 2026 Utsha Basak
 """Small builders for events and alerts used by the incident tests."""
 
 from datetime import UTC, datetime, timedelta

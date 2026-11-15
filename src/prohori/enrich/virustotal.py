@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+# Copyright (c) 2026 Utsha Basak
 """VirusTotal IP address reports (API v3).
 
 Docs: https://docs.virustotal.com/reference/ip-info (checked 2026-10-26). The public API allows 4

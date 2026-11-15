@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+# Copyright (c) 2026 Utsha Basak
 """Metrics for flow detectors, chosen for an analyst's queue rather than a leaderboard.
 
 A detector gives every flow a score; higher means more likely an attack. Accuracy is never

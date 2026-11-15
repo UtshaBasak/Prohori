@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+# Copyright (c) 2026 Utsha Basak
 id: PRH-ACCT-001
 title: Sensitive account change shortly after sign-in
 status: stable

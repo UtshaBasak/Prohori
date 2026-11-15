@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+# Copyright (c) 2026 Utsha Basak
 # The Prohori image for the Docker stack: the package with the pipeline extra, installed from
 # this checkout with the versions pinned in uv.lock. Build context: the repository root.
 #   docker build -f pipeline/Dockerfile -t prohori:local .

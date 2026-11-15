@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+# Copyright (c) 2026 Utsha Basak
 """Get, verify and prepare the public flow datasets used by the ML detectors.
 
 Nothing happens unless you run a command, and only ``fetch`` uses the network. Files go to

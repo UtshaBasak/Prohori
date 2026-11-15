@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+# Copyright (c) 2026 Utsha Basak
 """Train and evaluate the flow detectors and write ``results/ml_<dataset>.json``.
 
 For every seed, variant and model:

@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+# Copyright (c) 2026 Utsha Basak
 """Best-effort detection of a log format from its first lines.
 
 Rules, applied to up to :data:`SAMPLE_LINES` non-blank lines; the format matching most lines wins

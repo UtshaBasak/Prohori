@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+# Copyright (c) 2026 Utsha Basak
 """Measure throughput and peak memory on logs of at least a million lines.
 
 Builds one log per input format from the simulator: chunk after chunk of busy background

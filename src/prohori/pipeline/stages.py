@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+# Copyright (c) 2026 Utsha Basak
 """The consumers: normalise -> detect -> build incidents, plus the shared stage loop.
 
 Each stage reads its input topics in batches, publishes what the batch produced, flushes the

@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+# Copyright (c) 2026 Utsha Basak
 """PostgreSQL sink: the warehouse of the Docker stack.
 
 Tables live in the ``raw`` schema (the dbt models of a later step build on it) and match the DuckDB

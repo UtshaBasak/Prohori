@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+# Copyright (c) 2026 Utsha Basak
 """Daily incident digest: what the pipeline stored in the last 24 hours, as Markdown and JSON.
 
 Writes ``digests/incidents-YYYY-MM-DD.md`` and ``.json`` to the airflow-output volume; copy them

@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+# Copyright (c) 2026 Utsha Basak
 """Build the ATT&CK retrieval corpus for the LLM analyst from the pinned STIX bundle.
 
 Reads Enterprise ATT&CK (the release pinned in ``prohori.rules.attack``; about 50 MB, downloaded

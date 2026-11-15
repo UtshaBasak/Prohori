@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+# Copyright (c) 2026 Utsha Basak
 """dbt models over a lite-mode warehouse built from the simulator.
 
 Needs the dbt dependency group (``uv sync --group dbt``); skipped otherwise. CI runs it in the

@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+# Copyright (c) 2026 Utsha Basak
 """Tests for the nginx / Apache access log parser."""
 
 from datetime import UTC, datetime

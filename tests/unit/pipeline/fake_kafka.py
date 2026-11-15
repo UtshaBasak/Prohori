@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+# Copyright (c) 2026 Utsha Basak
 """An in-memory stand-in for the parts of ``confluent_kafka`` the Kafka transport uses."""
 
 from collections.abc import Callable

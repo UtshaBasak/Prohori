@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+# Copyright (c) 2026 Utsha Basak
 """The offline LLM evaluation: cases, references, recordings, replay, scoring and the tables."""
 
 import json

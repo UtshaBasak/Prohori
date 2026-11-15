@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+# Copyright (c) 2026 Utsha Basak
 """Machine-learning detection: datasets, features, training, evaluation and scoring.
 
 Importing this package needs nothing beyond the base install. The modules that use pandas or

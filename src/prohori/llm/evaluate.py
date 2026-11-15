@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+# Copyright (c) 2026 Utsha Basak
 """Evaluate the LLM analyst offline: recorded answers, hand-written references, honest scores.
 
 The cases (``evaluation/llm/cases/``) are incidents with a truth label from the simulator, and

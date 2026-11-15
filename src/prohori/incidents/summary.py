@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+# Copyright (c) 2026 Utsha Basak
 """A slim summary of an event: the parts the incident builder uses, never the raw line."""
 
 from dataclasses import dataclass
