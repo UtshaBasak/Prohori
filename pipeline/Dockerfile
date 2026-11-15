@@ -2,9 +2,9 @@
 # this checkout with the versions pinned in uv.lock. Build context: the repository root.
 #   docker build -f pipeline/Dockerfile -t prohori:local .
 
-FROM ghcr.io/astral-sh/uv:0.13.7@sha256:96f40d3904aad8d0bd010539001d36c8e2188b981e1334471a90c4a1d93bb490 AS uv
+FROM ghcr.io/astral-sh/uv:0.13.8@sha256:5cc1805e2426484abca4ad46ea783bab281fdb225fd82d8ce6d66a81254bac85 AS uv
 
-FROM python:3.13.18-slim@sha256:ae14d4ce8771606477a81446e7ef429edd6762305fc50c84507c1041fa8285d1 AS build
+FROM python:3.13.18-slim@sha256:e48f59cdba69a3cbd9ed2cf0f348d90d45a8d350d98134cf1070bc106ee9ed90 AS build
 COPY --from=uv /uv /usr/local/bin/uv
 ENV UV_COMPILE_BYTECODE=1 \
     UV_LINK_MODE=copy \
@@ -15,7 +15,7 @@ COPY pyproject.toml uv.lock README.md LICENSE CHANGELOG.md ./
 COPY src ./src
 RUN uv sync --frozen --no-dev --extra pipeline --no-editable
 
-FROM python:3.13.18-slim@sha256:ae14d4ce8771606477a81446e7ef429edd6762305fc50c84507c1041fa8285d1
+FROM python:3.13.18-slim@sha256:e48f59cdba69a3cbd9ed2cf0f348d90d45a8d350d98134cf1070bc106ee9ed90
 # The enrichment cache directory exists in the image so a volume mounted on it is owned by prohori.
 RUN useradd --create-home --uid 10001 prohori \
     && install -d -o prohori -g prohori /home/prohori/.cache/prohori
