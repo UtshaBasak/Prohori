@@ -4,6 +4,7 @@
 [![CI](https://github.com/UtshaBasak/Prohori/actions/workflows/ci.yml/badge.svg)](https://github.com/UtshaBasak/Prohori/actions/workflows/ci.yml)
 [![CodeQL](https://github.com/UtshaBasak/Prohori/actions/workflows/codeql.yml/badge.svg)](https://github.com/UtshaBasak/Prohori/actions/workflows/codeql.yml)
 [![Lint](https://github.com/UtshaBasak/Prohori/actions/workflows/lint.yml/badge.svg)](https://github.com/UtshaBasak/Prohori/actions/workflows/lint.yml)
+[![CircleCI](https://dl.circleci.com/status-badge/img/gh/UtshaBasak/Prohori/tree/main.svg?style=shield)](https://dl.circleci.com/status-badge/redirect/gh/UtshaBasak/Prohori/tree/main)
 [![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/UtshaBasak/Prohori/badge)](https://scorecard.dev/viewer/?uri=github.com/UtshaBasak/Prohori)
 [![Secret scanning: gitleaks](https://img.shields.io/badge/secrets-gitleaks-blue?logo=git)](https://github.com/gitleaks/gitleaks)
 [![Dependabot](https://img.shields.io/badge/dependabot-enabled-025E8C?logo=dependabot)](https://github.com/UtshaBasak/Prohori/blob/main/.github/dependabot.yml)
@@ -616,8 +617,10 @@ CI runs on Linux and Windows with Python 3.11 to 3.14 and on macOS with 3.13, pl
 secret scanning (gitleaks and GitGuardian), parser fuzzing and the OpenSSF Scorecard. Super-Linter
 checks changed workflow files (actionlint) and Dockerfiles (hadolint), and Prowler scans the
 Docker and Compose files for security misconfigurations (results in the Security tab). PR-Agent reviews the owner's
-pull requests with the Gemini API; it only reads the diff and never edits the description. All
-GitHub Actions are pinned to commit SHAs. See
+pull requests with the Gemini API; it only reads the diff and never edits the description.
+CircleCI also runs the test suite on Linux with Smarter Testing (`circleci testsuite run "pytest"`,
+defined in `.circleci/test-suites.yml`), which reruns only the failed tests when a workflow is
+rerun and shows results on the job's Tests tab. All GitHub Actions are pinned to commit SHAs. See
 [CONTRIBUTING.md](CONTRIBUTING.md) for conventions.
 
 ## Security

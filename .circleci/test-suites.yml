@@ -1,0 +1,8 @@
+---
+# CircleCI Smarter Testing: `circleci testsuite run "pytest"` (in .circleci/config.yml) runs this
+# suite after `uv sync`. Test atoms are the test files; results go to the job's Tests tab.
+name: pytest
+discover: find tests -type f -name 'test_*.py' -not -path '*/__pycache__/*'
+run: uv run --no-sync pytest --disable-pytest-warnings --no-header --quiet --tb=short --override-ini=junit_family=legacy --junit-xml="<< outputs.junit >>" << test.atoms >>
+options:
+  store-test-results: true
