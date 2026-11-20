@@ -3,6 +3,7 @@
 """Redaction: no account name, id, email or (optionally) IP survives in any format."""
 
 import html
+import json
 import re
 from datetime import UTC, datetime
 from pathlib import Path
@@ -240,3 +241,33 @@ def test_host_names_logged_instead_of_addresses_are_redacted_with_ips() -> None:
             )
         assert find_leaks(text, redactor.replaced) == []
     assert any(v.startswith("[host:") for v in redactor.replaced.values())
+
+
+def test_host_names_that_are_not_entities_never_reach_report_text() -> None:
+    """A lockout alert grouped by log source, from two hosts: neither host is an entity."""
+    hosts = ["198-51-100-7.dyn.isp.example", "203-0-113-8.dyn.isp.example"]
+    lines = [
+        json.dumps(
+            {
+                "time": f"2026-10-24T13:50:0{n}Z",
+                "event": {"action": "auth.lockout", "category": "authentication"},
+                "source": {"ip": hosts[n % 2]},
+                "user": {"id": f"u-{n}"},
+            }
+        )
+        for n in range(3)
+    ]
+    events = list(get_parser("app_json").parse(iter_text_lines(lines), source="app"))
+    assert {e.source.host for e in events} == set(hosts)
+    rules = [r.rule for r in load_rules([builtin_rules_dir()]) if r.rule is not None]
+    context = EventContext()
+    engine = RuleEngine(rules, reference_time=datetime(2026, 10, 27, tzinfo=UTC))
+    alerts = list(engine.run(context.observe(events)))
+    assert "PRH-AUTH-004" in {a.detector_id for a in alerts}
+    for incident in build_incidents(alerts, rules, context=context):
+        redacted = Redactor(KEY, ips=True).redact(incident)
+        for fmt in ReportFormat:
+            text = render(redacted, fmt) + redacted.model_dump_json()
+            for host in hosts:
+                assert host not in text
+                assert host.split(".")[0] not in text

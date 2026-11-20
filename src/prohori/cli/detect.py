@@ -5,6 +5,7 @@
 import heapq
 import json
 import sys
+from collections import Counter
 from collections.abc import Iterable, Iterator
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
@@ -200,20 +201,20 @@ def _sort_key(alert: Alert) -> tuple[object, ...]:
 
 
 class _Counted:
-    """Counts the alerts that pass through."""
+    """Counts the alerts that pass through, by severity."""
 
     def __init__(self, alerts: Iterable[Alert]) -> None:
         self.alerts = alerts
-        self.count = 0
+        self.severities: Counter[str] = Counter()
 
     def __iter__(self) -> Iterator[Alert]:
         for alert in self.alerts:
-            self.count += 1
+            self.severities[alert.severity.value] += 1
             yield alert
 
 
-def _first(alerts: Iterable[Alert], limit: int) -> tuple[list[Alert], int]:
-    """The ``limit`` earliest alerts in table order (all with 0) and how many there were.
+def _first(alerts: Iterable[Alert], limit: int) -> tuple[list[Alert], Counter[str]]:
+    """The ``limit`` earliest alerts in table order (all with 0) and every alert's severity.
 
     Equal to ``sorted(alerts)[:limit]``, but holds at most ``limit`` alerts at a time.
     """
@@ -222,7 +223,14 @@ def _first(alerts: Iterable[Alert], limit: int) -> tuple[list[Alert], int]:
         shown = sorted(counted, key=_sort_key)
     else:
         shown = heapq.nsmallest(limit, counted, key=_sort_key)
-    return shown, counted.count
+    return shown, counted.severities
+
+
+def _hidden(severities: Counter[str], shown: Iterable[Alert]) -> str:
+    """The alerts not shown, by severity, most severe first: ``2 critical, 1,300 medium``."""
+    hidden = severities - Counter(a.severity.value for a in shown)
+    order = sorted(hidden, key=lambda s: _SEVERITY_ORDER.get(s, 9))
+    return ", ".join(f"{hidden[s]:,} {s}" for s in order)
 
 
 def _write_table(
@@ -234,7 +242,8 @@ def _write_table(
     limit: int = DEFAULT_LIMIT,
 ) -> int:
     console = Console(highlight=False)
-    collected, total = _first(alerts, limit)
+    collected, severities = _first(alerts, limit)
+    total = severities.total()
     if collected:
         table = Table(title=f"Alerts in {parsed.name}")
         table.add_column("first seen (UTC)")
@@ -257,8 +266,9 @@ def _write_table(
         console.print(table)
         if total > len(collected):
             console.print(
-                f"{total - len(collected):,} more alert(s) not shown: use --limit 0 for all, or "
-                "-f json, which writes each alert as it is raised."
+                f"{total - len(collected):,} more alert(s) not shown "
+                f"({_hidden(severities, collected)}): use --limit 0 for all, or -f json, which "
+                "writes each alert as it is raised."
             )
     else:
         console.print("No alerts.")

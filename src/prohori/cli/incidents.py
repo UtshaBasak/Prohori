@@ -222,8 +222,8 @@ def run_incidents(
 def _not_kept_note(count: int) -> str:
     return (
         f"note: {count:,} alert(s) were raised but not kept (at most "
-        f"{cap.MAX_ALERTS_PER_KEY:,} per rule and entities, {cap.MAX_ALERTS_HELD:,} in all); "
-        "the incidents concerned say so"
+        f"{cap.MAX_ALERTS_PER_KEY:,} per rule and entities and {cap.MAX_ALERTS_PER_SEVERITY:,} "
+        "of each severity); the incidents concerned say so"
     )
 
 

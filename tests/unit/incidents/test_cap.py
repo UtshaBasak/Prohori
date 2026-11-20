@@ -10,7 +10,7 @@ from prohori.incidents.cap import AlertCap, alert_key
 
 
 def test_few_keys_keep_the_first_alerts_of_each() -> None:
-    cap = AlertCap(per_key=3, total=100)
+    cap = AlertCap(per_key=3, per_severity=100)
     alerts = [alert("R-A", start=at(n), entities={"source.ip": "203.0.113.7"}) for n in range(10)]
     alerts += [alert("R-B", start=at(n), entities={"source.ip": "203.0.113.7"}) for n in range(2)]
     cap.extend(alerts)
@@ -19,8 +19,8 @@ def test_few_keys_keep_the_first_alerts_of_each() -> None:
     assert cap.dropped == {alert_key(alerts[0]): 7}
 
 
-def test_many_keys_stop_at_the_overall_bound() -> None:
-    cap = AlertCap(per_key=5, total=50)
+def test_many_keys_stop_at_the_bound_for_their_severity() -> None:
+    cap = AlertCap(per_key=5, per_severity=50)
     for n in range(1_000):
         cap.add(alert("R-A", start=at(n), entities={"source.ip": f"10.0.{n // 250}.{n % 250}"}))
     assert len(cap.alerts) == 50
@@ -30,7 +30,7 @@ def test_many_keys_stop_at_the_overall_bound() -> None:
 
 def test_dropped_counters_are_bounded(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr("prohori.incidents.cap.MAX_COUNTED_KEYS", 10)
-    cap = AlertCap(per_key=1, total=1)
+    cap = AlertCap(per_key=1, per_severity=1)
     for n in range(100):
         cap.add(alert("R-A", start=at(n), entities={"user.id": f"u-{n}"}))
     assert len(cap.dropped) == 10
@@ -38,7 +38,7 @@ def test_dropped_counters_are_bounded(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 def test_incidents_that_lost_alerts_say_so() -> None:
-    cap = AlertCap(per_key=2, total=100)
+    cap = AlertCap(per_key=2, per_severity=100)
     cap.extend(alert("R-A", start=at(n), entities={"source.ip": "203.0.113.7"}) for n in range(5))
     cap.add(alert("R-B", start=at(300), entities={"source.ip": "198.51.100.9"}))
     incidents = cap.apply(build_incidents(cap.alerts))
@@ -52,3 +52,22 @@ def test_incidents_that_lost_alerts_say_so() -> None:
 def test_limits_must_be_positive() -> None:
     with pytest.raises(ValueError, match="at least 1"):
         AlertCap(per_key=0)
+
+
+def test_a_flood_of_one_severity_cannot_hide_another() -> None:
+    from prohori.schema import Severity
+
+    cap = AlertCap(per_key=5, per_severity=50)
+    for n in range(1_000):
+        cap.add(
+            alert(
+                "R-NOISE",
+                start=at(n),
+                severity=Severity.MEDIUM,
+                entities={"source.ip": f"10.0.{n // 250}.{n % 250}"},
+            )
+        )
+    critical = alert("R-TAKEOVER", start=at(2_000), severity=Severity.CRITICAL)
+    assert cap.add(critical)
+    assert cap.alerts[-1] is critical
+    assert cap.dropped_severity == {"medium": 950}

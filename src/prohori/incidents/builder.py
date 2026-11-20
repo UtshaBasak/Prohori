@@ -389,8 +389,8 @@ def _describe(event: EventSummary) -> str:
     parts = [f"[{event.log_source}] {action}"]
     if event.account:
         parts.append(f"account {event.account}")
-    if event.source_ip or event.source_host:
-        parts.append(f"from {event.source_ip or event.source_host}")
+    if event.source_ip:  # not a host name: redaction only knows the hosts in the entities
+        parts.append(f"from {event.source_ip}")
     if event.http_path:
         request = " ".join(p for p in (event.http_method, event.http_path) if p)
         if event.http_status is not None:
