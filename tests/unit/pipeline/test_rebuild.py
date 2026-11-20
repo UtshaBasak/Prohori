@@ -300,4 +300,5 @@ def test_marker_model_round_trips() -> None:
     marker = control("detect", "flush", "finish")
     assert Control.model_validate(marker.model_dump(mode="json")) == marker
     assert marker.id.startswith("ctl-")
-    assert control("detect", "flush", "idle").id != control("detect", "flush", "idle").id
+    ids = {control("detect", "flush", "idle").id for _ in range(3)}
+    assert len(ids) == 3  # every marker gets its own id
