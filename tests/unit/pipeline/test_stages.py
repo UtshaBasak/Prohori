@@ -179,13 +179,15 @@ class TestDetector:
 
     def test_late_events_are_logged(self, caplog: pytest.LogCaptureFixture) -> None:
         transport = MemoryTransport()
-        _events(transport, [_signin("alice", 60), _signin("bob", 0)])
+        (alice,) = _events(transport, [_signin("alice", 60)])
         detector = Detector(transport, RULES, lateness=timedelta(0))
-        detector.idle()  # nothing held yet
+        detector.idle()  # nothing held yet: no marker
         detector.step(1)
-        detector.idle()  # alice's event is released: the watermark is minute 60
+        detector.idle()  # a flush marker is written after alice's event
+        bob = alice.model_copy(update={"timestamp": T0, "id": "evt-bob"})
+        transport.publish(Topic.EVENTS, bob.id, bob.model_dump(mode="json"))
         with caplog.at_level("WARNING"):
-            detector.step(10)
+            detector.step(10)  # the marker releases alice (minute 60), then bob is too late
         assert detector.engine_counts["late_events"] == 1
         assert "1 event(s) arrived too late" in caplog.text
 
@@ -197,7 +199,15 @@ class TestDetector:
         held = detector.engine.state_size()["buffered_events"]
         assert held > 0
         detector.idle()
-        assert detector.engine.state_size()["buffered_events"] == 0
+        detector.idle()  # one marker at a time
+        assert detector.held() == held  # nothing happens until the marker is read back
+        markers = [m for m in _messages(transport, Topic.EVENTS) if "control" in m]
+        assert [(m["control"], m["stage"], m["reason"]) for m in markers] == [
+            ("flush", "detect", "idle")
+        ]
+        detector.step(10_000)
+        assert detector.held() == 0
+        assert detector.awaiting is None
 
 
 class TestIncidentStage:
@@ -264,9 +274,12 @@ class TestIncidentStage:
         stage.step(10_000)
         assert stage.pending
         now[0] += 30.0
-        stage.step(10_000)
+        stage.step(10_000)  # quiet long enough: a close marker is written into alerts
+        stage.step(10_000)  # ...and acted on when it is read back
         assert not stage.pending
         assert stage.metrics.produced == 1
+        markers = [m for m in _messages(transport, Topic.ALERTS) if "control" in m]
+        assert [(m["control"], m["reason"]) for m in markers] == [("close", "idle")]
 
     def test_invalid_alert_is_a_dead_letter(self) -> None:
         transport = MemoryTransport()
