@@ -312,17 +312,20 @@ def main(argv: list[str] | None = None) -> int:
 
 
 def contained(path: Path) -> Path:
-    """``path`` resolved, if it is inside the repository or the system's temporary directory.
+    """``path`` made absolute, if it is inside the repository or the system's temporary directory.
 
     The work directory is deleted afterwards and the results file overwritten, so neither may
-    point anywhere else.
+    point anywhere else. The check is lexical (``..`` is collapsed, symbolic links are not
+    followed); each root is accepted as written and resolved, since the temporary directory is a
+    link on macOS.
     """
-    resolved = path.resolve()
-    roots = (ROOT.resolve(), Path(tempfile.gettempdir()).resolve())
-    if not any(resolved.is_relative_to(root) for root in roots):
+    absolute = Path(os.path.abspath(path))  # noqa: PTH100 - lexical on purpose, no symlinks
+    temp = Path(tempfile.gettempdir())
+    roots = {ROOT, ROOT.resolve(), temp, temp.resolve()}
+    if not any(absolute.is_relative_to(os.path.abspath(root)) for root in roots):  # noqa: PTH100
         msg = f"{path} must be inside the repository or the temporary directory"
         raise ValueError(msg)
-    return resolved
+    return absolute
 
 
 def _load(path: Path) -> dict[str, Any] | None:

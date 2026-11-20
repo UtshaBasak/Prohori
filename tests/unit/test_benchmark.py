@@ -3,6 +3,7 @@
 """The benchmark script on tiny logs: log building, measuring a real process, the tables."""
 
 import json
+import os
 import tempfile
 from pathlib import Path
 
@@ -78,8 +79,12 @@ def test_alert_storm_needs_an_existing_results_file(tmp_path: Path) -> None:
 
 
 def test_output_paths_must_stay_in_the_repository_or_temp(tmp_path: Path) -> None:
-    assert benchmark.contained(tmp_path / "x") == (tmp_path / "x").resolve()
-    assert benchmark.contained(benchmark.DEFAULT_OUT) == benchmark.DEFAULT_OUT.resolve()
+    lexical = os.path.abspath  # what contained() uses: no symbolic links followed
+    assert benchmark.contained(tmp_path / "x") == Path(lexical(tmp_path / "x"))
+    assert benchmark.contained(benchmark.DEFAULT_OUT) == Path(lexical(benchmark.DEFAULT_OUT))
+    escape = benchmark.ROOT / ".." / ".." / "not-prohori-benchmark-target"
+    with pytest.raises(ValueError, match="inside the repository"):
+        benchmark.contained(escape)
     outside = Path(benchmark.ROOT.anchor) / "not-prohori-benchmark-target"
     if outside.resolve().is_relative_to(Path(tempfile.gettempdir()).resolve()):
         pytest.skip("the temporary directory is the filesystem root")
