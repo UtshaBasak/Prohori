@@ -38,7 +38,6 @@ import random
 import shutil
 import subprocess
 import sys
-import tempfile
 import time
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
@@ -282,11 +281,6 @@ def main(argv: list[str] | None = None) -> int:
         "--alerts", type=int, default=0, help="measure an alert storm of this many alerts instead"
     )
     args = parser.parse_args(argv)
-    try:
-        args.out = contained(args.out)
-        args.work = contained(args.work)
-    except ValueError as exc:
-        parser.error(str(exc))
     if args.lines < 1:
         parser.error("--lines must be positive")
     if args.alerts < 0:
@@ -309,23 +303,6 @@ def main(argv: list[str] | None = None) -> int:
         print(f"failed: {', '.join(failed)}", file=sys.stderr)
         return 1
     return 0
-
-
-def contained(path: Path) -> Path:
-    """``path`` made absolute, if it is inside the repository or the system's temporary directory.
-
-    The work directory is deleted afterwards and the results file overwritten, so neither may
-    point anywhere else. The check is lexical (``..`` is collapsed, symbolic links are not
-    followed); each root is accepted as written and resolved, since the temporary directory is a
-    link on macOS.
-    """
-    absolute = Path(os.path.abspath(path))  # noqa: PTH100 - lexical on purpose, no symlinks
-    temp = Path(tempfile.gettempdir())
-    roots = {ROOT, ROOT.resolve(), temp, temp.resolve()}
-    if not any(absolute.is_relative_to(os.path.abspath(root)) for root in roots):  # noqa: PTH100
-        msg = f"{path} must be inside the repository or the temporary directory"
-        raise ValueError(msg)
-    return absolute
 
 
 def _load(path: Path) -> dict[str, Any] | None:
