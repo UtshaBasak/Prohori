@@ -12,6 +12,13 @@ The detector and the incident stage keep state in memory (the rule engine's wind
 behind open incidents) and do not checkpoint it. They are marked ``stateful`` and read their
 inputs from the start when the pipeline starts, so a restart rebuilds the same state and produces
 the same alerts and incidents, with the same ids; the sink stores each id once.
+
+Two of their decisions depend on the wall clock, not on the messages: the detector releases its
+reorder buffer when the input has been quiet (or the run ends), and the incident stage closes
+every open incident when no alert has come for a while (or the run ends). Neither acts directly:
+each writes a control marker into its own input topic and acts when it reads the marker back.
+A rebuild reads the same markers at the same positions, so it makes the same decisions; topics
+without markers (written by 1.0) replay as before.
 """
 
 import json
@@ -23,7 +30,7 @@ from collections.abc import Callable, Iterable, Mapping, Sequence
 from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
-from typing import Any, ClassVar
+from typing import Any, ClassVar, Literal
 
 from pydantic import BaseModel, ValidationError
 
@@ -32,7 +39,15 @@ from prohori.incidents import EventContext, IncidentBuilder, IncidentSettings
 from prohori.incidents.grouping import group_alerts
 from prohori.incidents.provenance import with_provenance
 from prohori.parsers import LineParser, ParseError, ParseStats, RawLine, get_parser
-from prohori.pipeline.messages import DeadLetter, RawLog, Topic, dead_letter
+from prohori.pipeline.messages import (
+    Control,
+    DeadLetter,
+    RawLog,
+    Topic,
+    control,
+    dead_letter,
+    is_control,
+)
 from prohori.pipeline.transport import Record, Transport
 from prohori.rules import CompiledRule, RuleEngine
 from prohori.schema import Alert, Event
@@ -69,8 +84,9 @@ class Stage(ABC):
     """A consumer group that reads ``inputs``, handles each message and commits.
 
     Subclasses implement :meth:`handle` and may override :meth:`finish` (end of input or
-    shutdown: release held state), :meth:`tick` (called after every batch) and :meth:`idle`
-    (called when the input has been quiet for a while).
+    shutdown: release held state), :meth:`tick` (called after every batch), :meth:`idle`
+    (called when the input has been quiet for a while) and :meth:`control` (one of the stage's
+    own control markers was read). Markers of other stages are skipped.
     """
 
     name: ClassVar[str]
@@ -83,6 +99,8 @@ class Stage(ABC):
         self.metrics = StageMetrics()
         #: Called after every batch (the stack's heartbeat), so a long rebuild looks alive.
         self.progress: Callable[[], None] | None = None
+        #: The id of a marker this stage wrote and has not read back yet.
+        self.awaiting: str | None = None
 
     @property
     def group(self) -> str:
@@ -90,6 +108,7 @@ class Stage(ABC):
 
     def start(self) -> None:
         """Prepare to run: a stateful stage rewinds its inputs."""
+        self.awaiting = None
         if self.stateful:
             for topic in self.inputs:
                 self.transport.rewind(topic, self.group)
@@ -119,6 +138,9 @@ class Stage(ABC):
         if record.value is None:
             self.reject(record, record.error or "unreadable message", record.raw)
             return
+        if is_control(record.value):
+            self._control(record, record.value)
+            return
         try:
             self.handle(record.topic, record.value)
         except ValidationError as exc:
@@ -129,6 +151,42 @@ class Stage(ABC):
         except Exception as exc:  # one bad message must not stop the pipeline
             logger.exception("%s could not process a %s message", self.name, record.topic)
             self.reject(record, f"processing failed: {type(exc).__name__}", _dump(record.value))
+
+    def _control(self, record: Record, value: Mapping[str, Any]) -> None:
+        try:
+            marker = Control.model_validate(value)
+        except ValidationError:
+            self.reject(record, "invalid control marker", _dump(value))
+            return
+        if marker.stage != self.name:
+            return
+        if marker.id == self.awaiting:
+            self.awaiting = None
+        self.control(record.topic, marker)
+
+    def request(
+        self,
+        topic: Topic,
+        action: Literal["flush", "close"],
+        reason: Literal["idle", "finish"],
+    ) -> None:
+        """Write a control marker into ``topic`` (one of this stage's inputs).
+
+        The stage acts on it in :meth:`control` when it reads it back, so a rebuild from the
+        topic makes the same decision at the same position.
+        """
+        marker = control(self.name, action, reason)
+        self.transport.publish(topic, marker.id, marker.model_dump(mode="json"))
+        self.transport.flush()
+        self.awaiting = marker.id
+
+    def read_to_end(self, topics: Iterable[Topic], max_records: int = 500) -> int:
+        """Process every message published to ``topics`` so far, one topic after the other."""
+        count = 0
+        for topic in topics:
+            for records in self.transport.batches_to_end(topic, self.group, max_records):
+                count += self._process([(topic, records)])
+        return count
 
     def reject(self, record: Record, reason: str, payload: str) -> None:
         """Send ``record`` to the dead-letter topic."""
@@ -151,6 +209,9 @@ class Stage(ABC):
 
     def idle(self) -> None:  # noqa: B027 - optional hook, intentionally empty
         """The inputs have been quiet for a while (live mode only)."""
+
+    def control(self, topic: Topic, marker: Control) -> None:  # noqa: B027 - optional hook
+        """One of this stage's own control markers was read from ``topic``."""
 
     def finish(self) -> None:
         """End of input or shutdown: publish whatever is still held."""
@@ -314,13 +375,26 @@ class Detector(Stage):
             return
         self._emit(self.engine.process(event))
 
+    def held(self) -> int:
+        """Events held in the rule engine's reorder buffer."""
+        return self.engine.state_size()["buffered_events"]
+
     def idle(self) -> None:
-        """Release the events held for reordering, so a quiet log's last alerts are not held."""
-        self._emit(self.engine.flush())
-        self.transport.flush()
+        """Ask to release the events held for reordering, so a quiet log's last alerts are not
+        held: a ``flush`` marker is written, and the buffer is released when it is read back.
+        """
+        if self.awaiting is None and self.held():
+            self.request(Topic.EVENTS, "flush", "idle")
+
+    def control(self, topic: Topic, marker: Control) -> None:
+        if marker.control == "flush":
+            self._emit(self.engine.flush())
 
     def finish(self) -> None:
-        self._emit(self.engine.flush())
+        """Release the reorder buffer through a marker, reading the input up to it."""
+        if self.held():
+            self.request(Topic.EVENTS, "flush", "finish")
+            self.read_to_end(self.inputs)
         super().finish()
 
     def _emit(self, alerts: Iterable[Alert]) -> None:
@@ -356,7 +430,8 @@ class IncidentStage(Stage):
 
     The stage remembers the events (as the batch command does) and holds alerts until the newest
     alert time has moved :func:`hold_time` past a group's last alert, or, with ``idle_close``
-    (live logs), until that many seconds have passed without new alerts. Then it builds the
+    (live logs), until that many seconds have passed without new alerts (recorded as a
+    ``close`` marker in ``alerts`` and acted on when it is read back). Then it builds the
     incidents with the same :class:`IncidentBuilder` as ``prohori incidents``.
     """
 
@@ -423,9 +498,8 @@ class IncidentStage(Stage):
         if not self.pending or self.watermark is None:
             return
         quiet = self.clock() - self.last_alert_at
-        if self.idle_close is not None and quiet >= self.idle_close:
-            self._close(self.pending.values())
-            return
+        if self.idle_close is not None and quiet >= self.idle_close and self.awaiting is None:
+            self.request(Topic.ALERTS, "close", "idle")
         horizon = self.watermark - self.hold
         groups = group_alerts(
             self.pending.values(),
@@ -439,9 +513,15 @@ class IncidentStage(Stage):
         if final:
             self._close(final)
 
-    def finish(self) -> None:
-        if self.pending:
+    def control(self, topic: Topic, marker: Control) -> None:
+        if marker.control == "close" and self.pending:
             self._close(self.pending.values())
+
+    def finish(self) -> None:
+        """Close every open incident through a marker, reading the inputs up to it."""
+        if self.pending:
+            self.request(Topic.ALERTS, "close", "finish")
+            self.read_to_end((Topic.EVENTS, Topic.ALERTS))
         super().finish()
 
     def _close(self, alerts: Iterable[Alert]) -> None:

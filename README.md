@@ -388,6 +388,12 @@ flowchart LR
 - **Nothing lost, nothing doubled.** Delivery is at least once (publish, fsync, then commit).
   Every id is a hash of its content, so a replay, a redelivery or a crash mid-run adds no rows.
   Duplicate events are dropped before the rules, so they cannot push a threshold over its limit.
+- **A restart changes nothing.** The detector and the incident stage keep their state in memory
+  and rebuild it from the topics when they start. The two decisions that depend on the clock
+  (releasing events held for reordering when the log goes quiet, and closing incidents when
+  alerts stop) are written into the topics as small control markers, so the rebuild makes them
+  at the same points and publishes exactly the alerts and incidents of the live run. A property
+  test checks this over random timings on the file, memory and Kafka transports.
 - **Bad input is set aside.** Lines no parser accepts and malformed messages go to a dead-letter
   table with the reason, and are counted.
 - **Live logs.** The tailer survives rotation by rename or truncation (on Windows too, without
@@ -600,7 +606,7 @@ Prohori is honest about what it does not do:
 | v0.3.0 | Pipeline: streaming core and lite mode, Redpanda and PostgreSQL in Docker, dbt models and data-quality checks, Grafana dashboards, Airflow jobs; Docker image on GitHub Packages | Released |
 | v1.0.0 | Optional LLM analyst: providers, redaction, `explain` and `ask`, retrieval, prompt-injection defences, answer validation and an evaluation; threat model, performance notes, completed licence notes, macOS in CI | Released |
 | v1.0.1 | Fixes from a full review: stricter redaction and answer checks, parser and output-path robustness, safer stack shutdown and Airflow parameters, signed provenance for release files | Released |
-| v1.1.0 | New licence (PolyForm Strict), deterministic stream rebuilds, evasion-resistant per-account sign-in rules with a before-and-after score, warehouse and broker hardening, safer model files, a cross-dataset generalisation study, logins for the stack, SBOMs, suppressions | Planned |
+| v1.1.0 | Done so far: new licence (PolyForm Strict), deterministic stream rebuilds. Still to come: evasion-resistant per-account sign-in rules with a before-and-after score, warehouse and broker hardening, safer model files, a cross-dataset generalisation study, logins for the stack, SBOMs, suppressions | In progress |
 | v1.2.0 | More log sources: Suricata, Zeek, Windows Security events, Sysmon, the systemd journal, AWS CloudTrail; a Sigma rule importer | Planned |
 | v1.3.0 to v1.7.0 | A real-time defender for your own PC: a Windows security checkup, behaviour-based detection with reversible containment, ransomware, network, spyware, boot and device defenses, a guard for AI coding agents and MCP tools, supply-chain and phishing checks, attack drills, Linux | Planned |
 | v1.8.0, v2.0.0 | A desktop security assistant, web UI, package-manager installs, VS Code and browser extensions, a documentation website and a GitHub Action | Planned |

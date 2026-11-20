@@ -10,18 +10,26 @@ defined here. Payloads carry a schema version ``v`` so a later change can be tol
 Keys: a raw line is keyed by its source name, so the lines of one file stay in order on one
 partition; events, alerts and incidents are keyed by their id. The rule engine needs the events
 in time order, so the ``events`` topic has one partition.
+
+**Control markers** (:class:`Control`) record a stateful stage's wall-clock decisions in the
+stream: the detector writes one into ``events`` before it releases its reorder buffer, and the
+incident stage writes one into ``alerts`` before it closes every open incident. The stage acts on
+its marker only when it reads it back, live and on a rebuild alike, so both see the decision at
+the same position. Every other reader skips markers (:func:`is_control`).
 """
 
 import hashlib
+import uuid
+from collections.abc import Mapping
 from enum import StrEnum
-from typing import Annotated, Literal
+from typing import Annotated, Any, Literal
 
 from pydantic import BaseModel, Field
 
 from prohori.parsers import MAX_LINE_LENGTH
 from prohori.schema.types import MODEL_CONFIG, ShortText, UtcDatetime
 
-#: Version of the ``raw-logs`` and ``dead-letter`` payloads.
+#: Version of the ``raw-logs``, ``dead-letter`` and control payloads.
 SCHEMA_VERSION: Literal[1] = 1
 
 #: Longest payload kept in a dead letter, in characters.
@@ -86,3 +94,33 @@ def dead_letter(stage: str, topic: str, key: str | None, reason: str, payload: s
         reason=reason,
         payload=payload,
     )
+
+
+class Control(BaseModel):
+    """A stateful stage's decision, recorded at its position in the stage's own input topic.
+
+    ``action`` is ``flush`` (the detector releases the events it holds for reordering) or
+    ``close`` (the incident stage writes every open incident); ``reason`` says why: the input was
+    quiet (``idle``) or the run ended (``finish``). ``id`` is random; a marker written twice
+    after a crash is harmless, because the second one finds nothing left to release.
+    """
+
+    model_config = MODEL_CONFIG
+
+    v: Literal[1] = SCHEMA_VERSION
+    control: Literal["flush", "close"]
+    stage: Annotated[str, Field(min_length=1, max_length=32)]
+    reason: Literal["idle", "finish"]
+    id: Annotated[str, Field(pattern=r"^ctl-[0-9a-f]{32}$")]
+
+
+def control(
+    stage: str, action: Literal["flush", "close"], reason: Literal["idle", "finish"]
+) -> Control:
+    """Build a new marker with a random id."""
+    return Control(control=action, stage=stage, reason=reason, id=f"ctl-{uuid.uuid4().hex}")
+
+
+def is_control(value: Mapping[str, Any]) -> bool:
+    """Whether a message is a control marker (no event, alert or incident has ``control``)."""
+    return "control" in value

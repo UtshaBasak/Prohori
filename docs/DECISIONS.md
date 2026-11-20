@@ -763,7 +763,7 @@ changes, and all golden files are unchanged.
 ## ADR-0023: Streaming core and lite mode
 
 - **Date:** 2026-11-01
-- **Status:** Accepted
+- **Status:** Accepted; the detector's idle flush and the incident close amended by ADR-0034
 
 **Context.** The pipeline track runs the batch core continuously: producers, a message queue,
 consumers (normalise -> detect -> incident) and a warehouse. Step 19 adds Redpanda and PostgreSQL
@@ -790,7 +790,8 @@ tested end to end in CI.
   their topics from the start when the pipeline starts. Checkpointing the engine's windows and
   open alert groups would need a serialisation format for every evaluator; rebuilding is
   deterministic and reuses the tested code paths. The cost (start-up time grows with the topics)
-  is documented.
+  is documented. *Amended 2026-11-21 (ADR-0034):* "deterministic" did not hold for the two
+  wall-clock decisions; they are now recorded in the topics as control markers.
 - **Incidents in a stream:** an alert group is final once the newest alert time is past its end by
   gap + longest aggregate or sequence window + lateness, or, when following live logs, after that
   much wall-clock time without new alerts. Final groups go through the unchanged
@@ -823,7 +824,7 @@ and Linux, so the whole CI matrix runs the end-to-end test. No change to the bat
 ## ADR-0024: Docker stack, Kafka and PostgreSQL
 
 - **Date:** 2026-11-01
-- **Status:** Accepted
+- **Status:** Accepted; the idle close amended by ADR-0034
 
 **Context.** Step 19 runs the lite-mode consumers over a Kafka-compatible queue with a PostgreSQL
 warehouse in Docker. It has to fit next to other work on a 15.7 GB laptop where Docker has 6 GB,
@@ -862,7 +863,9 @@ and it has to be testable in CI.
 - **Incidents in a stack that never ends:** `run --idle-close SECONDS` writes open incidents after
   that much quiet. The stack uses 60 seconds, so a replay's last incident appears within a minute
   or two; the detector releases its held alerts after 10 quiet seconds, well inside that. The
-  documented cost is that a very slow attack can split into two incidents.
+  documented cost is that a very slow attack can split into two incidents. *Amended
+  2026-11-21 (ADR-0034):* both decisions are written into the topics as markers and acted on
+  when read back, so a restarted stage rebuilds the same incidents.
 - **Sinks share one base class.** NUL characters are replaced before writing, because PostgreSQL
   text cannot hold them. If the database rejects a batch for data reasons, it is retried row by
   row and the rows still rejected become dead letters. Any other database error stops the stage
@@ -1363,3 +1366,63 @@ Contributors are fewer, as intended. Commercial users must ask. The research cod
 cross-dataset study can be run by readers for non-commercial research but not changed or
 redistributed, which its reproducibility statement says. This is not legal advice; the owner
 may ask a lawyer or a free legal clinic to review it.
+
+## ADR-0034: Wall-clock decisions recorded in the stream
+
+- **Date:** 2026-11-21
+- **Status:** Accepted
+
+**Context.** The detector and the incident stage rebuild their state by reading their topics
+from the start (ADR-0023), which was meant to give the same alerts and incidents as the live
+run. Two of their decisions depend on wall-clock time, not on the messages, so the promise did
+not hold (found in the 1.0.1 review, ADR-0032):
+
+- the detector releases its reorder buffer when the input has been quiet (`idle`) and at the end
+  of a run (`finish`). Events released this way move the "already evaluated" point forward, so
+  older events arriving later are dropped as late. A rebuild reads everything without pauses and
+  keeps them. Reproduced: nine failed sign-ins from one address, a quiet period, then three
+  older ones; live, no alert; rebuilt, PRH-AUTH-001.
+- the incident stage closes every open incident after `--idle-close` seconds without alerts, and
+  at the end of a run. A rebuild never waits, so it can group alerts that the live run had
+  already written as separate incidents.
+
+**Decision.**
+
+- Each decision is recorded as a control marker in the deciding stage's own input topic, and the
+  stage acts only when it reads the marker back, live and on a rebuild alike: the detector
+  writes `{"control": "flush", "stage": "detect", ...}` into `events`, the incident stage
+  `{"control": "close", "stage": "incidents", ...}` into `alerts`. The marker is acted on at its
+  position, after everything published before it, so concurrent writers (the normaliser into
+  `events`, the detector into `alerts`) cannot make live and rebuild disagree. Writing the
+  marker after acting, with an offset, was rejected for exactly that reason.
+- `finish` is recorded the same way, because it is the same kind of decision: a second replay
+  into the same state directory rebuilds the first run's end-of-run flush and close instead of
+  merging the two runs. `finish` writes its marker and reads the input up to it, so it still
+  returns with everything released.
+- A stage writes a marker only when it holds something (events in the buffer, open alerts) and
+  is not already waiting for one of its own, so a quiet stack does not fill the topics. A marker
+  written twice (after a crash) is harmless: the second finds nothing to release.
+- Markers carry `v`, `control`, `stage`, `reason` (`idle` or `finish`) and a random `id`
+  (`ctl-` and 32 hex digits). `is_control` (a `control` key, which no event, alert or incident
+  has) lets the shared stage loop route them before validation: a stage acts on its own, skips
+  other stages' markers, and turns a malformed marker into a dead letter. The sink stores none.
+  The event, alert and incident payloads are unchanged, so no message version changes.
+- Topics written by 1.0 have no markers and replay with 1.0's behaviour; a test copies a run's
+  topics without the markers and gets the old divergent result back.
+
+**Verification.** A Hypothesis property test (fixed seed, 200 examples per transport) drives
+random scripts of event bursts (out of order, some too late), brute-force runs, stage turns in
+random order with random batch sizes, idle flushes and idle closes, over the memory, file and
+fake Kafka transports; a rebuild from offset 0 must publish the same alerts and incidents,
+compared as whole messages (timelines, scores and provenance included), not only their ids.
+Run against the previous stage code, it fails on all three transports. The audit repro is a
+test of its own, and stream == batch still holds for every simulator scenario.
+
+**Consequences.** The detector now writes to `events` and the incident stage to `alerts`, so the
+broker permissions planned for step 31 must allow that. A flush or close happens one round
+later than before (when the marker is read back), which in the stack is well under a second.
+Not covered: the live detector's rejection of events stamped more than a day ahead depends on
+the clock when the event is read, so an event rejected live can be accepted by a rebuild days
+later; and the incident stage reads all events before alerts when rebuilding, so with more than
+100,000 events in the backlog it can forget events the live run still had in memory. Both are
+limits of a backlog, not of timing, and are documented in PIPELINE.md.

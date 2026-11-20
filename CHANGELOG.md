@@ -33,6 +33,16 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- **A restarted pipeline gives the same alerts and incidents as the live run.** The detector's
+  idle flush and the incident stage's idle close (and both end-of-run releases) depended on
+  wall-clock time, so a stage rebuilt from its topics could raise an alert the live run had not
+  (nine failed sign-ins, a pause, three older ones: no alert live, a brute-force alert after a
+  restart). Each decision is now written into the stage's own input topic as a control marker
+  (`{"control": "flush", "stage": "detect", ...}` in `events`, `"close"` from `incidents` in
+  `alerts`) and acted on when it is read back, live and on a rebuild alike. The sink and the
+  other stage skip markers. Topics written by 1.0 have no markers and replay as before. A
+  property test checks random interleavings on the memory, file and Kafka transports; see
+  ADR-0034 and "Delivery guarantees" in `docs/PIPELINE.md`.
 - The two Dockerfiles say `HEALTHCHECK NONE` on purpose: each service's health check lives in
   `docker-compose.yml`, because one image serves several roles. This closes Prowler's
   "No HEALTHCHECK defined" findings.

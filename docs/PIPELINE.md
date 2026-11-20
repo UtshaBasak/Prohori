@@ -93,14 +93,16 @@ duplicate rows.
 | Topic | Key | Payload |
 | ------- | ----- | --------- |
 | `raw-logs` | source file name | `RawLog`: `v`, `source`, `line`, `text`, `parser`, `read_at`, `too_long`, `decode_error` |
-| `events` | event id | [`Event`](SCHEMA.md) |
-| `alerts` | alert id | [`Alert`](SCHEMA.md) |
+| `events` | event id | [`Event`](SCHEMA.md), and the detector's `flush` markers |
+| `alerts` | alert id | [`Alert`](SCHEMA.md), and the incident stage's `close` markers |
 | `incidents` | incident id | [`Incident`](SCHEMA.md) |
 | `dead-letter` | dead-letter id | `DeadLetter`: `v`, `id`, `stage`, `topic`, `key`, `reason`, `payload` (at most 4,096 characters) |
 
 Messages are JSON objects with a key. A raw line is keyed by its file so one file's lines stay in
 order. The rule engine needs events in time order, so the `events` topic is one partition.
-`raw-logs` and `dead-letter` payloads carry a schema version `v` (now 1).
+`raw-logs` and `dead-letter` payloads and the control markers carry a schema version `v`
+(now 1). A control marker (`v`, `control`, `stage`, `reason`, `id`, keyed by its id) records a
+stage's wall-clock decision; see [Delivery guarantees](#delivery-guarantees).
 
 `read_at` is when the producer read the file: the file's modification time for a replay, the
 current time when tailing. The `auth_log` parser uses it to infer the year of syslog timestamps,
@@ -128,6 +130,23 @@ committed position is a byte offset in `.prohori/pipeline/offsets/`.
   start of the topics and rebuild the same state, producing the same alerts and incidents. That
   is simple and correct, but the topics grow without limit in lite mode, so a long-running
   installation should be restarted with a fresh state directory now and then.
+- **Wall-clock decisions are written into the stream.** Two decisions depend on time passing,
+  not on the messages: the detector releases the events it holds for reordering when the input
+  has been quiet (or the run ends), and the incident stage closes every open incident when no
+  alert has come for a while (or the run ends). Neither acts directly. The detector writes a
+  `flush` marker into `events`, the incident stage a `close` marker into `alerts`, and each
+  acts when it reads its own marker back. A rebuild reads the same markers at the same
+  positions, so it gets exactly the alerts and incidents of the live run, however the stages
+  were timed. Without this, a rebuild could evaluate events the live run had dropped as late:
+  nine failed sign-ins, a quiet minute, then three older ones gave no alert live but a
+  brute-force alert after a restart. A marker is a small JSON object such as
+  `{"v": 1, "control": "flush", "stage": "detect", "reason": "idle", "id": "ctl-..."}`; every
+  other reader (the sink, the other stage) skips it, and a stage writes one only when it holds
+  something and is not already waiting for one. Topics written by 1.0 have no markers and
+  replay as before. A property test drives random interleavings of events, idle periods, batch
+  sizes and stage turns over the memory, file and Kafka transports and checks that a rebuild
+  from offset 0 publishes the same alerts and incidents, message for message
+  (`tests/unit/pipeline/test_rebuild.py`).
 - **A torn write is contained.** If the process dies halfway through writing a message, readers
   stop before the unfinished line. The next writer ends it with a newline, so it becomes one
   malformed message (a dead letter) instead of corrupting the next one.
@@ -297,7 +316,8 @@ The limits add up to about 3.9 GB, or 6.9 GB with `--orchestration`. Measured wi
   polled, so the events behind an alert are always in its memory, even though another container
   produced them.
 - The detector and the incident stage rebuild their state from the start of their topics when
-  they start, exactly as in lite mode.
+  they start, exactly as in lite mode, including the `flush` and `close` markers they wrote
+  while running. So the detector also writes to `events` and the incident stage to `alerts`.
 
 `replay --bootstrap` and `tail --bootstrap` only publish raw lines. The stage containers do the
 rest. `prohori pipeline run --stage NAME` is what each container runs. It takes the broker from
@@ -366,7 +386,14 @@ SELECT record->>'detector_id' AS rule, count(*) FROM raw.alerts GROUP BY 1 ORDER
   two checks, the truncation is not noticed. If an old file's inode number is reused by a new
   file that is at least as long, the tailer resumes in the middle of it. Common tailers share
   both limits.
-- **Incidents open at shutdown are written as they are.** On the next start the incident stage
-  rebuilds its state from the topics, so if the same attack continues, the rebuilt incident holds
-  the earlier alerts and the new ones under a new id. It is stored next to the partial incident
-  written at shutdown, and the two overlap.
+- **Incidents open at shutdown are written as they are.** A lite-mode run that ends closes its
+  open incidents through a `close` marker, and the next start replays that marker too. If the
+  same attack continues in the next run, its later alerts form a second incident; the two do not
+  overlap, but the attack is split. (Before 1.1, the rebuilt incident held the earlier alerts
+  and the new ones under a new id, next to the partial one.) The Docker stack does not close
+  incidents on shutdown, so it has neither effect.
+- **Two clock checks are not recorded.** A live detector rejects events stamped more than a day
+  ahead of its clock; an event rejected that way can be accepted when the stage rebuilds days
+  later. And when it rebuilds, the incident stage reads every event before the alerts, so with a
+  backlog of more than 100,000 events it can have forgotten events the live run still held, and
+  an incident's timeline can be shorter. Every other decision is rebuilt exactly.
