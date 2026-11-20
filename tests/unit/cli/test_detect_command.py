@@ -173,3 +173,21 @@ def test_rule_text_is_not_rendered_as_markup(tmp_path: Path) -> None:
     code, out, _ = run(str(SAMPLES / "auth.log"), "--no-builtin", "--rules", str(tmp_path))
     assert code == ExitCode.ALERTS_FOUND
     assert "[bold red]Injected[/bold red]" in out
+
+
+def test_dst_fall_back_hour_loses_no_events() -> None:
+    """The repeated hour of a daylight-saving change: all six events evaluated, none late."""
+    code, _, err = run(
+        str(SAMPLES / "auth-dst.log"),
+        "--year",
+        "2026",
+        "--timezone",
+        "America/New_York",
+        "-f",
+        "json",
+    )
+    assert code == ExitCode.OK
+    summary = json.loads(err.strip().splitlines()[-1])
+    assert summary["events"] == 6
+    assert summary["engine"]["events_evaluated"] == 6
+    assert summary["engine"]["late_events"] == 0

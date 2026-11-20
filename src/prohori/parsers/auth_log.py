@@ -10,6 +10,13 @@ Two syslog header formats are supported:
   A month that goes backwards by six or more (December -> January) is a New Year rollover.
 * RFC 3339 / ISO 8601 (``2026-10-24T13:50:12.345678+06:00 host sshd[123]: ...``), the default on
   recent distributions, carries both. ``timezone`` is only used if the offset is missing.
+
+A local time without an offset is ambiguous for one hour a year where the clocks go back
+(01:30 happens twice in America/New_York on the first Sunday of November). Such a time is read
+as its first occurrence unless that would put it more than :data:`DST_TOLERANCE` before the
+previous line; then it is the second occurrence. A log that runs through the repeated hour
+therefore keeps going forward instead of jumping back an hour, which would make the rules drop
+the second half as late. Ambiguous lines are counted in ``ambiguous_times``.
 """
 
 import re
@@ -18,10 +25,14 @@ from datetime import UTC, datetime, timedelta, tzinfo
 from pathlib import Path
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
-from prohori.parsers.base import LineParser, ParseError, ParseStats
+from prohori.parsers.base import LineParser, ParseError, ParseStats, RawLine
 from prohori.parsers.registry import register
 from prohori.parsers.util import normalise_ip
 from prohori.schema import Event, EventCategory, EventInfo, Outcome, event_id
+
+#: How far an ambiguous local time may go back before the previous line and still be read as
+#: the first occurrence (syslog lines can be slightly out of order).
+DST_TOLERANCE = timedelta(minutes=10)
 
 _MONTHS = {
     name: number
@@ -158,6 +169,16 @@ class AuthLogParser(LineParser):
     def reset(self) -> None:
         self._current_year: int | None = None
         self._previous_month: int | None = None
+        self._previous: datetime | None = None  # the previous line's time, in UTC
+        self._ambiguous = False
+
+    def parse_raw(self, raw: RawLine, *, source: str, stats: ParseStats) -> Event | None:
+        self._ambiguous = False
+        try:
+            return super().parse_raw(raw, source=source, stats=stats)
+        finally:
+            if self._ambiguous:
+                stats.ambiguous_times += 1
 
     def parse_file(self, path: Path, *, stats: ParseStats | None = None) -> Iterator[Event]:
         """Parse a file, using its modification time as the reference time if no year is set."""
@@ -177,10 +198,30 @@ class AuthLogParser(LineParser):
         hour, minute, second = int(match["hour"]), int(match["minute"]), int(match["second"])
         year = self._year_for(month, day)
         try:
-            local = datetime(year, month, day, hour, minute, second, tzinfo=self.timezone)
+            local = datetime(year, month, day, hour, minute, second)  # noqa: DTZ001 - wall time, zone added next
         except ValueError as exc:  # e.g. Feb 30, or Feb 29 in a non-leap year
             raise ParseError(f"invalid date: {exc}") from None
-        return local.astimezone(UTC)
+        return self._localise(local)
+
+    def _localise(self, local: datetime) -> datetime:
+        """Attach the configured timezone to a wall-clock time and convert it to UTC.
+
+        In the repeated hour after the clocks go back, the first occurrence is used unless it is
+        more than :data:`DST_TOLERANCE` before the previous line. A time skipped when the clocks
+        go forward keeps Python's reading (the offset from before the change).
+        """
+        first = local.replace(tzinfo=self.timezone)
+        if self.timezone is UTC:
+            return first
+        second = first.replace(fold=1)
+        early, late = first.utcoffset(), second.utcoffset()
+        if early is None or late is None or early <= late:  # not the repeated hour
+            return first.astimezone(UTC)
+        self._ambiguous = True
+        earlier = first.astimezone(UTC)
+        if self._previous is not None and earlier < self._previous - DST_TOLERANCE:
+            return second.astimezone(UTC)
+        return earlier
 
     def _year_for(self, month: int, day: int) -> int:
         if self._current_year is None or self._previous_month is None:
@@ -213,7 +254,7 @@ class AuthLogParser(LineParser):
         except ValueError as exc:
             raise ParseError(f"invalid timestamp: {exc}") from None
         if value.tzinfo is None:
-            value = value.replace(tzinfo=self.timezone)
+            return self._localise(value)
         return value.astimezone(UTC)
 
     # ------------------------------------------------------------------ lines
@@ -225,6 +266,7 @@ class AuthLogParser(LineParser):
             timestamp = self._rfc3164_timestamp(match)
         else:
             raise ParseError("no syslog timestamp")
+        self._previous = timestamp
         tag = _TAG_RE.match(match["rest"])
         if tag is None:
             raise ParseError("no syslog host/program tag")

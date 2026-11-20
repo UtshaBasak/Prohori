@@ -67,6 +67,8 @@ class ParseStats:
     blank: int = 0
     errors: int = 0
     decode_errors: int = 0
+    #: Local times in the repeated hour after the clocks go back (``auth_log``; see there).
+    ambiguous_times: int = 0
     error_examples: list[LineError] = field(default_factory=list)
 
     def record_error(self, line: int, reason: str) -> None:
@@ -84,6 +86,7 @@ class ParseStats:
             "blank": self.blank,
             "errors": self.errors,
             "decode_errors": self.decode_errors,
+            "ambiguous_times": self.ambiguous_times,
             "error_examples": [{"line": e.line, "reason": e.reason} for e in self.error_examples],
         }
 
