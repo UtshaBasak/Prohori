@@ -2,9 +2,10 @@
 # Copyright (c) 2026 Utsha Basak
 """``prohori detect``: parse a log file and run detection rules over it."""
 
+import heapq
 import json
 import sys
-from collections.abc import Iterable
+from collections.abc import Iterable, Iterator
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Annotated
@@ -33,6 +34,8 @@ from prohori.rules.model import parse_duration
 from prohori.schema import Alert
 
 _SEVERITY_ORDER = {"critical": 0, "high": 1, "medium": 2, "low": 3}
+#: Alerts the table shows by default; the rest are counted.
+DEFAULT_LIMIT = 100
 #: Engine counters shown in the table summary when non-zero (the JSON summary has them all).
 _DROP_COUNTERS = (
     "late_events",
@@ -104,6 +107,14 @@ def detect_command(
     exit_zero: Annotated[
         bool, typer.Option("--exit-zero", help="Exit 0 even when alerts are found.")
     ] = False,
+    limit: Annotated[
+        int,
+        typer.Option(
+            min=0,
+            help="Table only: show at most this many alerts (the earliest) and count the rest; "
+            "0 shows all. JSON output always has every alert.",
+        ),
+    ] = DEFAULT_LIMIT,
     parser_name: ParserOption = "auto",
     year: YearOption = None,
     timezone: TimezoneOption = "UTC",
@@ -135,7 +146,7 @@ def detect_command(
             count = _write_json(alerts)
             _summary_json(parsed, len(rules), count, engine.stats)
         else:
-            count = _write_table(alerts, parsed, len(rules), engine.stats)
+            count = _write_table(alerts, parsed, len(rules), engine.stats, limit=limit)
     if parsed.stats.events == 0 and parsed.stats.errors > 0:
         raise typer.Exit(ExitCode.NO_EVENTS)
     if count and not exit_zero:
@@ -153,6 +164,7 @@ def parse_lateness(text: str) -> timedelta:
 
 
 def _write_json(alerts: Iterable[Alert]) -> int:
+    """Write each alert as soon as it is raised, so memory does not grow with the alerts."""
     count = 0
     out = sys.stdout
     for alert in alerts:
@@ -183,18 +195,46 @@ def _summary_json(parsed: ParsedInput, rules: int, alerts: int, stats: EngineSta
     typer.echo(json.dumps(summary), err=True)
 
 
-def _sorted(alerts: Iterable[Alert]) -> list[Alert]:
-    return sorted(
-        alerts,
-        key=lambda a: (a.first_seen, _SEVERITY_ORDER.get(a.severity.value, 9), a.detector_id),
-    )
+def _sort_key(alert: Alert) -> tuple[object, ...]:
+    return (alert.first_seen, _SEVERITY_ORDER.get(alert.severity.value, 9), alert.detector_id)
+
+
+class _Counted:
+    """Counts the alerts that pass through."""
+
+    def __init__(self, alerts: Iterable[Alert]) -> None:
+        self.alerts = alerts
+        self.count = 0
+
+    def __iter__(self) -> Iterator[Alert]:
+        for alert in self.alerts:
+            self.count += 1
+            yield alert
+
+
+def _first(alerts: Iterable[Alert], limit: int) -> tuple[list[Alert], int]:
+    """The ``limit`` earliest alerts in table order (all with 0) and how many there were.
+
+    Equal to ``sorted(alerts)[:limit]``, but holds at most ``limit`` alerts at a time.
+    """
+    counted = _Counted(alerts)
+    if limit == 0:
+        shown = sorted(counted, key=_sort_key)
+    else:
+        shown = heapq.nsmallest(limit, counted, key=_sort_key)
+    return shown, counted.count
 
 
 def _write_table(
-    alerts: Iterable[Alert], parsed: ParsedInput, rules: int, stats: EngineStats
+    alerts: Iterable[Alert],
+    parsed: ParsedInput,
+    rules: int,
+    stats: EngineStats,
+    *,
+    limit: int = DEFAULT_LIMIT,
 ) -> int:
     console = Console(highlight=False)
-    collected = _sorted(alerts)
+    collected, total = _first(alerts, limit)
     if collected:
         table = Table(title=f"Alerts in {parsed.name}")
         table.add_column("first seen (UTC)")
@@ -215,16 +255,23 @@ def _write_table(
                 detail,
             )
         console.print(table)
+        if total > len(collected):
+            console.print(
+                f"{total - len(collected):,} more alert(s) not shown: use --limit 0 for all, or "
+                "-f json, which writes each alert as it is raised."
+            )
     else:
         console.print("No alerts.")
     summary = Table(title="Detection summary", show_header=False)
     summary.add_column("metric")
     summary.add_column("value", justify="right")
     engine = _engine_counters(stats)
-    for key, value in _summary(parsed, rules, len(collected)).items():
+    for key, value in _summary(parsed, rules, total).items():
         summary.add_row(key.replace("_", " "), Text(str(value)))
+    if total > len(collected):
+        summary.add_row("alerts shown", Text(str(len(collected))))
     for key in _DROP_COUNTERS:
         if engine[key]:  # events that were not fully evaluated; silent when zero
             summary.add_row(key.replace("_", " "), Text(str(engine[key])))
     console.print(summary)
-    return len(collected)
+    return total

@@ -12,12 +12,19 @@ activity and the scenario's attack, each with its own seed and later in time, un
 
 For each run it records the wall-clock time, lines per second, the process's peak memory (peak
 resident set on Linux and macOS, peak working set on Windows) and the exit code, with the
-machine it ran on, in ``results/performance.json``. Then run
+machine it ran on, in ``results/performance.json``.
+
+``--alerts N`` instead measures an alert storm: an application log of ``N`` lines in which every
+line raises an alert (an admin role granted, from 762 addresses), through ``detect -f json``,
+the ``detect`` table and ``incidents``. Each must stay under :data:`STORM_BOUND_MIB` of peak
+memory, however many alerts there are; the result is merged into the ``alert_storm`` part of the
+results file and the other measurements are kept. Then run
 ``scripts/generate_results_table.py`` to update the tables in ``docs/PERFORMANCE.md`` and the
 README. The logs and outputs go to ``--work`` (git-ignored ``data/benchmark/`` by default) and are
 deleted afterwards unless ``--keep``.
 
     uv run --extra pipeline python scripts/benchmark.py [--lines 1000000]
+    uv run python scripts/benchmark.py --alerts 1000000
 """
 
 import argparse
@@ -52,6 +59,14 @@ LOGS = {
     "auth_log": ("ssh-bruteforce", 180, 1.5),
     "app_json": ("account-takeover", 1440, 60.0),
 }
+#: Peak memory every alert-storm run must stay under, in MiB.
+STORM_BOUND_MIB = 512
+#: The documentation address ranges, one address per alert in turn.
+STORM_ADDRESSES = tuple(
+    f"{network}.{host}"
+    for network in ("192.0.2", "198.51.100", "203.0.113")
+    for host in range(1, 255)
+)
 #: Chunks follow one another from here; auth_log has no year, and every log stays inside 2026.
 BASE = datetime(2026, 1, 1, tzinfo=UTC)
 YEAR = 2026
@@ -80,6 +95,58 @@ def build_log(parser: str, lines: int, path: Path) -> int:
                 written += 1
             chunk += 1
     return written
+
+
+def build_alert_storm(alerts: int, path: Path) -> int:
+    """Write an app log of ``alerts`` lines, each one an admin role grant (PRH-ADMIN-001)."""
+    with path.open("w", encoding="utf-8", newline="\n") as stream:
+        for n in range(alerts):
+            when = BASE + timedelta(milliseconds=100 * n)
+            record = {
+                "time": when.isoformat().replace("+00:00", "Z"),
+                "event": {"action": "admin.role.granted", "category": "admin"},
+                "source": {"ip": STORM_ADDRESSES[n % len(STORM_ADDRESSES)]},
+                "user": {"id": f"u-{n % 5000:04d}"},
+            }
+            stream.write(json.dumps(record, separators=(",", ":")) + "\n")
+    return alerts
+
+
+def _summary(work: Path, name: str) -> dict[str, Any]:
+    """The JSON summary a command printed last on standard error."""
+    lines = (work / f"{name}.err").read_text(encoding="utf-8", errors="replace").splitlines()
+    for line in reversed(lines):
+        if line.startswith("{"):
+            found: dict[str, Any] = json.loads(line)
+            return found
+    return {}
+
+
+def run_storm(alerts: int, work: Path) -> dict[str, Any]:
+    """Measure the commands on an alert storm; see the module documentation."""
+    work.mkdir(parents=True, exist_ok=True)
+    log = work / "alert-storm.jsonl"
+    build_alert_storm(alerts, log)
+    base = [log.as_posix(), "-p", "app_json", "--exit-zero"]
+    commands = {
+        "storm-detect-json": ["detect", *base, "-f", "json"],
+        "storm-detect-table": ["detect", *base],
+        "storm-incidents": ["incidents", *base, "-f", "json"],
+    }
+    runs = []
+    for name, args in commands.items():
+        found = measure(args, work, name)
+        summary = _summary(work, name)
+        found |= {
+            "lines": alerts,
+            "bytes": log.stat().st_size,
+            "lines_per_second": round(alerts / found["seconds"]),
+            "alerts": summary.get("alerts"),
+            "alerts_not_kept": summary.get("alerts_not_kept", 0),
+            "within_bound": found["peak_memory_mib"] <= STORM_BOUND_MIB,
+        }
+        runs.append(found)
+    return {"alerts": alerts, "bound_mib": STORM_BOUND_MIB, "runs": runs}
 
 
 def _peak_windows(process: subprocess.Popen[bytes]) -> int:
@@ -209,20 +276,57 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--work", type=Path, default=DEFAULT_WORK, help="directory for the logs")
     parser.add_argument("--no-pipeline", action="store_true", help="skip the lite-mode replay")
     parser.add_argument("--keep", action="store_true", help="keep the logs and outputs")
+    parser.add_argument(
+        "--alerts", type=int, default=0, help="measure an alert storm of this many alerts instead"
+    )
     args = parser.parse_args(argv)
     if args.lines < 1:
         parser.error("--lines must be positive")
+    if args.alerts < 0:
+        parser.error("--alerts must not be negative")
+    if args.alerts:
+        return _storm_main(args.alerts, args.out, args.work, keep=args.keep)
     try:
         results = run(args.lines, args.work, pipeline=not args.no_pipeline)
     finally:
         if not args.keep:
             shutil.rmtree(args.work, ignore_errors=True)
     failed = [r["name"] for r in results["runs"] if r["exit_code"] != 0]
+    previous = _load(args.out)
+    if previous is not None and "alert_storm" in previous:
+        results["alert_storm"] = previous["alert_storm"]  # measured separately; keep it
     args.out.parent.mkdir(parents=True, exist_ok=True)
     args.out.write_text(json.dumps(results, indent=2) + "\n", encoding="utf-8", newline="\n")
     print(f"wrote {args.out}")
     if failed:
         print(f"failed: {', '.join(failed)}", file=sys.stderr)
+        return 1
+    return 0
+
+
+def _load(path: Path) -> dict[str, Any] | None:
+    if not path.exists():
+        return None
+    found: dict[str, Any] = json.loads(path.read_text(encoding="utf-8"))
+    return found
+
+
+def _storm_main(alerts: int, out: Path, work: Path, *, keep: bool) -> int:
+    try:
+        storm = run_storm(alerts, work)
+    finally:
+        if not keep:
+            shutil.rmtree(work, ignore_errors=True)
+    results = _load(out)
+    if results is None:
+        print(f"{out} does not exist yet: run the main benchmark first", file=sys.stderr)
+        return 1
+    results["alert_storm"] = storm | {"date": datetime.now(UTC).date().isoformat()}
+    out.write_text(json.dumps(results, indent=2) + "\n", encoding="utf-8", newline="\n")
+    print(f"wrote {out}")
+    bad = [r["name"] for r in storm["runs"] if r["exit_code"] != 0 or not r["within_bound"]]
+    if bad:
+        print(f"failed or over {STORM_BOUND_MIB} MiB: {', '.join(bad)}", file=sys.stderr)
         return 1
     return 0
 

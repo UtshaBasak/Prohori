@@ -191,3 +191,26 @@ def test_dst_fall_back_hour_loses_no_events() -> None:
     assert summary["events"] == 6
     assert summary["engine"]["events_evaluated"] == 6
     assert summary["engine"]["late_events"] == 0
+
+
+def test_table_limit_shows_the_earliest_alerts_and_counts_the_rest() -> None:
+    code, out, _ = run(str(SAMPLES / "access.log"), "--limit", "1")
+    assert code == ExitCode.ALERTS_FOUND
+    assert "1 more alert(s) not shown" in out
+    assert re.search(r"alerts\W+2\b", out)
+    assert re.search(r"alerts shown\W+1\b", out)
+    code, out, _ = run(str(SAMPLES / "access.log"), "--limit", "0")
+    assert "not shown" not in out
+    assert "alerts shown" not in out
+
+
+def test_limit_selection_equals_sorting_then_slicing() -> None:
+    from prohori.cli.detect import _first, _sort_key
+    from tests.unit.incidents.factories import alert, at
+
+    alerts = [alert(f"R-{n % 3}", start=at(n % 4)) for n in range(12)]
+    for limit in (1, 5, 12, 20):
+        shown, total = _first(iter(alerts), limit)
+        assert total == 12
+        assert shown == sorted(alerts, key=_sort_key)[:limit]
+    assert _first(iter(alerts), 0) == (sorted(alerts, key=_sort_key), 12)
