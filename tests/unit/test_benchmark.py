@@ -3,7 +3,10 @@
 """The benchmark script on tiny logs: log building, measuring a real process, the tables."""
 
 import json
+import tempfile
 from pathlib import Path
+
+import pytest
 
 from scripts import benchmark, generate_results_table
 
@@ -40,7 +43,12 @@ def test_a_small_run_measures_real_processes(tmp_path: Path) -> None:
     assert generate_results_table.render_performance_summary(None) == "No performance results yet."
 
 
-def test_alert_storm_is_measured_against_a_fixed_bound(tmp_path: Path) -> None:
+def test_alert_storm_is_measured_against_a_fixed_bound(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # On Linux a child's peak memory can include its parent's from before exec, and the parent
+    # here is the whole test run; the bound itself is checked by running the script directly.
+    monkeypatch.setattr(benchmark, "STORM_BOUND_MIB", 1_000_000)
     log = tmp_path / "storm.jsonl"
     assert benchmark.build_alert_storm(20, log) == 20
     records = [json.loads(line) for line in log.read_text(encoding="utf-8").splitlines()]
@@ -52,7 +60,7 @@ def test_alert_storm_is_measured_against_a_fixed_bound(tmp_path: Path) -> None:
     results = json.loads(out.read_text(encoding="utf-8"))
     assert results["kept"] is True  # the other measurements stay
     storm = results["alert_storm"]
-    assert storm["bound_mib"] == benchmark.STORM_BOUND_MIB
+    assert storm["bound_mib"] == 1_000_000
     assert [r["name"] for r in storm["runs"]] == [
         "storm-detect-json",
         "storm-detect-table",
@@ -67,3 +75,15 @@ def test_alert_storm_is_measured_against_a_fixed_bound(tmp_path: Path) -> None:
 def test_alert_storm_needs_an_existing_results_file(tmp_path: Path) -> None:
     missing = tmp_path / "none.json"
     assert benchmark.main(["--alerts", "5", "--out", str(missing), "--work", str(tmp_path)]) == 1
+
+
+def test_output_paths_must_stay_in_the_repository_or_temp(tmp_path: Path) -> None:
+    assert benchmark.contained(tmp_path / "x") == (tmp_path / "x").resolve()
+    assert benchmark.contained(benchmark.DEFAULT_OUT) == benchmark.DEFAULT_OUT.resolve()
+    outside = Path(benchmark.ROOT.anchor) / "not-prohori-benchmark-target"
+    if outside.resolve().is_relative_to(Path(tempfile.gettempdir()).resolve()):
+        pytest.skip("the temporary directory is the filesystem root")
+    with pytest.raises(ValueError, match="inside the repository"):
+        benchmark.contained(outside)
+    with pytest.raises(SystemExit):
+        benchmark.main(["--alerts", "1", "--work", str(outside)])

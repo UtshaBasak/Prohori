@@ -18,10 +18,11 @@ machine it ran on, in ``results/performance.json``.
 line raises an alert (an admin role granted, from 762 addresses), through ``detect -f json``,
 the ``detect`` table and ``incidents``. Each must stay under :data:`STORM_BOUND_MIB` of peak
 memory, however many alerts there are; the result is merged into the ``alert_storm`` part of the
-results file and the other measurements are kept. Then run
-``scripts/generate_results_table.py`` to update the tables in ``docs/PERFORMANCE.md`` and the
-README. The logs and outputs go to ``--work`` (git-ignored ``data/benchmark/`` by default) and are
-deleted afterwards unless ``--keep``.
+results file and the other measurements are kept. Run it directly, as below: on Linux a child's
+peak memory includes its parent's from before ``exec``, so a large parent inflates the numbers.
+Then run ``scripts/generate_results_table.py`` to update the tables in ``docs/PERFORMANCE.md``
+and the README. The logs and outputs go to ``--work`` (git-ignored ``data/benchmark/`` by
+default) and are deleted afterwards unless ``--keep``.
 
     uv run --extra pipeline python scripts/benchmark.py [--lines 1000000]
     uv run python scripts/benchmark.py --alerts 1000000
@@ -37,6 +38,7 @@ import random
 import shutil
 import subprocess
 import sys
+import tempfile
 import time
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
@@ -280,6 +282,11 @@ def main(argv: list[str] | None = None) -> int:
         "--alerts", type=int, default=0, help="measure an alert storm of this many alerts instead"
     )
     args = parser.parse_args(argv)
+    try:
+        args.out = contained(args.out)
+        args.work = contained(args.work)
+    except ValueError as exc:
+        parser.error(str(exc))
     if args.lines < 1:
         parser.error("--lines must be positive")
     if args.alerts < 0:
@@ -302,6 +309,20 @@ def main(argv: list[str] | None = None) -> int:
         print(f"failed: {', '.join(failed)}", file=sys.stderr)
         return 1
     return 0
+
+
+def contained(path: Path) -> Path:
+    """``path`` resolved, if it is inside the repository or the system's temporary directory.
+
+    The work directory is deleted afterwards and the results file overwritten, so neither may
+    point anywhere else.
+    """
+    resolved = path.resolve()
+    roots = (ROOT.resolve(), Path(tempfile.gettempdir()).resolve())
+    if not any(resolved.is_relative_to(root) for root in roots):
+        msg = f"{path} must be inside the repository or the temporary directory"
+        raise ValueError(msg)
+    return resolved
 
 
 def _load(path: Path) -> dict[str, Any] | None:
