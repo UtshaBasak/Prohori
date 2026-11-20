@@ -57,8 +57,10 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   and such lines are counted in the new `ambiguous_times` statistic. Sample:
   `samples/logs/auth-dst.log` (6 events, none late).
 - **Bounded memory for huge alert counts.** `prohori incidents` and `triage` held every alert of
-  a run. They now keep at most 1,000 per rule and entities and 20,000 in all; an incident that
-  lost alerts says how many in its limitations, and the JSON summary reports `alerts_not_kept`.
+  a run. They now keep at most 1,000 per rule and entities and 10,000 of each severity (so a
+  flood of low or medium alerts cannot crowd out a critical one); an incident that lost alerts
+  says how many in its limitations, and the JSON summary reports `alerts_not_kept`. The `detect`
+  table counts the alerts it does not show by severity.
   Ordinary runs are unchanged (the simulator's busiest rule and entities raise 14).
 - **A restarted pipeline gives the same alerts and incidents as the live run.** The detector's
   idle flush and the incident stage's idle close (and both end-of-run releases) depended on

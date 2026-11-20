@@ -162,6 +162,11 @@ Invalid dates (for example `Feb 29` in a non-leap year) are counted as errors.
   the whole first occurrence, is read as the first; and a line more than ten minutes out of
   order inside the repeated hour is read as the second. Use `--timezone UTC` for hosts that log
   in UTC.
+- The choice depends on the previous line, and the event id contains the timestamp. If the
+  streaming pipeline's normaliser restarts in the middle of the repeated hour with a batch not
+  yet committed, a redelivered line is read without the line before it, can land in the other
+  occurrence and is then stored as a second event. The window is one hour a year and needs a
+  restart inside it.
 
 ### Example
 

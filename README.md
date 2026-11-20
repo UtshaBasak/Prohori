@@ -590,7 +590,10 @@ Prohori is honest about what it does not do:
   [How well the rules work](#how-well-the-rules-work). When sshd logs host names, an attacker who
   controls their reverse DNS can change the name to split the count.
 - **Very large alert counts are trimmed.** `incidents` and `triage` keep at most 1,000 alerts per
-  rule and entities (20,000 in all) and say in the incident how many more there were.
+  rule and entities and 10,000 of each severity, and say in the incident how many more there
+  were. A flood of medium alerts cannot crowd out a critical one, but once 10,000 alerts of one
+  severity are kept, later alerts of that severity form no new incident (the summary counts
+  them); the `detect` table likewise lists the hidden alerts by severity.
 - **Some rules are noisy by design.** PRH-ACCT-001 flags every sensitive change shortly after a
   sign-in, including the owner's own; incidents list such benign causes as limitations.
 - **The evaluation is synthetic** and written by the rules' author. Test the rules on your own

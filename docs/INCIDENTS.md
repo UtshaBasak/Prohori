@@ -132,7 +132,10 @@ Each incident lists what weakens its evidence, for example:
 `prohori incidents` and `triage` collect a run's alerts before grouping them, so a log that
 raises millions of alerts (a scanner tripping a single-event rule on every request) could fill
 memory. Since 1.1 a run keeps at most 1,000 alerts per rule and set of entities (the first ones)
-and 20,000 in all, and counts the rest. An incident whose rule and entities lost alerts says how
+and 10,000 of each severity, and counts the rest. Each severity has its own budget, so a flood
+of low or medium alerts cannot use up the room a later critical alert needs; but once 10,000
+alerts of one severity are kept, later alerts of that severity are only counted, and those under
+new entities form no incident. An incident whose rule and entities lost alerts says how
 many in its limitations; the JSON summary gives the total as `alerts_not_kept`, and the table
 output and the triage summary mention it. The limits are far above what the simulator and the
 samples produce (at most 14 alerts per rule and entities), so ordinary runs are unchanged. The

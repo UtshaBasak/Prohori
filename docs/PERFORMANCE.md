@@ -51,9 +51,9 @@ Lite mode's state directory (topics, positions and the DuckDB warehouse) grew to
 
 | Run | Time | Peak memory | Alerts not kept | Within the bound |
 | ----- | -----: | ------: | ------: | ----- |
-| `detect -f json` (writes each alert as it is raised) | 148.7 s | 68 MiB | 0 | yes |
-| `detect` table (shows the first 100, counts the rest) | 131.3 s | 68 MiB | 0 | yes |
-| `incidents` (keeps a bounded number of alerts) | 146.9 s | 201 MiB | 1,340,000 | yes |
+| `detect -f json` (writes each alert as it is raised) | 152.1 s | 68 MiB | 0 | yes |
+| `detect` table (shows the first 100, counts the rest) | 128.6 s | 68 MiB | 0 | yes |
+| `incidents` (keeps a bounded number of alerts) | 146.4 s | 202 MiB | 1,340,000 | yes |
 <!-- performance:end -->
 
 ## What the numbers mean
@@ -67,7 +67,8 @@ Lite mode's state directory (topics, positions and the DuckDB warehouse) grew to
 - **Alerts do not fill memory.** In the alert storm, memory stays flat however many alerts a
   log raises: `detect -f json` writes each alert as it is raised, the `detect` table keeps only
   the alerts it shows (`--limit`, 100 by default), and `incidents` keeps at most 1,000 alerts per
-  rule and entities and 20,000 in all, saying in each incident how many it did not keep (see
+  rule and entities and 10,000 of each severity, saying in each incident how many it did not
+  keep (see
   [INCIDENTS.md](INCIDENTS.md#bounded-alerts)).
 - **Lite mode is slower than the batch command.** Every stage validates, serialises and writes
   each message to a topic file and syncs it, and the sink writes every row to DuckDB; that is

@@ -1451,7 +1451,9 @@ alert. And `prohori incidents` and `triage` held every alert of a run in memory,
   in the first pass stay there. Ambiguity is detected by comparing the two offsets (fold 0 has
   the larger one only in the repeated hour, so the skipped hour in spring is unchanged), and UTC
   skips the check. Ambiguous lines are counted in a new `ParseStats.ambiguous_times`, which
-  changes the JSON statistics (one more key) but no golden file.
+  changes the JSON statistics (one more key) but no golden file. Because the event id contains
+  the timestamp, a streaming normaliser restarted inside the repeated hour can read a
+  redelivered line without its predecessor and store it twice; documented in PARSERS.md.
 - **Host names** get an optional schema field, `source.host`, rather than a rule-level fallback
   over `extra.source_host`: that field holds whatever the log put in the address position, and
   the app logs' `unknown` would have become one shared group key, a false brute-force alert.
@@ -1465,19 +1467,26 @@ alert. And `prohori incidents` and `triage` held every alert of a run in memory,
   PRH-AUTH-001, -002, -003 and PRH-SSH-001 use `[[source.ip, source.host]]`, which changes their
   file hashes (goldens, the sample incident and the examples were regenerated).
 - **Everywhere a source address is handled, a host name is too:** incidents link on
-  `source.host` with the shared-address cap; the timeline says `from <host>`; `--redact-ips` and
+  `source.host` with the shared-address cap; `--redact-ips` and
   `--mask-ips` pseudonymise host names as `[host:...]`, because reverse-DNS names often contain
-  the address (tested with `203-0-113-9.dyn.isp.example`); answers may cite them. The warehouse
-  gets no new column: the stored JSON record carries the field.
+  the address (tested with `203-0-113-9.dyn.isp.example`); answers may cite them. Redaction
+  collects host names from the entities, so incident text only names a host where it is an
+  entity (a group key, or a single-event rule's field): the timeline says "from" an address but
+  never a host name, since an incident about several hosts would not list them all as entities.
+  The warehouse gets no new column: the stored JSON record carries the field.
 - **Bounded alert output.** The `detect` table keeps only the `--limit` earliest alerts (default
   100) with `heapq.nsmallest`, which equals sorting and slicing; the summary and exit code use
   the total. JSON output already streamed. `incidents` and `triage` keep at most 1,000 alerts per
-  rule and entities (the first ones) and 20,000 in all, and count the rest; an incident whose
-  rule and entities lost alerts says how many in its limitations, and the run's summary gives
-  `alerts_not_kept`. The plan asked for a cap per incident group, but groups are only known once
-  every alert is in; a cap per rule and entities is the closest bound that can be applied while
-  the alerts arrive, and the overall cap makes the memory bound hold when there are many
-  attackers too. The limits are far above what the simulator produces (at most 14 alerts per
+  rule and entities (the first ones) and 10,000 of each severity, and count the rest; an
+  incident whose rule and entities lost alerts says how many in its limitations, and the run's
+  summary gives `alerts_not_kept`. The plan asked for a cap per incident group, but groups are
+  only known once every alert is in; a cap per rule and entities is the closest bound that can
+  be applied while the alerts arrive, and the per-severity budgets make the memory bound hold
+  when there are many attackers too. One shared overall budget was rejected: first come, first
+  kept, it would let about twenty addresses re-triggering a medium rule fill it, after which a
+  critical PRH-AUTH-003 would be dropped like noise. With a budget per severity, a flood can only
+  crowd out alerts of its own severity. The `detect` table's note counts the hidden alerts by
+  severity for the same reason. The limits are far above what the simulator produces (at most 14 alerts per
   rule and entities across all scenarios, both variants and three seeds), so ordinary results
   are unchanged.
 - **Measured, not assumed:** `scripts/benchmark.py --alerts N` builds a log in which every line
@@ -1488,7 +1497,9 @@ alert. And `prohori incidents` and `triage` held every alert of a run in memory,
 **Consequences.** An attacker who controls the reverse DNS of their addresses can rotate host
 names to split counts, and one machine seen both by address and by name is counted twice; both
 are stated in RULES.md. A run that exceeds the alert limits gives incidents built from part of
-the alerts; their scores can be lower than with every alert, and the incidents say so. The
+the alerts; their scores can be lower than with every alert, and the incidents say so. Once a
+severity's budget is used up, later alerts of that severity about new entities form no incident
+at all; only the run's summary counts them. The
 streaming pipeline does not apply the limits (its incident stage releases alerts as their
 incidents close), so above them stream and batch differ. `--models` still holds every event,
 because the anomaly detectors compare a whole log with itself.
