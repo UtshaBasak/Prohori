@@ -1413,7 +1413,8 @@ not hold (found in the 1.0.1 review, ADR-0032):
 **Verification.** A Hypothesis property test (fixed seed, 200 examples per transport) drives
 random scripts of event bursts (out of order, some too late), brute-force runs, stage turns in
 random order with random batch sizes, idle flushes and idle closes, over the memory, file and
-fake Kafka transports; a rebuild from offset 0 must publish the same alert and incident ids.
+fake Kafka transports; a rebuild from offset 0 must publish the same alerts and incidents,
+compared as whole messages (timelines, scores and provenance included), not only their ids.
 Run against the previous stage code, it fails on all three transports. The audit repro is a
 test of its own, and stream == batch still holds for every simulator scenario.
 

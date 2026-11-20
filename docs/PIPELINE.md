@@ -145,7 +145,8 @@ committed position is a byte offset in `.prohori/pipeline/offsets/`.
   something and is not already waiting for one. Topics written by 1.0 have no markers and
   replay as before. A property test drives random interleavings of events, idle periods, batch
   sizes and stage turns over the memory, file and Kafka transports and checks that a rebuild
-  from offset 0 publishes the same alert and incident ids (`tests/unit/pipeline/test_rebuild.py`).
+  from offset 0 publishes the same alerts and incidents, message for message
+  (`tests/unit/pipeline/test_rebuild.py`).
 - **A torn write is contained.** If the process dies halfway through writing a message, readers
   stop before the unfinished line. The next writer ends it with a newline, so it becomes one
   malformed message (a dead letter) instead of corrupting the next one.

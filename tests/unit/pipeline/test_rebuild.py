@@ -68,16 +68,18 @@ def _transport(kind: str) -> Iterator[Transport]:
         yield KafkaTransport("broker:9092", kafka=fake_kafka(Broker()))
 
 
-def _ids(transport: Transport, topic: Topic, group: str) -> list[str]:
-    """Ids of the alerts or incidents published since ``group`` last read ``topic``."""
-    ids: list[str] = []
+def _published(transport: Transport, topic: Topic, group: str) -> list[dict[str, Any]]:
+    """Alerts or incidents published since ``group`` last read ``topic``, sorted by id."""
+    found: list[dict[str, Any]] = []
     for records in transport.batches_to_end(topic, group, 1000):
-        for record in records:
-            if record.value is not None and "control" not in record.value:
-                ids.append(str(record.value["id"]))
+        found.extend(r.value for r in records if r.value is not None and "control" not in r.value)
         if records:
             transport.commit(records[-1], group)
-    return ids
+    return sorted(found, key=lambda value: str(value["id"]))
+
+
+def _ids(transport: Transport, topic: Topic, group: str) -> list[str]:
+    return [str(value["id"]) for value in _published(transport, topic, group)]
 
 
 class Live:
@@ -191,15 +193,16 @@ def test_rebuild_from_offset_zero_matches_the_live_run(
         live = Live(transport)
         _play(live, script)
         live.finish()
-        live_alerts = _ids(transport, Topic.ALERTS, "check")
-        live_incidents = _ids(transport, Topic.INCIDENTS, "check")
+        live_alerts = _published(transport, Topic.ALERTS, "check")
+        live_incidents = _published(transport, Topic.INCIDENTS, "check")
         event(f"alerts: {'yes' if live_alerts else 'no'}")
         event(f"incidents: {min(len(live_incidents), 3)}")
         event(f"late events: {'yes' if live.detector.engine_counts['late_events'] else 'no'}")
 
         _rebuild(transport)
-        assert sorted(_ids(transport, Topic.ALERTS, "check")) == sorted(live_alerts)
-        assert sorted(_ids(transport, Topic.INCIDENTS, "check")) == sorted(live_incidents)
+        # The whole messages, not only the ids: an incident's timeline, score and provenance too.
+        assert _published(transport, Topic.ALERTS, "check") == live_alerts
+        assert _published(transport, Topic.INCIDENTS, "check") == live_incidents
 
 
 # ------------------------------------------------------------------ the audit repro
