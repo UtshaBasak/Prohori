@@ -86,6 +86,7 @@ class TestCombinedFormat:
         event = one('proxy.example - - [24/Oct/2026:13:43:00 +0000] "GET / HTTP/1.1" 200 2')
         assert event.source.ip is None
         assert event.extra["source_host"] == "proxy.example"
+        assert event.source.host == "proxy.example"
 
     def test_trailing_fields_ignored(self) -> None:
         event = one(f'{LINE} "203.0.113.99" rt=0.004')

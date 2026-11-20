@@ -22,6 +22,11 @@ from prohori.schema.types import (
 
 #: Dotted, lower-case action names such as ``auth.signin.failure``.
 ACTION_PATTERN = r"^[a-z0-9_]+(\.[a-z0-9_]+)*$"
+#: A fully qualified host name in lower case, without the trailing dot (at least two labels).
+HOSTNAME_PATTERN = (
+    r"^(?:[a-z0-9_](?:[a-z0-9_-]{0,61}[a-z0-9_])?\.)+"
+    r"[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$"
+)
 
 
 class EventInfo(BaseModel):
@@ -42,6 +47,9 @@ class SourceInfo(BaseModel):
     model_config = MODEL_CONFIG
 
     ip: IPvAnyAddress | None = None
+    #: The remote host's name when the log has a name instead of an address (sshd with
+    #: ``UseDNS yes``). Attacker-influenced: whoever controls the address's reverse DNS picks it.
+    host: Annotated[str, Field(pattern=HOSTNAME_PATTERN, max_length=253)] | None = None
 
 
 class UserInfo(BaseModel):

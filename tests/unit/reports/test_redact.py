@@ -210,3 +210,33 @@ def test_enrichment_data_is_redacted_and_checked() -> None:
     assert "203.0.113.0" in redactor.replaced
     assert find_leaks(text, redactor.replaced) == []
     assert '"enrichment": "offline"' in text.replace('":"', '": "')  # the run's mode is kept
+
+
+def test_host_names_logged_instead_of_addresses_are_redacted_with_ips() -> None:
+    """Reverse-DNS names often contain the address, so --redact-ips must cover them too."""
+    host = "203-0-113-9.dyn.isp.example"
+    lines = [
+        f"Oct 24 13:50:{s:02d} web01 sshd[9]: Failed password for root from {host} port {s} ssh2"
+        for s in range(0, 40, 2)
+    ]
+    events = list(get_parser("auth_log", year=2026).parse(iter_text_lines(lines), source="a"))
+    rules = [r.rule for r in load_rules([builtin_rules_dir()]) if r.rule is not None]
+    context = EventContext()
+    engine = RuleEngine(rules, reference_time=datetime(2026, 10, 27, tzinfo=UTC))
+    alerts = list(engine.run(context.observe(events)))
+    (incident,) = build_incidents(alerts, rules, context=context)
+    assert incident.entities["source.host"] == (host,)
+    kept = Redactor(KEY).redact(incident)  # addresses and hosts are kept without --redact-ips
+    assert host in kept.model_dump_json()
+    redactor = Redactor(KEY, ips=True)
+    redacted = redactor.redact(incident)
+    for fmt in ReportFormat:
+        text = render(redacted, fmt)
+        assert host not in text
+        assert "203-0-113-9" not in text
+        if fmt is ReportFormat.HTML:  # the shown text, not the page's CSS (":root")
+            text = html.unescape(
+                re.sub(r"<[^>]+>", " ", re.sub(r"(?s)<style>.*?</style>", "", text))
+            )
+        assert find_leaks(text, redactor.replaced) == []
+    assert any(v.startswith("[host:") for v in redactor.replaced.values())

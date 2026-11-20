@@ -27,7 +27,7 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from prohori.parsers.base import LineParser, ParseError, ParseStats, RawLine
 from prohori.parsers.registry import register
-from prohori.parsers.util import normalise_ip
+from prohori.parsers.util import normalise_host, normalise_ip
 from prohori.schema import Event, EventCategory, EventInfo, Outcome, event_id
 
 #: How far an ambiguous local time may go back before the previous line and still be read as
@@ -323,11 +323,12 @@ class _EventBuilder:
         fields: dict[str, str | int | bool | None] = {}
         if self.pid is not None:
             fields["pid"] = int(self.pid)
-        ip = None
+        ip = host = None
         if addr is not None:
             ip = normalise_ip(addr)
             if ip is None:  # sshd with UseDNS logs host names instead of addresses
                 fields["source_host"] = addr
+                host = normalise_host(addr)
         fields.update(extra or {})
         return Event.model_validate(
             {
@@ -337,7 +338,7 @@ class _EventBuilder:
                 "event": EventInfo(
                     action=action, category=category, outcome=outcome, reason=reason
                 ),
-                "source": {"ip": ip},
+                "source": {"ip": ip, "host": host},
                 "user": {"name": user},
                 "host": self.host,
                 "raw": self.raw,

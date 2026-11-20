@@ -6,6 +6,7 @@ status: stable
 severity: high
 description: >-
   At least 10 failed sign-ins (web app or SSH) from a single source IP within 5 minutes.
+  When sshd logs a host name instead of an address (UseDNS), the host name is the source.
 author: Prohori
 tags: [attack.credential_access, attack.t1110, attack.t1110.001]
 logsource: {category: authentication}
@@ -13,7 +14,7 @@ detection:
   selection:
     event.action: [auth.signin.failure, ssh.login.failure]
   aggregate:
-    group_by: [source.ip]
+    group_by: [[source.ip, source.host]]
     window: 5m
     count_gte: 10
   condition: selection and aggregate

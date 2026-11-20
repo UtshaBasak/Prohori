@@ -157,3 +157,19 @@ def test_no_alerts() -> None:
 def test_alert_without_links_is_its_own_incident() -> None:
     lonely: Alert = alert("R-A")
     assert _ids(group_alerts([lonely, alert("R-B")])) == [["R-A"], ["R-B"]]
+
+
+def test_host_names_link_alerts_and_obey_the_shared_address_cap() -> None:
+    linked = [
+        alert("R-A", start=at(0), entities={"source.host": "scanner.example"}),
+        alert("R-B", start=at(5), entities={"source.host": "scanner.example"}),
+        alert("R-C", start=at(6), entities={"source.host": "other.example"}),
+    ]
+    assert sorted(len(g.alerts) for g in group_alerts(linked)) == [1, 2]
+    shared = [
+        alert(f"R-{n}", start=at(n), entities={"source.host": "nat.example", "user.id": f"u-{n}"})
+        for n in range(6)
+    ]
+    groups = group_alerts(shared, max_ip_fanout=3)
+    assert [len(g.alerts) for g in groups] == [3, 1, 1, 1]
+    assert groups[0].shared_ips == (("nat.example", 4),)

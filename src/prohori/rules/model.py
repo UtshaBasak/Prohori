@@ -88,6 +88,8 @@ def _timezone(value: str) -> str:
 
 
 FieldPath = Annotated[str, AfterValidator(_field_path)]
+#: A ``group_by`` / ``by`` entry: one field, or two or three alternatives (the first with a value).
+GroupField = FieldPath | Annotated[list[FieldPath], Field(min_length=2, max_length=3)]
 Duration = Annotated[timedelta, Field(json_schema_extra={"format": "duration"})]
 Tag = Annotated[str, Field(pattern=TAG_PATTERN, max_length=64), AfterValidator(_tag)]
 RunbookPath = Annotated[str, Field(max_length=200), AfterValidator(_runbook_path)]
@@ -146,7 +148,7 @@ class AggregateSpec(BaseModel):
 
     model_config = _CONFIG
 
-    group_by: Annotated[list[FieldPath], Field(min_length=1, max_length=5)]
+    group_by: Annotated[list[GroupField], Field(min_length=1, max_length=5)]
     window: Duration
     mode: WindowMode = WindowMode.SLIDING
     count_gte: Annotated[int, Field(ge=1, le=100_000)] | None = None
@@ -181,7 +183,7 @@ class SequenceSpec(BaseModel):
 
     model_config = _CONFIG
 
-    by: Annotated[list[FieldPath], Field(min_length=1, max_length=5)]
+    by: Annotated[list[GroupField], Field(min_length=1, max_length=5)]
     within: Duration
     steps: Annotated[list[SequenceStep], Field(min_length=2, max_length=5)]
 

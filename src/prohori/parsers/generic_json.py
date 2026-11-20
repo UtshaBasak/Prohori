@@ -33,7 +33,13 @@ from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_valida
 
 from prohori.parsers.base import LineParser, ParseError
 from prohori.parsers.registry import register
-from prohori.parsers.util import as_text, get_path, load_json_object, normalise_ip
+from prohori.parsers.util import (
+    as_text,
+    get_path,
+    load_json_object,
+    normalise_host,
+    normalise_ip,
+)
 from prohori.schema import FIELD_PATHS, Event, event_id
 
 #: Largest mapping file accepted, in bytes.
@@ -157,7 +163,10 @@ class GenericJsonParser(LineParser):
             ip = normalise_ip(str(ip_value))
             if ip is None:
                 extra["source_host"] = str(ip_value)
+                nested["source"].setdefault("host", str(ip_value))
             nested["source"]["ip"] = ip
+        if nested["source"].get("host") is not None:  # mapped, or a name in the address field
+            nested["source"]["host"] = normalise_host(str(nested["source"]["host"]))
         for key, path in self.mapping.extra.items():
             value = get_path(record, path)
             if isinstance(value, str | int | float | bool) or value is None:

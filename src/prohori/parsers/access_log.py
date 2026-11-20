@@ -17,7 +17,7 @@ from datetime import UTC, datetime, timedelta, timezone
 
 from prohori.parsers.base import LineParser, ParseError, sanitize
 from prohori.parsers.registry import register
-from prohori.parsers.util import normalise_ip
+from prohori.parsers.util import normalise_host, normalise_ip
 from prohori.schema import Event, EventCategory, EventInfo, Outcome, event_id
 
 _QUOTED = r'"(?P<{name}>(?:[^"\\]|\\.)*)"'
@@ -162,7 +162,7 @@ class AccessLogParser(LineParser):
                     category=EventCategory.WEB,
                     outcome=Outcome.FAILURE if status >= 400 else Outcome.SUCCESS,
                 ),
-                "source": {"ip": ip},
+                "source": {"ip": ip, "host": None if ip else normalise_host(groups["ip"])},
                 "user": {"name": _optional(groups.get("user"))},
                 "http": {
                     "method": method,

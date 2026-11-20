@@ -6,7 +6,8 @@ status: stable
 severity: critical
 description: >-
   At least 5 failed sign-ins followed by a successful one from the same source IP within
-  15 minutes: the attacker probably found a valid password.
+  15 minutes: the attacker probably found a valid password. When sshd logs a host name
+  instead of an address (UseDNS), the host name is the source.
 author: Prohori
 tags: [attack.credential_access, attack.initial_access, attack.t1110, attack.t1078]
 logsource: {category: authentication}
@@ -16,7 +17,7 @@ detection:
   success:
     event.action: [auth.signin.success, ssh.login.success]
   sequence:
-    by: [source.ip]
+    by: [[source.ip, source.host]]
     within: 15m
     steps:
       - {selection: failure, count_gte: 5}

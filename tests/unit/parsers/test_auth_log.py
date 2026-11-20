@@ -301,6 +301,17 @@ class TestSshdDetails:
         event = one(f"{HDR} sshd[1]: Failed password for root from scanner.example port 2 ssh2")
         assert event.source.ip is None
         assert event.extra["source_host"] == "scanner.example"
+        assert event.source.host == "scanner.example"
+
+    def test_hostname_is_normalised_and_placeholders_are_not_hosts(self) -> None:
+        upper = one(f"{HDR} sshd[1]: Failed password for root from Scanner.EXAMPLE. port 2 ssh2")
+        assert upper.source.host == "scanner.example"
+        assert upper.extra["source_host"] == "Scanner.EXAMPLE."  # as logged, unchanged from 1.0
+        bare = one(f"{HDR} sshd[1]: Failed password for root from UNKNOWN port 2 ssh2")
+        assert bare.source.host is None
+        assert bare.extra["source_host"] == "UNKNOWN"
+        address = one(f"{HDR} sshd[1]: Failed password for root from 203.0.113.7 port 2 ssh2")
+        assert address.source.host is None
 
     def test_unrelated_sshd_message_skipped(self) -> None:
         events, stats = parse(f"{HDR} sshd[1]: Server listening on 0.0.0.0 port 22.")
