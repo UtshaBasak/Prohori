@@ -54,7 +54,9 @@ gives the same report, which the golden-file tests rely on.
 ## Redaction
 
 `--redact` replaces account names, user ids, email hashes and email addresses; `--redact-ips` also
-replaces IP addresses (including networks such as `203.0.113.0/24`).
+replaces IP addresses (including networks such as `203.0.113.0/24`) and the host names logged
+instead of an address (`source.host`, pseudonyms such as `[host:3b9e0c21aa]`), because reverse-DNS
+names often contain the address (`203-0-113-9.dyn.example`).
 
 - Values become **keyed pseudonyms** such as `[user:fb05937cd0]`: the first 10 hex digits of an
   HMAC-SHA256 with a random key made for each run and never stored. One account keeps one

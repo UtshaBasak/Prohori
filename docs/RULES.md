@@ -37,6 +37,7 @@ prohori detect app.jsonl --rules my-rules/ --no-builtin
 | `--format table\|json` | Table of alerts and a summary, or JSON Lines alerts on stdout with a JSON summary on stderr |
 | `--lateness 5m` | How far out of order events may arrive and still count (default `5m`; `0` for none). Later events are dropped and counted as late |
 | `--exit-zero` | Exit 0 even when alerts are found |
+| `--limit 100` | Table only: show at most this many alerts (the earliest) and count the rest; `0` shows all. The table keeps at most this many alerts in memory, so a log with millions of alerts stays cheap to scan. JSON output always has every alert and writes each one as it is raised |
 | `--parser`, `--year`, `--timezone`, `--mapping`, `--pattern`, `--keep-query` | As for `prohori parse` |
 
 Exit codes: `0` no alerts, `3` alerts found, `1` every non-blank line failed to parse or a rule
@@ -52,9 +53,9 @@ verified ATT&CK tags.
 
 | Id | Severity | Detects | Logic |
 | ---- | ---------- | --------- | ------- |
-| PRH-AUTH-001 | high | Brute-force sign-ins from one IP | >= 10 app or SSH sign-in failures per `source.ip` in 5 min (sliding) |
-| PRH-AUTH-002 | high | Password spraying or credential stuffing | app sign-in failures for >= 5 distinct `user.email_hash` per `source.ip` in 10 min |
-| PRH-AUTH-003 | critical | Successful sign-in after many failures | >= 5 failures then a success, same `source.ip`, within 15 min |
+| PRH-AUTH-001 | high | Brute-force sign-ins from one IP | >= 10 app or SSH sign-in failures per `source.ip` (or `source.host`) in 5 min (sliding) |
+| PRH-AUTH-002 | high | Password spraying or credential stuffing | app sign-in failures for >= 5 distinct `user.email_hash` per `source.ip` (or `source.host`) in 10 min |
+| PRH-AUTH-003 | critical | Successful sign-in after many failures | >= 5 failures then a success, same `source.ip` (or `source.host`), within 15 min |
 | PRH-AUTH-004 | high | Account lockouts across many accounts | `auth.lockout` for >= 3 distinct `user.id` per `log_source` in 15 min |
 | PRH-SESS-001 | high | Refresh-token reuse (probable stolen token) | every `session.refresh.reuse_detected` event |
 | PRH-ACCT-001 | high | Sensitive account change shortly after sign-in | sign-in success, then a password, payout number or two-step change, same `user.id`, within 30 min |
@@ -66,9 +67,14 @@ verified ATT&CK tags.
 | PRH-WEB-002 | medium | Injection patterns in request paths | >= 3 requests per `source.ip` in 10 min whose URL-decoded path or query contains SQL injection, traversal or XSS markers |
 | PRH-WEB-003 | medium | Scanner or empty user agent at a high rate | >= 30 requests per `source.ip` in 1 min with a scanning-tool or empty user agent |
 | PRH-WEB-004 | medium | Probes for sensitive files and admin tools | >= 3 distinct sensitive paths (`/.env`, `/.git/`, `/wp-login.php`, ...) per `source.ip` in 10 min |
-| PRH-SSH-001 | high | SSH invalid-user storm | >= 5 invalid-user attempts or MaxAuthTries disconnects per `source.ip` in 10 min |
+| PRH-SSH-001 | high | SSH invalid-user storm | >= 5 invalid-user attempts or MaxAuthTries disconnects per `source.ip` (or `source.host`) in 10 min |
 
 Known limits, also stated in each rule's description:
+
+- **Host names.** PRH-AUTH-001, PRH-AUTH-002, PRH-AUTH-003 and PRH-SSH-001 count a source by its
+  host name when sshd logged one instead of an address (`UseDNS yes`). Whoever controls an
+  address's reverse DNS chooses that name, so an attacker who changes it between attempts splits
+  the count; an address and a host name of the same machine are counted separately too.
 
 - **PRH-AUTH-002** counts accounts by `user.email_hash`, which the app security log provides.
   Failures without one (unknown-user attempts the app logs without a hash) and SSH logs are not
@@ -304,7 +310,7 @@ Counts the events that pass the rest of the condition, per group and time window
 
 ```yaml
 aggregate:
-  group_by: [source.ip]       # 1-5 fields
+  group_by: [source.ip]       # 1-5 fields (or alternatives, see below)
   window: 5m                  # 1s to 7d: a number followed by s, m, h or d
   mode: sliding               # sliding (default) or tumbling
   count_gte: 10               # exactly one of count_gte, distinct or ratio
@@ -319,6 +325,20 @@ aggregate:
 
 `aggregate` must appear in the condition as a top-level `and` term next to at least one selection:
 `selection and aggregate`.
+
+**Alternatives.** An entry of `group_by` (or of a sequence's `by`) can list two or three fields:
+the first one the event has a value for is used. The built-in SSH and sign-in rules group by
+`[[source.ip, source.host]]`, so a source that sshd logged by host name (`UseDNS yes`) is
+counted too:
+
+```yaml
+aggregate:
+  group_by: [[source.ip, source.host]]   # the address, or the host name when there is none
+```
+
+The field that was used is part of the group, and the alert's entities name it
+(`{"source.host": "scanner.example"}`), so an address and a host name are never counted
+together. Added in 1.1; rules without alternatives are unchanged.
 
 ## Sequences: `sequence`
 
@@ -355,12 +375,13 @@ events, holding only bounded state.
 | Sliding windows | An event is inside the window at time `t` when `t - event time < window`; an event exactly `window` old is outside |
 | Tumbling windows | Aligned to the Unix epoch in UTC (a `1m` window runs from :00 to :59) |
 | Re-alerting | When a threshold fires, that group's state is cleared; the next alert needs the threshold to be reached again by later events. A completed sequence stays open until `start + within`: every further `count_gte` events matching its last step raise another alert with the earlier steps' events (a second account change after one sign-in is reported too). Meanwhile new first-step events build up a fresh sequence, which replaces the completed one when its first step completes, so a second sign-in opens a new window. Stateless rules alert once per matching event |
-| Missing group fields | An event without a value for every `group_by` / `by` field is skipped for that rule and counted (`ungrouped_events`) |
+| Missing group fields | An event without a value for every `group_by` / `by` field (or for any of an entry's alternatives) is skipped for that rule and counted (`ungrouped_events`) |
 | Sequences | Step 1 keeps its matches within `within` of the newest one; when it reaches its count, the sequence starts at the oldest of them. Later steps must complete before `start + within`; an event at or after that moment restarts the sequence with that event. After step 1 completes, more step-1 events are ignored. An event matching several steps counts for the current step. After the last step, see re-alerting |
 
 Alerts carry the rule's id, title, severity, ATT&CK tags and an explanation. Their entities are
-the `group_by` / `by` values, or for stateless rules whichever of `source.ip`, `user.name`,
-`user.id`, `host` and `request_id` the event has. An alert lists at most the 100 most recent event
+the `group_by` / `by` values (for an entry with alternatives, the field used), or for stateless
+rules whichever of `source.ip`, `source.host`, `user.name`, `user.id`, `host` and `request_id`
+the event has. An alert lists at most the 100 most recent event
 ids; the explanation gives the full count. Scores follow severity (low 25, medium 50, high 75,
 critical 100) until incident scoring adds context.
 

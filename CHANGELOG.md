@@ -7,6 +7,23 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- **SSH attacks logged with host names are detected.** sshd with `UseDNS yes` logs the client's
+  host name instead of its address, and the sign-in rules, which counted by `source.ip`, skipped
+  those lines. Events now have an optional `source.host` (a valid, lower-case, fully qualified
+  name; placeholders such as `unknown` are not host names), and a rule's `group_by` / `by` entry
+  may list alternatives, the first with a value being used:
+  `group_by: [[source.ip, source.host]]`. PRH-AUTH-001, PRH-AUTH-002, PRH-AUTH-003 and PRH-SSH-001
+  group that way, incidents link on `source.host` (with the shared-address cap), and
+  `--redact-ips` / `--mask-ips` replace host names too, since reverse-DNS names often contain the
+  address. `extra.source_host` keeps the name as logged, as before.
+- `prohori detect --limit N`: the table shows the earliest N alerts (default 100; 0 for all) and
+  counts the rest, holding at most N in memory. `-f json` already wrote each alert as it was
+  raised.
+- `scripts/benchmark.py --alerts N` measures an alert storm (a log in which every line raises
+  alerts) and checks that `detect` and `incidents` stay under a fixed memory bound.
+
 ### Changed
 
 - **New licence.** From this release on Prohori is source-available under the
@@ -33,6 +50,16 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- **No lost events in the daylight-saving hour.** In `auth.log` without offsets, a local time in
+  the hour repeated when the clocks go back was always read as its first occurrence, so the
+  second half of that hour jumped back and the rules dropped it as late. It is now read as the
+  second occurrence when the first would go back more than ten minutes before the previous line,
+  and such lines are counted in the new `ambiguous_times` statistic. Sample:
+  `samples/logs/auth-dst.log` (6 events, none late).
+- **Bounded memory for huge alert counts.** `prohori incidents` and `triage` held every alert of
+  a run. They now keep at most 1,000 per rule and entities and 20,000 in all; an incident that
+  lost alerts says how many in its limitations, and the JSON summary reports `alerts_not_kept`.
+  Ordinary runs are unchanged (the simulator's busiest rule and entities raise 14).
 - **A restarted pipeline gives the same alerts and incidents as the live run.** The detector's
   idle flush and the incident stage's idle close (and both end-of-run releases) depended on
   wall-clock time, so a stage rebuilt from its topics could raise an alert the live run had not

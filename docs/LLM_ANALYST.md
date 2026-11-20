@@ -57,8 +57,9 @@ sources (below). Nothing else from the incident is included:
 - **Redaction first.** Account names, ids and email addresses become keyed pseudonyms such as
   `[user:3f2a9c1e07]`, wherever they appear: entities, titles, explanations, reasons, actions and
   limitations. The key is random for each run and never written down, so a pseudonym cannot be
-  looked up. `--mask-ips` (or `PROHORI_LLM_MASK_IPS=true`) also replaces IP addresses. Without
-  it, IP addresses are sent, because they are usually the evidence.
+  looked up. `--mask-ips` (or `PROHORI_LLM_MASK_IPS=true`) also replaces IP addresses and the host
+  names sshd logged instead of an address (`[host:...]`). Without it, they are sent, because
+  they are usually the evidence.
 - **Fail closed.** Before sending, the exact text is searched for every value that was
   replaced. It searches the decoded text, so a Bangla or other non-ASCII name counts. If one
   remains, nothing is sent and the command exits 1.

@@ -73,8 +73,10 @@ Every run fills a `ParseStats`. Each line read is counted in exactly one of:
 | `blank` | Empty or whitespace only |
 | `errors` | Malformed: no timestamp, invalid date, line too long, and so on |
 
-`decode_errors` counts lines that contained invalid UTF-8 (they may still parse), and
-`error_examples` keeps the first ten errors with line numbers and reasons.
+`decode_errors` counts lines that contained invalid UTF-8 (they may still parse),
+`ambiguous_times` counts `auth_log` lines whose local time fell in the hour repeated when daylight
+saving time ends (see [Timestamps](#timestamps); `prohori parse` shows it when it is not zero),
+and `error_examples` keeps the first ten errors with line numbers and reasons.
 
 ### Event ids
 
@@ -109,7 +111,11 @@ counted as `skipped`. Useful details go into `extra`: `pid`, `source_port`, `aut
 sshd writes attacker-chosen usernames verbatim, including spaces and text such as
 `x from 192.0.2.1 port 1`. The parser takes the address and port that sshd appends **last**, so a
 crafted username cannot change `source.ip`. When sshd logs a host name instead of an address
-(`UseDNS yes`), `source.ip` is empty and the name is kept in `extra.source_host`.
+(`UseDNS yes`), `source.ip` is empty and the name is kept in `extra.source_host` as logged.
+Since 1.1 a valid fully qualified name is also put in `source.host`, in lower case and without a
+trailing dot, so the SSH and sign-in rules can group by it; a placeholder such as `UNKNOWN` is
+not a host name and stays only in `extra`. The other parsers do the same for a name in the
+address field.
 IPv4-mapped IPv6 addresses (`::ffff:203.0.113.7`) are stored as IPv4.
 
 ### Timestamps
@@ -124,7 +130,14 @@ Two syslog header formats are accepted:
 For RFC 3164 lines:
 
 - **Timezone:** the `timezone` option (an IANA name such as `Asia/Dhaka`, default `UTC`).
-  Ambiguous local times during a daylight-saving change resolve to the first occurrence.
+- **The repeated hour.** When daylight saving time ends, an hour of local times happens twice
+  (01:00 to 01:59 in America/New_York on the first Sunday of November). Such a time is read as
+  its first occurrence, unless that would put it more than ten minutes before the previous line;
+  then it is the second occurrence. A log that runs through the repeated hour therefore keeps
+  moving forward, and the rule engine does not drop its second half as late (since 1.1;
+  `samples/logs/auth-dst.log` is an example). The same applies to RFC 3339 lines without an
+  offset. Lines are counted in `ambiguous_times`. A time skipped when the clocks go forward
+  keeps the offset from before the change.
 - **Year:** the `year` option is the year of the **first** line. Without it, the year is
   inferred from a reference time: the file's modification time for `parse_file`, otherwise the
   current time. The first line is assumed to be no later than one day after the reference time,
@@ -144,10 +157,11 @@ Invalid dates (for example `Feb 29` in a non-leap year) are counted as errors.
 - Only the sshd, sudo and `pam_unix` messages listed above produce events.
 - Throughput and memory on logs of a million lines are measured in
   [PERFORMANCE.md](PERFORMANCE.md).
-- In an ambiguous local hour (the hour repeated when daylight saving time ends), a timestamp
-  resolves to the first occurrence. Lines from the repeated hour then seem to go back in time,
-  and the rule engine drops those older than its lateness as late (counted in `detect`'s
-  summary). Use `--timezone UTC` for hosts that log in UTC.
+- In the repeated daylight-saving hour, the choice between the two occurrences depends on the
+  previous line. A log whose first line falls in the second occurrence, or that is silent for
+  the whole first occurrence, is read as the first; and a line more than ten minutes out of
+  order inside the repeated hour is read as the second. Use `--timezone UTC` for hosts that log
+  in UTC.
 
 ### Example
 
@@ -170,7 +184,7 @@ status 400 and above, `success` otherwise.
 
 | Source | Field |
 | -------- | ------- |
-| Remote address | `source.ip` (or `extra.source_host` if it is not an address) |
+| Remote address | `source.ip`; a host name goes to `source.host` (and as logged to `extra.source_host`) |
 | Authenticated user (`-` means none) | `user.name` |
 | `[24/Oct/2026:13:50:12 +0600]` | `timestamp` (converted to UTC; month names are parsed independently of the locale) |
 | Request line `GET /path?query HTTP/1.1` | `http.method`, `http.path`, `extra.query`, `extra.protocol` |

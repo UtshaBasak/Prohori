@@ -100,7 +100,8 @@ See [PARSERS.md](PARSERS.md).
 ## `prohori detect`
 
 Runs the 15 built-in rules (plus `--rules`) and prints the alerts and a summary.
-See [RULES.md](RULES.md).
+The table shows the earliest 100 alerts and counts the rest (`--limit N`, `0` for all); `-f json`
+writes every alert as soon as it is raised. See [RULES.md](RULES.md).
 
 `--models` (also on `incidents` and `triage`) adds the anomaly detectors: source IPs whose
 five-minute windows are unusual for the log get `low` alerts with `detector_kind: model`. The
@@ -110,7 +111,9 @@ note without it. See [ANOMALY.md](ANOMALY.md).
 ## `prohori incidents`
 
 Groups alerts into incidents and prints them, or writes JSON Lines with `-f json`. Options:
-`--online`, `--no-enrich`, `--gap 30m`, `--env-file`. See [INCIDENTS.md](INCIDENTS.md).
+`--online`, `--no-enrich`, `--gap 30m`, `--env-file`. A run keeps at most 1,000 alerts per rule
+and entities and 20,000 in all; the rest are counted (`alerts_not_kept` in the JSON summary) and
+named in the incidents they belong to. See [INCIDENTS.md](INCIDENTS.md#bounded-alerts).
 
 ## `prohori report`
 
