@@ -4,7 +4,7 @@
 
 from prohori.schema.alert import ATTACK_TAG_PATTERN, Alert, AttackTag, DetectorKind
 from prohori.schema.event import ACTION_PATTERN, Event, EventInfo, HttpInfo, SourceInfo, UserInfo
-from prohori.schema.fields import FIELD_PATHS, get_field, is_valid_path
+from prohori.schema.fields import DERIVED_PATHS, FIELD_PATHS, get_field, is_valid_path
 from prohori.schema.ids import alert_id, event_id, incident_id
 from prohori.schema.incident import (
     Confidence,
@@ -33,6 +33,7 @@ from prohori.schema.types import (
 __all__ = [
     "ACTION_PATTERN",
     "ATTACK_TAG_PATTERN",
+    "DERIVED_PATHS",
     "FIELD_PATHS",
     "MAX_RAW_LENGTH",
     "MAX_SHORT_TEXT_LENGTH",

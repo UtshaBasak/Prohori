@@ -171,12 +171,17 @@ def evaluate(
     *,
     seeds: Sequence[int] = DEFAULT_SEEDS,
     scenarios: Sequence[str] | None = None,
+    variants_to_run: Sequence[str] | None = None,
 ) -> dict[str, object]:
-    """Evaluate ``rules`` on every scenario and variant; return the results document."""
+    """Evaluate ``rules`` on every scenario and variant; return the results document.
+
+    ``variants_to_run`` limits the variants scored, so rules can be tuned on the default variants
+    without seeing the held-out results.
+    """
     names = sorted(scenarios or SCENARIOS)
     variants: dict[str, object] = {}
     parse_errors = 0
-    for variant in VARIANTS:
+    for variant in variants_to_run or VARIANTS:
         rule_scores: dict[str, RuleScore] = {r.id: RuleScore() for r in rules}
         scenario_scores: dict[str, ScenarioScore] = {}
         for name in names:

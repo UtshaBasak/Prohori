@@ -19,7 +19,7 @@ import sys
 from pathlib import Path
 
 from prohori.rules import builtin_rules_dir, load_rules
-from prohori.simulate import SCENARIOS
+from prohori.simulate import SCENARIOS, VARIANTS
 from prohori.simulate.evaluate import evaluate
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -30,6 +30,12 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--seeds", type=int, default=5, help="seeds 1..N per scenario and variant")
     parser.add_argument("--out", type=Path, default=DEFAULT_OUT, help="results file to write")
+    parser.add_argument(
+        "--variants",
+        nargs="+",
+        choices=VARIANTS,
+        help="score only these variants and print a summary; the results file is not written",
+    )
     parser.add_argument(
         "--freeze-baseline",
         metavar="LABEL",
@@ -43,6 +49,10 @@ def main(argv: list[str] | None = None) -> int:
     if len(rules) != len(reports):
         print("a built-in rule is invalid; run 'prohori rules validate'", file=sys.stderr)
         return 1
+    if args.variants:  # tuning: look at some variants without recording anything
+        partial = evaluate(rules, seeds=range(1, args.seeds + 1), variants_to_run=args.variants)
+        print(json.dumps(partial["variants"], indent=2))
+        return 0
     results = evaluate(rules, seeds=range(1, args.seeds + 1))
     previous = json.loads(args.out.read_text(encoding="utf-8")) if args.out.exists() else {}
     if args.freeze_baseline:

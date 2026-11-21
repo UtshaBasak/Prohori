@@ -115,6 +115,15 @@ def _build_alert(
     )
 
 
+def _first_value(event: Event, field: GroupField) -> str | None:
+    """The value of ``field``, or of the first of its alternatives that has one."""
+    for path in (field,) if isinstance(field, str) else field:
+        value = get_field(event, path)
+        if value is not None:
+            return f"{path}={value}" if not isinstance(field, str) else str(value)
+    return None
+
+
 def _describe(key: GroupKey) -> str:
     return ", ".join(f"{f}={v}" for f, v in key)
 
@@ -153,9 +162,10 @@ class _StatelessEvaluator(_Evaluator):
 class _AggregateGroup:
     __slots__ = ("bucket", "distinct", "first_ts", "last_seen", "ratio_hits", "seen")
 
-    def __init__(self) -> None:
+    def __init__(self, distincts: int = 0) -> None:
         self.seen: deque[_Seen] = deque()
-        self.distinct: OrderedDict[str, datetime] = OrderedDict()
+        # One ordered set per distinct threshold: value -> last seen, oldest first.
+        self.distinct: list[OrderedDict[str, datetime]] = [OrderedDict() for _ in range(distincts)]
         self.ratio_hits: deque[bool] = deque()
         self.bucket: int | None = None
         self.last_seen: datetime = _EPOCH
@@ -163,7 +173,7 @@ class _AggregateGroup:
         self.first_ts: datetime | None = None
 
     def size(self) -> int:
-        return len(self.seen) + len(self.distinct)
+        return len(self.seen) + sum(len(d) for d in self.distinct)
 
 
 class _AggregateEvaluator(_Evaluator):
@@ -190,7 +200,7 @@ class _AggregateEvaluator(_Evaluator):
     def _group(self, key: GroupKey, now: datetime) -> _AggregateGroup:
         group = self.groups.pop(key, None)
         if group is None:
-            group = _AggregateGroup()
+            group = _AggregateGroup(len(self.spec.distincts))
             if len(self.groups) >= self.max_groups:
                 self.groups.popitem(last=False)
                 self.stats.groups_evicted += 1
@@ -206,18 +216,20 @@ class _AggregateEvaluator(_Evaluator):
                 group.bucket = bucket
                 group.first_ts = None
                 group.seen.clear()
-                group.distinct.clear()
+                for values in group.distinct:
+                    values.clear()
                 group.ratio_hits.clear()
             return
         while group.seen and now - group.seen[0].timestamp >= window:
             group.seen.popleft()
             if group.ratio_hits:
                 group.ratio_hits.popleft()
-        while group.distinct:
-            value, last = next(iter(group.distinct.items()))
-            if now - last < window:
-                break
-            del group.distinct[value]
+        for values in group.distinct:
+            while values:
+                value, last = next(iter(values.items()))
+                if now - last < window:
+                    break
+                del values[value]
         if group.first_ts is not None and now - group.first_ts >= window:
             group.first_ts = None  # left the window; fall back to the oldest evidence kept
 
@@ -242,14 +254,20 @@ class _AggregateEvaluator(_Evaluator):
             fired = len(group.seen) >= spec.count_gte
             detail = f"{len(group.seen)} matching events (threshold {spec.count_gte})"
         elif spec.distinct is not None:
-            value = get_field(event, spec.distinct.field)
-            if value is not None:
-                group.distinct.pop(str(value), None)
-                group.distinct[str(value)] = now
-            fired = len(group.distinct) >= spec.distinct.gte
-            detail = (
-                f"{len(group.distinct)} distinct {spec.distinct.field} values "
-                f"(threshold {spec.distinct.gte})"
+            for threshold, values in zip(spec.distincts, group.distinct, strict=True):
+                found = _first_value(event, threshold.field)
+                if found is not None:
+                    values.pop(found, None)
+                    values[found] = now
+                    if len(values) > threshold.gte:  # the newest gte values decide alone
+                        values.popitem(last=False)
+            fired = all(
+                len(values) >= t.gte
+                for t, values in zip(spec.distincts, group.distinct, strict=True)
+            )
+            detail = " and ".join(
+                f"{len(values)} distinct {t.name} values (threshold {t.gte})"
+                for t, values in zip(spec.distincts, group.distinct, strict=True)
             )
         elif spec.ratio is not None:
             group.ratio_hits.append(self.rule.selection_matches(spec.ratio.selection, event))
