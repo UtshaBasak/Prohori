@@ -77,6 +77,22 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   is fitted). Adversarial methods and a third dataset are recorded as future work.
 - `prohori.ml.safety`: hash, library-version, skops-type and pickle-allowlist checks, reusable by
   other commands (`scan_joblib` lists what a pickle model asks for without running it).
+- **Suppressions and allow-lists** (ADR-0043). `--suppressions FILE` on `detect`, `incidents`,
+  `triage` and `pipeline replay` / `tail` / `run` applies reviewed exceptions: each entry names a
+  rule (or `*`), field matchers in the rule syntax, a `reason`, an `owner` and an `expires` date;
+  `allow_ips` lists addresses known to be benign. An alert is suppressed only when every one of
+  its events matches an entry in force on the alert's day, so other alerts in the same incident
+  are never hidden. Suppressed alerts are marked (`"suppression"` in their JSON), counted per
+  entry and rule in every output, kept out of incidents and the alert cap, stored by the
+  pipeline and counted apart by the warehouse marts (`stg_alerts.suppression_id`,
+  `suppressed_alerts`); they do not count toward exit code 3. Allow-listed addresses get no
+  reputation points, with a 0-point line in the score breakdown naming the entry. Expired
+  entries and entries naming a rule that is not loaded warn on every run; an invalid file is
+  refused whole (exit 2). `prohori rules validate --suppressions FILE` checks a file.
+  `samples/suppressions.yml` silences the simulator's planned admin role grant: PRH-ADMIN-001
+  precision 0.5 to 1.0 in every variant, no true positive lost, every attack still detected
+  (`results/rules_eval.json`, `suppressions`, records both). Alerts without a suppression
+  serialise exactly as before.
 
 ### Security
 
