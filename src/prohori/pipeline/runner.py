@@ -33,6 +33,7 @@ from prohori.pipeline.sink import DuckDBSink, Sink
 from prohori.pipeline.stages import Detector, IncidentStage, Normaliser, ParserSettings, Stage
 from prohori.pipeline.transport import Transport
 from prohori.rules import CompiledRule
+from prohori.suppress import NO_SUPPRESSIONS, Suppressions
 
 #: Messages each stage reads per input and round.
 BATCH_SIZE = 500
@@ -58,6 +59,9 @@ class LiteSettings:
     #: Seconds without new alerts after which open incidents are written (default when
     #: following: the incident hold time, at most an hour; never otherwise).
     idle_close: float | None = None
+    #: Applied by the detector (alerts are marked, not dropped) and the incident stage (marked
+    #: alerts never join an incident; allow-listed addresses get no reputation points).
+    suppressions: Suppressions = NO_SUPPRESSIONS
 
 
 def make_stage(
@@ -76,7 +80,13 @@ def make_stage(
     if name == "normalise":
         return Normaliser(transport, settings.parsers)
     if name == "detect":
-        return Detector(transport, settings.rules, lateness=settings.lateness, live=settings.follow)
+        return Detector(
+            transport,
+            settings.rules,
+            lateness=settings.lateness,
+            live=settings.follow,
+            suppressions=settings.suppressions,
+        )
     if name == "incidents":
         stage = IncidentStage(
             transport,
@@ -86,6 +96,7 @@ def make_stage(
             enricher=settings.enricher,
             enrichment=settings.enrichment,
             clock=clock,
+            suppressions=settings.suppressions,
         )
         if settings.idle_close is not None:
             stage.idle_close = settings.idle_close

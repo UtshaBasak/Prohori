@@ -14,6 +14,11 @@ alert is then compared with the line labels:
   expected.
 * A rule that no scenario expects has no recall ("not evaluated"); its alerts on background
   traffic still show up as false positives.
+
+With a suppressions file the same detections are scored twice: once with every alert (the main
+results, unchanged by the file) and once without the suppressed alerts, so the file's effect on
+precision **and** recall is on record: a suppression that hid an attack would show up as a lost
+true positive.
 """
 
 from collections import Counter
@@ -27,6 +32,7 @@ from prohori.schema import Alert, Event
 from prohori.simulate.addresses import ADDRESS_MODEL
 from prohori.simulate.run import Simulation, simulate
 from prohori.simulate.scenarios import SCENARIOS, VARIANTS
+from prohori.suppress import Suppressions, Suppressor
 
 RESULTS_FORMAT = "prohori.rules-eval/2"
 LATENESS = timedelta(minutes=5)
@@ -67,10 +73,12 @@ def detect(
     simulation: Simulation,
     rules: Sequence[CompiledRule],
     events: list[Event] | None = None,
+    suppressions: Suppressions | None = None,
 ) -> Detection:
     """Parse the simulated log and run ``rules`` over it, keeping each event's line number.
 
-    Parsed events are also appended to ``events`` when it is given.
+    Parsed events are also appended to ``events`` when it is given. With ``suppressions`` the
+    alerts they cover are marked (``alert.suppression``), as ``prohori detect`` marks them.
     """
     scenario = simulation.scenario
     options = {"year": simulation.year} if scenario.parser == "auth_log" else {}
@@ -91,7 +99,11 @@ def detect(
             yield event
 
     engine = RuleEngine(rules, lateness=LATENESS, reference_time=None)
-    return Detection(list(engine.run(numbered())), line_of, stats)
+    if suppressions is None:
+        return Detection(list(engine.run(numbered())), line_of, stats)
+    suppressor = Suppressor(suppressions)
+    alerts = suppressor.apply_all(engine.run(suppressor.observe(numbered())))
+    return Detection(list(alerts), line_of, stats)
 
 
 @dataclass
@@ -137,11 +149,19 @@ def score_run(
     detection: Detection,
     rules: dict[str, RuleScore],
     scenario: ScenarioScore,
+    *,
+    skip_suppressed: bool = False,
 ) -> None:
-    """Add one run's alerts to the per-rule and per-scenario scores."""
+    """Add one run's alerts to the per-rule and per-scenario scores.
+
+    With ``skip_suppressed`` the alerts a suppression marked are left out, as an analyst using
+    the suppressions would never see them.
+    """
     labels = [attack for _, attack in simulation.lines]
     credited: set[tuple[str, str]] = set()
     for alert in detection.alerts:
+        if skip_suppressed and alert.suppression is not None:
+            continue
         lines = [detection.line_of[e] for e in alert.event_ids if e in detection.line_of]
         attacks = [a for n in lines if (a := labels[n - 1]) is not None]
         score = rules.setdefault(alert.detector_id, RuleScore())
@@ -167,36 +187,78 @@ def score_run(
         scenario.detected += caught
 
 
+def _totals(rules: dict[str, RuleScore], scenarios: dict[str, ScenarioScore]) -> dict[str, object]:
+    alerts = sum(s.tp + s.fp for s in rules.values())
+    tp = sum(s.tp for s in rules.values())
+    attacks = sum(s.attacks for s in scenarios.values())
+    detected = sum(s.detected for s in scenarios.values())
+    return {
+        "alerts": alerts,
+        "true_positives": tp,
+        "false_positives": alerts - tp,
+        "precision": round(tp / alerts, 3) if alerts else None,
+        "attacks": attacks,
+        "attacks_detected": detected,
+    }
+
+
 def evaluate(
     rules: Sequence[CompiledRule],
     *,
     seeds: Sequence[int] = DEFAULT_SEEDS,
     scenarios: Sequence[str] | None = None,
     variants_to_run: Sequence[str] | None = None,
+    suppressions: Suppressions | None = None,
+    suppressions_name: str = "",
 ) -> dict[str, object]:
     """Evaluate ``rules`` on every scenario and variant; return the results document.
 
     ``variants_to_run`` limits the variants scored, so rules can be tuned on the default variants
-    without seeing the held-out results.
+    without seeing the held-out results. With ``suppressions`` (named ``suppressions_name`` in the
+    results) the document also has a ``suppressions`` section: every variant scored again without
+    the suppressed alerts, and the totals with and without them.
     """
     names = sorted(scenarios or SCENARIOS)
     variants: dict[str, object] = {}
+    suppressed: dict[str, object] = {}
     parse_errors = 0
     for variant in variants_to_run or VARIANTS:
         rule_scores: dict[str, RuleScore] = {r.id: RuleScore() for r in rules}
         scenario_scores: dict[str, ScenarioScore] = {}
+        kept_rules: dict[str, RuleScore] = {r.id: RuleScore() for r in rules}
+        kept_scenarios: dict[str, ScenarioScore] = {}
         for name in names:
             scenario_score = scenario_scores.setdefault(name, ScenarioScore())
+            kept_score = kept_scenarios.setdefault(name, ScenarioScore())
             for seed in seeds:
                 simulation = simulate(name, seed=seed, variant=variant)
-                detection = detect(simulation, rules)
+                detection = detect(simulation, rules, suppressions=suppressions)
                 parse_errors += detection.stats.errors
                 score_run(simulation, detection, rule_scores, scenario_score)
+                if suppressions is not None:
+                    score_run(simulation, detection, kept_rules, kept_score, skip_suppressed=True)
         variants[variant] = {
             "rules": {rid: s.as_dict() for rid, s in sorted(rule_scores.items())},
             "scenarios": {n: s.as_dict() for n, s in sorted(scenario_scores.items())},
         }
+        if suppressions is not None:
+            suppressed[variant] = {
+                "without_suppressions": _totals(rule_scores, scenario_scores),
+                "with_suppressions": _totals(kept_rules, kept_scenarios),
+                "rules": {
+                    rid: s.as_dict()
+                    for rid, s in sorted(kept_rules.items())
+                    if s.as_dict() != rule_scores[rid].as_dict()
+                },
+            }
     expected = {r for name in names for v in VARIANTS for r in _expected(name, v)}
+    extra: dict[str, object] = {}
+    if suppressions is not None:
+        extra["suppressions"] = {
+            "file": suppressions_name,
+            "entries": [e.id for e in suppressions.entries],
+            "variants": suppressed,
+        }
     return {
         "format": RESULTS_FORMAT,
         "seeds": list(seeds),
@@ -206,6 +268,7 @@ def evaluate(
         "parse_errors": parse_errors,
         "not_evaluated": sorted(r.id for r in rules if r.id not in expected),
         "variants": variants,
+        **extra,
         "caveat": CAVEAT,
     }
 
