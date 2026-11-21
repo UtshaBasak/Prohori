@@ -198,6 +198,26 @@ class TestCompile:
                 ),
                 "either aggregate or sequence",
             ),
+            (
+                detection(
+                    selection={"event.action": "x"},
+                    aggregate={"group_by": [["source.ip"]], "window": "5m", "count_gte": 2},
+                    condition="selection and aggregate",
+                ),
+                "at least 2 items",
+            ),
+            (
+                detection(
+                    selection={"event.action": "x"},
+                    aggregate={
+                        "group_by": [["source.ip", "source.nowhere"]],
+                        "window": "5m",
+                        "count_gte": 2,
+                    },
+                    condition="selection and aggregate",
+                ),
+                "unknown field 'source.nowhere'",
+            ),
             (rule(tags=["attack.T1110"]), "tags.0"),
             (rule(tags=["attack.t111"]), "invalid ATT&CK tag"),
             (rule(response="/etc/passwd.md"), "relative path"),

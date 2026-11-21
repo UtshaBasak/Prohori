@@ -307,6 +307,8 @@ def _summary_table(parser_name: str, name: str, stats: ParseStats) -> Table:
         ("errors", stats.errors),
         ("invalid UTF-8 lines", stats.decode_errors),
     ]
+    if stats.ambiguous_times:  # only time zones with daylight saving time have them
+        rows.append(("times in the repeated DST hour", stats.ambiguous_times))
     for metric, value in rows:
         table.add_row(metric, Text(str(value)))
     return table

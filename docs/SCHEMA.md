@@ -34,6 +34,7 @@ smaller and is not ECS-compatible.
 | `event.severity` | enum, optional | Source-provided severity: `low`, `medium`, `high` |
 | `event.reason` | str, optional | For example `bad_password`, `unknown_user`, `locked` |
 | `source.ip` | IPv4 or IPv6, optional | Invalid addresses are rejected |
+| `source.host` | str (max 253), optional | Since 1.1. The remote host's name when the log has a name instead of an address (sshd with `UseDNS yes`): lower case, no trailing dot, at least two labels. Parsers set it only for a valid name, so placeholders such as `unknown` never become a host; the text as logged stays in `extra.source_host`. Attacker-influenced (whoever controls reverse DNS picks it) |
 | `user.name` | str, optional | Attacker-controllable; treat as untrusted |
 | `user.id` | str, optional | |
 | `user.email_hash` | str, optional | Already hashed upstream; never un-hashed |

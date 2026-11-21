@@ -72,5 +72,54 @@
       "exit_code": 0,
       "output_lines": 20
     }
-  ]
+  ],
+  "alert_storm": {
+    "alerts": 1000000,
+    "bound_mib": 512,
+    "runs": [
+      {
+        "name": "storm-detect-json",
+        "command": "prohori detect WORK/alert-storm.jsonl -p app_json --exit-zero -f json",
+        "seconds": 152.13,
+        "peak_memory_mib": 68.1,
+        "exit_code": 0,
+        "output_lines": 1360000,
+        "lines": 1000000,
+        "bytes": 151541046,
+        "lines_per_second": 6573,
+        "alerts": 1360000,
+        "alerts_not_kept": 0,
+        "within_bound": true
+      },
+      {
+        "name": "storm-detect-table",
+        "command": "prohori detect WORK/alert-storm.jsonl -p app_json --exit-zero",
+        "seconds": 128.62,
+        "peak_memory_mib": 68.3,
+        "exit_code": 0,
+        "output_lines": 568,
+        "lines": 1000000,
+        "bytes": 151541046,
+        "lines_per_second": 7775,
+        "alerts": null,
+        "alerts_not_kept": 0,
+        "within_bound": true
+      },
+      {
+        "name": "storm-incidents",
+        "command": "prohori incidents WORK/alert-storm.jsonl -p app_json --exit-zero -f json",
+        "seconds": 146.43,
+        "peak_memory_mib": 201.9,
+        "exit_code": 0,
+        "output_lines": 2,
+        "lines": 1000000,
+        "bytes": 151541046,
+        "lines_per_second": 6829,
+        "alerts": 1360000,
+        "alerts_not_kept": 1340000,
+        "within_bound": true
+      }
+    ],
+    "date": "2026-11-20"
+  }
 }

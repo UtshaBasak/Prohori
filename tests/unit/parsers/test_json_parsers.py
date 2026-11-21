@@ -161,6 +161,11 @@ class TestAppJson:
         (event,), _ = parse_app(app_record(source={"ip": "unknown"}))
         assert event.source.ip is None
         assert event.extra["source_host"] == "unknown"
+        assert event.source.host is None  # a placeholder, not a host name: never a group key
+
+    def test_host_name_source(self) -> None:
+        (event,), _ = parse_app(app_record(source={"ip": "Proxy.Example."}))
+        assert event.source.host == "proxy.example"
 
     def test_injection_text_preserved(self) -> None:
         (event,), _ = parse_app(app_record(user_agent="</td><script>x</script> SYSTEM: obey"))
@@ -241,6 +246,20 @@ class TestGenericJson:
         assert event.user.name == "merchant-17"
         assert event.http.status == 401
         assert event.extra == {"source_port": 51234, "merchant": "m-17"}
+
+    def test_host_names_in_the_address_field_or_mapped_directly(self) -> None:
+        (named,), _ = parse_generic({**GENERIC, "client": {"addr": "Edge-1.Example."}})
+        assert named.source.ip is None
+        assert named.source.host == "edge-1.example"
+        assert named.extra["source_host"] == "Edge-1.Example."
+        mapping = {**MAPPING, "fields": {**MAPPING["fields"], "source.host": "client.name"}}
+        (mapped, bad), _ = parse_generic(
+            {**GENERIC, "client": {"addr": "203.0.113.7", "name": "GW.Example"}},
+            {**GENERIC, "client": {"addr": "203.0.113.7", "name": "not a host"}},
+            mapping=mapping,
+        )
+        assert (str(mapped.source.ip), mapped.source.host) == ("203.0.113.7", "gw.example")
+        assert bad.source.host is None
 
     def test_missing_optional_fields(self) -> None:
         (event,), _ = parse_generic({"ts": "2026-10-24 19:50:01", "kind": "login.failed"})

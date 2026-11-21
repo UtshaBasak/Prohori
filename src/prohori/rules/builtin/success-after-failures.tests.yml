@@ -60,3 +60,15 @@ cases:
         - '{"time": "2026-10-24T13:50:04Z", "event": {"action": "auth.signin.failure"}, "source": {"ip": "203.0.113.7"}, "user": {"id": "u-1"}}'
         - '{"time": "2026-10-24T13:50:05Z", "event": {"action": "auth.signin.failure"}, "source": {"ip": "203.0.113.7"}, "user": {"id": "u-1"}}'
         - '{"time": "2026-10-24T13:50:09Z", "event": {"action": "auth.signin.success"}, "source": {"ip": "203.0.113.7"}, "user": {"id": "u-1"}}'
+
+  - name: sshd failures then an accepted password logged with a host name (UseDNS)
+    expect: {alerts: 1, entities: [{source.host: scanner.example}]}
+    log:
+      parser: auth_log
+      lines:
+        - "Oct 24 13:50:01 web01 sshd[9]: Failed password for deploy from scanner.example port 40000 ssh2"
+        - "Oct 24 13:50:03 web01 sshd[9]: Failed password for deploy from scanner.example port 40001 ssh2"
+        - "Oct 24 13:50:05 web01 sshd[9]: Failed password for deploy from scanner.example port 40002 ssh2"
+        - "Oct 24 13:50:07 web01 sshd[9]: Failed password for deploy from scanner.example port 40003 ssh2"
+        - "Oct 24 13:50:09 web01 sshd[9]: Failed password for deploy from scanner.example port 40004 ssh2"
+        - "Oct 24 13:50:30 web01 sshd[9]: Accepted password for deploy from scanner.example port 40100 ssh2"

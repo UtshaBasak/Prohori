@@ -749,7 +749,38 @@ def render_performance(results: dict[str, Any]) -> str:
             f"{_mib(run, 'state_bytes')} for the {_mib(run, 'bytes')} log; its topics are not "
             "trimmed.",
         ]
+    storm = results.get("alert_storm")
+    if storm is not None:
+        lines += ["", *_storm_lines(storm)]
     return "\n".join(lines)
+
+
+STORM_NAMES = {
+    "storm-detect-json": "`detect -f json` (writes each alert as it is raised)",
+    "storm-detect-table": "`detect` table (shows the first 100, counts the rest)",
+    "storm-incidents": "`incidents` (keeps a bounded number of alerts)",
+}
+
+
+def _storm_lines(storm: dict[str, Any]) -> list[str]:
+    """The alert-storm table: memory must not grow with the number of alerts."""
+    raised = max((r["alerts"] or 0 for r in storm["runs"]), default=0)
+    lines = [
+        f"**Alert storm** ({storm['date']}): an application log of {storm['alerts']:,} lines in "
+        f"which every line raises at least one alert ({raised:,} in all). Every run must stay "
+        f"under {storm['bound_mib']:,} MiB of peak memory.",
+        "",
+        "| Run | Time | Peak memory | Alerts not kept | Within the bound |",
+        "|-----|-----:|------:|------:|-----|",
+    ]
+    for run in storm["runs"]:
+        within = run["within_bound"] and run["exit_code"] == 0
+        lines.append(
+            f"| {STORM_NAMES.get(run['name'], run['name'])} | {run['seconds']:,.1f} s | "
+            f"{run['peak_memory_mib']:,.0f} MiB | {run['alerts_not_kept']:,} | "
+            f"{'yes' if within else 'no'} |"
+        )
+    return lines
 
 
 def render_performance_summary(results: dict[str, Any] | None) -> str:

@@ -1305,7 +1305,9 @@ the detector's idle flush depends on wall-clock time, so a rebuild can evaluate 
 run dropped as late; a daylight-saving fall-back hour in `auth.log` can drop events as late;
 SSH lines with a host name instead of an address are not grouped by source; alerts of a batch
 run are held in memory; the raw tables have no indexes beyond their keys; the stages use the
-database superuser; Redpanda runs in its development mode.
+database superuser; Redpanda runs in its development mode. *Amended 2026-11-21:* the idle
+flush is fixed by ADR-0034; the daylight-saving hour, host names and batch alert memory by
+ADR-0035.
 
 ## ADR-0033: Source-available licence and project control
 
@@ -1426,3 +1428,78 @@ the clock when the event is read, so an event rejected live can be accepted by a
 later; and the incident stage reads all events before alerts when rebuilding, so with more than
 100,000 events in the backlog it can forget events the live run still had in memory. Both are
 limits of a backlog, not of timing, and are documented in PIPELINE.md.
+
+## ADR-0035: The daylight-saving hour, SSH host names and bounded alert output
+
+- **Date:** 2026-11-21
+- **Status:** Accepted
+
+**Context.** Three gaps from the 1.0.1 review (ADR-0032). In `auth.log` lines without an offset,
+the hour repeated when daylight saving time ends was always read as its first occurrence, so its
+second half jumped back an hour and the rule engine dropped it as late. sshd with `UseDNS yes`
+logs a client's host name instead of its address; the parsers kept the name in
+`extra.source_host`, but every sign-in rule counted by `source.ip`, so such attacks raised no
+alert. And `prohori incidents` and `triage` held every alert of a run in memory, as did the
+`detect` table, so a scanner tripping a single-event rule on every request could exhaust it.
+
+**Decision.**
+
+- **The repeated hour** is resolved with state, like the year: a time in it is read as its first
+  occurrence unless that would put it more than ten minutes before the previous line, then as
+  the second. A tolerance (rather than "whichever is closer") keeps a second-pass line that is
+  25 minutes after the previous one in the second pass, while lines a few minutes out of order
+  in the first pass stay there. Ambiguity is detected by comparing the two offsets (fold 0 has
+  the larger one only in the repeated hour, so the skipped hour in spring is unchanged), and UTC
+  skips the check. Ambiguous lines are counted in a new `ParseStats.ambiguous_times`, which
+  changes the JSON statistics (one more key) but no golden file. Because the event id contains
+  the timestamp, a streaming normaliser restarted inside the repeated hour can read a
+  redelivered line without its predecessor and store it twice; documented in PARSERS.md.
+- **Host names** get an optional schema field, `source.host`, rather than a rule-level fallback
+  over `extra.source_host`: that field holds whatever the log put in the address position, and
+  the app logs' `unknown` would have become one shared group key, a false brute-force alert.
+  Parsers set `source.host` only for a valid fully qualified name, lower-cased and without the
+  trailing dot (so `Evil.Example.` and `evil.example` are one source); `extra.source_host` is
+  unchanged, so 1.0 consumers see the same events. Events serialise one more key (`"host":
+  null`); incidents do not embed events, so no golden changed except rule hashes.
+- **Rule format:** a `group_by` / `by` entry may be a list of two or three fields, the first with
+  a value being used. The field used is part of the group key and of the alert's entities, so an
+  address and a host name are never counted together. Rules without alternatives are unchanged.
+  PRH-AUTH-001, -002, -003 and PRH-SSH-001 use `[[source.ip, source.host]]`, which changes their
+  file hashes (goldens, the sample incident and the examples were regenerated).
+- **Everywhere a source address is handled, a host name is too:** incidents link on
+  `source.host` with the shared-address cap; `--redact-ips` and
+  `--mask-ips` pseudonymise host names as `[host:...]`, because reverse-DNS names often contain
+  the address (tested with `203-0-113-9.dyn.isp.example`); answers may cite them. Redaction
+  collects host names from the entities, so incident text only names a host where it is an
+  entity (a group key, or a single-event rule's field): the timeline says "from" an address but
+  never a host name, since an incident about several hosts would not list them all as entities.
+  The warehouse gets no new column: the stored JSON record carries the field.
+- **Bounded alert output.** The `detect` table keeps only the `--limit` earliest alerts (default
+  100) with `heapq.nsmallest`, which equals sorting and slicing; the summary and exit code use
+  the total. JSON output already streamed. `incidents` and `triage` keep at most 1,000 alerts per
+  rule and entities (the first ones) and 10,000 of each severity, and count the rest; an
+  incident whose rule and entities lost alerts says how many in its limitations, and the run's
+  summary gives `alerts_not_kept`. The plan asked for a cap per incident group, but groups are
+  only known once every alert is in; a cap per rule and entities is the closest bound that can
+  be applied while the alerts arrive, and the per-severity budgets make the memory bound hold
+  when there are many attackers too. One shared overall budget was rejected: first come, first
+  kept, it would let about twenty addresses re-triggering a medium rule fill it, after which a
+  critical PRH-AUTH-003 would be dropped like noise. With a budget per severity, a flood can only
+  crowd out alerts of its own severity. The `detect` table's note counts the hidden alerts by
+  severity for the same reason. The limits are far above what the simulator produces (at most 14 alerts per
+  rule and entities across all scenarios, both variants and three seeds), so ordinary results
+  are unchanged.
+- **Measured, not assumed:** `scripts/benchmark.py --alerts N` builds a log in which every line
+  raises alerts and checks the peak memory of `detect -f json`, the `detect` table and
+  `incidents` against a fixed 512 MiB bound; the result goes into `results/performance.json` and
+  the table into PERFORMANCE.md.
+
+**Consequences.** An attacker who controls the reverse DNS of their addresses can rotate host
+names to split counts, and one machine seen both by address and by name is counted twice; both
+are stated in RULES.md. A run that exceeds the alert limits gives incidents built from part of
+the alerts; their scores can be lower than with every alert, and the incidents say so. Once a
+severity's budget is used up, later alerts of that severity about new entities form no incident
+at all; only the run's summary counts them. The
+streaming pipeline does not apply the limits (its incident stage releases alerts as their
+incidents close), so above them stream and batch differ. `--models` still holds every event,
+because the anomaly detectors compare a whole log with itself.

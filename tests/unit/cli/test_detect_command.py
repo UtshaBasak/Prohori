@@ -173,3 +173,66 @@ def test_rule_text_is_not_rendered_as_markup(tmp_path: Path) -> None:
     code, out, _ = run(str(SAMPLES / "auth.log"), "--no-builtin", "--rules", str(tmp_path))
     assert code == ExitCode.ALERTS_FOUND
     assert "[bold red]Injected[/bold red]" in out
+
+
+def test_dst_fall_back_hour_loses_no_events() -> None:
+    """The repeated hour of a daylight-saving change: all six events evaluated, none late."""
+    code, _, err = run(
+        str(SAMPLES / "auth-dst.log"),
+        "--year",
+        "2026",
+        "--timezone",
+        "America/New_York",
+        "-f",
+        "json",
+    )
+    assert code == ExitCode.OK
+    summary = json.loads(err.strip().splitlines()[-1])
+    assert summary["events"] == 6
+    assert summary["engine"]["events_evaluated"] == 6
+    assert summary["engine"]["late_events"] == 0
+
+
+def test_table_limit_shows_the_earliest_alerts_and_counts_the_rest() -> None:
+    code, out, _ = run(str(SAMPLES / "access.log"), "--limit", "1")
+    assert code == ExitCode.ALERTS_FOUND
+    assert "1 more alert(s) not shown (1 medium)" in out
+    assert re.search(r"alerts\W+2\b", out)
+    assert re.search(r"alerts shown\W+1\b", out)
+    code, out, _ = run(str(SAMPLES / "access.log"), "--limit", "0")
+    assert "not shown" not in out
+    assert "alerts shown" not in out
+
+
+def test_limit_selection_equals_sorting_then_slicing() -> None:
+    from prohori.cli.detect import _first, _sort_key
+    from tests.unit.incidents.factories import alert, at
+
+    alerts = [alert(f"R-{n % 3}", start=at(n % 4)) for n in range(12)]
+    for limit in (1, 5, 12, 20):
+        shown, severities = _first(iter(alerts), limit)
+        assert severities.total() == 12
+        assert shown == sorted(alerts, key=_sort_key)[:limit]
+    shown, severities = _first(iter(alerts), 0)
+    assert (shown, severities.total()) == (sorted(alerts, key=_sort_key), 12)
+
+
+def test_hidden_alerts_are_counted_by_severity() -> None:
+    from prohori.cli.detect import _first, _hidden
+    from prohori.schema import Severity
+    from tests.unit.incidents.factories import alert, at
+
+    noise = [alert("R-N", start=at(n), severity=Severity.MEDIUM) for n in range(50)]
+    late = [alert("R-C", start=at(500 + n), severity=Severity.CRITICAL) for n in range(2)]
+    shown, severities = _first(iter(noise + late), 10)
+    assert _hidden(severities, shown) == "2 critical, 40 medium"
+
+
+def test_usedns_sample_raises_the_ssh_rules_by_host_name() -> None:
+    """sshd with UseDNS logs host names; the SSH and brute-force rules still count them."""
+    code, out, _ = run(str(SAMPLES / "auth-usedns.log"), "--year", "2026", "-f", "json")
+    assert code == ExitCode.ALERTS_FOUND
+    alerts = {json.loads(line)["detector_id"]: json.loads(line) for line in out.splitlines()}
+    host = {"source.host": "host-203-0-113-45.isp.example"}
+    assert alerts["PRH-SSH-001"]["entities"] == host
+    assert alerts["PRH-AUTH-001"]["entities"] == host

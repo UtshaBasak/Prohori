@@ -28,6 +28,9 @@ Json: TypeAlias = dict[str, "Json"] | list["Json"] | str | int | float | bool | 
 #: Entity fields whose values identify a person's account.
 USER_FIELDS = frozenset({"user.id", "user.name", "user.email_hash"})
 IP_FIELDS = frozenset({"source.ip"})
+#: Host names logged instead of an address; reverse DNS names often contain the address
+#: (``203-0-113-9.dyn.example``), so they are pseudonymised whenever addresses are.
+HOST_FIELDS = frozenset({"source.host"})
 
 #: Keys whose values are structural (ids, hashes, enums, times) and never personal data.
 _STRUCTURAL_KEYS = frozenset(
@@ -64,7 +67,7 @@ _STRUCTURAL_STRINGS = frozenset({"enrichment"})
 _EMAIL_RE = re.compile(r"[\w.%+-]+@[\w-]+(?:\.[\w-]+)*\.[^\W\d_]{2,}")
 _IPV4_RE = re.compile(r"(?<![\w.])(?:\d{1,3}\.){3}\d{1,3}(?![\w])")
 _IPV6_RE = re.compile(r"(?<![\w:.])[0-9A-Fa-f]{0,4}(?::[0-9A-Fa-f]{0,4}){2,7}(?![\w:])")
-_PSEUDONYM_RE = re.compile(r"\[(?:user|email|ip):[0-9a-f]{10}\]")
+_PSEUDONYM_RE = re.compile(r"\[(?:user|email|ip|host):[0-9a-f]{10}\]")
 
 
 def token_pattern(values: Iterable[str]) -> re.Pattern[str]:
@@ -132,6 +135,8 @@ class Redactor:
                         add("user", value)
                     elif self.ips and name in IP_FIELDS:
                         add("ip", value)
+                    elif self.ips and name in HOST_FIELDS:
+                        add("host", value)
         for entry in incident.timeline:
             add("user", entry.account)
             if self.ips:

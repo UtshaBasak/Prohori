@@ -149,8 +149,8 @@ Confidence: **high**.
 | Rule | Title | Alerts | Rule file SHA-256 |
 |------|-------|-------:|-------------------|
 | `PRH-ACCT-001` | Sensitive account change shortly after sign-in | 2 | `17c8063cfc601ce9d78cf29e2bee17561a9c98c874780d6e4a54175910598a13` |
-| `PRH-AUTH-001` | Brute-force sign-in attempts from one IP | 1 | `0290a2ce3b31dccf77b3e30250c1eaaef6706ddfe7334c673df20fc8a7229aa4` |
-| `PRH-AUTH-003` | Successful sign-in after many failures from one IP | 1 | `392b3afc9d79eb0ddacab15ba27fb27e6f71ce5177c37544a0b9c047cf6ace76` |
+| `PRH-AUTH-001` | Brute-force sign-in attempts from one IP | 1 | `4e19eaef208251dc2c02c1086ce483cfd5e83c303fb069b38f78aa6ccd838be0` |
+| `PRH-AUTH-003` | Successful sign-in after many failures from one IP | 1 | `7601eec72c7d9babc38be001629e90a86b4ad5be0cad2d923f131a96884d7ca0` |
 
 ### Inputs
 

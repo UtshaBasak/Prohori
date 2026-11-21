@@ -35,7 +35,7 @@ _IPV4 = re.compile(r"(?<![\w.])(?:\d{1,3}\.){3}\d{1,3}(?![\w.]?\d)")
 # included. Candidates are kept only if ipaddress parses them.
 _IPV6 = re.compile(r"(?<![\w:.])[0-9A-Fa-f]{0,4}(?::[0-9A-Fa-f]{0,4}){2,7}(?:%\w+)?(?![\w:])")
 _EMAIL = re.compile(r"[\w.%+-]+@[\w-]+(?:\.[\w-]+)*\.[^\W\d_]{2,}")
-_PSEUDONYM = re.compile(r"\[(?:user|email|ip):[0-9a-f]{10}\]")
+_PSEUDONYM = re.compile(r"\[(?:user|email|ip|host):[0-9a-f]{10}\]")
 _INCIDENT = re.compile(r"\bINC-[A-Za-z0-9]{6,40}\b")
 # Rule ids such as PRH-AUTH-001, and Prohori's detector ids (PRH-ML-ZSCORE) in any case.
 _RULE = re.compile(r"\b(?:[A-Z]{2,10}-[A-Z]{2,10}-\d{3}|(?i:PRH-[A-Z]{2,10}-[A-Z0-9]{2,12}))\b")
@@ -47,7 +47,15 @@ _DEFANGED = (("[.]", "."), ("(.)", "."), ("[dot]", "."), ("[:]", ":"), ("hxxp", 
 TRUSTED_LINK_HOSTS = frozenset({"attack.mitre.org"})
 #: Entity fields whose values an answer may cite: addresses and (pseudonymised) accounts.
 IDENTITY_KEYS = frozenset(
-    {"source.ip", "destination.ip", "client.ip", "user.id", "user.name", "user.email_hash"}
+    {
+        "source.ip",
+        "source.host",
+        "destination.ip",
+        "client.ip",
+        "user.id",
+        "user.name",
+        "user.email_hash",
+    }
 )
 
 

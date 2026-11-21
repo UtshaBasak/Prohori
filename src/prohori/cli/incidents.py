@@ -29,7 +29,8 @@ from prohori.cli.parse import (
     parsed_events,
 )
 from prohori.enrich import ConfigError, Enricher, EnrichSettings, build_enricher
-from prohori.incidents import EventContext, IncidentBuilder, IncidentSettings
+from prohori.incidents import EventContext, IncidentBuilder, IncidentSettings, cap
+from prohori.incidents.cap import AlertCap
 from prohori.incidents.provenance import with_provenance
 from prohori.rules import CompiledRule, RuleEngine
 from prohori.rules.model import parse_duration
@@ -127,9 +128,13 @@ def incidents_command(
             "alerts": run.alerts,
             "incidents": len(incidents),
         }
+        if run.alerts_not_kept:
+            summary["alerts_not_kept"] = run.alerts_not_kept
         typer.echo(json.dumps(summary), err=True)
     else:
         _print_tables(incidents, run.name, run.alerts)
+        if run.alerts_not_kept:
+            typer.echo(_not_kept_note(run.alerts_not_kept), err=True)
     if run.events == 0 and run.parse_errors > 0:
         raise typer.Exit(ExitCode.NO_EVENTS)
     if incidents and not exit_zero:
@@ -157,6 +162,8 @@ class IncidentRun:
     events: int
     parse_errors: int
     alerts: int
+    #: Alerts raised but not kept (see :mod:`prohori.incidents.cap`).
+    alerts_not_kept: int = 0
 
 
 def run_incidents(
@@ -176,6 +183,7 @@ def run_incidents(
     rule alerts. Closes ``enricher`` when done.
     """
     context = EventContext()
+    alert_cap = AlertCap()
     engine = RuleEngine(rules, lateness=lateness, reference_time=datetime.now(UTC))
     try:
         with parsed_events(
@@ -188,12 +196,12 @@ def run_incidents(
             keep_query=parse.keep_query,
         ) as parsed:
             model_run = ModelRun(models)
-            alerts = list(engine.run(context.observe(model_run.observe(parsed.events))))
-            alerts += model_run.alerts()
+            alert_cap.extend(engine.run(context.observe(model_run.observe(parsed.events))))
+            alert_cap.extend(model_run.alerts())
             source = _input_file(parsed)  # the whole input has been read (and hashed) by now
         builder = IncidentBuilder(rules, context=context, enricher=enricher, settings=settings)
         incidents = with_provenance(
-            builder.build(alerts),
+            alert_cap.apply(builder.build(alert_cap.alerts)),
             inputs=[source] if source is not None else [],
             rules=rules,
             enrichment=enrichment,
@@ -202,7 +210,20 @@ def run_incidents(
         if enricher is not None:
             enricher.close()
     return IncidentRun(
-        incidents, parsed.name, parsed.stats.events, parsed.stats.errors, len(alerts)
+        incidents,
+        parsed.name,
+        parsed.stats.events,
+        parsed.stats.errors,
+        alert_cap.seen,
+        alert_cap.dropped_total,
+    )
+
+
+def _not_kept_note(count: int) -> str:
+    return (
+        f"note: {count:,} alert(s) were raised but not kept (at most "
+        f"{cap.MAX_ALERTS_PER_KEY:,} per rule and entities and {cap.MAX_ALERTS_PER_SEVERITY:,} "
+        "of each severity); the incidents concerned say so"
     )
 
 

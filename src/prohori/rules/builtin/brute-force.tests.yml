@@ -65,3 +65,30 @@ cases:
         - '{"time": "2026-10-24T13:50:08Z", "event": {"action": "auth.signin.failure"}, "source": {"ip": "203.0.113.7"}}'
         - '{"time": "2026-10-24T13:50:09Z", "event": {"action": "auth.signin.failure"}, "source": {"ip": "203.0.113.7"}}'
         - '{"time": "2026-10-24T13:50:10Z", "event": {"action": "auth.signin.failure"}, "source": {"ip": "203.0.113.7"}}'
+
+  - name: sshd failures logged with a host name (UseDNS) through the auth_log parser
+    expect: {alerts: 1, entities: [{source.host: scanner.example}]}
+    log:
+      parser: auth_log
+      lines:
+        - "Oct 24 13:50:01 web01 sshd[9]: Failed password for root from Scanner.Example. port 40000 ssh2"
+        - "Oct 24 13:50:03 web01 sshd[9]: Failed password for root from Scanner.Example. port 40001 ssh2"
+        - "Oct 24 13:50:05 web01 sshd[9]: Failed password for root from Scanner.Example. port 40002 ssh2"
+        - "Oct 24 13:50:07 web01 sshd[9]: Failed password for root from Scanner.Example. port 40003 ssh2"
+        - "Oct 24 13:50:09 web01 sshd[9]: Failed password for root from Scanner.Example. port 40004 ssh2"
+        - "Oct 24 13:50:11 web01 sshd[9]: Failed password for root from Scanner.Example. port 40005 ssh2"
+        - "Oct 24 13:50:13 web01 sshd[9]: Failed password for root from Scanner.Example. port 40006 ssh2"
+        - "Oct 24 13:50:15 web01 sshd[9]: Failed password for root from Scanner.Example. port 40007 ssh2"
+        - "Oct 24 13:50:17 web01 sshd[9]: Failed password for root from Scanner.Example. port 40008 ssh2"
+        - "Oct 24 13:50:19 web01 sshd[9]: Failed password for root from Scanner.Example. port 40009 ssh2"
+
+  - name: an address and a host name are never counted together
+    expect: {alerts: 0}
+    events:
+      - {event.action: auth.signin.failure, source.ip: 203.0.113.7, repeat: 5}
+      - {event.action: auth.signin.failure, source.host: scanner.example, repeat: 5}
+
+  - name: a host name groups only when there is no address
+    expect: {alerts: 1, entities: [{source.ip: 203.0.113.7}]}
+    events:
+      - {event.action: auth.signin.failure, source.ip: 203.0.113.7, source.host: scanner.example, repeat: 10}

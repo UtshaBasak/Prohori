@@ -3,10 +3,12 @@
 """Small helpers shared by parsers."""
 
 import json
+import re
 from ipaddress import IPv4Address, IPv6Address, ip_address
 from typing import Any
 
 from prohori.parsers.base import ParseError, sanitize
+from prohori.schema.event import HOSTNAME_PATTERN
 
 
 def normalise_ip(text: str | None) -> IPv4Address | IPv6Address | None:
@@ -20,6 +22,26 @@ def normalise_ip(text: str | None) -> IPv4Address | IPv6Address | None:
     if isinstance(address, IPv6Address) and address.ipv4_mapped is not None:
         return address.ipv4_mapped
     return address
+
+
+#: A host name as normalised by :func:`normalise_host` (same as the event schema's pattern).
+_HOSTNAME_RE = re.compile(HOSTNAME_PATTERN)
+
+
+def normalise_host(text: str | None) -> str | None:
+    """Return ``text`` as a lower-case fully qualified host name without the trailing dot.
+
+    Returns ``None`` for anything else (a bare word such as ``unknown``, an address, spaces), so
+    placeholder values never become a shared group key.
+    """
+    if not text:
+        return None
+    name = text.strip().rstrip(".").lower()
+    if len(name) > 253 or _HOSTNAME_RE.fullmatch(name) is None:
+        return None
+    if name.rpartition(".")[2].isdigit():  # an address such as 203.0.113.9, not a name
+        return None
+    return name
 
 
 def _clean(value: object) -> object:

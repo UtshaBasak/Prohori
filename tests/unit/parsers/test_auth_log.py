@@ -301,6 +301,17 @@ class TestSshdDetails:
         event = one(f"{HDR} sshd[1]: Failed password for root from scanner.example port 2 ssh2")
         assert event.source.ip is None
         assert event.extra["source_host"] == "scanner.example"
+        assert event.source.host == "scanner.example"
+
+    def test_hostname_is_normalised_and_placeholders_are_not_hosts(self) -> None:
+        upper = one(f"{HDR} sshd[1]: Failed password for root from Scanner.EXAMPLE. port 2 ssh2")
+        assert upper.source.host == "scanner.example"
+        assert upper.extra["source_host"] == "Scanner.EXAMPLE."  # as logged, unchanged from 1.0
+        bare = one(f"{HDR} sshd[1]: Failed password for root from UNKNOWN port 2 ssh2")
+        assert bare.source.host is None
+        assert bare.extra["source_host"] == "UNKNOWN"
+        address = one(f"{HDR} sshd[1]: Failed password for root from 203.0.113.7 port 2 ssh2")
+        assert address.source.host is None
 
     def test_unrelated_sshd_message_skipped(self) -> None:
         events, stats = parse(f"{HDR} sshd[1]: Server listening on 0.0.0.0 port 22.")
@@ -516,6 +527,55 @@ class TestTimestamps:
         assert events == []
         assert stats.errors == 1
         assert "invalid date" in stats.error_examples[0].reason
+
+    def test_repeated_dst_hour_keeps_going_forward(self) -> None:
+        """America/New_York goes back from 02:00 EDT to 01:00 EST on 1 November 2026."""
+        events, stats = parse(
+            *(SAMPLES / "auth-dst.log").read_text(encoding="utf-8").splitlines(),
+            timezone="America/New_York",
+        )
+        assert [e.timestamp.strftime("%H:%M") for e in events] == [
+            "04:58",  # 00:58 EDT
+            "05:20",  # 01:20 EDT, first pass
+            "05:55",  # 01:55 EDT
+            "06:05",  # 01:05 EST, second pass: the first reading would go back 50 minutes
+            "06:40",  # 01:40 EST: 25 minutes back, still the second pass
+            "07:10",  # 02:10 EST
+        ]
+        assert stats.ambiguous_times == 4
+        assert stats.as_dict()["ambiguous_times"] == 4
+
+    def test_repeated_dst_hour_tolerates_slightly_out_of_order_lines(self) -> None:
+        events, _ = parse(
+            "Nov  1 01:30:00 h sshd[1]: Invalid user a from 192.0.2.1 port 1",
+            "Nov  1 01:25:00 h sshd[1]: Invalid user a from 192.0.2.1 port 1",
+            timezone="America/New_York",
+        )
+        assert [e.timestamp.strftime("%H:%M") for e in events] == ["05:30", "05:25"]
+
+    def test_repeated_dst_hour_without_offset_in_iso_lines(self) -> None:
+        events, stats = parse(
+            "2026-11-01T01:50:00 h sshd[1]: Invalid user a from 192.0.2.1 port 1",
+            "2026-11-01T01:10:00 h sshd[1]: Invalid user a from 192.0.2.1 port 1",
+            "2026-11-01T01:10:00-05:00 h sshd[1]: Invalid user a from 192.0.2.1 port 1",
+            timezone="America/New_York",
+        )
+        assert [e.timestamp.strftime("%H:%M") for e in events] == ["05:50", "06:10", "06:10"]
+        assert stats.ambiguous_times == 2
+
+    def test_skipped_dst_hour_and_utc_are_unchanged(self) -> None:
+        # 02:30 does not exist on 8 March 2026 in New York; Python reads it with EST (-5).
+        spring = one(
+            "Mar  8 02:30:00 h sshd[1]: Invalid user a from 192.0.2.1 port 1",
+            timezone="America/New_York",
+        )
+        assert spring.timestamp == datetime(2026, 3, 8, 7, 30, tzinfo=UTC)
+        events, stats = parse(
+            "Nov  1 01:50:00 h sshd[1]: Invalid user a from 192.0.2.1 port 1",
+            "Nov  1 01:10:00 h sshd[1]: Invalid user a from 192.0.2.1 port 1",
+        )
+        assert [e.timestamp.strftime("%H:%M") for e in events] == ["01:50", "01:10"]
+        assert stats.ambiguous_times == 0
 
     def test_invalid_timezone_rejected(self) -> None:
         with pytest.raises(ValueError, match="unknown timezone"):

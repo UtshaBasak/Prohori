@@ -53,13 +53,13 @@
         "id": "PRH-AUTH-001",
         "title": "Brute-force sign-in attempts from one IP",
         "alerts": 1,
-        "sha256": "0290a2ce3b31dccf77b3e30250c1eaaef6706ddfe7334c673df20fc8a7229aa4"
+        "sha256": "4e19eaef208251dc2c02c1086ce483cfd5e83c303fb069b38f78aa6ccd838be0"
       },
       {
         "id": "PRH-AUTH-003",
         "title": "Successful sign-in after many failures from one IP",
         "alerts": 1,
-        "sha256": "392b3afc9d79eb0ddacab15ba27fb27e6f71ce5177c37544a0b9c047cf6ace76"
+        "sha256": "7601eec72c7d9babc38be001629e90a86b4ad5be0cad2d923f131a96884d7ca0"
       }
     ],
     "inputs": [
@@ -473,12 +473,12 @@
         {
           "id": "PRH-AUTH-001",
           "title": "Brute-force sign-in attempts from one IP",
-          "sha256": "0290a2ce3b31dccf77b3e30250c1eaaef6706ddfe7334c673df20fc8a7229aa4"
+          "sha256": "4e19eaef208251dc2c02c1086ce483cfd5e83c303fb069b38f78aa6ccd838be0"
         },
         {
           "id": "PRH-AUTH-003",
           "title": "Successful sign-in after many failures from one IP",
-          "sha256": "392b3afc9d79eb0ddacab15ba27fb27e6f71ce5177c37544a0b9c047cf6ace76"
+          "sha256": "7601eec72c7d9babc38be001629e90a86b4ad5be0cad2d923f131a96884d7ca0"
         }
       ],
       "enrichment": "offline"

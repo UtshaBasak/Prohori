@@ -46,6 +46,14 @@ Generated from `results/performance.json` by `scripts/benchmark.py`, run on 2026
 | `demo` | - | - | 1.5 s | - | 61 MiB | 0 |
 
 Lite mode's state directory (topics, positions and the DuckDB warehouse) grew to 1,711 MiB for the 202 MiB log; its topics are not trimmed.
+
+**Alert storm** (2026-11-20): an application log of 1,000,000 lines in which every line raises at least one alert (1,360,000 in all). Every run must stay under 512 MiB of peak memory.
+
+| Run | Time | Peak memory | Alerts not kept | Within the bound |
+| ----- | -----: | ------: | ------: | ----- |
+| `detect -f json` (writes each alert as it is raised) | 152.1 s | 68 MiB | 0 | yes |
+| `detect` table (shows the first 100, counts the rest) | 128.6 s | 68 MiB | 0 | yes |
+| `incidents` (keeps a bounded number of alerts) | 146.4 s | 202 MiB | 1,340,000 | yes |
 <!-- performance:end -->
 
 ## What the numbers mean
@@ -56,6 +64,12 @@ Lite mode's state directory (topics, positions and the DuckDB warehouse) grew to
   needs the most.
 - **Lite mode needs more memory.** All four stages and the DuckDB warehouse run in one process,
   and DuckDB keeps a buffer of its own.
+- **Alerts do not fill memory.** In the alert storm, memory stays flat however many alerts a
+  log raises: `detect -f json` writes each alert as it is raised, the `detect` table keeps only
+  the alerts it shows (`--limit`, 100 by default), and `incidents` keeps at most 1,000 alerts per
+  rule and entities and 10,000 of each severity, saying in each incident how many it did not
+  keep (see
+  [INCIDENTS.md](INCIDENTS.md#bounded-alerts)).
 - **Lite mode is slower than the batch command.** Every stage validates, serialises and writes
   each message to a topic file and syncs it, and the sink writes every row to DuckDB; that is
   the price of restartable, at-least-once processing. Its topics are not trimmed, so its state

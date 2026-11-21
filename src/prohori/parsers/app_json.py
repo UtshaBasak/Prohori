@@ -20,7 +20,13 @@ from typing import Any
 
 from prohori.parsers.base import LineParser, ParseError
 from prohori.parsers.registry import register
-from prohori.parsers.util import as_text, get_path, load_json_object, normalise_ip
+from prohori.parsers.util import (
+    as_text,
+    get_path,
+    load_json_object,
+    normalise_host,
+    normalise_ip,
+)
 from prohori.schema import Event, EventCategory, event_id
 
 #: Action prefix -> category, used when the record has no valid category.
@@ -99,7 +105,7 @@ class AppJsonParser(LineParser):
                     "severity": as_text(event.get("severity")),
                     "reason": as_text(event.get("reason")),
                 },
-                "source": {"ip": ip},
+                "source": {"ip": ip, "host": None if ip else normalise_host(ip_text)},
                 "user": {
                     "name": as_text(get_path(record, "user.name")),
                     "id": as_text(get_path(record, "user.id")),

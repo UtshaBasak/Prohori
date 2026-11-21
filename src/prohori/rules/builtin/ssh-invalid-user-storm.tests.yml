@@ -62,3 +62,14 @@ cases:
         - "Oct 24 13:50:09 web01 sshd[303]: Disconnecting authenticating user root 192.0.2.50 port 40003: Too many authentication failures [preauth]"
         - "Oct 24 13:50:15 web01 sshd[304]: error: maximum authentication attempts exceeded for root from 192.0.2.50 port 40004 ssh2 [preauth]"
         - "Oct 24 13:50:15 web01 sshd[304]: Disconnecting authenticating user root 192.0.2.50 port 40004: Too many authentication failures [preauth]"
+
+  - name: invalid users logged with a host name (UseDNS) through the auth_log parser
+    expect: {alerts: 1, entities: [{source.host: scanner.example}]}
+    log:
+      parser: auth_log
+      lines:
+        - "Oct 24 13:50:01 web01 sshd[300]: Invalid user admin from scanner.example port 40000"
+        - "Oct 24 13:50:03 web01 sshd[301]: Invalid user oracle from scanner.example port 40001"
+        - "Oct 24 13:50:05 web01 sshd[302]: Invalid user test from scanner.example port 40002"
+        - "Oct 24 13:50:07 web01 sshd[303]: Invalid user ubuntu from scanner.example port 40003"
+        - "Oct 24 13:50:09 web01 sshd[304]: Invalid user git from scanner.example port 40004"

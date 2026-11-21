@@ -192,3 +192,25 @@ def test_sample_incident_file_is_current() -> None:
     assert path.stem == current.id
     version = {"provenance": {"tool_version"}}
     assert stored.model_dump(exclude=version) == current.model_dump(exclude=version)
+
+
+def test_alerts_beyond_the_limits_are_counted_and_named(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from prohori.simulate import simulate, write
+
+    simulation = simulate("web-scanning", seed=1)
+    write(simulation, tmp_path)
+    log = tmp_path / simulation.scenario.filename
+    monkeypatch.setattr("prohori.incidents.cap.MAX_ALERTS_PER_KEY", 5)
+    result = runner.invoke(app, ["incidents", str(log), "-f", "json", "--exit-zero"])
+    assert result.exit_code == ExitCode.OK, result.stderr
+    summary = json.loads(result.stderr.strip().splitlines()[-1])
+    assert summary["alerts_not_kept"] > 0
+    incidents = [Incident.model_validate_json(line) for line in result.stdout.splitlines()]
+    notes = [x for i in incidents for x in i.limitations if "not kept" in x]
+    assert notes
+    assert sum(int(n.split()[0].replace(",", "")) for n in notes) == summary["alerts_not_kept"]
+    assert all(len(i.alerts) <= 5 * 20 for i in incidents)
+    table = runner.invoke(app, ["incidents", str(log), "--exit-zero"])
+    assert "were raised but not kept" in table.stderr

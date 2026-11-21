@@ -29,6 +29,7 @@ incident. Entities are these fields:
 | Field | Why |
 | ------- | ----- |
 | `source.ip` | The attacker's (or victim's) address |
+| `source.host` | The attacker's host name, when sshd logged one instead of an address (since 1.1) |
 | `user.id`, `user.name`, `user.email_hash` | The account involved |
 | `request_id` | One request seen by several rules |
 | `extra.session_id` | One session, when a parser or field mapping provides it |
@@ -43,8 +44,9 @@ incident. Entities are these fields:
 - Two alerts with a common entity are linked when the later one starts at most `gap` after the
   latest end of the earlier alerts with that entity (inclusive). Links are transitive.
 - **Shared addresses.** NAT gateways, proxies and VPNs put many people behind one IP. Once an IP
-  has linked alerts about more than 10 distinct accounts it is treated as shared: it links no
-  further alerts, and the incidents it appears in say so in their limitations.
+  (or a host name logged instead of one) has linked alerts about more than 10 distinct accounts
+  it is treated as shared: it links no further alerts, and the incidents it appears in say so in
+  their limitations.
 - The result does not depend on the order of the alerts.
 
 ## Score
@@ -121,8 +123,24 @@ Each incident lists what weakens its evidence, for example:
   events, never the raw lines);
 - no earlier sign-in to compare a sign-in with;
 - a shared IP address that stopped linking alerts;
+- alerts that were raised but not kept (see below);
 - unverified ATT&CK tags;
 - the rules' known benign causes (their `falsepositives`).
+
+### Bounded alerts
+
+`prohori incidents` and `triage` collect a run's alerts before grouping them, so a log that
+raises millions of alerts (a scanner tripping a single-event rule on every request) could fill
+memory. Since 1.1 a run keeps at most 1,000 alerts per rule and set of entities (the first ones)
+and 10,000 of each severity, and counts the rest. Each severity has its own budget, so a flood
+of low or medium alerts cannot use up the room a later critical alert needs; but once 10,000
+alerts of one severity are kept, later alerts of that severity are only counted, and those under
+new entities form no incident. An incident whose rule and entities lost alerts says how
+many in its limitations; the JSON summary gives the total as `alerts_not_kept`, and the table
+output and the triage summary mention it. The limits are far above what the simulator and the
+samples produce (at most 14 alerts per rule and entities), so ordinary runs are unchanged. The
+streaming pipeline does not apply them: its incident stage releases alerts as their incidents
+close.
 
 ## Provenance
 

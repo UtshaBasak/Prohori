@@ -152,6 +152,12 @@ def _summary(
         f"{len(incidents)} incident(s).",
         "",
     ]
+    if run.alerts_not_kept:
+        lines += [
+            f"{run.alerts_not_kept:,} alert(s) were raised but not kept, so memory stays bounded; "
+            "the incidents concerned say so in their limitations.",
+            "",
+        ]
     if incidents:
         lines += [
             "| Incident | Severity | Score | Confidence | Title | Report |",
@@ -284,6 +290,7 @@ def print_result(result: TriageResult, console: Console | None = None) -> None:
         Text(
             f"{run.name}: {run.events} events, {run.alerts} alerts, "
             f"{len(result.incidents)} incident(s)"
+            + (f", {run.alerts_not_kept:,} alerts not kept" if run.alerts_not_kept else "")
         )
     )
     if result.incidents:

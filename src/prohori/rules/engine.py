@@ -19,7 +19,10 @@ Evaluation semantics (see ``docs/RULES.md``, "Evaluation semantics"):
   alert needs the threshold to be reached again by later events. Stateless rules alert once per
   matching event.
 * **Missing group fields.** An event without a value for every ``group_by`` / ``by`` field is
-  skipped for that rule and counted in :attr:`EngineStats.ungrouped_events`.
+  skipped for that rule and counted in :attr:`EngineStats.ungrouped_events`. An entry that lists
+  alternatives (``[source.ip, source.host]``) takes the first one with a value; the field used is
+  part of the group key and of the alert's entities, so an address and a host name never share
+  a group.
 """
 
 import heapq
@@ -29,7 +32,7 @@ from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
 
 from prohori.rules.compiler import CompiledRule
-from prohori.rules.model import AggregateSpec, SequenceSpec, WindowMode
+from prohori.rules.model import AggregateSpec, GroupField, SequenceSpec, WindowMode
 from prohori.schema import Alert, DetectorKind, Event, Severity, get_field
 
 #: Event ids kept in one alert (the most recent ones); the explanation gives the full count.
@@ -37,7 +40,7 @@ MAX_ALERT_EVENT_IDS = 100
 #: Events kept per group for ratio thresholds (older ones are dropped and counted).
 MAX_GROUP_EVENTS = 10_000
 #: Fields copied into the entities of alerts from stateless rules, when present.
-ENTITY_FIELDS = ("source.ip", "user.name", "user.id", "host", "request_id")
+ENTITY_FIELDS = ("source.ip", "source.host", "user.name", "user.id", "host", "request_id")
 
 _SCORES = {Severity.LOW: 25.0, Severity.MEDIUM: 50.0, Severity.HIGH: 75.0, Severity.CRITICAL: 100.0}
 _EPOCH = datetime(1970, 1, 1, tzinfo=UTC)
@@ -68,14 +71,21 @@ class _Seen:
     event_id: str
 
 
-def _group_key(event: Event, fields: Sequence[str]) -> tuple[str, ...] | None:
-    values: list[str] = []
-    for path in fields:
-        value = get_field(event, path)
-        if value is None:
+#: A group: the ``(field, value)`` pair each ``group_by`` / ``by`` entry resolved to.
+GroupKey = tuple[tuple[str, str], ...]
+
+
+def _group_key(event: Event, fields: Sequence[GroupField]) -> GroupKey | None:
+    pairs: list[tuple[str, str]] = []
+    for entry in fields:
+        for path in (entry,) if isinstance(entry, str) else entry:
+            value = get_field(event, path)
+            if value is not None:
+                pairs.append((path, str(value)))
+                break
+        else:
             return None
-        values.append(str(value))
-    return tuple(values)
+    return tuple(pairs)
 
 
 def _build_alert(
@@ -105,8 +115,8 @@ def _build_alert(
     )
 
 
-def _describe(fields: Sequence[str], key: tuple[str, ...]) -> str:
-    return ", ".join(f"{f}={v}" for f, v in zip(fields, key, strict=True))
+def _describe(key: GroupKey) -> str:
+    return ", ".join(f"{f}={v}" for f, v in key)
 
 
 # ---------------------------------------------------------------- per-rule evaluators
@@ -163,7 +173,7 @@ class _AggregateEvaluator(_Evaluator):
             msg = f"rule {rule.id} has no aggregate block"
             raise ValueError(msg)
         self.spec: AggregateSpec = rule.aggregate
-        self.groups: OrderedDict[tuple[str, ...], _AggregateGroup] = OrderedDict()
+        self.groups: OrderedDict[GroupKey, _AggregateGroup] = OrderedDict()
 
     def state_size(self) -> int:
         return sum(g.size() for g in self.groups.values()) + len(self.groups)
@@ -177,7 +187,7 @@ class _AggregateEvaluator(_Evaluator):
             del self.groups[key]
             self.stats.groups_expired += 1
 
-    def _group(self, key: tuple[str, ...], now: datetime) -> _AggregateGroup:
+    def _group(self, key: GroupKey, now: datetime) -> _AggregateGroup:
         group = self.groups.pop(key, None)
         if group is None:
             group = _AggregateGroup()
@@ -260,14 +270,13 @@ class _AggregateEvaluator(_Evaluator):
             return []
         mode = "window" if spec.mode is WindowMode.SLIDING else "tumbling window"
         explanation = (
-            f"{detail} for {_describe(spec.group_by, key)} within a "
-            f"{_format_duration(spec.window)} {mode}"
+            f"{detail} for {_describe(key)} within a {_format_duration(spec.window)} {mode}"
         )
         alert = _build_alert(
             self.rule,
             list(group.seen),
             len(group.seen),
-            dict(zip(spec.group_by, key, strict=True)),
+            dict(key),
             explanation,
             first_seen=group.first_ts,
         )
@@ -314,7 +323,7 @@ class _SequenceEvaluator(_Evaluator):
             msg = f"rule {rule.id} has no sequence block"
             raise ValueError(msg)
         self.spec: SequenceSpec = rule.sequence
-        self.groups: OrderedDict[tuple[str, ...], _SequenceGroup] = OrderedDict()
+        self.groups: OrderedDict[GroupKey, _SequenceGroup] = OrderedDict()
 
     def state_size(self) -> int:
         return sum(g.size() for g in self.groups.values()) + len(self.groups)
@@ -407,16 +416,11 @@ class _SequenceEvaluator(_Evaluator):
         group.step, group.count = 1, 0
         return True
 
-    def _alert(self, seen: Sequence[_Seen], key: tuple[str, ...]) -> Alert:
+    def _alert(self, seen: Sequence[_Seen], key: GroupKey) -> Alert:
         steps = self.spec.steps
         names = " then ".join(f"{s.count_gte} x {s.selection}" for s in steps)
-        explanation = (
-            f"{names} for {_describe(self.spec.by, key)} within "
-            f"{_format_duration(self.spec.within)}"
-        )
-        return _build_alert(
-            self.rule, seen, len(seen), dict(zip(self.spec.by, key, strict=True)), explanation
-        )
+        explanation = f"{names} for {_describe(key)} within {_format_duration(self.spec.within)}"
+        return _build_alert(self.rule, seen, len(seen), dict(key), explanation)
 
 
 def _format_duration(value: timedelta) -> str:

@@ -100,8 +100,8 @@ flowchart LR
 
 | Stage | Today |
 | ------- | ------- |
-| **Parse** | Linux `auth.log` (sshd, sudo, PAM), nginx/Apache access logs, application security events (JSON Lines) and any JSON Lines layout through a YAML field mapping, into one typed event schema. Format detection, streaming with bounded memory, hostile input handled (oversized lines, bad encodings, control characters). |
-| **Detect** | 15 readable YAML rules (Sigma-inspired) with field modifiers, thresholds, distinct counts, ratios, sliding and tumbling windows and ordered sequences. Every rule ships with test fixtures and a runbook; regular expressions run on RE2, so no pattern can hang a run. With `--models`, anomaly detectors (robust z-score, Isolation Forest) also flag source IPs that behave unlike the rest of the log. |
+| **Parse** | Linux `auth.log` (sshd, sudo, PAM), nginx/Apache access logs, application security events (JSON Lines) and any JSON Lines layout through a YAML field mapping, into one typed event schema. Format detection, streaming with bounded memory, hostile input handled (oversized lines, bad encodings, control characters). Daylight-saving changes handled: the hour repeated when the clocks go back keeps moving forward instead of being dropped as late. |
+| **Detect** | 15 readable YAML rules (Sigma-inspired) with field modifiers, thresholds, distinct counts, ratios, sliding and tumbling windows and ordered sequences. Every rule ships with test fixtures and a runbook; regular expressions run on RE2, so no pattern can hang a run. With `--models`, anomaly detectors (robust z-score, Isolation Forest) also flag source IPs that behave unlike the rest of the log. SSH attacks are counted even when sshd logs host names instead of addresses (`UseDNS`), and a log with millions of alerts stays bounded in memory: the table shows the first 100, JSON streams every alert, and incidents keep a capped number. |
 | **Enrich** | IP geolocation, network owner and reputation from local GeoLite2 files, AbuseIPDB and VirusTotal, all optional. SQLite cache, daily budgets, rate limiting and bounded retries. Private and documentation addresses never leave the machine. |
 | **Incidents** | Related alerts (same IP, account, request or session within a time gap) become one incident with a points-based score you can read line by line, severity, confidence, MITRE ATT&CK v20.0 mapping, a timeline, recommended actions and stated limitations. Detects sign-ins from an IP or app new to the account. |
 | **Simulate** | Eight labelled attack scenarios (SSH brute force, password spraying, credential stuffing, token reuse, account takeover, web scanning, injection, admin misuse) hidden in realistic background activity, byte-identical for a seed, documentation IP addresses only. Used to measure every rule's precision and recall. |
@@ -587,7 +587,13 @@ Prohori is honest about what it does not do:
   inspected; the web rules use the request line only.
 - **Thresholds can be evaded.** The held-out evaluation shows that slow or widely distributed
   attacks stay under the brute-force and spraying thresholds; see
-  [How well the rules work](#how-well-the-rules-work).
+  [How well the rules work](#how-well-the-rules-work). When sshd logs host names, an attacker who
+  controls their reverse DNS can change the name to split the count.
+- **Very large alert counts are trimmed.** `incidents` and `triage` keep at most 1,000 alerts per
+  rule and entities and 10,000 of each severity, and say in the incident how many more there
+  were. A flood of medium alerts cannot crowd out a critical one, but once 10,000 alerts of one
+  severity are kept, later alerts of that severity form no new incident (the summary counts
+  them); the `detect` table likewise lists the hidden alerts by severity.
 - **Some rules are noisy by design.** PRH-ACCT-001 flags every sensitive change shortly after a
   sign-in, including the owner's own; incidents list such benign causes as limitations.
 - **The evaluation is synthetic** and written by the rules' author. Test the rules on your own

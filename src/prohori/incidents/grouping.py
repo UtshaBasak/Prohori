@@ -10,9 +10,9 @@ An alert's pairs are its own entities plus every link field that has exactly one
 its matched events; a brute-force alert grouped by IP therefore also links on the one account
 it targeted, but not on the dozen user names an SSH scan tried.
 
-Shared addresses (NAT gateways, proxies) would merge unrelated people's alerts. Once an IP has
-linked alerts about more than ``max_ip_fanout`` distinct accounts it is treated as shared and
-links nothing further.
+Shared addresses (NAT gateways, proxies) would merge unrelated people's alerts. Once an IP (or a
+host name logged instead of one) has linked alerts about more than ``max_ip_fanout`` distinct
+accounts it is treated as shared and links nothing further.
 """
 
 from collections.abc import Iterable, Sequence
@@ -29,6 +29,8 @@ DEFAULT_GAP = timedelta(minutes=30)
 DEFAULT_MAX_IP_FANOUT = 10
 
 Key = tuple[str, str]
+#: Link fields that name where activity came from; the shared-address cap applies to them.
+ADDRESS_FIELDS = frozenset({"source.ip", "source.host"})
 
 
 @dataclass(frozen=True)
@@ -106,11 +108,11 @@ def group_alerts(
     for index, alert in enumerate(ordered):
         accounts = {k for k in keys[index] if k[0] in USER_FIELDS}
         for key in sorted(keys[index]):
-            if key[0] == "source.ip" and key[1] in shared:
+            if key[0] in ADDRESS_FIELDS and key[1] in shared:
                 continue
             chain = chains.get(key)
             if chain is not None and alert.first_seen - chain.last_seen <= gap:
-                if key[0] == "source.ip":
+                if key[0] in ADDRESS_FIELDS:
                     combined = chain.accounts | accounts
                     if _account_count(combined) > max_ip_fanout:
                         shared[key[1]] = _account_count(combined)
@@ -130,7 +132,7 @@ def _group(
     ordered: Sequence[Alert], keys: Sequence[set[Key]], indexes: list[int], shared: dict[str, int]
 ) -> AlertGroup:
     group_keys = set().union(*(keys[i] for i in indexes))
-    ips = {value for field, value in group_keys if field == "source.ip"}
+    ips = {value for field, value in group_keys if field in ADDRESS_FIELDS}
     return AlertGroup(
         alerts=tuple(ordered[i] for i in indexes),
         keys=tuple(sorted(group_keys)),

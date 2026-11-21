@@ -12,6 +12,7 @@ from prohori.schema import Event
 #: them, so linking on them would merge everything.
 LINK_FIELDS = (
     "source.ip",
+    "source.host",
     "user.id",
     "user.name",
     "user.email_hash",
@@ -34,6 +35,7 @@ class EventSummary:
     category: str
     outcome: str
     source_ip: str | None = None
+    source_host: str | None = None
     user_id: str | None = None
     user_name: str | None = None
     email_hash: str | None = None
@@ -56,6 +58,7 @@ class EventSummary:
             category=event.event.category.value,
             outcome=event.event.outcome.value,
             source_ip=str(event.source.ip) if event.source.ip is not None else None,
+            source_host=event.source.host,
             user_id=event.user.id,
             user_name=event.user.name,
             email_hash=event.user.email_hash,
@@ -72,6 +75,7 @@ class EventSummary:
         """Return the value of one of :data:`LINK_FIELDS`."""
         return {
             "source.ip": self.source_ip,
+            "source.host": self.source_host,
             "user.id": self.user_id,
             "user.name": self.user_name,
             "user.email_hash": self.email_hash,
