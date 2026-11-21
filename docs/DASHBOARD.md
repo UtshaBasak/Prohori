@@ -63,7 +63,8 @@ The marts are not built by the stack itself. Until they are, these panels show
 
 ```bash
 uv sync --group dbt
-export PROHORI_POSTGRES_DSN="host=127.0.0.1 port=15432 dbname=prohori user=prohori_app password=prohori_app"
+export PGPASSWORD="${PROHORI_APP_DB_PASSWORD:-prohori}"   # read by libpq, never part of the DSN
+export PROHORI_POSTGRES_DSN="host=127.0.0.1 port=15432 dbname=prohori user=prohori_app"
 uv run prohori pipeline load-labels logs/web-scanning.log
 uv run prohori pipeline load-results results/ml_cicids2017.json
 uv run dbt build --project-dir pipeline/dbt --profiles-dir pipeline/dbt --target postgres

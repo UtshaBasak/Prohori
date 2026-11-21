@@ -39,7 +39,7 @@ x-stage: &stage
     PROHORI_KAFKA_BOOTSTRAP: redpanda:9092
     # The password comes from PGPASSWORD (read by libpq), never from inside a URL.
     PROHORI_POSTGRES_DSN: host=postgres port=5432 dbname=prohori user=prohori_app
-    PGPASSWORD: ${PROHORI_APP_DB_PASSWORD:-prohori_app}
+    PGPASSWORD: ${PROHORI_APP_DB_PASSWORD:-prohori}
   healthcheck:
     # Healthy while the stage loop keeps touching its heartbeat file.
     test:
@@ -138,7 +138,7 @@ services:
       - psql
       - --quiet
       - --set=ON_ERROR_STOP=1
-      - --set=app_password=${PROHORI_APP_DB_PASSWORD:-prohori_app}
+      - --set=app_password=${PROHORI_APP_DB_PASSWORD:-prohori}
       - --set=reader_password=${PROHORI_GRAFANA_DB_PASSWORD:-grafana}
       - --set=airflow_password=${PROHORI_AIRFLOW_DB_PASSWORD:-airflow}
       - --file=/init/warehouse-init.sql
@@ -250,10 +250,10 @@ services:
       # What the jobs use (pipeline/airflow/dags/prohori_common.py).
       PROHORI_KAFKA_BOOTSTRAP: redpanda:9092
       PROHORI_POSTGRES_DSN: host=postgres port=5432 dbname=prohori user=prohori_app
-      PGPASSWORD: ${PROHORI_APP_DB_PASSWORD:-prohori_app}
+      PGPASSWORD: ${PROHORI_APP_DB_PASSWORD:-prohori}
       PROHORI_POSTGRES_HOST: postgres
       PROHORI_POSTGRES_PORT: "5432"
-      PROHORI_APP_DB_PASSWORD: ${PROHORI_APP_DB_PASSWORD:-prohori_app}
+      PROHORI_APP_DB_PASSWORD: ${PROHORI_APP_DB_PASSWORD:-prohori}
       PROHORI_CACHE_PATH: /opt/prohori-cache/enrichment.sqlite
       DBT_PROFILES_DIR: /opt/prohori-dbt
       DBT_TARGET_PATH: /tmp/dbt/target

@@ -231,9 +231,8 @@ class KafkaTransport:
     def _delivered(self, error: Any, message: Any) -> None:  # noqa: ANN401 - confluent_kafka
         if error is None:
             return
-        topic = message.topic() if message is not None else ""
-        if self._is_rejection(error, topic):
-            self._rejected.append((topic, message.key(), message.value(), str(error)))
+        if message is not None and self._is_rejection(error, message.topic()):
+            self._rejected.append((message.topic(), message.key(), message.value(), str(error)))
         else:
             self._errors.append(str(error))
 

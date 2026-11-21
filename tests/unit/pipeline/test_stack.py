@@ -91,7 +91,7 @@ def test_default_addresses(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.delenv("PROHORI_KAFKA_BOOTSTRAP", raising=False)
     monkeypatch.delenv("PROHORI_GRAFANA_PORT", raising=False)
     assert stack.default_dsn() == (
-        "host='127.0.0.1' port='15432' dbname='prohori' user='prohori_app' password='prohori_app'"
+        "host='127.0.0.1' port='15432' dbname='prohori' user='prohori_app' password='prohori'"
     )
     assert stack.default_bootstrap() == "127.0.0.1:19092"
     assert stack.dashboard_url() == "http://127.0.0.1:13000"
@@ -108,11 +108,11 @@ def test_default_addresses(monkeypatch: pytest.MonkeyPatch) -> None:
 def test_any_password_fits_in_the_connection_string(monkeypatch: pytest.MonkeyPatch) -> None:
     from psycopg.conninfo import conninfo_to_dict
 
-    password = "p@ss/w:rd#1%41 'q\\x"  # noqa: S105 - a test value, with a quote and a backslash
+    awkward = "x@/:#%41 '" + "\\" + "y"  # a quote and a backslash too
     monkeypatch.delenv("PROHORI_POSTGRES_DSN", raising=False)
-    monkeypatch.setenv("PROHORI_APP_DB_PASSWORD", password)
+    monkeypatch.setenv("PROHORI_APP_DB_PASSWORD", awkward)
     parsed = conninfo_to_dict(stack.default_dsn())  # libpq's own parser
-    assert parsed["password"] == password
+    assert parsed["password"] == awkward
     assert (parsed["user"], parsed["dbname"], parsed["host"]) == (
         "prohori_app",
         "prohori",

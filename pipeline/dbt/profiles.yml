@@ -16,7 +16,7 @@ prohori:
       host: "{{ env_var('PROHORI_POSTGRES_HOST', '127.0.0.1') }}"
       port: "{{ env_var('PROHORI_POSTGRES_PORT', '15432') | as_number }}"
       user: prohori_app
-      password: "{{ env_var('PROHORI_APP_DB_PASSWORD', 'prohori_app') }}"
+      password: "{{ env_var('PROHORI_APP_DB_PASSWORD', 'prohori') }}"
       dbname: prohori
       schema: analytics
       threads: 2

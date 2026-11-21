@@ -169,7 +169,7 @@ def default_dsn() -> str:
         port=os.environ.get("PROHORI_POSTGRES_PORT", str(POSTGRES_PORT)),
         dbname=PROJECT,
         user=APP_ROLE,
-        password=os.environ.get("PROHORI_APP_DB_PASSWORD", APP_ROLE),
+        password=os.environ.get("PROHORI_APP_DB_PASSWORD", PROJECT),
     )
 
 

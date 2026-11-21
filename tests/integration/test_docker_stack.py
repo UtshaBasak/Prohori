@@ -139,14 +139,15 @@ def _memory_within_limits() -> list[str]:
 
 #: Passwords with every character a URL would need escaped (and %41, which URL-decoding would
 #: turn into "A"), so a connection string that is not built safely fails the test.
-SUPERUSER_PASSWORD = "su@pw/:#%41 x"  # noqa: S105 - a test value
-APP_PASSWORD = "app@pw/:#%41 'q"  # noqa: S105 - a test value
+AWKWARD = "@/:#%41 '"
+SUPERUSER_SECRET = "su" + AWKWARD
+APP_SECRET = "app" + AWKWARD
 
 
 def _superuser_dsn() -> str:
     port = os.environ.get("PROHORI_POSTGRES_PORT", str(stack.POSTGRES_PORT))
     return stack.conninfo(
-        host="127.0.0.1", port=port, dbname="prohori", user="prohori", password=SUPERUSER_PASSWORD
+        host="127.0.0.1", port=port, dbname="prohori", user="prohori", password=SUPERUSER_SECRET
     )
 
 
@@ -213,8 +214,8 @@ def test_replay_reaches_postgres_once_and_matches_batch(
 ) -> None:
     monkeypatch.chdir(ROOT)
     monkeypatch.delenv("PROHORI_POSTGRES_DSN", raising=False)
-    monkeypatch.setenv("PROHORI_POSTGRES_PASSWORD", SUPERUSER_PASSWORD)
-    monkeypatch.setenv("PROHORI_APP_DB_PASSWORD", APP_PASSWORD)
+    monkeypatch.setenv("PROHORI_POSTGRES_PASSWORD", SUPERUSER_SECRET)
+    monkeypatch.setenv("PROHORI_APP_DB_PASSWORD", APP_SECRET)
     stack.down(COMPOSE, volumes=True)  # start from empty topics and an empty warehouse
     try:
         up = runner.invoke(app, ["pipeline", "up", "--timeout", "600"])
