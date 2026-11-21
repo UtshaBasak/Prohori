@@ -2062,8 +2062,13 @@ Releases also did not say what they contain.
   users. The file is git-ignored, created with owner-only permissions on POSIX systems, read by
   Docker Compose by itself, and never rewritten: a value is generated only when its line is
   missing. Environment variables of the same name win. The compose file requires every one
-  (`${VAR:?}`), so no weak default ships, and plain `docker compose` fails with a message that
-  says to run `prohori pipeline up` once. Unit tests never write the file (only a real run does).
+  (`${VAR:?}`), so no weak default ships, and plain `docker compose` without the file fails with
+  "required variable ... is missing a value"; the compose file's header says to run
+  `prohori pipeline up` once. Unit tests never write the file (only a real run does). The
+  variable names are built from a short list in `stack.py`, so no source line pairs a password
+  variable with a literal, which secret scanners report as a hard-coded password. SonarQube's
+  path-traversal rule is ignored for `stack.py` (reviewed like ADR-0037's list): the file is
+  written next to the compose file the person running the command names with `--file`.
 - **Grafana:** anonymous access off; the admin password from the file.
   `PROHORI_GRAFANA_ANONYMOUS=true` restores 1.0's read-only anonymous access.
 - **Airflow:** the simple auth manager with one user, `prohori` (admin role), whose password is

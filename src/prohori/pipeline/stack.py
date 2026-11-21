@@ -40,16 +40,26 @@ AIRFLOW_PORT = 18080
 APP_ROLE = "prohori_app"
 #: The stack's secrets file, next to the compose file (git-ignored; read by Docker Compose).
 ENV_FILE = ".env"
-#: Generated on first use: what each one is for, shown in the file.
-GENERATED_SECRETS = {
-    "PROHORI_GRAFANA_PASSWORD": "Grafana's admin user (http://127.0.0.1:13000), user admin",
-    "PROHORI_AIRFLOW_PASSWORD": "Airflow's user (http://127.0.0.1:18080), user prohori",
-    "PROHORI_KAFKA_STAGE_PASSWORD": "Kafka user prohori-stage (the stage containers)",
-    "PROHORI_KAFKA_PRODUCER_PASSWORD": "Kafka user prohori-producer (replay, tail, Airflow jobs)",
-    "PROHORI_KAFKA_ADMIN_PASSWORD": "Kafka user prohori-admin (the broker's administrator)",
-}
-#: Shown when a password is generated, so the operator can sign in.
-LOGINS = {"PROHORI_GRAFANA_PASSWORD": "Grafana", "PROHORI_AIRFLOW_PASSWORD": "Airflow"}
+#: The generated secrets by the middle of their variable name (PROHORI_<NAME>_PASSWORD), with
+#: what each one is for (written into the file) and the service it signs in to, if any.
+_SECRETS = (
+    ("GRAFANA", "Grafana's admin user (http://127.0.0.1:13000), user admin", "Grafana"),
+    ("AIRFLOW", "Airflow's user (http://127.0.0.1:18080), user prohori", "Airflow"),
+    ("KAFKA_STAGE", "Kafka user prohori-stage (the stage containers)", ""),
+    ("KAFKA_PRODUCER", "Kafka user prohori-producer (replay, tail, Airflow jobs)", ""),
+    ("KAFKA_ADMIN", "Kafka user prohori-admin (the broker's administrator)", ""),
+)
+
+
+def secret_variable(name: str) -> str:
+    """``GRAFANA`` -> the environment variable that holds that generated secret."""
+    return f"PROHORI_{name}_PASSWORD"
+
+
+#: Variable -> what it is for.
+GENERATED_SECRETS = {secret_variable(name): about for name, about, _ in _SECRETS}
+#: Variable -> the service it signs in to; shown once when it is generated.
+LOGINS = {secret_variable(name): service for name, _, service in _SECRETS if service}
 #: The Kafka user that tools outside the stack publish as.
 PRODUCER_USER = "prohori-producer"
 
@@ -269,15 +279,16 @@ def kafka_credentials(bootstrap: str, file: Path | None = None) -> tuple[str, st
     if bootstrap != default_bootstrap():
         return None
     compose_path = file if file is not None else DEFAULT_COMPOSE_FILE
-    saved = read_env(env_path(compose_path)).get("PROHORI_KAFKA_PRODUCER_PASSWORD")
+    saved = read_env(env_path(compose_path)).get(secret_variable("KAFKA_PRODUCER"))
     return (PRODUCER_USER, saved) if saved else None
 
 
 def grafana_credentials(file: Path | None = None) -> tuple[str, str] | None:
     """Grafana's admin login: ``PROHORI_GRAFANA_PASSWORD`` or the one in ``pipeline/.env``."""
-    password = os.environ.get("PROHORI_GRAFANA_PASSWORD") or read_env(
+    variable = secret_variable("GRAFANA")
+    password = os.environ.get(variable) or read_env(
         env_path(file if file is not None else DEFAULT_COMPOSE_FILE)
-    ).get("PROHORI_GRAFANA_PASSWORD")
+    ).get(variable)
     return ("admin", password) if password else None
 
 

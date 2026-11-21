@@ -45,7 +45,7 @@ x-stage: &stage
   environment:
     PROHORI_KAFKA_BOOTSTRAP: redpanda:9092
     PROHORI_KAFKA_USER: prohori-stage
-    PROHORI_KAFKA_PASSWORD: ${PROHORI_KAFKA_STAGE_PASSWORD:?run 'prohori pipeline up' once to generate pipeline/.env}
+    PROHORI_KAFKA_PASSWORD: ${PROHORI_KAFKA_STAGE_PASSWORD:?}
     # The password comes from PGPASSWORD (read by libpq), never from inside a URL.
     PROHORI_POSTGRES_DSN: host=postgres port=5432 dbname=prohori user=prohori_app
     PGPASSWORD: ${PROHORI_APP_DB_PASSWORD:-prohori}
@@ -109,9 +109,9 @@ services:
         condition: service_healthy
     entrypoint: ["/bin/bash", "/init/init.sh"]
     environment:
-      KAFKA_ADMIN_PASSWORD: ${PROHORI_KAFKA_ADMIN_PASSWORD:?run 'prohori pipeline up' once to generate pipeline/.env}
-      KAFKA_STAGE_PASSWORD: ${PROHORI_KAFKA_STAGE_PASSWORD:?run 'prohori pipeline up' once to generate pipeline/.env}
-      KAFKA_PRODUCER_PASSWORD: ${PROHORI_KAFKA_PRODUCER_PASSWORD:?run 'prohori pipeline up' once to generate pipeline/.env}
+      KAFKA_ADMIN_PASSWORD: ${PROHORI_KAFKA_ADMIN_PASSWORD:?}
+      KAFKA_STAGE_PASSWORD: ${PROHORI_KAFKA_STAGE_PASSWORD:?}
+      KAFKA_PRODUCER_PASSWORD: ${PROHORI_KAFKA_PRODUCER_PASSWORD:?}
     volumes:
       - ./redpanda:/init:ro
     mem_limit: 128m
@@ -169,7 +169,7 @@ services:
         condition: service_completed_successfully
     environment:
       GF_SECURITY_ADMIN_USER: admin
-      GF_SECURITY_ADMIN_PASSWORD: ${PROHORI_GRAFANA_PASSWORD:?run 'prohori pipeline up' once to generate pipeline/.env}
+      GF_SECURITY_ADMIN_PASSWORD: ${PROHORI_GRAFANA_PASSWORD:?}
       # The dashboards open without a login, read-only.
       # Off since 1.1: the dashboards need a login. PROHORI_GRAFANA_ANONYMOUS=true opens them to
       # anonymous viewers again (read-only, as in 1.0).
@@ -271,7 +271,7 @@ services:
       AIRFLOW__CORE__SIMPLE_AUTH_MANAGER_ALL_ADMINS: "False"
       AIRFLOW__CORE__SIMPLE_AUTH_MANAGER_USERS: prohori:admin
       AIRFLOW__CORE__SIMPLE_AUTH_MANAGER_PASSWORDS_FILE: /opt/airflow/simple_auth_manager_passwords.json
-      PROHORI_AIRFLOW_PASSWORD: ${PROHORI_AIRFLOW_PASSWORD:?run 'prohori pipeline up' once to generate pipeline/.env}
+      PROHORI_AIRFLOW_PASSWORD: ${PROHORI_AIRFLOW_PASSWORD:?}
       # No usage data is sent.
       AIRFLOW__USAGE_DATA_COLLECTION__ENABLED: "False"
       SCARF_ANALYTICS: "false"
@@ -279,7 +279,7 @@ services:
       # use the producer's Kafka login.
       PROHORI_KAFKA_BOOTSTRAP: redpanda:9092
       PROHORI_KAFKA_USER: prohori-producer
-      PROHORI_KAFKA_PASSWORD: ${PROHORI_KAFKA_PRODUCER_PASSWORD:?run 'prohori pipeline up' once to generate pipeline/.env}
+      PROHORI_KAFKA_PASSWORD: ${PROHORI_KAFKA_PRODUCER_PASSWORD:?}
       PROHORI_POSTGRES_DSN: host=postgres port=5432 dbname=prohori user=prohori_app
       PGPASSWORD: ${PROHORI_APP_DB_PASSWORD:-prohori}
       PROHORI_POSTGRES_HOST: postgres

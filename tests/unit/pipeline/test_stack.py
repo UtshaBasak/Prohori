@@ -169,7 +169,7 @@ def test_compose_file_requires_logins() -> None:
     services = yaml.safe_load(text)["services"]
     grafana = services["grafana"]["environment"]
     assert grafana["GF_AUTH_ANONYMOUS_ENABLED"] == "${PROHORI_GRAFANA_ANONYMOUS:-false}"
-    assert grafana["GF_SECURITY_ADMIN_PASSWORD"].startswith("${PROHORI_GRAFANA_PASSWORD:?")
+    assert grafana["GF_SECURITY_ADMIN_PASSWORD"] == "${" + stack.secret_variable("GRAFANA") + ":?}"
     airflow = services["airflow"]["environment"]
     assert airflow["AIRFLOW__CORE__SIMPLE_AUTH_MANAGER_ALL_ADMINS"] == "False"
     assert airflow["AIRFLOW__CORE__SIMPLE_AUTH_MANAGER_USERS"] == "prohori:admin"
@@ -177,7 +177,8 @@ def test_compose_file_requires_logins() -> None:
     for name in ("normalise", "detect", "incidents", "sink"):
         environment = services[name]["environment"]
         assert environment["PROHORI_KAFKA_USER"] == "prohori-stage"
-        assert environment["PROHORI_KAFKA_PASSWORD"].startswith("${PROHORI_KAFKA_STAGE_PASSWORD:?")
+        expected = "${" + stack.secret_variable("KAFKA_STAGE") + ":?}"
+        assert environment["PROHORI_KAFKA_PASSWORD"] == expected
     # Every generated secret is required somewhere, and none has a default value.
     for key in stack.GENERATED_SECRETS:
         assert "${" + key + ":?" in text, key
