@@ -280,6 +280,7 @@ jobs:
             exit 1
           fi
       # What the image holds (OS packages and Python packages), as a release would ship it.
+      - run: mkdir -p sbom
       - name: SBOM of the image (CycloneDX, linux/amd64)
         uses: anchore/sbom-action@66cbf4bc1f1c0d2edc94016e65bc221b6bb0ad6c # v0.24.3
         with:
@@ -357,6 +358,7 @@ jobs:
           subject-digest: ${{ steps.push.outputs.digest }}
           push-to-registry: true
       # The published image's contents (linux/amd64), signed and stored next to it.
+      - run: mkdir -p sbom
       - name: SBOM of the published image (CycloneDX, linux/amd64)
         uses: anchore/sbom-action@66cbf4bc1f1c0d2edc94016e65bc221b6bb0ad6c # v0.24.3
         with:
