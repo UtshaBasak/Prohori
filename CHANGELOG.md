@@ -75,6 +75,12 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   transforms, weights and metrics are in `prohori.ml.adapt`, with leakage tests (the pool's
   labels reach only the few-shot and reference arms; target test features change nothing that
   is fitted). Adversarial methods and a third dataset are recorded as future work.
+- **Paper draft** (step 30c): `docs/research/cross-dataset-generalisation.md` writes up the
+  cross-dataset study (abstract, related work with checked references, methods, results with
+  bootstrap intervals, threats to validity, reproducibility statement) and its two SVG figures.
+  `scripts/build_paper.py` generates it from a template and `results/`, so every number comes
+  from the results; a test fails if the template holds a number of its own or the paper is out
+  of date. The Paper workflow builds LaTeX and PDF versions with pandoc and XeLaTeX.
 - `prohori.ml.safety`: hash, library-version, skops-type and pickle-allowlist checks, reusable by
   other commands (`scan_joblib` lists what a pickle model asks for without running it).
 

@@ -364,6 +364,8 @@ Each direction is studied separately. Methods may use the target's training spli
 **unlabelled pool**; its labels are read only by the few-shot arms (an upper bound) and the
 reference arm (the in-dataset ceiling). Nothing is fitted on the target's test split.
 `python scripts/cross_dataset_study.py` reproduces the results (about an hour on a laptop CPU).
+The study is written up as a paper draft in
+[docs/research/cross-dataset-generalisation.md](research/cross-dataset-generalisation.md).
 
 <!-- ml-adapt:start -->
 Seeds 0, 1, 2; gradient boosting; scored on the target's test split. 95 % intervals from 1,000 paired bootstrap resamples of the target test rows. An arm **improves** only if the interval of its ROC-AUC difference excludes 0 and the difference has the same sign in every seed; it **helps** only if it improves in both directions. Thresholds come from the source's validation split (1 % false-positive rate); "at 1 % on target" reads recall off the target's own ROC curve instead (not deployable). Generated from `results/ml_adapt.json`; do not edit by hand.
@@ -425,7 +427,7 @@ Helps in both directions: per-domain quantile map, 10 labelled target flows, 50 
   way (-0.087).
 - **Why importance weighting cannot work here:** a domain classifier tells the datasets apart
   perfectly (ROC-AUC 1.000) from the twelve features together, though no single feature does
-  (each feature's domain AUC is between 0.51 and 0.79). Almost every weight then sits at a
+  (each feature's domain AUC is between 0.51 and 0.80). Almost every weight then sits at a
   clip, and the effective sample is 2 to 5 % of the source. The supports barely overlap, which
   is the assumption covariate-shift weighting needs.
 - **Feature selection did nothing:** no feature reached the pre-registered domain AUC of 0.9,

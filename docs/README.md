@@ -17,6 +17,7 @@
 | [DATASETS.md](DATASETS.md) | ML datasets: sources, licences, download, leakage controls, measured effects |
 | [ANOMALY.md](ANOMALY.md) | Log anomaly detection: features, detectors, comparison with the rules |
 | [MODEL_CARD.md](MODEL_CARD.md) | Flow detectors: intended use, evaluation method, results, cross-dataset test, failure cases |
+| [research/](research/README.md) | Paper draft: the pre-registered cross-dataset generalisation study |
 | [PIPELINE.md](PIPELINE.md) | Streaming pipeline: lite mode and the Docker stack, topics, delivery guarantees, dead letters, tailing |
 | [WAREHOUSE.md](WAREHOUSE.md) | dbt models, data-quality checks, labels and model results |
 | [DASHBOARD.md](DASHBOARD.md) | The Grafana dashboards: panels, access, changing a dashboard |

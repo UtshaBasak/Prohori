@@ -1,0 +1,67 @@
+name: Paper
+
+# Builds the LaTeX and PDF versions of docs/research/cross-dataset-generalisation.md with pandoc
+# and XeLaTeX (the pandoc/latex image, pinned by digest; free software only) and uploads them as
+# an artifact. Checks first that the Markdown and its figures match results/ (build_paper.py).
+on:
+  push:
+    branches: [main]
+    paths:
+      - "docs/research/**"
+      - "results/ml_*.json"
+      - "scripts/build_paper.py"
+      - ".github/workflows/paper.yml"
+  pull_request:
+    paths:
+      - "docs/research/**"
+      - "results/ml_*.json"
+      - "scripts/build_paper.py"
+      - ".github/workflows/paper.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  UV_LOCKED: "1"
+  PYTHONUTF8: "1"
+  PANDOC_IMAGE: pandoc/latex@sha256:505c16cb042a5cb2e7825da6ea7368278e8eb8fc3aff06062e80f790ca00dec8 # 3.6
+
+jobs:
+  paper:
+    name: Build the paper (LaTeX and PDF)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+        with:
+          python-version: "3.13"
+          enable-cache: true
+      - name: The paper matches the results
+        run: uv run --no-dev python scripts/build_paper.py --check
+      - name: LaTeX and PDF
+        run: |
+          mkdir -p build
+          docker run --rm -v "$PWD/docs/research:/data:ro" -v "$PWD/build:/out" -w /data \
+            --entrypoint sh "$PANDOC_IMAGE" -c '
+              set -e
+              apk add --no-cache -q font-dejavu
+              for target in paper.tex paper.pdf; do
+                pandoc cross-dataset-generalisation.md --standalone --pdf-engine=xelatex \
+                  -V mainfont="DejaVu Serif" -V sansfont="DejaVu Sans" \
+                  -V monofont="DejaVu Sans Mono" -V geometry:margin=2.2cm -V fontsize=10pt \
+                  -o "/out/$target"
+              done'
+          test -s build/paper.pdf
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: cross-dataset-generalisation
+          path: build/
+          if-no-files-found: error
