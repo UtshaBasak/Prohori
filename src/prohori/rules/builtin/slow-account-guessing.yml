@@ -1,0 +1,29 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+# Copyright (c) 2026 Utsha Basak
+id: PRH-AUTH-006
+title: Slow password guessing on one account
+status: test
+severity: high
+description: >-
+  At least 22 failed sign-ins (web app or SSH) for one existing account within 24 hours, from any
+  number of addresses. A slow attacker stays under every per-address and per-minute limit, but
+  the account still collects failures. The threshold is twice the most failures any benign
+  account had in a day in the simulator (11, SSH root). Failures for accounts that do not exist
+  are ignored.
+author: Prohori
+tags: [attack.credential_access, attack.t1110, attack.t1110.001]
+logsource: {category: authentication}
+detection:
+  failure:
+    event.action: [auth.signin.failure, ssh.login.failure]
+  unknown_account:
+    event.reason: unknown_user
+  aggregate:
+    group_by: [[user.id, user.name, user.email_hash]]
+    window: 24h
+    count_gte: 22
+  condition: failure and not unknown_account and aggregate
+falsepositives:
+  - SSH root on a server reachable from the internet, which scanners try all day; restrict SSH or disable root password logins
+  - A script, integration or device retrying a stale password for hours
+response: runbooks/slow-account-guessing.md

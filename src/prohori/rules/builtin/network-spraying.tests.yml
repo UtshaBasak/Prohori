@@ -1,0 +1,219 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+# Copyright (c) 2026 Utsha Basak
+rule: PRH-AUTH-007
+start: 2026-10-24T13:00:00Z
+defaults:
+  log_source: app-security
+  event.category: authentication
+  event.outcome: failure
+cases:
+  - name: thirty-eight accounts failing from one /24 alert
+    expect: {alerts: 1, entities: [{source.ip_prefix: 203.0.113.0/24}]}
+    events:
+      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-2000, source.ip: 203.0.113.10, after: 30s}
+      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-2001, source.ip: 203.0.113.11, after: 30s}
+      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-2002, source.ip: 203.0.113.12, after: 30s}
+      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-2003, source.ip: 203.0.113.13, after: 30s}
+      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-2004, source.ip: 203.0.113.10, after: 30s}
+      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-2005, source.ip: 203.0.113.11, after: 30s}
+      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-2006, source.ip: 203.0.113.12, after: 30s}
+      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-2007, source.ip: 203.0.113.13, after: 30s}
+      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-2008, source.ip: 203.0.113.10, after: 30s}
+      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-2009, source.ip: 203.0.113.11, after: 30s}
+      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-2010, source.ip: 203.0.113.12, after: 30s}
+      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-2011, source.ip: 203.0.113.13, after: 30s}
+      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-2012, source.ip: 203.0.113.10, after: 30s}
+      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-2013, source.ip: 203.0.113.11, after: 30s}
+      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-2014, source.ip: 203.0.113.12, after: 30s}
+      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-2015, source.ip: 203.0.113.13, after: 30s}
+      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-2016, source.ip: 203.0.113.10, after: 30s}
+      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-2017, source.ip: 203.0.113.11, after: 30s}
+      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-2018, source.ip: 203.0.113.12, after: 30s}
+      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-2019, source.ip: 203.0.113.13, after: 30s}
+      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-2020, source.ip: 203.0.113.10, after: 30s}
+      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-2021, source.ip: 203.0.113.11, after: 30s}
+      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-2022, source.ip: 203.0.113.12, after: 30s}
+      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-2023, source.ip: 203.0.113.13, after: 30s}
+      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-2024, source.ip: 203.0.113.10, after: 30s}
+      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-2025, source.ip: 203.0.113.11, after: 30s}
+      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-2026, source.ip: 203.0.113.12, after: 30s}
+      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-2027, source.ip: 203.0.113.13, after: 30s}
+      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-2028, source.ip: 203.0.113.10, after: 30s}
+      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-2029, source.ip: 203.0.113.11, after: 30s}
+      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-2030, source.ip: 203.0.113.12, after: 30s}
+      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-2031, source.ip: 203.0.113.13, after: 30s}
+      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-2032, source.ip: 203.0.113.10, after: 30s}
+      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-2033, source.ip: 203.0.113.11, after: 30s}
+      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-2034, source.ip: 203.0.113.12, after: 30s}
+      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-2035, source.ip: 203.0.113.13, after: 30s}
+      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-2036, source.ip: 203.0.113.10, after: 30s}
+      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-2037, source.ip: 203.0.113.11, after: 30s}
+
+  - name: thirty-seven accounts do not alert
+    expect: {alerts: 0}
+    events:
+      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-2000, source.ip: 203.0.113.10, after: 30s}
+      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-2001, source.ip: 203.0.113.11, after: 30s}
+      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-2002, source.ip: 203.0.113.12, after: 30s}
+      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-2003, source.ip: 203.0.113.13, after: 30s}
+      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-2004, source.ip: 203.0.113.10, after: 30s}
+      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-2005, source.ip: 203.0.113.11, after: 30s}
+      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-2006, source.ip: 203.0.113.12, after: 30s}
+      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-2007, source.ip: 203.0.113.13, after: 30s}
+      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-2008, source.ip: 203.0.113.10, after: 30s}
+      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-2009, source.ip: 203.0.113.11, after: 30s}
+      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-2010, source.ip: 203.0.113.12, after: 30s}
+      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-2011, source.ip: 203.0.113.13, after: 30s}
+      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-2012, source.ip: 203.0.113.10, after: 30s}
+      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-2013, source.ip: 203.0.113.11, after: 30s}
+      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-2014, source.ip: 203.0.113.12, after: 30s}
+      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-2015, source.ip: 203.0.113.13, after: 30s}
+      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-2016, source.ip: 203.0.113.10, after: 30s}
+      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-2017, source.ip: 203.0.113.11, after: 30s}
+      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-2018, source.ip: 203.0.113.12, after: 30s}
+      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-2019, source.ip: 203.0.113.13, after: 30s}
+      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-2020, source.ip: 203.0.113.10, after: 30s}
+      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-2021, source.ip: 203.0.113.11, after: 30s}
+      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-2022, source.ip: 203.0.113.12, after: 30s}
+      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-2023, source.ip: 203.0.113.13, after: 30s}
+      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-2024, source.ip: 203.0.113.10, after: 30s}
+      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-2025, source.ip: 203.0.113.11, after: 30s}
+      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-2026, source.ip: 203.0.113.12, after: 30s}
+      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-2027, source.ip: 203.0.113.13, after: 30s}
+      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-2028, source.ip: 203.0.113.10, after: 30s}
+      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-2029, source.ip: 203.0.113.11, after: 30s}
+      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-2030, source.ip: 203.0.113.12, after: 30s}
+      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-2031, source.ip: 203.0.113.13, after: 30s}
+      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-2032, source.ip: 203.0.113.10, after: 30s}
+      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-2033, source.ip: 203.0.113.11, after: 30s}
+      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-2034, source.ip: 203.0.113.12, after: 30s}
+      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-2035, source.ip: 203.0.113.13, after: 30s}
+      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-2036, source.ip: 203.0.113.10, after: 30s}
+
+  - name: accounts spread over three networks do not alert
+    expect: {alerts: 0}
+    events:
+      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-2000, source.ip: 198.51.100.1, after: 30s}
+      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-2001, source.ip: 198.51.100.85, after: 30s}
+      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-2002, source.ip: 198.51.100.169, after: 30s}
+      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-2003, source.ip: 203.0.113.3, after: 30s}
+      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-2004, source.ip: 203.0.113.87, after: 30s}
+      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-2005, source.ip: 203.0.113.171, after: 30s}
+      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-2006, source.ip: 192.0.2.5, after: 30s}
+      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-2007, source.ip: 192.0.2.89, after: 30s}
+      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-2008, source.ip: 192.0.2.173, after: 30s}
+      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-2009, source.ip: 198.51.100.7, after: 30s}
+      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-2010, source.ip: 198.51.100.91, after: 30s}
+      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-2011, source.ip: 198.51.100.175, after: 30s}
+      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-2012, source.ip: 203.0.113.9, after: 30s}
+      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-2013, source.ip: 203.0.113.93, after: 30s}
+      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-2014, source.ip: 203.0.113.177, after: 30s}
+      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-2015, source.ip: 192.0.2.11, after: 30s}
+      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-2016, source.ip: 192.0.2.95, after: 30s}
+      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-2017, source.ip: 192.0.2.179, after: 30s}
+      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-2018, source.ip: 198.51.100.13, after: 30s}
+      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-2019, source.ip: 198.51.100.97, after: 30s}
+      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-2020, source.ip: 198.51.100.181, after: 30s}
+      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-2021, source.ip: 203.0.113.15, after: 30s}
+      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-2022, source.ip: 203.0.113.99, after: 30s}
+      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-2023, source.ip: 203.0.113.183, after: 30s}
+      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-2024, source.ip: 192.0.2.17, after: 30s}
+      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-2025, source.ip: 192.0.2.101, after: 30s}
+      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-2026, source.ip: 192.0.2.185, after: 30s}
+      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-2027, source.ip: 198.51.100.19, after: 30s}
+      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-2028, source.ip: 198.51.100.103, after: 30s}
+      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-2029, source.ip: 198.51.100.187, after: 30s}
+      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-2030, source.ip: 203.0.113.21, after: 30s}
+      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-2031, source.ip: 203.0.113.105, after: 30s}
+      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-2032, source.ip: 203.0.113.189, after: 30s}
+      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-2033, source.ip: 192.0.2.23, after: 30s}
+      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-2034, source.ip: 192.0.2.107, after: 30s}
+      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-2035, source.ip: 192.0.2.191, after: 30s}
+      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-2036, source.ip: 198.51.100.25, after: 30s}
+      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-2037, source.ip: 198.51.100.109, after: 30s}
+
+  - name: an IPv6 /48 counts as one network
+    expect: {alerts: 1, entities: [{source.ip_prefix: "2001:db8:5::/48"}]}
+    events:
+      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-3000, source.ip: "2001:db8:5:0::1", after: 30s}
+      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-3001, source.ip: "2001:db8:5:1::1", after: 30s}
+      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-3002, source.ip: "2001:db8:5:2::1", after: 30s}
+      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-3003, source.ip: "2001:db8:5:3::1", after: 30s}
+      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-3004, source.ip: "2001:db8:5:4::1", after: 30s}
+      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-3005, source.ip: "2001:db8:5:5::1", after: 30s}
+      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-3006, source.ip: "2001:db8:5:6::1", after: 30s}
+      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-3007, source.ip: "2001:db8:5:7::1", after: 30s}
+      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-3008, source.ip: "2001:db8:5:8::1", after: 30s}
+      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-3009, source.ip: "2001:db8:5:9::1", after: 30s}
+      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-3010, source.ip: "2001:db8:5:a::1", after: 30s}
+      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-3011, source.ip: "2001:db8:5:b::1", after: 30s}
+      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-3012, source.ip: "2001:db8:5:c::1", after: 30s}
+      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-3013, source.ip: "2001:db8:5:d::1", after: 30s}
+      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-3014, source.ip: "2001:db8:5:e::1", after: 30s}
+      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-3015, source.ip: "2001:db8:5:f::1", after: 30s}
+      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-3016, source.ip: "2001:db8:5:10::1", after: 30s}
+      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-3017, source.ip: "2001:db8:5:11::1", after: 30s}
+      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-3018, source.ip: "2001:db8:5:12::1", after: 30s}
+      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-3019, source.ip: "2001:db8:5:13::1", after: 30s}
+      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-3020, source.ip: "2001:db8:5:14::1", after: 30s}
+      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-3021, source.ip: "2001:db8:5:15::1", after: 30s}
+      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-3022, source.ip: "2001:db8:5:16::1", after: 30s}
+      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-3023, source.ip: "2001:db8:5:17::1", after: 30s}
+      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-3024, source.ip: "2001:db8:5:18::1", after: 30s}
+      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-3025, source.ip: "2001:db8:5:19::1", after: 30s}
+      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-3026, source.ip: "2001:db8:5:1a::1", after: 30s}
+      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-3027, source.ip: "2001:db8:5:1b::1", after: 30s}
+      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-3028, source.ip: "2001:db8:5:1c::1", after: 30s}
+      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-3029, source.ip: "2001:db8:5:1d::1", after: 30s}
+      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-3030, source.ip: "2001:db8:5:1e::1", after: 30s}
+      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-3031, source.ip: "2001:db8:5:1f::1", after: 30s}
+      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-3032, source.ip: "2001:db8:5:20::1", after: 30s}
+      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-3033, source.ip: "2001:db8:5:21::1", after: 30s}
+      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-3034, source.ip: "2001:db8:5:22::1", after: 30s}
+      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-3035, source.ip: "2001:db8:5:23::1", after: 30s}
+      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-3036, source.ip: "2001:db8:5:24::1", after: 30s}
+      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-3037, source.ip: "2001:db8:5:25::1", after: 30s}
+
+  - name: app failures for many accounts from one network through the app_json parser
+    expect: {alerts: 1, entities: [{source.ip_prefix: 203.0.113.0/24}]}
+    log:
+      parser: app_json
+      lines:
+        - "{\"time\": \"2026-10-24T13:00:00Z\", \"event\": {\"action\": \"auth.signin.failure\", \"reason\": \"bad_password\"}, \"source\": {\"ip\": \"203.0.113.10\"}, \"user\": {\"id\": \"u-2000\"}}"
+        - "{\"time\": \"2026-10-24T13:00:30Z\", \"event\": {\"action\": \"auth.signin.failure\", \"reason\": \"bad_password\"}, \"source\": {\"ip\": \"203.0.113.11\"}, \"user\": {\"id\": \"u-2001\"}}"
+        - "{\"time\": \"2026-10-24T13:01:00Z\", \"event\": {\"action\": \"auth.signin.failure\", \"reason\": \"bad_password\"}, \"source\": {\"ip\": \"203.0.113.12\"}, \"user\": {\"id\": \"u-2002\"}}"
+        - "{\"time\": \"2026-10-24T13:01:30Z\", \"event\": {\"action\": \"auth.signin.failure\", \"reason\": \"bad_password\"}, \"source\": {\"ip\": \"203.0.113.13\"}, \"user\": {\"id\": \"u-2003\"}}"
+        - "{\"time\": \"2026-10-24T13:02:00Z\", \"event\": {\"action\": \"auth.signin.failure\", \"reason\": \"bad_password\"}, \"source\": {\"ip\": \"203.0.113.10\"}, \"user\": {\"id\": \"u-2004\"}}"
+        - "{\"time\": \"2026-10-24T13:02:30Z\", \"event\": {\"action\": \"auth.signin.failure\", \"reason\": \"bad_password\"}, \"source\": {\"ip\": \"203.0.113.11\"}, \"user\": {\"id\": \"u-2005\"}}"
+        - "{\"time\": \"2026-10-24T13:03:00Z\", \"event\": {\"action\": \"auth.signin.failure\", \"reason\": \"bad_password\"}, \"source\": {\"ip\": \"203.0.113.12\"}, \"user\": {\"id\": \"u-2006\"}}"
+        - "{\"time\": \"2026-10-24T13:03:30Z\", \"event\": {\"action\": \"auth.signin.failure\", \"reason\": \"bad_password\"}, \"source\": {\"ip\": \"203.0.113.13\"}, \"user\": {\"id\": \"u-2007\"}}"
+        - "{\"time\": \"2026-10-24T13:04:00Z\", \"event\": {\"action\": \"auth.signin.failure\", \"reason\": \"bad_password\"}, \"source\": {\"ip\": \"203.0.113.10\"}, \"user\": {\"id\": \"u-2008\"}}"
+        - "{\"time\": \"2026-10-24T13:04:30Z\", \"event\": {\"action\": \"auth.signin.failure\", \"reason\": \"bad_password\"}, \"source\": {\"ip\": \"203.0.113.11\"}, \"user\": {\"id\": \"u-2009\"}}"
+        - "{\"time\": \"2026-10-24T13:05:00Z\", \"event\": {\"action\": \"auth.signin.failure\", \"reason\": \"bad_password\"}, \"source\": {\"ip\": \"203.0.113.12\"}, \"user\": {\"id\": \"u-2010\"}}"
+        - "{\"time\": \"2026-10-24T13:05:30Z\", \"event\": {\"action\": \"auth.signin.failure\", \"reason\": \"bad_password\"}, \"source\": {\"ip\": \"203.0.113.13\"}, \"user\": {\"id\": \"u-2011\"}}"
+        - "{\"time\": \"2026-10-24T13:06:00Z\", \"event\": {\"action\": \"auth.signin.failure\", \"reason\": \"bad_password\"}, \"source\": {\"ip\": \"203.0.113.10\"}, \"user\": {\"id\": \"u-2012\"}}"
+        - "{\"time\": \"2026-10-24T13:06:30Z\", \"event\": {\"action\": \"auth.signin.failure\", \"reason\": \"bad_password\"}, \"source\": {\"ip\": \"203.0.113.11\"}, \"user\": {\"id\": \"u-2013\"}}"
+        - "{\"time\": \"2026-10-24T13:07:00Z\", \"event\": {\"action\": \"auth.signin.failure\", \"reason\": \"bad_password\"}, \"source\": {\"ip\": \"203.0.113.12\"}, \"user\": {\"id\": \"u-2014\"}}"
+        - "{\"time\": \"2026-10-24T13:07:30Z\", \"event\": {\"action\": \"auth.signin.failure\", \"reason\": \"bad_password\"}, \"source\": {\"ip\": \"203.0.113.13\"}, \"user\": {\"id\": \"u-2015\"}}"
+        - "{\"time\": \"2026-10-24T13:08:00Z\", \"event\": {\"action\": \"auth.signin.failure\", \"reason\": \"bad_password\"}, \"source\": {\"ip\": \"203.0.113.10\"}, \"user\": {\"id\": \"u-2016\"}}"
+        - "{\"time\": \"2026-10-24T13:08:30Z\", \"event\": {\"action\": \"auth.signin.failure\", \"reason\": \"bad_password\"}, \"source\": {\"ip\": \"203.0.113.11\"}, \"user\": {\"id\": \"u-2017\"}}"
+        - "{\"time\": \"2026-10-24T13:09:00Z\", \"event\": {\"action\": \"auth.signin.failure\", \"reason\": \"bad_password\"}, \"source\": {\"ip\": \"203.0.113.12\"}, \"user\": {\"id\": \"u-2018\"}}"
+        - "{\"time\": \"2026-10-24T13:09:30Z\", \"event\": {\"action\": \"auth.signin.failure\", \"reason\": \"bad_password\"}, \"source\": {\"ip\": \"203.0.113.13\"}, \"user\": {\"id\": \"u-2019\"}}"
+        - "{\"time\": \"2026-10-24T13:10:00Z\", \"event\": {\"action\": \"auth.signin.failure\", \"reason\": \"bad_password\"}, \"source\": {\"ip\": \"203.0.113.10\"}, \"user\": {\"id\": \"u-2020\"}}"
+        - "{\"time\": \"2026-10-24T13:10:30Z\", \"event\": {\"action\": \"auth.signin.failure\", \"reason\": \"bad_password\"}, \"source\": {\"ip\": \"203.0.113.11\"}, \"user\": {\"id\": \"u-2021\"}}"
+        - "{\"time\": \"2026-10-24T13:11:00Z\", \"event\": {\"action\": \"auth.signin.failure\", \"reason\": \"bad_password\"}, \"source\": {\"ip\": \"203.0.113.12\"}, \"user\": {\"id\": \"u-2022\"}}"
+        - "{\"time\": \"2026-10-24T13:11:30Z\", \"event\": {\"action\": \"auth.signin.failure\", \"reason\": \"bad_password\"}, \"source\": {\"ip\": \"203.0.113.13\"}, \"user\": {\"id\": \"u-2023\"}}"
+        - "{\"time\": \"2026-10-24T13:12:00Z\", \"event\": {\"action\": \"auth.signin.failure\", \"reason\": \"bad_password\"}, \"source\": {\"ip\": \"203.0.113.10\"}, \"user\": {\"id\": \"u-2024\"}}"
+        - "{\"time\": \"2026-10-24T13:12:30Z\", \"event\": {\"action\": \"auth.signin.failure\", \"reason\": \"bad_password\"}, \"source\": {\"ip\": \"203.0.113.11\"}, \"user\": {\"id\": \"u-2025\"}}"
+        - "{\"time\": \"2026-10-24T13:13:00Z\", \"event\": {\"action\": \"auth.signin.failure\", \"reason\": \"bad_password\"}, \"source\": {\"ip\": \"203.0.113.12\"}, \"user\": {\"id\": \"u-2026\"}}"
+        - "{\"time\": \"2026-10-24T13:13:30Z\", \"event\": {\"action\": \"auth.signin.failure\", \"reason\": \"bad_password\"}, \"source\": {\"ip\": \"203.0.113.13\"}, \"user\": {\"id\": \"u-2027\"}}"
+        - "{\"time\": \"2026-10-24T13:14:00Z\", \"event\": {\"action\": \"auth.signin.failure\", \"reason\": \"bad_password\"}, \"source\": {\"ip\": \"203.0.113.10\"}, \"user\": {\"id\": \"u-2028\"}}"
+        - "{\"time\": \"2026-10-24T13:14:30Z\", \"event\": {\"action\": \"auth.signin.failure\", \"reason\": \"bad_password\"}, \"source\": {\"ip\": \"203.0.113.11\"}, \"user\": {\"id\": \"u-2029\"}}"
+        - "{\"time\": \"2026-10-24T13:15:00Z\", \"event\": {\"action\": \"auth.signin.failure\", \"reason\": \"bad_password\"}, \"source\": {\"ip\": \"203.0.113.12\"}, \"user\": {\"id\": \"u-2030\"}}"
+        - "{\"time\": \"2026-10-24T13:15:30Z\", \"event\": {\"action\": \"auth.signin.failure\", \"reason\": \"bad_password\"}, \"source\": {\"ip\": \"203.0.113.13\"}, \"user\": {\"id\": \"u-2031\"}}"
+        - "{\"time\": \"2026-10-24T13:16:00Z\", \"event\": {\"action\": \"auth.signin.failure\", \"reason\": \"bad_password\"}, \"source\": {\"ip\": \"203.0.113.10\"}, \"user\": {\"id\": \"u-2032\"}}"
+        - "{\"time\": \"2026-10-24T13:16:30Z\", \"event\": {\"action\": \"auth.signin.failure\", \"reason\": \"bad_password\"}, \"source\": {\"ip\": \"203.0.113.11\"}, \"user\": {\"id\": \"u-2033\"}}"
+        - "{\"time\": \"2026-10-24T13:17:00Z\", \"event\": {\"action\": \"auth.signin.failure\", \"reason\": \"bad_password\"}, \"source\": {\"ip\": \"203.0.113.12\"}, \"user\": {\"id\": \"u-2034\"}}"
+        - "{\"time\": \"2026-10-24T13:17:30Z\", \"event\": {\"action\": \"auth.signin.failure\", \"reason\": \"bad_password\"}, \"source\": {\"ip\": \"203.0.113.13\"}, \"user\": {\"id\": \"u-2035\"}}"
+        - "{\"time\": \"2026-10-24T13:18:00Z\", \"event\": {\"action\": \"auth.signin.failure\", \"reason\": \"bad_password\"}, \"source\": {\"ip\": \"203.0.113.10\"}, \"user\": {\"id\": \"u-2036\"}}"
+        - "{\"time\": \"2026-10-24T13:18:30Z\", \"event\": {\"action\": \"auth.signin.failure\", \"reason\": \"bad_password\"}, \"source\": {\"ip\": \"203.0.113.11\"}, \"user\": {\"id\": \"u-2037\"}}"

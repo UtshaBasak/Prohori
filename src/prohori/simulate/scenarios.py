@@ -67,7 +67,7 @@ def ssh_bruteforce(rec: Recorder, pool: AddressPool, p: Params, variant: str) ->
             id="ssh-bruteforce-1",
             kind="ssh-bruteforce",
             description="Password guessing against SSH accounts",
-            expected_rules=("PRH-AUTH-001", "PRH-SSH-001"),
+            expected_rules=("PRH-AUTH-001", "PRH-SSH-001", "PRH-AUTH-005", "PRH-AUTH-006"),
             sources=tuple(sources),
             accounts=names,
         )
@@ -171,7 +171,7 @@ def password_spraying(rec: Recorder, pool: AddressPool, p: Params, variant: str)
             id="password-spraying-1",
             kind="password-spraying",
             description="One common password tried against many accounts",
-            expected_rules=("PRH-AUTH-002", "PRH-AUTH-001"),
+            expected_rules=("PRH-AUTH-002", "PRH-AUTH-001", "PRH-AUTH-007"),
             sources=tuple(sources),
             accounts=tuple(targets),
         )
@@ -205,7 +205,13 @@ def credential_stuffing(rec: Recorder, pool: AddressPool, p: Params, variant: st
             id="credential-stuffing-1",
             kind="credential-stuffing",
             description="Leaked email and password pairs replayed; a few still work",
-            expected_rules=("PRH-AUTH-001", "PRH-AUTH-002", "PRH-AUTH-003"),
+            expected_rules=(
+                "PRH-AUTH-001",
+                "PRH-AUTH-002",
+                "PRH-AUTH-003",
+                "PRH-AUTH-008",
+                "PRH-AUTH-009",
+            ),
             sources=tuple(sources),
         )
     )
@@ -294,7 +300,7 @@ def account_takeover(rec: Recorder, pool: AddressPool, p: Params, variant: str) 
             id="account-takeover-1",
             kind="account-takeover",
             description="Password guessing on one account, sign-in, 2FA and payout changes",
-            expected_rules=("PRH-AUTH-001", "PRH-AUTH-003", "PRH-ACCT-001"),
+            expected_rules=("PRH-AUTH-001", "PRH-AUTH-003", "PRH-ACCT-001", "PRH-AUTH-010"),
             sources=(source,),
             accounts=(victim,),
         )

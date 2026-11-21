@@ -1,0 +1,30 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+# Copyright (c) 2026 Utsha Basak
+id: PRH-AUTH-009
+title: Sign-ins for unknown accounts from many addresses
+status: experimental
+severity: medium
+description: >-
+  Failed app sign-ins for accounts the site does not know, from at least 10 different addresses
+  within 1 hour. Leaked credential lists hold many emails a site has never seen, so credential
+  stuffing produces a burst of unknown-account failures from many addresses. The simulator's
+  benign traffic has no such failures, so the threshold comes from reasoning, not measurement:
+  customers do mistype their email, but rarely from ten addresses in one hour on a small shop.
+  Its false-positive rate is untested. SSH is excluded because internet scanners try unknown
+  user names all day.
+author: Prohori
+tags: [attack.credential_access, attack.t1110.004]
+logsource: {category: authentication}
+detection:
+  unknown_account:
+    event.action: auth.signin.failure
+    event.reason: unknown_user
+  aggregate:
+    group_by: [log_source]
+    window: 1h
+    distinct: {field: [source.ip, source.host], gte: 10}
+  condition: unknown_account and aggregate
+falsepositives:
+  - A busy site, where many customers mistype their email address
+  - A marketing mail with a sign-in link sent to old or wrong addresses
+response: runbooks/credential-stuffing.md

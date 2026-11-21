@@ -55,7 +55,9 @@ def test_rule_is_valid_and_stable(report: RuleReport) -> None:
     assert report.rule is not None
     meta = report.rule.meta
     assert meta.id.startswith("PRH-")
-    assert meta.status == "stable"
+    # New rules start as "test" ("experimental" when the simulator cannot measure their false
+    # positives) until real logs have been run through them.
+    assert meta.status in {"stable", "test", "experimental"}
     assert meta.description
     assert meta.falsepositives
 
