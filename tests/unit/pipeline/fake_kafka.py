@@ -14,6 +14,10 @@ class FakeKafkaError:
     TOPIC_ALREADY_EXISTS = 36
     UNKNOWN_TOPIC_OR_PART = 3
     LEADER_NOT_AVAILABLE = 5
+    NOT_LEADER_FOR_PARTITION = 6
+    COORDINATOR_LOAD_IN_PROGRESS = 14
+    COORDINATOR_NOT_AVAILABLE = 15
+    NOT_COORDINATOR = 16
 
     def __init__(self, code: int, text: str = "") -> None:
         self._code = code
@@ -69,7 +73,13 @@ class Broker:
     undelivered: int = 0
     create_error: int | None = None
     leaderless_lookups: int = 0  # list_topics calls that still report no leader
-    unknown_watermarks: int = 0  # get_watermark_offsets calls that fail with an unknown topic
+    #: Error codes the next calls of a consumer method raise, one per call, by method name
+    #: (``get_watermark_offsets``, ``committed``, ``commit``, or ``consume`` for a message error).
+    call_errors: dict[str, list[int]] = field(default_factory=dict)
+
+    def next_error(self, method: str) -> int | None:
+        codes = self.call_errors.get(method)
+        return codes.pop(0) if codes else None
 
     def append(self, topic: str, key: bytes | None, value: bytes | None) -> None:
         self.topics.setdefault(topic, []).append((key, value))
@@ -83,6 +93,11 @@ class _Future:
         del timeout
         if self.error is not None:
             raise self.error
+
+
+def _raise(code: int | None) -> None:
+    if code is not None:
+        raise FakeKafkaException(FakeKafkaError(code))
 
 
 def fake_kafka(broker: Broker) -> SimpleNamespace:
@@ -185,6 +200,9 @@ def fake_kafka(broker: Broker) -> SimpleNamespace:
         def consume(self, num_messages: int = 1, timeout: float = -1) -> list[FakeMessage]:
             del timeout
             topic = self.assigned
+            code = broker.next_error("consume")
+            if code is not None:
+                return [FakeMessage(0, None, None, FakeKafkaError(code))]
             if topic not in broker.topics:
                 return [FakeMessage(0, None, None, FakeKafkaError(3, "unknown topic"))]
             start = self._start(topic)
@@ -196,10 +214,7 @@ def fake_kafka(broker: Broker) -> SimpleNamespace:
             self, partition: FakeTopicPartition, timeout: float = -1, cached: bool = False
         ) -> tuple[int, int]:
             del timeout, cached
-            if broker.unknown_watermarks > 0:
-                broker.unknown_watermarks -= 1
-                error = FakeKafkaError(FakeKafkaError.UNKNOWN_TOPIC_OR_PART)
-                raise FakeKafkaException(error)
+            _raise(broker.next_error("get_watermark_offsets"))
             return 0, len(broker.topics.get(partition.topic, []))
 
         def position(self, partitions: list[FakeTopicPartition]) -> list[FakeTopicPartition]:
@@ -212,6 +227,7 @@ def fake_kafka(broker: Broker) -> SimpleNamespace:
             self, partitions: list[FakeTopicPartition], timeout: float = -1
         ) -> list[FakeTopicPartition]:
             del timeout
+            _raise(broker.next_error("committed"))
             return [
                 FakeTopicPartition(p.topic, 0, broker.committed.get((self.group, p.topic), INVALID))
                 for p in partitions
@@ -219,6 +235,7 @@ def fake_kafka(broker: Broker) -> SimpleNamespace:
 
         def commit(self, *, offsets: list[FakeTopicPartition], asynchronous: bool = True) -> None:
             assert asynchronous is False
+            _raise(broker.next_error("commit"))
             for partition in offsets:
                 broker.committed[(self.group, partition.topic)] = partition.offset
 

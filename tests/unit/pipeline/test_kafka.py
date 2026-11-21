@@ -18,7 +18,13 @@ from prohori.pipeline.producers import replay
 from prohori.pipeline.runner import LiteSettings, make_stage, serve
 from prohori.rules import builtin_rules_dir, load_rules
 from prohori.simulate import simulate, write
-from tests.unit.pipeline.fake_kafka import Broker, FakeKafkaError, FakeMessage, fake_kafka
+from tests.unit.pipeline.fake_kafka import (
+    Broker,
+    FakeKafkaError,
+    FakeKafkaException,
+    FakeMessage,
+    fake_kafka,
+)
 
 RULES = [r.rule for r in load_rules([builtin_rules_dir()]) if r.rule is not None]
 
@@ -55,17 +61,73 @@ def test_topics_are_awaited_until_they_have_a_leader(
     assert not kafka_module._has_leader(SimpleNamespace(error="unknown", partitions={}))
 
 
-def test_a_topic_still_unknown_to_a_new_consumer_is_retried(
+SETTLING = (
+    FakeKafkaError.UNKNOWN_TOPIC_OR_PART,
+    FakeKafkaError.LEADER_NOT_AVAILABLE,
+    FakeKafkaError.NOT_LEADER_FOR_PARTITION,
+    FakeKafkaError.COORDINATOR_LOAD_IN_PROGRESS,
+    FakeKafkaError.COORDINATOR_NOT_AVAILABLE,
+    FakeKafkaError.NOT_COORDINATOR,
+)
+
+
+@pytest.mark.parametrize("code", SETTLING)
+@pytest.mark.parametrize("method", ["get_watermark_offsets", "committed", "commit"])
+def test_a_broker_still_settling_at_start_up_is_retried(
+    broker: Broker,
+    transport: KafkaTransport,
+    monkeypatch: pytest.MonkeyPatch,
+    method: str,
+    code: int,
+) -> None:
+    """The start-up race seen in the Docker smoke test: a new topic without a leader yet, or a
+    group without a coordinator yet. Each call made at start-up retries until it settles."""
+    monkeypatch.setattr("prohori.pipeline.kafka.time.sleep", lambda seconds: None)
+    transport.publish(Topic.EVENTS, "k", {"n": 1})
+    transport.flush()
+    broker.call_errors[method] = [code, code, code]
+    transport.rewind(Topic.EVENTS, "g")  # watermarks and a commit
+    transport.close()
+    again = KafkaTransport("broker:9092", kafka=fake_kafka(broker))
+    batches = list(again.batches_to_end(Topic.EVENTS, "g", 10))  # watermarks and committed
+    again.commit(batches[0][-1], "g")
+    assert broker.call_errors[method] == []
+    assert broker.committed[("prohori-g", "events")] == 1
+
+
+def test_a_broker_that_never_settles_is_an_error(
     broker: Broker, transport: KafkaTransport, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    monkeypatch.setattr("prohori.pipeline.kafka.time.sleep", lambda seconds: None)
-    broker.unknown_watermarks = 3
-    transport.rewind(Topic.EVENTS, "g")  # succeeds once the broker knows the topic
-    assert broker.unknown_watermarks == 0
-    broker.unknown_watermarks = 10**9
     monkeypatch.setattr("prohori.pipeline.kafka.BROKER_TIMEOUT", 0.0)
-    with pytest.raises(TransportError, match="topic events is unknown"):
-        transport.rewind(Topic.EVENTS, "g2")
+    broker.call_errors["get_watermark_offsets"] = [FakeKafkaError.NOT_LEADER_FOR_PARTITION]
+    with pytest.raises(TransportError, match="topic events did not settle"):
+        transport.rewind(Topic.EVENTS, "g")
+    broker.call_errors["commit"] = [FakeKafkaError.NOT_COORDINATOR]
+    with pytest.raises(TransportError, match="rewinding events did not settle"):
+        transport.rewind(Topic.EVENTS, "g")
+
+
+def test_other_broker_errors_are_raised_at_once(broker: Broker, transport: KafkaTransport) -> None:
+    broker.call_errors["commit"] = [29]  # not authorised: waiting does not help
+    with pytest.raises(FakeKafkaException):
+        transport.rewind(Topic.EVENTS, "g")
+
+
+def test_settling_read_errors_read_as_empty_until_the_timeout(
+    broker: Broker, transport: KafkaTransport, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The failure in the Docker smoke test: "Failed to fetch committed offsets ... Broker: Not
+    coordinator" returned as a message error by the first reads of a new group."""
+    transport.publish(Topic.ALERTS, "k", {"n": 1})
+    transport.flush()
+    broker.call_errors["consume"] = [FakeKafkaError.NOT_COORDINATOR] * 2
+    assert transport.poll(Topic.ALERTS, "g", 10) == []
+    assert transport.poll(Topic.ALERTS, "g", 10) == []
+    assert len(transport.poll(Topic.ALERTS, "g", 10)) == 1
+    monkeypatch.setattr("prohori.pipeline.kafka.BROKER_TIMEOUT", -1.0)
+    broker.call_errors["consume"] = [FakeKafkaError.NOT_COORDINATOR]
+    with pytest.raises(TransportError, match="cannot read alerts"):
+        transport.poll(Topic.ALERTS, "g", 10)
 
 
 def test_unreachable_broker_and_refused_topics_are_errors(broker: Broker) -> None:
@@ -148,8 +210,8 @@ def test_missing_topic_reads_as_empty(broker: Broker) -> None:
 
 def test_read_errors_are_raised(broker: Broker, transport: KafkaTransport) -> None:
     consumer = transport._consumer("g", Topic.EVENTS)
-    consumer.consume = lambda **_: [FakeMessage(0, None, None, FakeKafkaError(5, "no leader"))]  # type: ignore[method-assign]
-    with pytest.raises(TransportError, match="no leader"):
+    consumer.consume = lambda **_: [FakeMessage(0, None, None, FakeKafkaError(1, "out of range"))]  # type: ignore[method-assign]
+    with pytest.raises(TransportError, match="out of range"):
         transport.poll(Topic.EVENTS, "g", 10)
 
 
