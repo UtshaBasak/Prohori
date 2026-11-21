@@ -574,12 +574,12 @@ Measured on logs of more than a million lines each, one process per run:
 <!-- performance:start -->
 | Run | Lines | Lines a second | Peak memory |
 | ----- | ------: | ------: | ------: |
-| `incidents`, nginx/Apache access log | 1,068,043 | 7,102 | 142 MiB |
-| `pipeline replay` (lite mode), access log | 1,068,043 | 2,234 | 1,078 MiB |
-| `incidents`, auth.log (sshd) | 1,000,198 | 12,859 | 181 MiB |
-| `incidents`, JSON Lines app log | 1,035,764 | 8,641 | 524 MiB |
+| `incidents`, nginx/Apache access log | 1,068,041 | 7,155 | 149 MiB |
+| `pipeline replay` (lite mode), access log | 1,068,041 | 1,894 | 1,096 MiB |
+| `incidents`, auth.log (sshd) | 1,000,591 | 10,009 | 180 MiB |
+| `incidents`, JSON Lines app log | 1,036,150 | 6,238 | 245 MiB |
 
-One run each on Windows 11 with 12 logical CPUs, Python 3.13.14, offline enrichment; `prohori demo` took 1.5 s. The batch command peaked at 524 MiB.
+One run each on Windows 11 with 12 logical CPUs, Python 3.13.14, offline enrichment; `prohori demo` took 1.5 s. The batch command peaked at 245 MiB.
 <!-- performance:end -->
 
 How it is measured and what the numbers mean: [docs/PERFORMANCE.md](docs/PERFORMANCE.md).
