@@ -258,7 +258,12 @@ prohori pipeline down --volumes                              # stop and delete t
   bounds the wait. Exits `1` if a service does not become healthy. Prints where the dashboards
   are ([DASHBOARD.md](DASHBOARD.md)); `PROHORI_GRAFANA_PORT` moves them. `--orchestration` also
   starts Airflow on <http://127.0.0.1:18080> with the scheduled jobs
-  ([ORCHESTRATION.md](ORCHESTRATION.md)); `down` always stops it too.
+  ([ORCHESTRATION.md](ORCHESTRATION.md)); `down` always stops it too. The first `up` generates
+  the stack's passwords into `pipeline/.env` (git-ignored) and prints the Grafana and Airflow
+  ones once, on a terminal only.
+- **Kafka login:** `replay`, `tail` and `run` with `--bootstrap` log in with SASL/SCRAM when
+  `PROHORI_KAFKA_USER` and `PROHORI_KAFKA_PASSWORD` are set; for the stack's own address they use
+  the producer login from `pipeline/.env` by themselves. A broker without a login needs neither.
 - **`status`** lists the services with their state and health, and the row counts in the
   warehouse's `raw` schema (`--postgres DSN`; default: the stack's). `-f json` gives the same as
   JSON, with the dashboards' address. Exits `1` unless every service is healthy.

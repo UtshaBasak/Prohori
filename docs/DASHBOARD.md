@@ -2,7 +2,9 @@
 
 The Docker stack includes [Grafana](https://grafana.com/oss/grafana/) with three dashboards and
 a PostgreSQL data source. All of it is provisioned from files in the repository. There is
-nothing to click through, no login and no import:
+nothing to click through and no import. Since 1.1 the dashboards need a login: user `admin`,
+with the password `prohori pipeline up` generated into `pipeline/.env` (`PROHORI_GRAFANA_PASSWORD`;
+printed once when it is generated on a terminal):
 
 ```bash
 uv run prohori pipeline up
@@ -106,9 +108,10 @@ pipeline/
 - **Image:** `grafana/grafana:13.3.0` (Alpine), pinned by digest, with a 512 MB memory limit.
   Measured use is about 250 MB with the dashboards open.
 - **Port:** 127.0.0.1:13000 only. Set `PROHORI_GRAFANA_PORT` to change it.
-- **Access:** anonymous visitors get the Viewer role, so the dashboards open without a login. The
-  `admin` account (password from `PROHORI_GRAFANA_PASSWORD`, local-only default `prohori`) can
-  explore and edit. Edits to provisioned dashboards cannot be saved; see below.
+- **Access (since 1.1):** a login is required. The `admin` account's password is generated
+  into `pipeline/.env` (`PROHORI_GRAFANA_PASSWORD`, git-ignored; set the variable yourself to
+  choose one). `PROHORI_GRAFANA_ANONYMOUS=true` gives anonymous visitors the Viewer role again, as
+  in 1.0. Edits to provisioned dashboards cannot be saved; see below.
 - **Database access:** Grafana connects as its own `grafana` role, which can only `SELECT` from
   the `raw` and `marts` schemas. The `warehouse-init` service creates the role on every `up` and
   grants it read access to tables created later, so the access survives each dbt rebuild of the
@@ -154,8 +157,8 @@ with no dbt run, the Overview and Pipeline health panels must all return rows. A
 
 - **The marts need a dbt build.** The Detection quality dashboard is empty until one has run
   (see above), or until the orchestration profile's hourly job has. The live panels use the raw tables so the dashboard works without it.
-- **Local use only.** Anonymous viewing and default passwords are meant for one machine. Before
-  exposing Grafana anywhere else, turn off anonymous access and set real passwords.
+- **Local use only.** The stack serves plain HTTP on 127.0.0.1. Before exposing Grafana
+  anywhere else, put it behind TLS and keep anonymous access off.
 - **Grafana's licence** is AGPL-3.0. The stack runs the official image unmodified
   ([LICENSES.md](LICENSES.md)).
 - **No alerting.** Grafana alerting is not configured; Prohori's own alerts are the panels'

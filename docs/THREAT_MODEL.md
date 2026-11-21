@@ -112,6 +112,7 @@ anything outside its own output.
 | Threat | Controls |
 | -------- | ---------- |
 | Access from the network | Every port is published on 127.0.0.1 only (`pipeline/docker-compose.yml`) |
+| Other users or containers on the same machine | Since 1.1 Grafana and Airflow need a login and Redpanda accepts only SASL/SCRAM clients, with per-user ACLs; the passwords are generated into git-ignored, owner-only `pipeline/.env` (ADR-0042). Not covered: TLS, and Redpanda's unpublished admin API |
 | A compromised stage | Prohori's containers run as a non-root user with memory limits; Grafana reads the warehouse through a read-only role (`pipeline/postgres/warehouse-init.sql`) |
 | Tampered images | Every image pinned by digest |
 
@@ -124,6 +125,7 @@ anything outside its own output.
 | Secrets committed | gitleaks in pre-commit and CI, GitHub secret scanning |
 | Vulnerable code | CodeQL, OpenSSF Scorecard, strict mypy |
 | Tampered releases | PyPI trusted publishing (no stored token) with PyPI attestations, a TestPyPI rehearsal, a signed provenance attestation for the wheel and sdist (from 1.0.1, attached to the GitHub release) and for the container image (`gh attestation verify`) |
+| Unknown release contents | CycloneDX SBOMs of the package's dependencies and of the image, attested and attached to each release (from 1.1, ADR-0042) |
 
 ## Residual risks
 
