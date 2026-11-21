@@ -20,7 +20,7 @@ PROJECT = "prohori"
 #: Where the compose file is in a clone of the repository.
 DEFAULT_COMPOSE_FILE = Path("pipeline") / "docker-compose.yml"
 #: Services that run once and exit (they are healthy when they exited with 0).
-ONE_SHOT = frozenset({"warehouse-init"})
+ONE_SHOT = frozenset({"warehouse-init", "redpanda-init"})
 #: The compose profile that adds Airflow and the scheduled jobs.
 ORCHESTRATION = "orchestration"
 #: Host ports published by the compose file (all bound to 127.0.0.1 only).
@@ -28,6 +28,9 @@ KAFKA_PORT = 19092
 POSTGRES_PORT = 15432
 GRAFANA_PORT = 13000
 AIRFLOW_PORT = 18080
+#: The role the stages, dbt and Airflow use: it owns the warehouse schemas, nothing more. The
+#: superuser (``prohori``) only initialises the database (``pipeline/postgres/warehouse-init.sql``).
+APP_ROLE = "prohori_app"
 
 Runner = Callable[..., "subprocess.CompletedProcess[str]"]
 
@@ -142,18 +145,32 @@ def services(file: Path, *, run: Runner | None = None) -> list[Service]:
     return parse_ps(done.stdout)
 
 
-def default_dsn() -> str:
-    """Connection string for the stack's PostgreSQL from the host.
+def conninfo(**values: str) -> str:
+    """A libpq keyword connection string. Every value is quoted, so any password works,
+    including ``@``, ``/``, ``:``, ``#``, ``%``, spaces and quotes."""
 
-    ``PROHORI_POSTGRES_DSN`` wins; otherwise it is built from ``PROHORI_POSTGRES_PASSWORD`` and
+    def quote(value: str) -> str:
+        return "'" + value.replace("\\", "\\\\").replace("'", "\\'") + "'"
+
+    return " ".join(f"{key}={quote(value)}" for key, value in values.items())
+
+
+def default_dsn() -> str:
+    """Connection string for the stack's PostgreSQL from the host, as the application role.
+
+    ``PROHORI_POSTGRES_DSN`` wins; otherwise it is built from ``PROHORI_APP_DB_PASSWORD`` and
     ``PROHORI_POSTGRES_PORT``, with the compose file's local defaults.
     """
     explicit = os.environ.get("PROHORI_POSTGRES_DSN")
     if explicit:
         return explicit
-    password = os.environ.get("PROHORI_POSTGRES_PASSWORD", PROJECT)
-    port = os.environ.get("PROHORI_POSTGRES_PORT", str(POSTGRES_PORT))
-    return f"postgresql://{PROJECT}:{password}@127.0.0.1:{port}/{PROJECT}"
+    return conninfo(
+        host="127.0.0.1",
+        port=os.environ.get("PROHORI_POSTGRES_PORT", str(POSTGRES_PORT)),
+        dbname=PROJECT,
+        user=APP_ROLE,
+        password=os.environ.get("PROHORI_APP_DB_PASSWORD", APP_ROLE),
+    )
 
 
 def default_bootstrap() -> str:

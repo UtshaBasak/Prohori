@@ -95,4 +95,9 @@ def test_compose_mounts_the_provisioning_and_reader_role() -> None:
     assert _datasource()["user"] == "grafana"
     init = (ROOT / "pipeline" / "postgres" / "warehouse-init.sql").read_text(encoding="utf-8")
     assert "GRANT SELECT ON TABLES TO grafana" in init
-    assert "superuser" not in init.lower().replace("nosuperuser", "")
+    assert not re.search(r"(?<!NO)SUPERUSER", init)  # no role is ever made a superuser
+    app = re.search(r"ALTER ROLE prohori_app WITH ([^;]+);", init)
+    assert app is not None
+    for attribute in ("NOSUPERUSER", "NOCREATEDB", "NOCREATEROLE", "NOREPLICATION", "NOBYPASSRLS"):
+        assert attribute in app.group(1)
+    assert not re.search(r"GRANT\s+pg_", init)  # no predefined role (server programs, files)

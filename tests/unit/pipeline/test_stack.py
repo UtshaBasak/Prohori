@@ -86,11 +86,13 @@ def test_services_runs_ps_and_reports_failures() -> None:
 
 
 def test_default_addresses(monkeypatch: pytest.MonkeyPatch) -> None:
-    for name in ("PROHORI_POSTGRES_DSN", "PROHORI_POSTGRES_PASSWORD", "PROHORI_POSTGRES_PORT"):
+    for name in ("PROHORI_POSTGRES_DSN", "PROHORI_APP_DB_PASSWORD", "PROHORI_POSTGRES_PORT"):
         monkeypatch.delenv(name, raising=False)
     monkeypatch.delenv("PROHORI_KAFKA_BOOTSTRAP", raising=False)
     monkeypatch.delenv("PROHORI_GRAFANA_PORT", raising=False)
-    assert stack.default_dsn().endswith("@127.0.0.1:15432/prohori")
+    assert stack.default_dsn() == (
+        "host='127.0.0.1' port='15432' dbname='prohori' user='prohori_app' password='prohori_app'"
+    )
     assert stack.default_bootstrap() == "127.0.0.1:19092"
     assert stack.dashboard_url() == "http://127.0.0.1:13000"
     monkeypatch.delenv("PROHORI_AIRFLOW_PORT", raising=False)
@@ -98,9 +100,24 @@ def test_default_addresses(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("PROHORI_GRAFANA_PORT", "3001")
     assert stack.dashboard_url() == "http://127.0.0.1:3001"
     monkeypatch.setenv("PROHORI_POSTGRES_PORT", "5433")
-    assert stack.default_dsn().endswith(":5433/prohori")
+    assert "port='5433'" in stack.default_dsn()
     monkeypatch.setenv("PROHORI_POSTGRES_DSN", "postgresql://elsewhere/db")
     assert stack.default_dsn() == "postgresql://elsewhere/db"
+
+
+def test_any_password_fits_in_the_connection_string(monkeypatch: pytest.MonkeyPatch) -> None:
+    from psycopg.conninfo import conninfo_to_dict
+
+    password = "p@ss/w:rd#1%41 'q\\x"  # noqa: S105 - a test value, with a quote and a backslash
+    monkeypatch.delenv("PROHORI_POSTGRES_DSN", raising=False)
+    monkeypatch.setenv("PROHORI_APP_DB_PASSWORD", password)
+    parsed = conninfo_to_dict(stack.default_dsn())  # libpq's own parser
+    assert parsed["password"] == password
+    assert (parsed["user"], parsed["dbname"], parsed["host"]) == (
+        "prohori_app",
+        "prohori",
+        "127.0.0.1",
+    )
 
 
 def test_compose_file_publishes_on_localhost_only_and_pins_images() -> None:
@@ -121,3 +138,23 @@ def test_compose_file_publishes_on_localhost_only_and_pins_images() -> None:
         users = [line for line in dockerfile.splitlines() if line.startswith("USER ")]
         assert users[-1] in {"USER prohori", "USER 10001:0"}
     assert services["airflow"]["profiles"] == ["orchestration"]
+
+
+def test_compose_file_keeps_messages_and_passwords_safe() -> None:
+    """Redpanda syncs to disk; every stage waits for the cluster settings and connects as the
+    application role, with no password inside a connection string."""
+    text = COMPOSE.read_text(encoding="utf-8")
+    services = yaml.safe_load(text)["services"]
+    redpanda = services["redpanda"]["command"]
+    assert "--unsafe-bypass-fsync=false" in redpanda
+    flag = redpanda.index("redpanda.write_caching_default=false")
+    assert redpanda[flag - 1] == "--set"  # rpk wants it as two arguments
+    assert not any(arg.startswith("--mode") for arg in redpanda)
+    assert "write_caching_default" in services["redpanda-init"]["command"]
+    for name in ("normalise", "detect", "incidents", "sink"):
+        assert "redpanda-init" in services[name]["depends_on"]
+        environment = services[name]["environment"]
+        assert "user=prohori_app" in environment["PROHORI_POSTGRES_DSN"]
+        assert "password" not in environment["PROHORI_POSTGRES_DSN"]
+    assert "postgresql://" not in text.replace("postgresql+psycopg2://airflow:", "")
+    assert "redpanda-init" in stack.ONE_SHOT
