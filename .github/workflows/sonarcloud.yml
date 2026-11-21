@@ -35,9 +35,16 @@ jobs:
         with:
           python-version: "3.13"
           enable-cache: true
-      - run: uv sync
+      # Wheels only, and Prohori itself from the checkout instead of a build: nothing runs a
+      # package's build or setup code in a job that holds the SonarQube Cloud token.
+      - run: uv sync --no-build --no-install-project
       - name: Tests with coverage (for SonarQube Cloud)
-        run: uv run pytest --cov --cov-report=xml -q -p no:cacheprovider
+        env:
+          PYTHONPATH: src
+        # The licence audit reads the installed package's metadata; the CI test job runs it.
+        run: >-
+          uv run --no-sync --no-build pytest --cov --cov-report=xml -q -p no:cacheprovider
+          --deselect tests/unit/test_licensing.py::test_no_runtime_dependency_has_a_strong_copyleft_or_non_commercial_licence
       - name: SonarQube Cloud scan
         uses: SonarSource/sonarqube-scan-action@e805d875275f728fac1885b413934be6d7c63f65 # v8.4.1
         env:
