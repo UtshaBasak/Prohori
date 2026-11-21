@@ -24,8 +24,10 @@ from prohori.pipeline.sink import DuckDBSink, Sink
 from prohori.pipeline.stages import ParserSettings
 from prohori.pipeline.transport import MemoryTransport
 
-#: The results format :func:`evaluation_rows` reads (written by ``python -m prohori.ml.train``).
-EVALUATION_FORMAT = "prohori.ml-eval/1"
+#: The results formats :func:`evaluation_rows` reads (written by ``python -m prohori.ml.train``);
+#: /2 (1.1) adds the calibration study and leaves the runs as they were.
+EVALUATION_FORMATS = ("prohori.ml-eval/1", "prohori.ml-eval/2")
+EVALUATION_FORMAT = EVALUATION_FORMATS[-1]
 
 
 class LoadError(ValueError):
@@ -119,7 +121,7 @@ def evaluation_rows(results: Path, evaluated_at: datetime | None = None) -> list
     except (OSError, ValueError) as exc:
         msg = f"cannot read {results}: {exc}"
         raise LoadError(msg) from exc
-    if not isinstance(data, dict) or data.get("format") != EVALUATION_FORMAT:
+    if not isinstance(data, dict) or data.get("format") not in EVALUATION_FORMATS:
         msg = f"{results} is not a flow-model evaluation ({EVALUATION_FORMAT})"
         raise LoadError(msg)
     when = evaluated_at or datetime.fromtimestamp(results.stat().st_mtime, tz=UTC)

@@ -44,6 +44,8 @@ COMPARE_START = "<!-- rules-compare:start -->"
 COMPARE_END = "<!-- rules-compare:end -->"
 ML_START = "<!-- ml-results:start -->"
 ML_END = "<!-- ml-results:end -->"
+CALIBRATION_START = "<!-- ml-calibration:start -->"
+CALIBRATION_END = "<!-- ml-calibration:end -->"
 CROSS_START = "<!-- ml-cross:start -->"
 CROSS_END = "<!-- ml-cross:end -->"
 ANOMALY_DOCUMENT = ROOT / "docs" / "ANOMALY.md"
@@ -70,6 +72,11 @@ DETECTOR_NAMES = {
 }
 #: Datasets in the order they appear in the docs.
 ML_DATASETS = ("unsw-nb15", "cicids2017")
+METHOD_NAMES = {
+    "time-block": "Time blocks (validation)",
+    "out-of-fold": "Out-of-fold (time-block folds)",
+    "random": "Random rows (1.0)",
+}
 MODEL_NAMES = {"hgb": "Gradient boosting (supervised)", "iforest": "Isolation Forest (benign only)"}
 VARIANT_NAMES = {
     "cleaned": "Cleaned (every leakage control)",
@@ -339,6 +346,71 @@ def render_ml(results: dict[str, Any]) -> str:
     return "\n".join(lines)
 
 
+def calibration_errors(all_results: list[dict[str, Any]]) -> dict[str, float]:
+    """Each method's calibration error, averaged over datasets and models (the selection rule)."""
+    errors: dict[str, list[float]] = {}
+    for results in all_results:
+        study = results.get("calibration_study") or {}
+        for method, models in study.get("methods", {}).items():
+            errors.setdefault(method, []).extend(m["calibration_error"] for m in models.values())
+    return {method: sum(v) / len(v) for method, v in errors.items()}
+
+
+def render_calibration(all_results: list[dict[str, Any]]) -> str:
+    """The calibration study for docs/MODEL_CARD.md: how each way of choosing thresholds held."""
+    studied = [r for r in all_results if r.get("calibration_study")]
+    if not studied:
+        return "No calibration study yet."
+    fprs = studied[0]["target_fprs"]
+    columns = ["Dataset", "Method", "Model", "Benign val. near-duplicates"]
+    for fpr in fprs:
+        columns += [f"Test FPR ({_label(fpr)} target)", "Recall"]
+    columns.append("Calibration error")
+    lines = [
+        "Seeds " + ", ".join(map(str, studied[0]["seeds"])) + "; cleaned variant; mean ± "
+        "standard deviation. The same test split scores every method. Calibration error is "
+        "|test FPR / target - 1| averaged over the targets (0 is perfect). Near-duplicates: the "
+        "share of benign validation flows equal to a benign training flow once every number is "
+        "rounded to two significant digits (out-of-fold uses the time-block split). Generated "
+        "from `results/ml_*.json`; do not edit by hand.",
+        "",
+        "| " + " | ".join(columns) + " |",
+        "|" + "---|" * len(columns),
+    ]
+    for results in studied:
+        for method, models in results["calibration_study"]["methods"].items():
+            for model, entry in models.items():
+                near = [r["near_duplicate_share"] for r in entry["runs"]]
+                share = sum(near) / len(near) if None not in near else None
+                row = [
+                    results["dataset"],
+                    METHOD_NAMES.get(method, method),
+                    MODEL_NAMES.get(model, model),
+                    "-" if share is None else f"{share * 100:.2f} %",
+                ]
+                for fpr in fprs:
+                    point = entry["summary"][f"fpr_{fpr:g}"]
+                    row += [
+                        _stat(point["fpr"], percent=True, digits=2),
+                        _stat(point["recall"], percent=True, digits=1),
+                    ]
+                row.append(f"{entry['calibration_error']:.3f}")
+                lines.append("| " + " | ".join(row) + " |")
+    errors = calibration_errors(studied)
+    chosen = studied[0]["calibration"]
+    ranked = ", ".join(
+        f"{METHOD_NAMES.get(m, m).lower()} {e:.3f}"
+        for m, e in sorted(errors.items(), key=lambda x: x[1])
+    )
+    lines += [
+        "",
+        f"Mean calibration error over both datasets and models: {ranked}. "
+        f"Published numbers and saved models use **{METHOD_NAMES.get(chosen, chosen).lower()}**. "
+        f"Rule, written down before the runs: {studied[0]['calibration_study']['rule']}",
+    ]
+    return "\n".join(lines)
+
+
 def render_ml_summary(all_results: list[dict[str, Any]]) -> str:
     """The README summary: the cleaned results of every model on every dataset."""
     if not all_results:
@@ -390,13 +462,25 @@ def _ml_findings(unsw: dict[str, Any], cic: dict[str, Any]) -> str:
     uncleaned = unsw["variants"]["uncleaned"]["models"]["hgb"]["summary"]["pr_auc"]["mean"]
     unsw_share, unsw_rows = _cleaned_share(unsw)
     cic_share, cic_rows = _cleaned_share(cic)
+    threshold = (
+        f"The {_label(loose)} threshold chosen on UNSW-NB15's validation data gave "
+        f"{loose_fpr * 100:.1f} % false positives on its test file."
+    )
+    study = (unsw.get("calibration_study") or {}).get("methods", {})
+    if loose_fpr <= 2 * loose and "random" in study:
+        random = study["random"]["hgb"]["summary"][f"fpr_{loose:g}"]["fpr"]["mean"]
+        threshold = (
+            f"Thresholds chosen on validation time blocks held on UNSW-NB15's test file "
+            f"({loose_fpr * 100:.1f} % false positives at the {_label(loose)} target); with "
+            f"validation rows drawn at random, as in 1.0, the same target gave "
+            f"{random * 100:.1f} %."
+        )
     return (
         f"What the numbers say: gradient boosting catches {point['recall']['mean'] * 100:.0f} % "
         f"of UNSW-NB15's attacks at {point['false_alerts_per_10k']['mean']:.1f} false alerts per "
         "10,000 flows, missing most fuzzing and analysis traffic, and on CIC-IDS-2017 catches "
         f"{cic_point['recall']['mean'] * 100:.2f} %, which says more about that lab dataset than "
-        f"about the model. The {_label(loose)} threshold chosen on UNSW-NB15's validation data "
-        f"gave {loose_fpr * 100:.1f} % false positives on its test file. The Isolation Forest is "
+        f"about the model. {threshold} The Isolation Forest is "
         "not a usable detector on either dataset. Without the leakage controls the same pipeline "
         f"would report a PR-AUC of {uncleaned:.3f} instead of {hgb['pr_auc']['mean']:.3f} on "
         f"UNSW-NB15. Cleaning removed {unsw_share * 100:.0f} % of UNSW-NB15's {unsw_rows:,} rows "
@@ -1014,6 +1098,7 @@ def main(argv: list[str] | None = None) -> int:
         (RULES_DOCUMENT, render_comparison(results), COMPARE_START, COMPARE_END),
         (MODEL_CARD, card, ML_START, ML_END),
         (README, render_ml_summary(models), ML_START, ML_END),
+        (MODEL_CARD, render_calibration(models), CALIBRATION_START, CALIBRATION_END),
         (MODEL_CARD, cross_card, CROSS_START, CROSS_END),
         (README, render_cross_summary(cross), CROSS_START, CROSS_END),
         (

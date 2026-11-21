@@ -22,7 +22,7 @@ if [ ! -d {DATA}/raw/unsw-nb15 ]; then
 fi
 out={OUTPUT}/results/ml_unsw-nb15-$(date -u +%Y%m%dT%H%M%SZ).json
 {PYTHON} -m prohori.ml.train --dataset unsw-nb15 --variants cleaned \\
-    --seeds "$SEED" --data-dir {DATA} --no-cache \\
+    --seeds "$SEED" --data-dir {DATA} --no-cache --no-study \\
     --models-dir {OUTPUT}/models --out "$out" >&2
 echo "$out"
 """
@@ -41,7 +41,7 @@ with DAG(
     params={
         "seed": Param(0, type="integer", minimum=0, description="Training seed"),
         "min_recall": Param(
-            0.75,
+            0.62,
             type="number",
             minimum=0,
             maximum=1,

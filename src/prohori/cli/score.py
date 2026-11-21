@@ -72,16 +72,33 @@ def score_command(
     exit_zero: Annotated[
         bool, typer.Option("--exit-zero", help="Exit 0 even when flows are flagged.")
     ] = False,
+    sha256: Annotated[
+        str | None,
+        typer.Option(
+            "--sha256",
+            help="Refuse the model unless its file has this SHA-256 (from a source you trust).",
+            show_default=False,
+        ),
+    ] = None,
+    allow_version_mismatch: Annotated[
+        bool,
+        typer.Option(
+            "--allow-version-mismatch",
+            help="Load a model made with other scikit-learn, numpy, pandas or Python versions "
+            "(it may score differently).",
+        ),
+    ] = False,
 ) -> None:
     """Score each flow in a CSV with a saved model; list the flagged flows and a summary.
 
-    Needs the 'ml' extra. Model files are pickles: only use models you trained yourself. Exit
-    codes: 0 nothing flagged, 3 flows flagged (0 with --exit-zero), 1 the ml extra is missing,
-    the model cannot be loaded or the file cannot be scored, 2 invalid usage.
+    Needs the 'ml' extra. Models are skops files, read without pickle (1.0 joblib files load
+    only the classes a model needs); still, only use models you trained yourself. Exit codes:
+    0 nothing flagged, 3 flows flagged (0 with --exit-zero), 1 the ml extra is missing, the
+    model cannot be loaded or the file cannot be scored, 2 invalid usage.
     """
     try:
         from prohori.ml import score as scoring
-        from prohori.ml.models import UNSAFE_PICKLE_WARNING, ModelFileError
+        from prohori.ml.models import JOBLIB, UNSAFE_PICKLE_WARNING, ModelFileError
     except ImportError as exc:
         typer.echo(f"error: {exc}", err=True)
         raise typer.Exit(ExitCode.NO_EVENTS) from None
@@ -96,9 +113,22 @@ def score_command(
         source = Path(file)
         if not source.is_file():
             raise typer.BadParameter(f"no such file: {file}", param_hint="FLOWS")
-    typer.echo(f"warning: {UNSAFE_PICKLE_WARNING}", err=True)
+    if model_path.suffix == JOBLIB:
+        typer.echo(f"warning: {UNSAFE_PICKLE_WARNING} Retrain it to get a skops file.", err=True)
+
+    def warn(message: str) -> None:
+        typer.echo(f"warning: {sanitize(message)}", err=True)
+
     try:
-        result = scoring.score_file(source, model_path, fpr=fpr, top=top)
+        result = scoring.score_file(
+            source,
+            model_path,
+            fpr=fpr,
+            top=top,
+            sha256=sha256,
+            allow_version_mismatch=allow_version_mismatch,
+            warn=warn,
+        )
     except (ModelFileError, scoring.ScoreInputError) as exc:
         typer.echo(f"error: {sanitize(str(exc))}", err=True)
         raise typer.Exit(ExitCode.NO_EVENTS) from None

@@ -11,7 +11,7 @@ but are shown next to flagged flows so an analyst can find them.
 
 import heapq
 import io
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import IO, Any
@@ -26,7 +26,7 @@ except ImportError as exc:  # pragma: no cover - exercised in a subprocess test
 
 from prohori.ml.cleaning import MISSING_CATEGORY
 from prohori.ml.datasets import CHUNK_ROWS
-from prohori.ml.models import load_model
+from prohori.ml.models import JOBLIB, SKOPS, load_model
 from prohori.ml.registry import get_dataset, normalise_column
 
 #: Columns shown with a flagged flow when the CSV has them; never used for scoring.
@@ -80,15 +80,22 @@ class ScoreResult:
 
 
 def resolve_model(name: str, models_dir: Path) -> Path:
-    """A model file path, or a name such as ``cicids2017/hgb-seed0`` under ``models_dir``."""
-    candidates = [Path(name), models_dir / name, models_dir / f"{name}.joblib"]
+    """A model file path, or a name such as ``cicids2017/hgb-seed0`` under ``models_dir``.
+
+    A name finds the skops file first, then a 1.0 joblib file.
+    """
+    candidates = [Path(name), models_dir / name]
+    candidates += [models_dir / f"{name}{suffix}" for suffix in (SKOPS, JOBLIB)]
     for candidate in candidates:
-        if candidate.is_file() and candidate.suffix == ".joblib":
+        if candidate.is_file() and candidate.suffix in (SKOPS, JOBLIB):
             return candidate
     available = (
         sorted(
-            str(p.relative_to(models_dir).with_suffix("")).replace("\\", "/")
-            for p in models_dir.glob("*/*.joblib")
+            {
+                str(p.relative_to(models_dir).with_suffix("")).replace("\\", "/")
+                for suffix in (SKOPS, JOBLIB)
+                for p in models_dir.glob(f"*/*{suffix}")
+            }
         )
         if models_dir.is_dir()
         else []
@@ -138,9 +145,17 @@ def score_file(
     *,
     fpr: float | None = None,
     top: int = 20,
+    sha256: str | None = None,
+    allow_version_mismatch: bool = False,
+    warn: Callable[[str], None] | None = None,
 ) -> ScoreResult:
-    """Score every flow; keep counts and the ``top`` highest-scoring flagged flows (0: all)."""
-    bundle, meta = load_model(model_path)
+    """Score every flow; keep counts and the ``top`` highest-scoring flagged flows (0: all).
+
+    ``sha256``, ``allow_version_mismatch`` and ``warn`` go to :func:`load_model`.
+    """
+    bundle, meta = load_model(
+        model_path, sha256=sha256, allow_version_mismatch=allow_version_mismatch, warn=warn
+    )
     thresholds: dict[str, float] = bundle["thresholds"]
     if fpr is None:
         name = min(thresholds, key=lambda key: float(key.removeprefix("fpr_")))

@@ -71,6 +71,11 @@ class Dataset:
     #: Features reported in the literature to separate the classes for reasons unrelated to
     #: the attacks themselves. Kept by default and listed in the cleaning report.
     suspect_columns: tuple[str, ...] = ()
+    #: Column giving each row's place in time, for time-block splits; the file order when it
+    #: holds no times (step 30).
+    order_column: str | None = None
+    #: True when ``order_column`` holds timestamps rather than numbers.
+    order_is_time: bool = False
     archive: Archive | None = None
     checked: str = ""
     notes: tuple[str, ...] = field(default=())
@@ -147,6 +152,8 @@ UNSW_NB15 = Dataset(
     # Time-to-live values reflect the testbed's hosts rather than the attacks; several studies
     # report that sttl alone separates most of the classes.
     suspect_columns=("sttl", "dttl", "ct_state_ttl"),
+    # No timestamps in the partition files: the row number (file order) is the closest proxy.
+    order_column="id",
     notes=(
         "The partition files contain no addresses, ports or timestamps (those are only in the "
         "four full CSV files, which Prohori does not use).",
@@ -216,6 +223,8 @@ CICIDS2017 = Dataset(
     benign_values=("benign",),
     categorical_columns=(),
     attempted_column="attempted_category",
+    order_column="timestamp",
+    order_is_time=True,
     drop_columns={
         "id": IDENTIFIER,
         "flow_id": IDENTIFIER,
