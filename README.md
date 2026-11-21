@@ -533,6 +533,8 @@ errors, missing indicators and whether injected instructions were followed:
 | ------- | ---------- | ------: | ------: | ------: | ------: |
 | Gemini (gemini-3.5-flash-lite) | 2026-11-02 | 28/30 | 2/30 | 110/112 | 83/89 |
 
+Gemini (gemini-3.5-flash-lite) answered 30 of the 31 cases; 3 of its answers were recorded for an older version of their incident and are replayed against today's, which can count as errors the original answer did not make. Recording again needs an API key.
+
 | System | Injections the answer followed | Followed and shown to the analyst |
 | -------- | ------: | ------: |
 | Mock (a template, offline) | 0/8 | 0/8 |
@@ -620,10 +622,11 @@ Prohori is honest about what it does not do:
   127.0.0.1 only. Prohori never blocks, disables or changes anything.
 - **Rules see only what the logs say.** Request bodies, headers and encrypted traffic are not
   inspected; the web rules use the request line only.
-- **Thresholds can be evaded.** The held-out evaluation shows that slow or widely distributed
-  attacks stay under the brute-force and spraying thresholds; see
-  [How well the rules work](#how-well-the-rules-work). When sshd logs host names, an attacker who
-  controls their reverse DNS can change the name to split the count.
+- **Thresholds can be evaded.** Since 1.1 slow and distributed credential stuffing and SSH
+  guessing are caught, but password spraying spread over many networks still is not (see
+  [How well the rules work](#how-well-the-rules-work)), and every threshold was set against
+  simulated traffic. When sshd logs host names, an attacker who controls their reverse DNS can
+  change the name to split the count.
 - **Very large alert counts are trimmed.** `incidents` and `triage` keep at most 1,000 alerts per
   rule and entities and 10,000 of each severity, and say in the incident how many more there
   were. A flood of medium alerts cannot crowd out a critical one, but once 10,000 alerts of one

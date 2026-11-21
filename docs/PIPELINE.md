@@ -331,7 +331,10 @@ incident is written when its group can no longer grow (24 hours 35 minutes past 
 time with the built-in rules) or, in the stack, after 60 seconds without new alerts. Without that, the last incident of a
 replay would wait for the next attack. The cost is that an attack slower than one alert every
 minute can be split into two incidents. Raise `--idle-close` in the compose file if that
-matters more than speed.
+matters more than speed. On a busy site where alerts never stop for 60 seconds (owners' own
+account changes keep PRH-ACCT-001 firing), open incidents wait for the hold time instead, about
+a day since the 24-hour rule of 1.1, and their alerts stay in the incident stage's memory that
+long.
 
 **Same answers as batch.** The smoke test (`tests/integration/test_docker_stack.py`, run by the
 `Docker stack` workflow on Linux) starts the real stack from empty volumes. It replays a

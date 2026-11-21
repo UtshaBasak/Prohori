@@ -8,8 +8,8 @@ description: >-
   At least 22 failed sign-ins (web app or SSH) for one existing account within 24 hours, from any
   number of addresses. A slow attacker stays under every per-address and per-minute limit, but
   the account still collects failures. The threshold is twice the most failures any benign
-  account had in a day in the simulator (11, SSH root). Failures for accounts that do not exist
-  are ignored.
+  account had in one simulated log (11, SSH root in three hours of background); a server open to
+  the internet sees far more in a day. Failures for accounts that do not exist are ignored.
 author: Prohori
 tags: [attack.credential_access, attack.t1110, attack.t1110.001]
 logsource: {category: authentication}

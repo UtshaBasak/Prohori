@@ -208,7 +208,7 @@ response: runbooks/brute-force.md
 | ----- | ---------- | ------- |
 | `id` | yes | Upper-case words joined by hyphens, for example `PRH-AUTH-001`. Unique across all loaded rules |
 | `title` | yes | 3-200 characters |
-| `status` | yes | `stable`, `test`, `experimental` or `deprecated` |
+| `status` | yes | `stable`, `test`, `experimental` or `deprecated`. Built-in rules are `stable`, or `test` (`experimental` when the simulator cannot measure their false positives) until they have run against real logs |
 | `severity` | yes | `low`, `medium`, `high` or `critical` |
 | `description` | no | Free text |
 | `author` | no | Free text |
@@ -360,6 +360,17 @@ aggregate:
 
 - `count_gte`: at least N matching events.
 - `distinct`: the field takes at least N distinct values (for example many users from one IP).
+  Since 1.1 it may be a list of two or three thresholds that must all be reached in the same
+  window (many accounts *and* many addresses), and a field may list alternatives like
+  `group_by` (`field: [source.ip, source.host]`). Each set keeps at most its threshold's newest
+  values, so state stays bounded however many values arrive:
+
+  ```yaml
+  distinct:
+    - {field: [user.id, user.name, user.email_hash], gte: 38}
+    - {field: [source.ip, source.host], gte: 36}
+  ```
+
 - `ratio`: the share of matching events that also match another selection reaches `gte`, once at
   least `min_count` events have been seen.
 

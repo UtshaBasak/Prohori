@@ -172,7 +172,7 @@ Exit codes as for `explain`.
 
 ## `prohori simulate`
 
-Writes a labelled scenario: `--out DIR`, `--seed`, `--variant default|heldout`,
+Writes a labelled scenario: `--out DIR`, `--seed`, `--variant default|heldout|heldout2`,
 `--set NAME=VALUE` (repeatable), `--list`. See [SIMULATOR.md](SIMULATOR.md).
 
 ## `prohori score`

@@ -1540,16 +1540,30 @@ improvement has to be shown with numbers that cannot have been fitted to the tes
 | Measure (benign lines only) | Maximum | Rule | Threshold |
 | --- | ---: | --- | ---: |
 | Addresses one existing account failed from, per hour | 2 | PRH-AUTH-005 | 4 |
-| Failures of one existing account, per 24 hours (SSH root) | 11 | PRH-AUTH-006 | 22 |
+| Failures of one existing account in a 24-hour window (SSH root; the log is 3 hours long) | 11 | PRH-AUTH-006 | 22 |
 | Existing accounts failing from one /24 or /48, per hour | 19 | PRH-AUTH-007 | 38 |
 | Existing accounts / addresses failing in one log, per hour | 19 / 18 | PRH-AUTH-008 | 38 / 36 |
 | Addresses with unknown-account failures in one log, per hour | 0 | PRH-AUTH-009 | 10 (reasoned) |
 | Failures of one account, per hour | 6 | PRH-AUTH-010 | 12 |
 
+The maxima come from `scripts/benign_maxima.py` (default variants only, the engine's window
+semantics), and a test checks that every threshold is twice its maximum. Every maximum was
+reached in a 3-hour simulated log, so "per 24 hours" means at most three hours of background
+here: PRH-AUTH-006 will be much noisier on a real server than its threshold suggests.
+
 PRH-AUTH-009 is the exception: the simulator's customers never mistype their email, so its
 background maximum is 0 and the margin rule gives nothing. Its threshold comes from reasoning (a
 small shop rarely sees unknown-email failures from ten addresses in an hour) and its status is
 `experimental`: its false-positive rate is untested here. SSH is excluded from it.
+
+**False-positive margin.** The definition of done asks that false positives on the default
+variants rise by no more than a margin stated here. No margin was set in advance; the observed
+rise is 0 in every variant (default 295, held-out 259, held-out 2 287 false-positive alerts,
+before and after), so any margin is met.
+
+**The baseline** is the rule files of commit 792a49b, which already include step 28's host-name
+fallback (ADR-0035); on the simulator's logs, which always carry addresses, it reproduced the
+committed 1.0 results exactly.
 
 **The rules** (all additive; the 1.0 rules are unchanged): PRH-AUTH-005 failures for one account
 from many addresses; PRH-AUTH-006 slow guessing on one account over 24 hours; PRH-AUTH-007 many
@@ -1593,3 +1607,11 @@ when read.
   real shop's. `heldout2` spreads sources over networks to measure the first effect.
 - The account-takeover sample also raises PRH-AUTH-010 now, so its incident id (and the sample
   incident's file name) changed.
+- **Not met:** "the per-account rules fire in every held-out spraying run". The per-network rule
+  PRH-AUTH-007 missed every spraying run on both held-out sets (30 accounts against its 38), and
+  spraying spread over networks (`heldout2`) is missed by every rule, old and new. The cause is
+  the simulator's address model (every customer in one /24), not a threshold to tune after
+  scoring; the follow-up is a simulator with customers spread over networks, with a re-frozen
+  baseline, as its own step.
+- After scoring, only wording changed: PRH-AUTH-006's description said "in a day" for a maximum
+  measured in a 3-hour log. Its logic and threshold are unchanged.

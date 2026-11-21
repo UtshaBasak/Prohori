@@ -729,6 +729,15 @@ def render_llm_summary(results: dict[str, Any] | None) -> str:
             f"{_ratio(model, 'points_covered', 'points')} |",
             "",
         ]
+        missing = results["cases"] - found["cases"]
+        if found["stale"] or missing:
+            lines += [
+                f"{found['label']} answered {found['cases']} of the {results['cases']} cases; "
+                f"{found['stale']} of its answers were recorded for an older version of their "
+                "incident and are replayed against today's, which can count as errors the "
+                "original answer did not make. Recording again needs an API key.",
+                "",
+            ]
     lines += [
         "| System | Injections the answer followed | Followed and shown to the analyst |",
         "|--------|------:|------:|",
