@@ -1,0 +1,51 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+# Copyright (c) 2026 Utsha Basak
+# SonarQube Cloud analysis with test coverage, configured by sonar-project.properties.
+# Replaces SonarQube Cloud's Automatic Analysis, which must be off for this to run (ADR-0037).
+name: SonarCloud
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  UV_LOCKED: "1"
+  PYTHONUTF8: "1"
+
+jobs:
+  sonarcloud:
+    name: SonarCloud analysis
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0 # blame information, so SonarQube Cloud can tell new code from old
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+        with:
+          python-version: "3.13"
+          enable-cache: true
+      # Wheels only, and Prohori itself from the checkout instead of a build: nothing runs a
+      # package's build or setup code in a job that holds the SonarQube Cloud token.
+      - run: uv sync --no-build --no-install-project
+      - name: Tests with coverage (for SonarQube Cloud)
+        env:
+          PYTHONPATH: src
+        # The licence audit reads the installed package's metadata; the CI test job runs it.
+        run: >-
+          uv run --no-sync --no-build pytest --cov --cov-report=xml -q -p no:cacheprovider
+          --deselect tests/unit/test_licensing.py::test_no_runtime_dependency_has_a_strong_copyleft_or_non_commercial_licence
+      - name: SonarQube Cloud scan
+        uses: SonarSource/sonarqube-scan-action@e805d875275f728fac1885b413934be6d7c63f65 # v8.4.1
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}

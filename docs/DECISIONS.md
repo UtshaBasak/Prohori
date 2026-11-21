@@ -1615,3 +1615,37 @@ when read.
   baseline, as its own step.
 - After scoring, only wording changed: PRH-AUTH-006's description said "in a day" for a maximum
   measured in a 3-hour log. Its logic and threshold are unchanged.
+
+## ADR-0037: SonarQube Cloud analysis from CI, with reviewed rule exceptions
+
+- **Date:** 2026-11-21
+- **Status:** Accepted
+
+**Context.** SonarQube Cloud's Automatic Analysis failed the quality gate of pull requests #59
+and #60 on its "new code" security rating. Every finding was the same: path traversal
+(`pythonsecurity:S2083`) and "LLM-supplied CLI arguments" (`pythonsecurity:S8707`) wherever a path
+given on a command line is used to read or write a file. In a local tool the person running it
+chooses the path and could read or write that file anyway, so these are not vulnerabilities. Two
+code-level checks (resolving the path and comparing it with allowed roots) did not satisfy the
+analyser. Automatic Analysis cannot ignore specific rules: its `.sonarcloud.properties` file only
+accepts source and exclusion paths, without wildcards.
+
+**Decision.**
+
+- Analyse from GitHub Actions instead (`.github/workflows/sonarcloud.yml`, the official
+  `SonarSource/sonarqube-scan-action` pinned by SHA, read-only permissions, a `SONAR_TOKEN`
+  secret), configured by `sonar-project.properties`. Automatic Analysis is turned off in the
+  project settings, as CI-based analysis requires.
+- Ignore exactly those two rules in `scripts/` (developer tools, not shipped) and in five reviewed
+  modules where the path is an output or settings file named on the command line:
+  `llm/evaluate.py` (recordings and results), `enrich/config.py` (`--env-file`, read only, size
+  capped, known keys only), and `ml/logeval.py`, `ml/transfer.py`, `ml/train.py` (results files).
+  Both rules stay active everywhere else; a new finding fails the gate and is reviewed before a
+  file is added.
+- The job also runs the tests with coverage, so SonarQube Cloud shows coverage on new code. It is
+  informational; the 85 % floor is still enforced by the CI test job.
+
+**Consequences.** One more Linux job per push (about the length of the test suite, free on a public
+repository). The analysis needs the secret, so it cannot run for pull requests from forks; outside
+code contributions are not accepted (ADR-0033). Ruff, mypy, CodeQL and zizmor keep checking
+`scripts/` and the excepted modules.

@@ -45,6 +45,10 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- SonarQube Cloud now analyses from a GitHub Actions workflow (`sonarcloud.yml`, configured by
+  `sonar-project.properties`) instead of Automatic Analysis, with test coverage, and ignores its
+  two path-traversal rules only in `scripts/` and five reviewed modules where the path is a file
+  named on the command line by the person running the tool (ADR-0037).
 - **Moved numbers, explained.** Held-out detection 35/40 to 40/40 and held-out 2 30/40 to 35/40
   (credential stuffing). The account-takeover sample also raises PRH-AUTH-010, so the sample
   incident is now `INC-14756953ade54922` (score and severity unchanged). The demo counts only
