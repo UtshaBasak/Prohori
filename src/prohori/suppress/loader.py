@@ -36,6 +36,11 @@ class _File(BaseModel):
     allow_ips: Annotated[list[object], Field(max_length=MAX_ENTRIES)] = []
 
 
+def utc_today() -> date:
+    """Today in UTC: what the "expired" warnings compare with (never what applies an entry)."""
+    return datetime.now(UTC).date()
+
+
 class SuppressionFileError(ValueError):
     """The file cannot be used; ``errors`` says where and why."""
 
@@ -57,7 +62,7 @@ class Suppressions:
 
     def expired(self, today: date | None = None) -> list[Entry]:
         """Entries past their ``expires`` day (UTC): they no longer apply to new alerts."""
-        day = today or datetime.now(UTC).date()
+        day = today or utc_today()
         return [e for e in self.entries if e.expired(day)]
 
     def unknown_rules(self, detector_ids: Iterable[str]) -> list[tuple[Entry, str]]:

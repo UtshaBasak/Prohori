@@ -4,6 +4,7 @@
 
 import json
 import re
+from datetime import date
 from pathlib import Path
 
 import pytest
@@ -31,6 +32,12 @@ suppressions:
     owner: lab
     expires: 2099-12-31
 """
+
+
+@pytest.fixture(autouse=True)
+def _fixed_today(monkeypatch: pytest.MonkeyPatch) -> None:
+    """The example file expires in 2027: pin "today" so the expiry warnings never drift."""
+    monkeypatch.setattr("prohori.suppress.loader.utc_today", lambda: date(2026, 11, 22))
 
 
 def run(*args: str) -> tuple[int, str, str]:
