@@ -251,7 +251,11 @@ def test_command_line_reports_a_stopped_recording(
         evaluate, "_gemini", lambda env_file, model: (SendingProvider(), "m", budget)
     )
     assert evaluate.main(["--dir", str(copy), "record", "--system", "gemini"]) == 2
-    assert "run the same command again" in capsys.readouterr().err
+    assert "run the same command again to continue" in capsys.readouterr().err
+    # After --fresh, running "the same command" again would discard what was just recorded.
+    record = ["--dir", str(copy), "record", "--system", "gemini", "--fresh"]
+    assert evaluate.main(record) == 2
+    assert "run the same command again without --fresh" in capsys.readouterr().err
 
 
 def test_tables_with_a_real_model() -> None:

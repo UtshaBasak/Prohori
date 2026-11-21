@@ -662,7 +662,8 @@ def main(argv: list[str] | None = None) -> int:
         return 1
     _say(f"recorded {count} cases to {path}")
     if stopped:
-        _say(f"stopped: {stopped}; run the same command again to continue")
+        again = " without --fresh" if args.fresh else ""  # --fresh would discard this run
+        _say(f"stopped: {stopped}; run the same command again{again} to continue")
         return 2
     return 0
 
