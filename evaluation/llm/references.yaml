@@ -162,9 +162,9 @@ account-takeover-default:
 account-takeover-heldout:
   summary: >-
     203.0.113.230 failed 5 times against account u-1039 and then signed in within about six
-    minutes (PRH-AUTH-003, critical). The owner also signed in from their usual address
-    (192.0.2.97), and about half an hour after the attacker's sign-in two sensitive changes were
-    made from 203.0.113.230 (2 x PRH-ACCT-001): the bKash payout number and the password. Mapped
+    minutes (PRH-AUTH-003, critical). The incident also holds a sign-in from a second address,
+    192.0.2.97, and two sensitive changes about half an hour after the first sign-in
+    (2 x PRH-ACCT-001), the payout number and the password (T1098). Mapped
     to T1078, T1110 and T1098; score 100. The slower attempts did not trigger the brute-force
     rule. The account is compromised: end its sessions, reset the password, revert the payout
     change and block the address.

@@ -22,7 +22,7 @@ from datetime import datetime, timedelta
 from typing import Any
 
 from prohori.schema import Event
-from prohori.simulate import SCENARIOS, simulate
+from prohori.simulate import ADDRESS_MODEL, SCENARIOS, simulate
 from prohori.simulate.evaluate import detect
 
 FAILURES = frozenset({"auth.signin.failure", "ssh.login.failure"})
@@ -142,6 +142,7 @@ def measure() -> dict[str, Any]:
                     )
     return {
         "variant": "default",
+        "addresses": ADDRESS_MODEL,
         "seeds": list(SEEDS),
         "rule": "threshold = ceil(2 x max)",
         "measures": found,
