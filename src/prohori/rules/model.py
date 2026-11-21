@@ -164,13 +164,13 @@ class AggregateSpec(BaseModel):
     ratio: RatioThreshold | None = None
 
     @property
-    def distincts(self) -> tuple[DistinctThreshold, ...]:
-        """The distinct thresholds, however many were given."""
+    def distincts(self) -> list[DistinctThreshold]:
+        """The distinct thresholds, however many were given (a list: their number varies)."""
         if self.distinct is None:
-            return ()
+            return []
         if isinstance(self.distinct, DistinctThreshold):
-            return (self.distinct,)
-        return tuple(self.distinct)
+            return [self.distinct]
+        return list(self.distinct)
 
     @field_validator("window", mode="before")
     @classmethod
