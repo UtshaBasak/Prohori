@@ -173,3 +173,14 @@ def test_host_names_link_alerts_and_obey_the_shared_address_cap() -> None:
     groups = group_alerts(shared, max_ip_fanout=3)
     assert [len(g.alerts) for g in groups] == [3, 1, 1, 1]
     assert groups[0].shared_ips == (("nat.example", 4),)
+
+
+def test_per_account_alerts_join_the_victims_incident_and_per_log_alerts_stand_alone() -> None:
+    account = alert("PRH-AUTH-006", start=at(0), entities={"user.id": "u-1001"})
+    takeover = alert(
+        "PRH-ACCT-001", start=at(10), entities={"user.id": "u-1001", "source.ip": "203.0.113.7"}
+    )
+    stuffing = alert("PRH-AUTH-008", start=at(5), entities={"log_source": "app-security"})
+    groups = group_alerts([account, takeover, stuffing])
+    by_rules = sorted(sorted(a.detector_id for a in g.alerts) for g in groups)
+    assert by_rules == [["PRH-ACCT-001", "PRH-AUTH-006"], ["PRH-AUTH-008"]]

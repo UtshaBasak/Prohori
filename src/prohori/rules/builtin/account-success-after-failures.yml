@@ -1,0 +1,32 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+# Copyright (c) 2026 Utsha Basak
+id: PRH-AUTH-010
+title: Successful sign-in after many failures on one account
+status: test
+severity: critical
+description: >-
+  At least 12 failed sign-ins for one account, from any addresses, followed by a successful
+  sign-in to that account within 1 hour. PRH-AUTH-003 needs the failures and the success to come
+  from one address; this rule follows the account, so it also catches a distributed or slow
+  attack that finally got in. The threshold is twice the most failures any benign account had in
+  an hour in the simulator (6). Failures for accounts that do not exist cannot be followed by a
+  success for them, so they need no filter here.
+author: Prohori
+tags: [attack.credential_access, attack.initial_access, attack.t1110, attack.t1078]
+logsource: {category: authentication}
+detection:
+  failure:
+    event.action: [auth.signin.failure, ssh.login.failure]
+  success:
+    event.action: [auth.signin.success, ssh.login.success]
+  sequence:
+    by: [[user.id, user.name, user.email_hash]]
+    within: 1h
+    steps:
+      - {selection: failure, count_gte: 12}
+      - {selection: success}
+  condition: sequence
+falsepositives:
+  - A user who tried many old passwords before remembering the right one
+  - A device or integration retrying a stale password until the user updated it
+response: runbooks/success-after-failures.md

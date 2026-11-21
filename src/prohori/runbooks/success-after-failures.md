@@ -1,11 +1,12 @@
 # Successful sign-in after many failures
 
-**Rules:** PRH-AUTH-003
+**Rules:** PRH-AUTH-003, PRH-AUTH-010
 
 ## What it means
 
-An IP failed to sign in several times and then succeeded. The attacker has probably found a valid
-password. Treat the account, or the server for SSH, as compromised until shown otherwise.
+An IP failed to sign in several times and then succeeded (PRH-AUTH-003), or one account failed
+many times, from any addresses, and then signed in (PRH-AUTH-010). The attacker has probably found
+a valid password. Treat the account, or the server for SSH, as compromised until shown otherwise.
 
 ## Triage
 

@@ -1,0 +1,56 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+# Copyright (c) 2026 Utsha Basak
+rule: PRH-AUTH-006
+start: 2026-10-24T13:00:00Z
+defaults:
+  log_source: sshd
+  event.category: authentication
+  event.outcome: failure
+cases:
+  - name: twenty-two failures for one account over a day alert
+    expect: {alerts: 1, entities: [{user.name: deploy}]}
+    events:
+      - {event.action: ssh.login.failure, event.reason: bad_password, user.name: deploy, source.ip: 203.0.113.9, repeat: 22, every: 1h}
+
+  - name: twenty-one failures do not alert
+    expect: {alerts: 0}
+    events:
+      - {event.action: ssh.login.failure, event.reason: bad_password, user.name: deploy, source.ip: 203.0.113.9, repeat: 21, every: 1h}
+
+  - name: twenty-two failures over more than a day do not alert
+    expect: {alerts: 0}
+    events:
+      - {event.action: ssh.login.failure, event.reason: bad_password, user.name: deploy, source.ip: 203.0.113.9, repeat: 22, every: 70m}
+
+  - name: unknown user names never count
+    expect: {alerts: 0}
+    events:
+      - {event.action: ssh.login.failure, event.reason: unknown_user, user.name: oracle, source.ip: 203.0.113.9, repeat: 30, every: 10m}
+
+  - name: sshd failures for one account over a day through the auth_log parser
+    expect: {alerts: 1, entities: [{user.name: deploy}]}
+    log:
+      parser: auth_log
+      lines:
+        - "Oct 24 00:00:00 web01 sshd[900]: Failed password for deploy from 198.51.100.1 port 41000 ssh2"
+        - "Oct 24 01:07:00 web01 sshd[901]: Failed password for deploy from 198.51.100.32 port 41001 ssh2"
+        - "Oct 24 02:14:00 web01 sshd[902]: Failed password for deploy from 198.51.100.63 port 41002 ssh2"
+        - "Oct 24 03:21:00 web01 sshd[903]: Failed password for deploy from 198.51.100.94 port 41003 ssh2"
+        - "Oct 24 04:28:00 web01 sshd[904]: Failed password for deploy from 198.51.100.125 port 41004 ssh2"
+        - "Oct 24 05:35:00 web01 sshd[905]: Failed password for deploy from 198.51.100.156 port 41005 ssh2"
+        - "Oct 24 06:42:00 web01 sshd[906]: Failed password for deploy from 198.51.100.187 port 41006 ssh2"
+        - "Oct 24 07:49:00 web01 sshd[907]: Failed password for deploy from 198.51.100.218 port 41007 ssh2"
+        - "Oct 24 08:56:00 web01 sshd[908]: Failed password for deploy from 198.51.100.249 port 41008 ssh2"
+        - "Oct 24 09:03:00 web01 sshd[909]: Failed password for deploy from 203.0.113.30 port 41009 ssh2"
+        - "Oct 24 10:10:00 web01 sshd[910]: Failed password for deploy from 203.0.113.61 port 41010 ssh2"
+        - "Oct 24 11:17:00 web01 sshd[911]: Failed password for deploy from 203.0.113.92 port 41011 ssh2"
+        - "Oct 24 12:24:00 web01 sshd[912]: Failed password for deploy from 203.0.113.123 port 41012 ssh2"
+        - "Oct 24 13:31:00 web01 sshd[913]: Failed password for deploy from 203.0.113.154 port 41013 ssh2"
+        - "Oct 24 14:38:00 web01 sshd[914]: Failed password for deploy from 203.0.113.185 port 41014 ssh2"
+        - "Oct 24 15:45:00 web01 sshd[915]: Failed password for deploy from 203.0.113.216 port 41015 ssh2"
+        - "Oct 24 16:52:00 web01 sshd[916]: Failed password for deploy from 203.0.113.247 port 41016 ssh2"
+        - "Oct 24 17:59:00 web01 sshd[917]: Failed password for deploy from 192.0.2.28 port 41017 ssh2"
+        - "Oct 24 18:06:00 web01 sshd[918]: Failed password for deploy from 192.0.2.59 port 41018 ssh2"
+        - "Oct 24 19:13:00 web01 sshd[919]: Failed password for deploy from 192.0.2.90 port 41019 ssh2"
+        - "Oct 24 20:20:00 web01 sshd[920]: Failed password for deploy from 192.0.2.121 port 41020 ssh2"
+        - "Oct 24 21:27:00 web01 sshd[921]: Failed password for deploy from 192.0.2.152 port 41021 ssh2"

@@ -9,18 +9,22 @@
     "seed": 1
   },
   "incident": {
-    "id": "INC-8aaaf0ee0898a03c",
-    "title": "SSH invalid-user storm or repeated authentication-limit disconnects and 1 related alert",
+    "id": "INC-e6a7b81c2f863168",
+    "title": "Slow password guessing on one account and 3 related alerts",
     "status": "open",
     "severity": "high",
-    "score": 35.0,
+    "score": 45.0,
     "score_breakdown": [
       {
-        "reason": "Most severe alert: PRH-SSH-001 (high)",
+        "reason": "Most severe alert: PRH-AUTH-006 (high)",
         "points": 35.0
+      },
+      {
+        "reason": "1 more rule fired: PRH-SSH-001",
+        "points": 10.0
       }
     ],
-    "first_seen": "2026-10-24T08:31:07Z",
+    "first_seen": "2026-10-24T08:30:00Z",
     "last_seen": "2026-10-24T08:43:09Z",
     "entities": {
       "source.ip": [
@@ -31,6 +35,49 @@
       ]
     },
     "alerts": [
+      {
+        "id": "alr-d3633e12569bba0728140da6",
+        "detector_id": "PRH-AUTH-006",
+        "detector_kind": "rule",
+        "title": "Slow password guessing on one account",
+        "severity": "high",
+        "score": 75.0,
+        "event_ids": [
+          "evt-2fe79bcba3aca997e8ed0a67",
+          "evt-43cf70648c9529dac7b613eb",
+          "evt-0cd2c0b071ff3b85ff01bc0f",
+          "evt-9216d9ca3fe69f7314890a92",
+          "evt-84192bcbe5ba1ce55fc4409c",
+          "evt-1725993192096779a74b0dcb",
+          "evt-e50a7bb09c9d89280e61bd02",
+          "evt-a9c7f48c3ddc7d0e5b47b1b1",
+          "evt-e61923275bc5f732500eeee4",
+          "evt-799c9376ee033db8cae5cb61",
+          "evt-713a3483e0d441605df0d70e",
+          "evt-9679f33cd873e31c9e195dcc",
+          "evt-8ec7c51a9af5a5e824e0b053",
+          "evt-d15f6563c21c5f4f88066d20",
+          "evt-f7fb9a5a433dab559b01d3f4",
+          "evt-4f36d1be6f11de7a30cc292b",
+          "evt-1433f7c5abc48e8714e735d5",
+          "evt-71bf96e0f6a3f689be3245c6",
+          "evt-25867acbbb128c62f4b1084d",
+          "evt-99f8a5f9ec34081641e62c0b",
+          "evt-3c6f6d2c8547029f2768c88e",
+          "evt-15da823b94f9eb3aa536d415"
+        ],
+        "entities": {
+          "user.name": "root"
+        },
+        "first_seen": "2026-10-24T08:30:00Z",
+        "last_seen": "2026-10-24T08:34:42Z",
+        "attack": [
+          "attack.credential_access",
+          "attack.t1110",
+          "attack.t1110.001"
+        ],
+        "explanation": "22 matching events (threshold 22) for user.name=root within a 1d window"
+      },
       {
         "id": "alr-81177f8758199c4ea90b9b41",
         "detector_id": "PRH-SSH-001",
@@ -56,6 +103,49 @@
           "attack.t1110.001"
         ],
         "explanation": "5 matching events (threshold 5) for source.ip=203.0.113.64 within a 10m window"
+      },
+      {
+        "id": "alr-be82ae421f923005c1f19641",
+        "detector_id": "PRH-AUTH-006",
+        "detector_kind": "rule",
+        "title": "Slow password guessing on one account",
+        "severity": "high",
+        "score": 75.0,
+        "event_ids": [
+          "evt-98babd6055cc6d877208ef70",
+          "evt-fe4d801dcecdc7859d39de04",
+          "evt-6338499b45263d7414a722fb",
+          "evt-635cc01c5558e1aff7024675",
+          "evt-1df76fff591ba3c07166df0a",
+          "evt-8b04e2a1332110698bf5a5b9",
+          "evt-07d9b4988f010439adf69c39",
+          "evt-1c2ea31037d102b489616320",
+          "evt-eaab2145a2eeb03d4886f96b",
+          "evt-472451ab5cda57e25c653b7b",
+          "evt-92a72e5c10bfc63761db43b6",
+          "evt-837a1f69142e9cc73b805522",
+          "evt-6a2ec7547e617a9f32293345",
+          "evt-3b8dc3890880746106f66082",
+          "evt-68b1fba94d7ea8006a0d5a07",
+          "evt-a1b61150a8b439906dd7a9cd",
+          "evt-41fd193c85385d55e30e6862",
+          "evt-1f434c5c95d671fbc7212e90",
+          "evt-0741f902351a53713c49ab33",
+          "evt-8ceb6f959734af944bd98719",
+          "evt-3262330778be10213c398e83",
+          "evt-bd0490008c981da7d60c780e"
+        ],
+        "entities": {
+          "user.name": "root"
+        },
+        "first_seen": "2026-10-24T08:34:53Z",
+        "last_seen": "2026-10-24T08:39:33Z",
+        "attack": [
+          "attack.credential_access",
+          "attack.t1110",
+          "attack.t1110.001"
+        ],
+        "explanation": "22 matching events (threshold 22) for user.name=root within a 1d window"
       },
       {
         "id": "alr-eb2c1129433dba644ee6b6dc",
@@ -86,9 +176,93 @@
     ],
     "timeline": [
       {
+        "timestamp": "2026-10-24T08:30:00Z",
+        "description": "[sshd] ssh.login.failure (failure), account root, from 203.0.113.124",
+        "event_id": "evt-2fe79bcba3aca997e8ed0a67",
+        "account": "root",
+        "source_ip": "203.0.113.124"
+      },
+      {
+        "timestamp": "2026-10-24T08:30:14Z",
+        "description": "[sshd] ssh.login.failure (failure), account root, from 203.0.113.241",
+        "event_id": "evt-43cf70648c9529dac7b613eb",
+        "account": "root",
+        "source_ip": "203.0.113.241"
+      },
+      {
+        "timestamp": "2026-10-24T08:30:27Z",
+        "description": "[sshd] ssh.login.failure (failure), account root, from 203.0.113.64",
+        "event_id": "evt-0cd2c0b071ff3b85ff01bc0f",
+        "account": "root",
+        "source_ip": "203.0.113.64"
+      },
+      {
+        "timestamp": "2026-10-24T08:30:41Z",
+        "description": "[sshd] ssh.login.failure (failure), account root, from 203.0.113.124",
+        "event_id": "evt-9216d9ca3fe69f7314890a92",
+        "account": "root",
+        "source_ip": "203.0.113.124"
+      },
+      {
+        "timestamp": "2026-10-24T08:30:55Z",
+        "description": "[sshd] ssh.login.failure (failure), account root, from 203.0.113.241",
+        "event_id": "evt-84192bcbe5ba1ce55fc4409c",
+        "account": "root",
+        "source_ip": "203.0.113.241"
+      },
+      {
+        "timestamp": "2026-10-24T08:31:07Z",
+        "description": "[sshd] ssh.login.failure (failure), account root, from 203.0.113.64",
+        "event_id": "evt-1725993192096779a74b0dcb",
+        "account": "root",
+        "source_ip": "203.0.113.64"
+      },
+      {
         "timestamp": "2026-10-24T08:31:07Z",
         "description": "[sshd] ssh.auth.too_many_failures (failure), account root, from 203.0.113.64",
         "event_id": "evt-74beaa8a69451b575f8db5ff",
+        "account": "root",
+        "source_ip": "203.0.113.64"
+      },
+      {
+        "timestamp": "2026-10-24T08:31:20Z",
+        "description": "[sshd] ssh.login.failure (failure), account root, from 203.0.113.124",
+        "event_id": "evt-e50a7bb09c9d89280e61bd02",
+        "account": "root",
+        "source_ip": "203.0.113.124"
+      },
+      {
+        "timestamp": "2026-10-24T08:31:34Z",
+        "description": "[sshd] ssh.login.failure (failure), account root, from 203.0.113.241",
+        "event_id": "evt-a9c7f48c3ddc7d0e5b47b1b1",
+        "account": "root",
+        "source_ip": "203.0.113.241"
+      },
+      {
+        "timestamp": "2026-10-24T08:31:47Z",
+        "description": "[sshd] ssh.login.failure (failure), account root, from 203.0.113.64",
+        "event_id": "evt-e61923275bc5f732500eeee4",
+        "account": "root",
+        "source_ip": "203.0.113.64"
+      },
+      {
+        "timestamp": "2026-10-24T08:32:00Z",
+        "description": "[sshd] ssh.login.failure (failure), account root, from 203.0.113.124",
+        "event_id": "evt-799c9376ee033db8cae5cb61",
+        "account": "root",
+        "source_ip": "203.0.113.124"
+      },
+      {
+        "timestamp": "2026-10-24T08:32:14Z",
+        "description": "[sshd] ssh.login.failure (failure), account root, from 203.0.113.241",
+        "event_id": "evt-713a3483e0d441605df0d70e",
+        "account": "root",
+        "source_ip": "203.0.113.241"
+      },
+      {
+        "timestamp": "2026-10-24T08:32:29Z",
+        "description": "[sshd] ssh.login.failure (failure), account root, from 203.0.113.64",
+        "event_id": "evt-9679f33cd873e31c9e195dcc",
         "account": "root",
         "source_ip": "203.0.113.64"
       },
@@ -100,6 +274,48 @@
         "source_ip": "203.0.113.64"
       },
       {
+        "timestamp": "2026-10-24T08:32:40Z",
+        "description": "[sshd] ssh.login.failure (failure), account root, from 203.0.113.124",
+        "event_id": "evt-8ec7c51a9af5a5e824e0b053",
+        "account": "root",
+        "source_ip": "203.0.113.124"
+      },
+      {
+        "timestamp": "2026-10-24T08:32:55Z",
+        "description": "[sshd] ssh.login.failure (failure), account root, from 203.0.113.241",
+        "event_id": "evt-d15f6563c21c5f4f88066d20",
+        "account": "root",
+        "source_ip": "203.0.113.241"
+      },
+      {
+        "timestamp": "2026-10-24T08:33:06Z",
+        "description": "[sshd] ssh.login.failure (failure), account root, from 203.0.113.64",
+        "event_id": "evt-f7fb9a5a433dab559b01d3f4",
+        "account": "root",
+        "source_ip": "203.0.113.64"
+      },
+      {
+        "timestamp": "2026-10-24T08:33:21Z",
+        "description": "[sshd] ssh.login.failure (failure), account root, from 203.0.113.124",
+        "event_id": "evt-4f36d1be6f11de7a30cc292b",
+        "account": "root",
+        "source_ip": "203.0.113.124"
+      },
+      {
+        "timestamp": "2026-10-24T08:33:34Z",
+        "description": "[sshd] ssh.login.failure (failure), account root, from 203.0.113.241",
+        "event_id": "evt-1433f7c5abc48e8714e735d5",
+        "account": "root",
+        "source_ip": "203.0.113.241"
+      },
+      {
+        "timestamp": "2026-10-24T08:33:47Z",
+        "description": "[sshd] ssh.login.failure (failure), account root, from 203.0.113.64",
+        "event_id": "evt-71bf96e0f6a3f689be3245c6",
+        "account": "root",
+        "source_ip": "203.0.113.64"
+      },
+      {
         "timestamp": "2026-10-24T08:33:47Z",
         "description": "[sshd] ssh.auth.too_many_failures (failure), account root, from 203.0.113.64",
         "event_id": "evt-756f6ee9a8eadceb416e17af",
@@ -107,9 +323,98 @@
         "source_ip": "203.0.113.64"
       },
       {
+        "timestamp": "2026-10-24T08:34:01Z",
+        "description": "[sshd] ssh.login.failure (failure), account root, from 203.0.113.124",
+        "event_id": "evt-25867acbbb128c62f4b1084d",
+        "account": "root",
+        "source_ip": "203.0.113.124"
+      },
+      {
+        "timestamp": "2026-10-24T08:34:16Z",
+        "description": "[sshd] ssh.login.failure (failure), account root, from 203.0.113.241",
+        "event_id": "evt-99f8a5f9ec34081641e62c0b",
+        "account": "root",
+        "source_ip": "203.0.113.241"
+      },
+      {
+        "timestamp": "2026-10-24T08:34:28Z",
+        "description": "[sshd] ssh.login.failure (failure), account root, from 203.0.113.64",
+        "event_id": "evt-3c6f6d2c8547029f2768c88e",
+        "account": "root",
+        "source_ip": "203.0.113.64"
+      },
+      {
+        "timestamp": "2026-10-24T08:34:42Z",
+        "description": "[sshd] ssh.login.failure (failure), account root, from 203.0.113.124",
+        "event_id": "evt-15da823b94f9eb3aa536d415",
+        "account": "root",
+        "source_ip": "203.0.113.124"
+      },
+      {
+        "timestamp": "2026-10-24T08:34:42Z",
+        "description": "Alert PRH-AUTH-006 (high): Slow password guessing on one account",
+        "alert_id": "alr-d3633e12569bba0728140da6"
+      },
+      {
+        "timestamp": "2026-10-24T08:34:53Z",
+        "description": "[sshd] ssh.login.failure (failure), account root, from 203.0.113.241",
+        "event_id": "evt-98babd6055cc6d877208ef70",
+        "account": "root",
+        "source_ip": "203.0.113.241"
+      },
+      {
         "timestamp": "2026-10-24T08:35:09Z",
         "description": "[sshd] ssh.auth.too_many_failures (failure), account root, from 203.0.113.64",
         "event_id": "evt-63ff201ccc5b7a9b0603e392",
+        "account": "root",
+        "source_ip": "203.0.113.64"
+      },
+      {
+        "timestamp": "2026-10-24T08:35:09Z",
+        "description": "[sshd] ssh.login.failure (failure), account root, from 203.0.113.64",
+        "event_id": "evt-fe4d801dcecdc7859d39de04",
+        "account": "root",
+        "source_ip": "203.0.113.64"
+      },
+      {
+        "timestamp": "2026-10-24T08:35:23Z",
+        "description": "[sshd] ssh.login.failure (failure), account root, from 203.0.113.124",
+        "event_id": "evt-6338499b45263d7414a722fb",
+        "account": "root",
+        "source_ip": "203.0.113.124"
+      },
+      {
+        "timestamp": "2026-10-24T08:35:33Z",
+        "description": "[sshd] ssh.login.failure (failure), account root, from 203.0.113.241",
+        "event_id": "evt-635cc01c5558e1aff7024675",
+        "account": "root",
+        "source_ip": "203.0.113.241"
+      },
+      {
+        "timestamp": "2026-10-24T08:35:47Z",
+        "description": "[sshd] ssh.login.failure (failure), account root, from 203.0.113.64",
+        "event_id": "evt-1df76fff591ba3c07166df0a",
+        "account": "root",
+        "source_ip": "203.0.113.64"
+      },
+      {
+        "timestamp": "2026-10-24T08:36:01Z",
+        "description": "[sshd] ssh.login.failure (failure), account root, from 203.0.113.124",
+        "event_id": "evt-8b04e2a1332110698bf5a5b9",
+        "account": "root",
+        "source_ip": "203.0.113.124"
+      },
+      {
+        "timestamp": "2026-10-24T08:36:14Z",
+        "description": "[sshd] ssh.login.failure (failure), account root, from 203.0.113.241",
+        "event_id": "evt-07d9b4988f010439adf69c39",
+        "account": "root",
+        "source_ip": "203.0.113.241"
+      },
+      {
+        "timestamp": "2026-10-24T08:36:27Z",
+        "description": "[sshd] ssh.login.failure (failure), account root, from 203.0.113.64",
+        "event_id": "evt-1c2ea31037d102b489616320",
         "account": "root",
         "source_ip": "203.0.113.64"
       },
@@ -126,6 +431,48 @@
         "alert_id": "alr-81177f8758199c4ea90b9b41"
       },
       {
+        "timestamp": "2026-10-24T08:36:41Z",
+        "description": "[sshd] ssh.login.failure (failure), account root, from 203.0.113.124",
+        "event_id": "evt-eaab2145a2eeb03d4886f96b",
+        "account": "root",
+        "source_ip": "203.0.113.124"
+      },
+      {
+        "timestamp": "2026-10-24T08:36:55Z",
+        "description": "[sshd] ssh.login.failure (failure), account root, from 203.0.113.241",
+        "event_id": "evt-472451ab5cda57e25c653b7b",
+        "account": "root",
+        "source_ip": "203.0.113.241"
+      },
+      {
+        "timestamp": "2026-10-24T08:37:09Z",
+        "description": "[sshd] ssh.login.failure (failure), account root, from 203.0.113.64",
+        "event_id": "evt-92a72e5c10bfc63761db43b6",
+        "account": "root",
+        "source_ip": "203.0.113.64"
+      },
+      {
+        "timestamp": "2026-10-24T08:37:21Z",
+        "description": "[sshd] ssh.login.failure (failure), account root, from 203.0.113.124",
+        "event_id": "evt-837a1f69142e9cc73b805522",
+        "account": "root",
+        "source_ip": "203.0.113.124"
+      },
+      {
+        "timestamp": "2026-10-24T08:37:35Z",
+        "description": "[sshd] ssh.login.failure (failure), account root, from 203.0.113.241",
+        "event_id": "evt-6a2ec7547e617a9f32293345",
+        "account": "root",
+        "source_ip": "203.0.113.241"
+      },
+      {
+        "timestamp": "2026-10-24T08:37:49Z",
+        "description": "[sshd] ssh.login.failure (failure), account root, from 203.0.113.64",
+        "event_id": "evt-3b8dc3890880746106f66082",
+        "account": "root",
+        "source_ip": "203.0.113.64"
+      },
+      {
         "timestamp": "2026-10-24T08:37:49Z",
         "description": "[sshd] ssh.auth.too_many_failures (failure), account root, from 203.0.113.64",
         "event_id": "evt-c35c53a3a08bfb1f494b49ba",
@@ -133,11 +480,72 @@
         "source_ip": "203.0.113.64"
       },
       {
+        "timestamp": "2026-10-24T08:38:00Z",
+        "description": "[sshd] ssh.login.failure (failure), account root, from 203.0.113.124",
+        "event_id": "evt-68b1fba94d7ea8006a0d5a07",
+        "account": "root",
+        "source_ip": "203.0.113.124"
+      },
+      {
+        "timestamp": "2026-10-24T08:38:16Z",
+        "description": "[sshd] ssh.login.failure (failure), account root, from 203.0.113.241",
+        "event_id": "evt-a1b61150a8b439906dd7a9cd",
+        "account": "root",
+        "source_ip": "203.0.113.241"
+      },
+      {
+        "timestamp": "2026-10-24T08:38:29Z",
+        "description": "[sshd] ssh.login.failure (failure), account root, from 203.0.113.64",
+        "event_id": "evt-41fd193c85385d55e30e6862",
+        "account": "root",
+        "source_ip": "203.0.113.64"
+      },
+      {
+        "timestamp": "2026-10-24T08:38:41Z",
+        "description": "[sshd] ssh.login.failure (failure), account root, from 203.0.113.124",
+        "event_id": "evt-1f434c5c95d671fbc7212e90",
+        "account": "root",
+        "source_ip": "203.0.113.124"
+      },
+      {
+        "timestamp": "2026-10-24T08:38:53Z",
+        "description": "[sshd] ssh.login.failure (failure), account root, from 203.0.113.241",
+        "event_id": "evt-0741f902351a53713c49ab33",
+        "account": "root",
+        "source_ip": "203.0.113.241"
+      },
+      {
         "timestamp": "2026-10-24T08:39:07Z",
         "description": "[sshd] ssh.auth.too_many_failures (failure), account root, from 203.0.113.64",
         "event_id": "evt-1a543ca9746daa9a05c06d02",
         "account": "root",
         "source_ip": "203.0.113.64"
+      },
+      {
+        "timestamp": "2026-10-24T08:39:07Z",
+        "description": "[sshd] ssh.login.failure (failure), account root, from 203.0.113.64",
+        "event_id": "evt-8ceb6f959734af944bd98719",
+        "account": "root",
+        "source_ip": "203.0.113.64"
+      },
+      {
+        "timestamp": "2026-10-24T08:39:21Z",
+        "description": "[sshd] ssh.login.failure (failure), account root, from 203.0.113.124",
+        "event_id": "evt-3262330778be10213c398e83",
+        "account": "root",
+        "source_ip": "203.0.113.124"
+      },
+      {
+        "timestamp": "2026-10-24T08:39:33Z",
+        "description": "[sshd] ssh.login.failure (failure), account root, from 203.0.113.241",
+        "event_id": "evt-bd0490008c981da7d60c780e",
+        "account": "root",
+        "source_ip": "203.0.113.241"
+      },
+      {
+        "timestamp": "2026-10-24T08:39:33Z",
+        "description": "Alert PRH-AUTH-006 (high): Slow password guessing on one account",
+        "alert_id": "alr-be82ae421f923005c1f19641"
       },
       {
         "timestamp": "2026-10-24T08:40:28Z",
@@ -180,6 +588,9 @@
     ],
     "attack_version": "20.0",
     "recommended_actions": [
+      "Make the account owner confirm recent activity; reset the password if in doubt.",
+      "Require two-step verification for the account.",
+      "For SSH, disable password logins (or root logins) and restrict SSH to known networks.",
       "Block the IP, or use a tool such as fail2ban to block repeat offenders automatically.",
       "Disable password authentication and root login over SSH; allow keys only.",
       "Restrict SSH to known networks or a VPN.",
@@ -189,6 +600,8 @@
     "limitations": [
       "Enrichment not run: IP reputation and location were not considered",
       "Single log source (sshd): no other log corroborates it",
+      "Possible benign cause for PRH-AUTH-006: SSH root on a server reachable from the internet, which scanners try all day; restrict SSH or disable root password logins",
+      "Possible benign cause for PRH-AUTH-006: A script, integration or device retrying a stale password for hours",
       "Possible benign cause for PRH-SSH-001: An automation tool configured with a wrong username",
       "Possible benign cause for PRH-SSH-001: A user whose SSH agent offers many keys and hits MaxAuthTries on every connection"
     ]

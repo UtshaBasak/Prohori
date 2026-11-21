@@ -409,7 +409,7 @@ def run_command(
         typer.Option(
             min=0.0,
             help="incidents: write open incidents after this many seconds without new alerts "
-            "(default: the incident hold time, 65 minutes with the built-in rules).",
+            "(default when following logs: the incident hold time, at most one hour).",
             show_default=False,
         ),
     ] = None,

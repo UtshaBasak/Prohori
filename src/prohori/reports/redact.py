@@ -27,7 +27,7 @@ Json: TypeAlias = dict[str, "Json"] | list["Json"] | str | int | float | bool | 
 
 #: Entity fields whose values identify a person's account.
 USER_FIELDS = frozenset({"user.id", "user.name", "user.email_hash"})
-IP_FIELDS = frozenset({"source.ip"})
+IP_FIELDS = frozenset({"source.ip", "source.ip_prefix"})
 #: Host names logged instead of an address; reverse DNS names often contain the address
 #: (``203-0-113-9.dyn.example``), so they are pseudonymised whenever addresses are.
 HOST_FIELDS = frozenset({"source.host"})

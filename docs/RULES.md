@@ -57,6 +57,12 @@ verified ATT&CK tags.
 | PRH-AUTH-002 | high | Password spraying or credential stuffing | app sign-in failures for >= 5 distinct `user.email_hash` per `source.ip` (or `source.host`) in 10 min |
 | PRH-AUTH-003 | critical | Successful sign-in after many failures | >= 5 failures then a success, same `source.ip` (or `source.host`), within 15 min |
 | PRH-AUTH-004 | high | Account lockouts across many accounts | `auth.lockout` for >= 3 distinct `user.id` per `log_source` in 15 min |
+| PRH-AUTH-005 | high | Failed sign-ins for one account from many addresses | app or SSH failures of one existing account from >= 4 distinct addresses (or host names) in 1 h |
+| PRH-AUTH-006 | high | Slow password guessing on one account | >= 22 app or SSH failures of one existing account in 24 h (sliding) |
+| PRH-AUTH-007 | medium | Failed sign-ins for many accounts from one network | failures of >= 38 distinct existing accounts per `source.ip_prefix` (IPv4 /24, IPv6 /48) in 1 h |
+| PRH-AUTH-008 | high | Failed sign-ins for many accounts from many addresses | failures of >= 38 distinct existing accounts **and** from >= 36 distinct addresses per `log_source` in 1 h |
+| PRH-AUTH-009 | medium | Sign-ins for unknown accounts from many addresses | app failures for unknown accounts from >= 10 distinct addresses per `log_source` in 1 h (experimental) |
+| PRH-AUTH-010 | critical | Successful sign-in after many failures on one account | >= 12 failures of one account from any addresses, then a success, within 1 h |
 | PRH-SESS-001 | high | Refresh-token reuse (probable stolen token) | every `session.refresh.reuse_detected` event |
 | PRH-ACCT-001 | high | Sensitive account change shortly after sign-in | sign-in success, then a password, payout number or two-step change, same `user.id`, within 30 min |
 | PRH-AUTHZ-001 | medium | Authorisation denials across many resources | `authz.denied` for >= 5 distinct `http.path` per `source.ip` in 10 min |
@@ -68,6 +74,40 @@ verified ATT&CK tags.
 | PRH-WEB-003 | medium | Scanner or empty user agent at a high rate | >= 30 requests per `source.ip` in 1 min with a scanning-tool or empty user agent |
 | PRH-WEB-004 | medium | Probes for sensitive files and admin tools | >= 3 distinct sensitive paths (`/.env`, `/.git/`, `/wp-login.php`, ...) per `source.ip` in 10 min |
 | PRH-SSH-001 | high | SSH invalid-user storm | >= 5 invalid-user attempts or MaxAuthTries disconnects per `source.ip` (or `source.host`) in 10 min |
+
+An "existing account" leaves out failures with `event.reason: unknown_user` (an SSH invalid user,
+an email the app does not know): there is nothing to take over, and scanners produce them all
+day. Accounts are matched by `user.id`, else `user.name`, else `user.email_hash`.
+
+## Evasion-resistant rules: before and after
+
+The 1.0 rules all count per source address, so an attacker who slows down or spreads over many
+addresses stays under every threshold. PRH-AUTH-005 to PRH-AUTH-010 (1.1) count per account, per
+network and per log instead. Their thresholds are **twice the most the benign background reaches
+in the default variants**, chosen before any held-out variant was scored; the 1.0 rules' results
+were frozen first so the comparison cannot drift, and a second held-out set (`heldout2`: rates
+halved, sources doubled and spread over every network) was defined only after the rules were
+fixed. The reasoning, the threshold table and what this does not show are in ADR-0036 and the
+[case study](case-studies/evasion-resistant-rules.md).
+
+<!-- rules-compare:start -->
+Generated from `results/rules_eval.json`: the 1.0 rules (15, frozen before the rules changed) against today's 21 rules, 5 seeds per variant. Attacks caught by at least one of their expected rules. Do not edit by hand.
+
+| Scenario | Held-out: 1.0 rules | Held-out: now | Held-out 2: 1.0 rules | Held-out 2: now |
+| ---------- | -----: | -----: | -----: | -----: |
+| account-takeover | 5/5 | 5/5 | 5/5 | 5/5 |
+| admin-misuse | 5/5 | 5/5 | 5/5 | 5/5 |
+| credential-stuffing | 0/5 | 5/5 | 0/5 | 5/5 |
+| injection | 5/5 | 5/5 | 5/5 | 5/5 |
+| password-spraying | 5/5 | 5/5 | 0/5 | 0/5 |
+| ssh-bruteforce | 5/5 | 5/5 | 5/5 | 5/5 |
+| token-reuse | 5/5 | 5/5 | 5/5 | 5/5 |
+| web-scanning | 5/5 | 5/5 | 5/5 | 5/5 |
+| **All attacks** | **35/40** | **40/40** | **30/40** | **35/40** |
+| False-positive alerts on benign lines | 259 | 259 | 287 | 287 |
+
+Default variants: 40/40 attacks caught before and 40/40 now, with 295 false-positive alerts before and 295 now.
+<!-- rules-compare:end -->
 
 Known limits, also stated in each rule's description:
 
@@ -168,7 +208,7 @@ response: runbooks/brute-force.md
 | ----- | ---------- | ------- |
 | `id` | yes | Upper-case words joined by hyphens, for example `PRH-AUTH-001`. Unique across all loaded rules |
 | `title` | yes | 3-200 characters |
-| `status` | yes | `stable`, `test`, `experimental` or `deprecated` |
+| `status` | yes | `stable`, `test`, `experimental` or `deprecated`. Built-in rules are `stable`, or `test` (`experimental` when the simulator cannot measure their false positives) until they have run against real logs |
 | `severity` | yes | `low`, `medium`, `high` or `critical` |
 | `description` | no | Free text |
 | `author` | no | Free text |
@@ -320,6 +360,17 @@ aggregate:
 
 - `count_gte`: at least N matching events.
 - `distinct`: the field takes at least N distinct values (for example many users from one IP).
+  Since 1.1 it may be a list of two or three thresholds that must all be reached in the same
+  window (many accounts *and* many addresses), and a field may list alternatives like
+  `group_by` (`field: [source.ip, source.host]`). Each set keeps at most its threshold's newest
+  values, so state stays bounded however many values arrive:
+
+  ```yaml
+  distinct:
+    - {field: [user.id, user.name, user.email_hash], gte: 38}
+    - {field: [source.ip, source.host], gte: 36}
+  ```
+
 - `ratio`: the share of matching events that also match another selection reaches `gte`, once at
   least `min_count` events have been seen.
 

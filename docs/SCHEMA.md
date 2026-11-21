@@ -152,6 +152,11 @@ is_valid_path("http.status")  # True
 timestamps in ISO-8601. Unknown paths raise `KeyError`. `FIELD_PATHS` lists every path except the
 open-ended `extra.<key>`.
 
+**Derived fields** (`DERIVED_PATHS`, since 1.1) are computed when read and never stored:
+`source.ip_prefix` is the network of `source.ip`, a /24 for IPv4 and a /48 for IPv6
+(`"203.0.113.0/24"`), for rules that count per network. Rules can match and group on it; rule
+fixtures and field mappings cannot set it.
+
 ## Serialisation
 
 ```python

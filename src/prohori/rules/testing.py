@@ -50,7 +50,7 @@ from prohori.rules.loader import (
     load_rules,
     read_yaml_file,
 )
-from prohori.schema import Alert, Event, event_id, is_valid_path
+from prohori.schema import DERIVED_PATHS, Alert, Event, event_id, is_valid_path
 
 MAX_REPEAT = 10_000
 MAX_EVENTS_PER_CASE = 50_000
@@ -164,6 +164,9 @@ def _nested(flat: dict[str, Any], where: str) -> dict[str, Any]:
             continue
         if not is_valid_path(key):
             msg = f"{where}: unknown field {key!r}"
+            raise ValueError(msg)
+        if key in DERIVED_PATHS:
+            msg = f"{where}: {key} is computed from other fields and cannot be set"
             raise ValueError(msg)
         head, _, tail = key.partition(".")
         if tail:

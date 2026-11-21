@@ -119,3 +119,23 @@ def test_script_rejects_bad_seed_counts(capsys: pytest.CaptureFixture[str]) -> N
 def test_generated_tables_use_the_docs_table_style() -> None:
     block = "| A | B |\n|---|--:|\n| 1 | 2 |\n|:-|"
     assert generate_results_table.compact(block) == "| A | B |\n| --- | --: |\n| 1 | 2 |\n| :- |"
+
+
+def test_baseline_is_frozen_once_and_then_kept(tmp_path: Path) -> None:
+    out = tmp_path / "eval.json"
+    assert evaluate_rules.main(["--seeds", "1", "--out", str(out), "--freeze-baseline", "old"]) == 0
+    frozen = json.loads(out.read_text(encoding="utf-8"))["baseline"]
+    assert frozen["label"] == "old"
+    assert set(frozen["variants"]) >= {"default", "heldout"}
+    assert evaluate_rules.main(["--seeds", "1", "--out", str(out), "--freeze-baseline", "x"]) == 1
+    assert evaluate_rules.main(["--seeds", "1", "--out", str(out)]) == 0
+    assert json.loads(out.read_text(encoding="utf-8"))["baseline"] == frozen
+
+
+def test_committed_baseline_is_the_1_0_rule_set() -> None:
+    results = json.loads((ROOT / "results" / "rules_eval.json").read_text(encoding="utf-8"))
+    baseline = results["baseline"]
+    assert baseline["label"] == "1.0 rules"
+    assert len(baseline["rules"]) == 15
+    held = baseline["variants"]["heldout"]["scenarios"]["credential-stuffing"]
+    assert held["attacks_detected"] == 0  # what the new rules set out to fix

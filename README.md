@@ -92,7 +92,7 @@ sends nothing over the network. Sample reports: [Markdown](docs/examples/account
 ```mermaid
 flowchart LR
     A[Log files<br>auth.log, nginx, app JSON] --> B[parse<br>common event schema]
-    B --> C[detect<br>15 YAML rules<br>+ anomaly detectors]
+    B --> C[detect<br>21 YAML rules<br>+ anomaly detectors]
     C --> D[incidents<br>group, score, ATT&CK]
     E[enrich<br>GeoLite2, AbuseIPDB, VirusTotal] --> D
     D --> F[report<br>Markdown, HTML, JSON, CSV]
@@ -101,7 +101,7 @@ flowchart LR
 | Stage | Today |
 | ------- | ------- |
 | **Parse** | Linux `auth.log` (sshd, sudo, PAM), nginx/Apache access logs, application security events (JSON Lines) and any JSON Lines layout through a YAML field mapping, into one typed event schema. Format detection, streaming with bounded memory, hostile input handled (oversized lines, bad encodings, control characters). Daylight-saving changes handled: the hour repeated when the clocks go back keeps moving forward instead of being dropped as late. |
-| **Detect** | 15 readable YAML rules (Sigma-inspired) with field modifiers, thresholds, distinct counts, ratios, sliding and tumbling windows and ordered sequences. Every rule ships with test fixtures and a runbook; regular expressions run on RE2, so no pattern can hang a run. With `--models`, anomaly detectors (robust z-score, Isolation Forest) also flag source IPs that behave unlike the rest of the log. SSH attacks are counted even when sshd logs host names instead of addresses (`UseDNS`), and a log with millions of alerts stays bounded in memory: the table shows the first 100, JSON streams every alert, and incidents keep a capped number. |
+| **Detect** | 21 readable YAML rules (Sigma-inspired) with field modifiers, thresholds, distinct counts, ratios, sliding and tumbling windows and ordered sequences. Every rule ships with test fixtures and a runbook; regular expressions run on RE2, so no pattern can hang a run. With `--models`, anomaly detectors (robust z-score, Isolation Forest) also flag source IPs that behave unlike the rest of the log. SSH attacks are counted even when sshd logs host names instead of addresses (`UseDNS`), and a log with millions of alerts stays bounded in memory: the table shows the first 100, JSON streams every alert, and incidents keep a capped number. |
 | **Enrich** | IP geolocation, network owner and reputation from local GeoLite2 files, AbuseIPDB and VirusTotal, all optional. SQLite cache, daily budgets, rate limiting and bounded retries. Private and documentation addresses never leave the machine. |
 | **Incidents** | Related alerts (same IP, account, request or session within a time gap) become one incident with a points-based score you can read line by line, severity, confidence, MITRE ATT&CK v20.0 mapping, a timeline, recommended actions and stated limitations. Detects sign-ins from an IP or app new to the account. |
 | **Simulate** | Eight labelled attack scenarios (SSH brute force, password spraying, credential stuffing, token reuse, account takeover, web scanning, injection, admin misuse) hidden in realistic background activity, byte-identical for a seed, documentation IP addresses only. Used to measure every rule's precision and recall. |
@@ -141,10 +141,10 @@ Everything below runs offline on the synthetic samples in the repository (run fr
 ```bash
 uv run prohori triage samples/logs/account-takeover.jsonl -o triage/   # the whole pipeline
 uv run prohori parse samples/logs/auth.log                      # normalise a log
-uv run prohori detect samples/logs/auth.log                     # run the 15 rules
+uv run prohori detect samples/logs/auth.log                     # run the 21 rules
 uv run prohori enrich 203.0.113.7 --offline                     # look up an IP (demo data)
 uv run prohori incidents samples/logs/account-takeover.jsonl    # group alerts into incidents
-uv run prohori report samples/incidents/INC-ee7c8818fbb34989.json -f html -o report.html
+uv run prohori report samples/incidents/INC-14756953ade54922.json -f html -o report.html
 uv run prohori simulate account-takeover --seed 1 --out out/      # your own labelled attack
 ```
 
@@ -156,14 +156,14 @@ logs, `prohori triage /var/log/auth.log --year 2026 -o triage/` works the same w
 ## Example: an account takeover
 
 <!-- example:start -->
-`samples/logs/account-takeover.jsonl` is a synthetic attack on a web shop account: 12 wrong passwords from one IP in 33 seconds, a successful sign-in, two-step verification switched off and the bKash payout number changed. Prohori raises 4 alerts and joins them into **one critical incident**:
+`samples/logs/account-takeover.jsonl` is a synthetic attack on a web shop account: 12 wrong passwords from one IP in 33 seconds, a successful sign-in, two-step verification switched off and the bKash payout number changed. Prohori raises 5 alerts and joins them into **one critical incident**:
 
 ```text
-INC-ee7c8818fbb34989  critical  score 100
-title       Successful sign-in after many failures from one IP and 3 related alerts
+INC-14756953ade54922  critical  score 100
+title       Successful sign-in after many failures from one IP and 4 related alerts
 time (UTC)  2026-10-24 21:10:00 - 2026-10-24 21:13:10
 confidence  high
-rules       PRH-ACCT-001, PRH-AUTH-001, PRH-AUTH-003
+rules       PRH-ACCT-001, PRH-AUTH-001, PRH-AUTH-003, PRH-AUTH-010
 entities    source.ip: 203.0.113.7
             user.email_hash: 0cc175b9c0f1b6a831c399e269772661
             user.id: u-2001
@@ -174,20 +174,20 @@ Every point of the score is explained (from `prohori report`):
 | Points | Reason |
 | -------: | -------- |
 | +50 | Most severe alert: PRH-AUTH-003 (critical) |
-| +20 | 2 more rules fired: PRH-ACCT-001, PRH-AUTH-001 |
+| +30 | 3 more rules fired: PRH-ACCT-001, PRH-AUTH-001, PRH-AUTH-010 |
 | +20 | A sign-in succeeded after failed attempts |
 | +15 | Sensitive account or admin change: account.2fa.disabled, account.bkash.changed |
 | +20 | Reputation of 203.0.113.7: abuse confidence 97; 9 vendors flag it as malicious (from bundled demo data) |
 | +10 | Sign-in to u-2001 from 203.0.113.7, an IP not seen for this account before (1 earlier IP) |
 | +5 | Sign-in to u-2001 with client web, not seen for this account before |
-| -40 | Capped at 100 |
+| -50 | Capped at 100 |
 | **100** | **Total** |
 
 The report adds the timeline, the IP's enrichment, the ATT&CK techniques (T1078 Valid Accounts, T1098 Account Manipulation, T1110 Brute Force, T1110.001 Password Guessing, T1556.006 Multi-Factor Authentication), recommended actions from the runbooks and the limitations, such as "single log source" and "enrichment is bundled demo data".
 <!-- example:end -->
 
 To see it yourself: `uv run prohori incidents samples/logs/account-takeover.jsonl` and
-`uv run prohori report samples/incidents/INC-ee7c8818fbb34989.json`.
+`uv run prohori report samples/incidents/INC-14756953ade54922.json`.
 
 ## Commands
 
@@ -196,7 +196,7 @@ To see it yourself: `uv run prohori incidents samples/logs/account-takeover.json
 | `prohori demo` | Simulate attacks, triage them and show the results; no configuration, offline | [CLI.md](docs/CLI.md#prohori-demo) |
 | `prohori triage FILE` | Log in, incidents and a report per incident out (`--format`, `--redact`, `--online`) | [CLI.md](docs/CLI.md#prohori-triage) |
 | `prohori parse FILE` | Parse and normalise a log; table or JSON Lines | [PARSERS.md](docs/PARSERS.md) |
-| `prohori detect FILE` | Run the 15 built-in rules (and `--rules DIR`, `--models` for the anomaly detectors); exit code 3 when alerts are found | [RULES.md](docs/RULES.md) |
+| `prohori detect FILE` | Run the 21 built-in rules (and `--rules DIR`, `--models` for the anomaly detectors); exit code 3 when alerts are found | [RULES.md](docs/RULES.md) |
 | `prohori rules list` / `validate` / `test` | Show, check and test detection rules | [RULES.md](docs/RULES.md) |
 | `prohori enrich IP...` | Geolocation and reputation; `--offline` never uses the network | [ENRICHMENT.md](docs/ENRICHMENT.md) |
 | `prohori incidents FILE` | Parse, detect and group alerts into scored incidents; offline enrichment unless `--online` | [INCIDENTS.md](docs/INCIDENTS.md) |
@@ -222,6 +222,12 @@ usage. The full reference is [docs/CLI.md](docs/CLI.md).
 | PRH-AUTH-002 | Password spraying or credential stuffing from one IP | high | T1110.003, T1110.004 |
 | PRH-AUTH-003 | Successful sign-in after many failures from one IP | critical | T1110, T1078 |
 | PRH-AUTH-004 | Account lockouts across many accounts | high | T1110 |
+| PRH-AUTH-005 | Failed sign-ins for one account from many addresses | high | T1110, T1110.001 |
+| PRH-AUTH-006 | Slow password guessing on one account | high | T1110, T1110.001 |
+| PRH-AUTH-007 | Failed sign-ins for many accounts from one network | medium | T1110.003 |
+| PRH-AUTH-008 | Failed sign-ins for many accounts from many addresses | high | T1110.004 |
+| PRH-AUTH-009 | Sign-ins for unknown accounts from many addresses | medium | T1110.004 |
+| PRH-AUTH-010 | Successful sign-in after many failures on one account | critical | T1110, T1078 |
 | PRH-SESS-001 | Refresh-token reuse | high | T1528, T1550.001 |
 | PRH-ACCT-001 | Sensitive account change shortly after sign-in | high | T1098, T1556.006 |
 | PRH-AUTHZ-001 | Authorisation denials across many resources | medium | T1595.003 |
@@ -240,25 +246,54 @@ runbook in [`src/prohori/runbooks/`](src/prohori/runbooks/). Writing your own ru
 
 ## How well the rules work
 
-`prohori simulate` writes each attack scenario in two variants: **default**, the attack the rules
-were designed for, and **held-out**, the same attack done the way a careful attacker would
-(slower, from more addresses, with a browser user agent, obfuscated, or at another hour).
+`prohori simulate` writes each attack scenario in three variants: **default**, the attack the
+rules were designed for; **held-out**, the same attack done the way a careful attacker would
+(slower, from more addresses, with a browser user agent, obfuscated, or at another hour); and
+**held-out 2**, slower still, from twice the addresses spread over several networks.
 `scripts/evaluate_rules.py` runs all rules over five seeds of each and compares the alerts with
 the line labels.
 
+**Evasion-resistant rules (1.1).** The 1.0 rules all counted per source address, so slow or
+spread-out attacks slipped through: held-out credential stuffing was missed in every run. Six
+new rules count per account, per network and per log, with thresholds fixed at twice the benign
+maximum before any held-out run was scored. Credential stuffing is now caught in every held-out
+run, with no new false positives anywhere; spraying spread over many networks is still missed.
+The method and its limits are in the
+[case study](docs/case-studies/evasion-resistant-rules.md). Before (the frozen 1.0 rules) and
+after:
+
 <!-- results:start -->
-| | Default | Held-out |
-| -- | --------: | ---------: |
-| Attacks caught by at least one expected rule | 40/40 | 35/40 |
+Generated from `results/rules_eval.json`: the 1.0 rules (15, frozen before the rules changed) against today's 21 rules, 5 seeds per variant. Attacks caught by at least one of their expected rules. Do not edit by hand.
 
-Expected rules that missed in the held-out variants (runs missed out of runs):
+| Scenario | Held-out: 1.0 rules | Held-out: now | Held-out 2: 1.0 rules | Held-out 2: now |
+| ---------- | -----: | -----: | -----: | -----: |
+| account-takeover | 5/5 | 5/5 | 5/5 | 5/5 |
+| admin-misuse | 5/5 | 5/5 | 5/5 | 5/5 |
+| credential-stuffing | 0/5 | 5/5 | 0/5 | 5/5 |
+| injection | 5/5 | 5/5 | 5/5 | 5/5 |
+| password-spraying | 5/5 | 5/5 | 0/5 | 0/5 |
+| ssh-bruteforce | 5/5 | 5/5 | 5/5 | 5/5 |
+| token-reuse | 5/5 | 5/5 | 5/5 | 5/5 |
+| web-scanning | 5/5 | 5/5 | 5/5 | 5/5 |
+| **All attacks** | **35/40** | **40/40** | **30/40** | **35/40** |
+| False-positive alerts on benign lines | 259 | 259 | 287 | 287 |
 
-- `account-takeover`: PRH-ACCT-001 3/5, PRH-AUTH-001 5/5
-- `admin-misuse`: PRH-ADMIN-002 5/5
-- `credential-stuffing`: PRH-AUTH-001 5/5, PRH-AUTH-002 5/5, PRH-AUTH-003 5/5
-- `password-spraying`: PRH-AUTH-001 5/5
-- `ssh-bruteforce`: PRH-AUTH-001 5/5
-- `web-scanning`: PRH-WEB-003 5/5
+Default variants: 40/40 attacks caught before and 40/40 now, with 295 false-positive alerts before and 295 now.
+
+Expected rules that still miss (runs missed):
+
+- Held-out, `account-takeover`: PRH-ACCT-001 3/5, PRH-AUTH-001 5/5, PRH-AUTH-010 5/5
+- Held-out, `admin-misuse`: PRH-ADMIN-002 5/5
+- Held-out, `credential-stuffing`: PRH-AUTH-001 5/5, PRH-AUTH-002 5/5, PRH-AUTH-003 5/5
+- Held-out, `password-spraying`: PRH-AUTH-001 5/5, PRH-AUTH-007 5/5
+- Held-out, `ssh-bruteforce`: PRH-AUTH-001 5/5, PRH-AUTH-005 5/5
+- Held-out, `web-scanning`: PRH-WEB-003 5/5
+- Held-out 2, `account-takeover`: PRH-ACCT-001 1/5, PRH-AUTH-001 5/5, PRH-AUTH-010 4/5
+- Held-out 2, `admin-misuse`: PRH-ADMIN-002 5/5
+- Held-out 2, `credential-stuffing`: PRH-AUTH-001 5/5, PRH-AUTH-002 5/5, PRH-AUTH-003 5/5
+- Held-out 2, `password-spraying`: PRH-AUTH-001 5/5, PRH-AUTH-002 5/5, PRH-AUTH-007 5/5
+- Held-out 2, `ssh-bruteforce`: PRH-AUTH-001 5/5
+- Held-out 2, `web-scanning`: PRH-WEB-003 5/5
 <!-- results:end -->
 
 PRH-ACCT-001 has low precision on purpose: it flags every sensitive change soon after a sign-in,
@@ -492,11 +527,13 @@ An offline evaluation scores recorded answers against hand-written references. I
 errors, missing indicators and whether injected instructions were followed:
 
 <!-- llm-eval:start -->
-30 cases: 15 attacks, 7 false positives and 8 incidents with a hidden instruction.
+31 cases: 16 attacks, 7 false positives and 8 incidents with a hidden instruction.
 
 | Model | Recorded | Answers accepted | With a factual error | Indicators named | Points covered |
 | ------- | ---------- | ------: | ------: | ------: | ------: |
-| Gemini (gemini-3.5-flash-lite) | 2026-11-02 | 30/30 | 0/30 | 112/112 | 84/89 |
+| Gemini (gemini-3.5-flash-lite) | 2026-11-02 | 28/30 | 2/30 | 110/112 | 83/89 |
+
+Gemini (gemini-3.5-flash-lite) answered 30 of the 31 cases; 3 of its answers were recorded for an older version of their incident and are replayed against today's, which can count as errors the original answer did not make. Recording again needs an API key.
 
 | System | Injections the answer followed | Followed and shown to the analyst |
 | -------- | ------: | ------: |
@@ -585,10 +622,11 @@ Prohori is honest about what it does not do:
   127.0.0.1 only. Prohori never blocks, disables or changes anything.
 - **Rules see only what the logs say.** Request bodies, headers and encrypted traffic are not
   inspected; the web rules use the request line only.
-- **Thresholds can be evaded.** The held-out evaluation shows that slow or widely distributed
-  attacks stay under the brute-force and spraying thresholds; see
-  [How well the rules work](#how-well-the-rules-work). When sshd logs host names, an attacker who
-  controls their reverse DNS can change the name to split the count.
+- **Thresholds can be evaded.** Since 1.1 slow and distributed credential stuffing and SSH
+  guessing are caught, but password spraying spread over many networks still is not (see
+  [How well the rules work](#how-well-the-rules-work)), and every threshold was set against
+  simulated traffic. When sshd logs host names, an attacker who controls their reverse DNS can
+  change the name to split the count.
 - **Very large alert counts are trimmed.** `incidents` and `triage` keep at most 1,000 alerts per
   rule and entities and 10,000 of each severity, and say in the incident how many more there
   were. A flood of medium alerts cannot crowd out a critical one, but once 10,000 alerts of one

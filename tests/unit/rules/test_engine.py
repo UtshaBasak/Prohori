@@ -566,3 +566,82 @@ class TestSequenceRestart:
         alerts = run([sequence_rule()], events)[0]
         assert len(alerts) == 2
         assert alerts[0].event_ids[:3] == alerts[1].event_ids[:3]
+
+
+def multi_distinct_rule() -> CompiledRule:
+    return rule(
+        {
+            "failure": FAILURE,
+            "aggregate": {
+                "group_by": ["log_source"],
+                "window": "10m",
+                "distinct": [
+                    {"field": "user.name", "gte": 3},
+                    {"field": ["source.ip", "source.host"], "gte": 2},
+                ],
+            },
+            "condition": "failure and aggregate",
+        }
+    )
+
+
+class TestSeveralDistinctThresholds:
+    def test_every_threshold_must_be_reached(self) -> None:
+        many_users_one_ip = [ev(n, n=n, user__name=f"u{n}") for n in range(5)]
+        alerts, _ = run([multi_distinct_rule()], many_users_one_ip)
+        assert alerts == []
+        both = [*many_users_one_ip, ev(9, ip=None, n=9, user__name="u9", source__host="x.example")]
+        (alert,), _ = run([multi_distinct_rule()], both)
+        assert "distinct user.name values" in alert.explanation
+        assert "distinct source.ip|source.host values (threshold 2)" in alert.explanation
+
+    def test_distinct_state_stays_at_each_threshold(self) -> None:
+        engine = RuleEngine([multi_distinct_rule()])
+        for n in range(500):  # many users, one address: the address threshold never fills
+            engine.process(ev(n, n=n, user__name=f"u{n}"))
+        assert engine.state_size()["rule_state"] <= 3 + 1 + MAX_ALERT_EVENT_IDS + 1
+
+    def test_distinct_fields_must_differ(self) -> None:
+        result = compile_rule(
+            {
+                "id": "TST-E-002",
+                "title": "x",
+                "status": "test",
+                "severity": "low",
+                "detection": {
+                    "s": FAILURE,
+                    "aggregate": {
+                        "group_by": ["log_source"],
+                        "window": "1m",
+                        "distinct": [{"field": "user.name", "gte": 2}] * 2,
+                    },
+                    "condition": "s and aggregate",
+                },
+            }
+        )
+        assert result.rule is None
+        assert any("its own field" in str(e) for e in result.errors)
+
+
+def test_rules_can_group_by_network() -> None:
+    by_network = rule(
+        {
+            "failure": FAILURE,
+            "aggregate": {
+                "group_by": ["source.ip_prefix"],
+                "window": "10m",
+                "distinct": {"field": "source.ip", "gte": 3},
+            },
+            "condition": "failure and aggregate",
+        }
+    )
+    same_24 = [ev(n, ip=f"203.0.113.{n + 1}", n=n) for n in range(3)]
+    (alert,), _ = run([by_network], same_24)
+    assert alert.entities == {"source.ip_prefix": "203.0.113.0/24"}
+    spread = [
+        ev(n, ip=ip, n=n) for n, ip in enumerate(["203.0.113.1", "198.51.100.1", "192.0.2.1"])
+    ]
+    assert run([by_network], spread)[0] == []
+    v6 = [ev(n, ip=f"2001:db8:7:{n}::1", n=n) for n in range(3)]
+    (alert,), _ = run([by_network], v6)
+    assert alert.entities == {"source.ip_prefix": "2001:db8:7::/48"}

@@ -1,0 +1,51 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+# Copyright (c) 2026 Utsha Basak
+rule: PRH-AUTH-005
+start: 2026-10-24T13:00:00Z
+defaults:
+  log_source: app-security
+  event.category: authentication
+  event.outcome: failure
+cases:
+  - name: one account failing from four addresses in an hour alerts
+    expect: {alerts: 1, entities: [{user.id: u-1001}]}
+    events:
+      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-1001, source.ip: 198.51.100.1, after: 10m}
+      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-1001, source.ip: 198.51.100.2, after: 10m}
+      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-1001, source.ip: 198.51.100.3, after: 10m}
+      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-1001, source.ip: 198.51.100.4, after: 10m}
+
+  - name: three addresses do not alert
+    expect: {alerts: 0}
+    events:
+      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-1001, source.ip: 198.51.100.1, after: 10m}
+      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-1001, source.ip: 198.51.100.2, after: 10m}
+      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-1001, source.ip: 198.51.100.3, after: 10m}
+
+  - name: four addresses spread over more than an hour do not alert
+    expect: {alerts: 0}
+    events:
+      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-1001, source.ip: 198.51.100.1, after: 25m}
+      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-1001, source.ip: 198.51.100.2, after: 25m}
+      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-1001, source.ip: 198.51.100.3, after: 25m}
+      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-1001, source.ip: 198.51.100.4, after: 25m}
+
+  - name: failures for an account that does not exist are ignored
+    expect: {alerts: 0}
+    events:
+      - {event.action: auth.signin.failure, event.reason: unknown_user, user.id: u-9999, source.ip: 198.51.100.1, after: 1s}
+      - {event.action: auth.signin.failure, event.reason: unknown_user, user.id: u-9999, source.ip: 198.51.100.2, after: 1s}
+      - {event.action: auth.signin.failure, event.reason: unknown_user, user.id: u-9999, source.ip: 198.51.100.3, after: 1s}
+      - {event.action: auth.signin.failure, event.reason: unknown_user, user.id: u-9999, source.ip: 198.51.100.4, after: 1s}
+      - {event.action: auth.signin.failure, event.reason: unknown_user, user.id: u-9999, source.ip: 198.51.100.5, after: 1s}
+      - {event.action: auth.signin.failure, event.reason: unknown_user, user.id: u-9999, source.ip: 198.51.100.6, after: 1s}
+
+  - name: SSH failures for root from three addresses and a host name
+    expect: {alerts: 1, entities: [{user.name: root}]}
+    log:
+      parser: auth_log
+      lines:
+        - "Oct 24 13:00:00 web01 sshd[40]: Failed password for root from 203.0.113.5 port 50000 ssh2"
+        - "Oct 24 13:01:00 web01 sshd[41]: Failed password for root from 203.0.113.6 port 50001 ssh2"
+        - "Oct 24 13:02:00 web01 sshd[42]: Failed password for root from 198.51.100.7 port 50002 ssh2"
+        - "Oct 24 13:03:00 web01 sshd[43]: Failed password for root from scanner.example port 50003 ssh2"

@@ -59,7 +59,7 @@ def test_long_text_is_capped_and_big_incidents_are_trimmed() -> None:
     assert len(build_payload(incident).data["title"]) <= payload_module.MAX_TEXT
     many = incident.model_copy(
         update={
-            "alerts": incident.alerts * 8,
+            "alerts": incident.alerts[:4] * 8,  # 32 alerts, whatever the rules raise
             "indicators": incident.indicators * 8,
             "title": "x" * 1000,
         }
@@ -72,7 +72,7 @@ def test_long_text_is_capped_and_big_incidents_are_trimmed() -> None:
     assert len(data["alerts"]) == 20
     assert len(data["indicators"]) == 5
     assert data["title"].endswith("…")
-    smallest = build_payload(many, max_input_tokens=2000)
+    smallest = build_payload(many, max_input_tokens=2200)
     assert smallest.trimmed[-1] == "more_alerts"
     assert len(smallest.data["alerts"]) == 5
 

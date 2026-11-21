@@ -168,7 +168,9 @@ def test_make_stage_choices(tmp_path: Path) -> None:
     settings = LiteSettings(rules=RULES, database=tmp_path / "p.duckdb", follow=True)
     incidents = make_stage("incidents", transport, settings)
     assert isinstance(incidents, IncidentStage)
-    assert incidents.idle_close == incidents.hold.total_seconds()
+    # The hold time is over a day with the built-in 24-hour rule; following waits at most an hour.
+    assert incidents.hold.total_seconds() > 86_400
+    assert incidents.idle_close == 3600.0
     quick = LiteSettings(rules=RULES, database=tmp_path / "p.duckdb", idle_close=5.0)
     assert make_stage("incidents", transport, quick).idle_close == 5.0  # type: ignore[attr-defined]
     with pytest.raises(ValueError, match="unknown stage"):

@@ -1,0 +1,30 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+# Copyright (c) 2026 Utsha Basak
+id: PRH-AUTH-005
+title: Failed sign-ins for one account from many addresses
+status: test
+severity: high
+description: >-
+  Failed web app or SSH sign-ins for one existing account from at least 4 different source
+  addresses (or host names) within 1 hour. An attacker who spreads guesses over many addresses
+  stays under the per-address limit of PRH-AUTH-001; counting per account catches it. Failures
+  for accounts that do not exist are ignored: there is nothing to take over. The threshold is
+  twice the most addresses any benign account failed from in an hour in the simulator (2).
+author: Prohori
+tags: [attack.credential_access, attack.t1110, attack.t1110.001]
+logsource: {category: authentication}
+detection:
+  failure:
+    event.action: [auth.signin.failure, ssh.login.failure]
+  unknown_account:
+    event.reason: unknown_user
+  aggregate:
+    group_by: [[user.id, user.name, user.email_hash]]
+    window: 1h
+    distinct: {field: [source.ip, source.host], gte: 4}
+  condition: failure and not unknown_account and aggregate
+falsepositives:
+  - A user who switches between home, mobile and office networks and mistypes the password on each
+  - A password manager or mail client on several devices retrying a stale password after a change
+  - Mobile networks that change a phone's address between attempts
+response: runbooks/distributed-account-failures.md

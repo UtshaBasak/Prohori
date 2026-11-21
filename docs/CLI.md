@@ -99,7 +99,7 @@ See [PARSERS.md](PARSERS.md).
 
 ## `prohori detect`
 
-Runs the 15 built-in rules (plus `--rules`) and prints the alerts and a summary.
+Runs the 21 built-in rules (plus `--rules`) and prints the alerts and a summary.
 The table shows the earliest 100 alerts and counts the rest by severity (`--limit N`, `0` for
 all), so a late critical alert is never hidden silently; `-f json`
 writes every alert as soon as it is raised. See [RULES.md](RULES.md).
@@ -172,7 +172,7 @@ Exit codes as for `explain`.
 
 ## `prohori simulate`
 
-Writes a labelled scenario: `--out DIR`, `--seed`, `--variant default|heldout`,
+Writes a labelled scenario: `--out DIR`, `--seed`, `--variant default|heldout|heldout2`,
 `--set NAME=VALUE` (repeatable), `--list`. See [SIMULATOR.md](SIMULATOR.md).
 
 ## `prohori score`

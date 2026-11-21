@@ -271,3 +271,34 @@ def test_host_names_that_are_not_entities_never_reach_report_text() -> None:
             for host in hosts:
                 assert host not in text
                 assert host.split(".")[0] not in text
+
+
+@pytest.mark.parametrize(
+    ("network", "address"),
+    [("203.0.113.0/24", "203.0.113.7"), ("2001:db8:5::/48", "2001:db8:5::7")],
+)
+def test_networks_named_by_per_network_rules_are_redacted_with_ips(
+    network: str, address: str
+) -> None:
+    incident = build_incidents(
+        [
+            alert(
+                "PRH-AUTH-007",
+                title=f"Failed sign-ins for many accounts from {network}",
+                entities={"source.ip_prefix": network},
+            ),
+            alert("PRH-AUTH-001", start=at(1), entities={"source.ip": address}),
+        ]
+    )[0]
+    assert network in incident.entities["source.ip_prefix"]
+    redactor = Redactor(KEY, ips=True)
+    redacted = redactor.redact(incident)
+    for fmt in ReportFormat:
+        text = render(redacted, fmt)
+        if fmt is ReportFormat.HTML:
+            text = html.unescape(
+                re.sub(r"<[^>]+>", " ", re.sub(r"(?s)<style>.*?</style>", "", text))
+            )
+        assert network not in text
+        assert network.split("/")[0] not in text
+        assert find_leaks(text, redactor.replaced) == []

@@ -126,8 +126,13 @@ class DistinctThreshold(BaseModel):
 
     model_config = _CONFIG
 
-    field: FieldPath
+    field: GroupField
     gte: Annotated[int, Field(ge=2, le=100_000)]
+
+    @property
+    def name(self) -> str:
+        """The field as written, for explanations: ``source.ip`` or ``source.ip|source.host``."""
+        return self.field if isinstance(self.field, str) else "|".join(self.field)
 
 
 class RatioThreshold(BaseModel):
@@ -152,8 +157,20 @@ class AggregateSpec(BaseModel):
     window: Duration
     mode: WindowMode = WindowMode.SLIDING
     count_gte: Annotated[int, Field(ge=1, le=100_000)] | None = None
-    distinct: DistinctThreshold | None = None
+    #: One distinct threshold, or two or three that must all be reached in the same window.
+    distinct: (
+        DistinctThreshold | Annotated[list[DistinctThreshold], Field(min_length=2, max_length=3)]
+    ) | None = None
     ratio: RatioThreshold | None = None
+
+    @property
+    def distincts(self) -> list[DistinctThreshold]:
+        """The distinct thresholds, however many were given (a list: their number varies)."""
+        if self.distinct is None:
+            return []
+        if isinstance(self.distinct, DistinctThreshold):
+            return [self.distinct]
+        return list(self.distinct)
 
     @field_validator("window", mode="before")
     @classmethod
@@ -165,6 +182,10 @@ class AggregateSpec(BaseModel):
         given = [n for n in ("count_gte", "distinct", "ratio") if getattr(self, n) is not None]
         if len(given) != 1:
             msg = "give exactly one of count_gte, distinct or ratio"
+            raise ValueError(msg)
+        names = [d.name for d in self.distincts]
+        if len(set(names)) != len(names):
+            msg = "each distinct threshold needs its own field"
             raise ValueError(msg)
         return self
 

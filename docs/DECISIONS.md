@@ -1503,3 +1503,115 @@ at all; only the run's summary counts them. The
 streaming pipeline does not apply the limits (its incident stage releases alerts as their
 incidents close), so above them stream and batch differ. `--models` still holds every event,
 because the anomaly detectors compare a whole log with itself.
+
+## ADR-0036: Evasion-resistant authentication rules, measured before and after
+
+- **Date:** 2026-11-21
+- **Status:** Accepted
+
+**Context.** Every 1.0 authentication rule counts per source address. In the held-out variants,
+where the attacker slows down or spreads over more addresses, credential stuffing was missed in
+5 of 5 runs and PRH-AUTH-001 missed every password-spraying and SSH brute-force run. The
+improvement has to be shown with numbers that cannot have been fitted to the test set.
+
+**Decision: procedure, fixed before any held-out result was seen.**
+
+1. The 1.0 rules' results were frozen as the `baseline` of `results/rules_eval.json` (commit
+   792a49b) before any rule changed. `scripts/evaluate_rules.py` never replaces a frozen
+   variant.
+2. Thresholds were chosen on the default variants only (`--variants default`, which writes
+   nothing), with one rule for all of them: **twice the largest value the benign background
+   reaches in any default scenario and seed, rounded up**. Failures for accounts that do not
+   exist (`event.reason: unknown_user`) are left out of the per-account and per-network counts:
+   there is nothing to take over, and internet scanners produce them all day.
+3. The rules, their fixtures and this reasoning were committed before the held-out variants were
+   scored, and before the second held-out set (`heldout2`) was defined. One disclosure: before
+   that commit, rebuilding the LLM evaluation set (which runs the rules over seed 1 of every
+   variant) showed that a held-out credential-stuffing incident now exists. No rule was changed
+   after that.
+4. `heldout2` is derived from `heldout` by a fixed rule, written here before it existed: rates
+   halved, sources doubled, and the attack's sources spread over every documentation network
+   (three IPv4 /24s and IPv6 addresses in distinct /48s), with fresh random streams. It is scored
+   once, after the rules are committed, for the 1.0 rules (taken from the 792a49b tree) and the
+   new ones.
+
+**Benign maxima in the default variants and the thresholds they give:**
+
+| Measure (benign lines only) | Maximum | Rule | Threshold |
+| --- | ---: | --- | ---: |
+| Addresses one existing account failed from, per hour | 2 | PRH-AUTH-005 | 4 |
+| Failures of one existing account in a 24-hour window (SSH root; the log is 3 hours long) | 11 | PRH-AUTH-006 | 22 |
+| Existing accounts failing from one /24 or /48, per hour | 19 | PRH-AUTH-007 | 38 |
+| Existing accounts / addresses failing in one log, per hour | 19 / 18 | PRH-AUTH-008 | 38 / 36 |
+| Addresses with unknown-account failures in one log, per hour | 0 | PRH-AUTH-009 | 10 (reasoned) |
+| Failures of one account, per hour | 6 | PRH-AUTH-010 | 12 |
+
+The maxima come from `scripts/benign_maxima.py` (default variants only, the engine's window
+semantics), and a test checks that every threshold is twice its maximum. Every maximum was
+reached in a 3-hour simulated log, so "per 24 hours" means at most three hours of background
+here: PRH-AUTH-006 will be much noisier on a real server than its threshold suggests.
+
+PRH-AUTH-009 is the exception: the simulator's customers never mistype their email, so its
+background maximum is 0 and the margin rule gives nothing. Its threshold comes from reasoning (a
+small shop rarely sees unknown-email failures from ten addresses in an hour) and its status is
+`experimental`: its false-positive rate is untested here. SSH is excluded from it.
+
+**False-positive margin.** The definition of done asks that false positives on the default
+variants rise by no more than a margin stated here. No margin was set in advance; the observed
+rise is 0 in every variant (default 295, held-out 259, held-out 2 287 false-positive alerts,
+before and after), so any margin is met.
+
+**The baseline** is the rule files of commit 792a49b, which already include step 28's host-name
+fallback (ADR-0035); on the simulator's logs, which always carry addresses, it reproduced the
+committed 1.0 results exactly.
+
+**The rules** (all additive; the 1.0 rules are unchanged): PRH-AUTH-005 failures for one account
+from many addresses; PRH-AUTH-006 slow guessing on one account over 24 hours; PRH-AUTH-007 many
+accounts failing from one network (`source.ip_prefix`); PRH-AUTH-008 many accounts and many
+addresses failing in one log within an hour (two distinct thresholds at once); PRH-AUTH-009
+unknown-account failures from many addresses; PRH-AUTH-010 a success after many failures on
+one account. Accounts are grouped by `[user.id, user.name, user.email_hash]`, addresses by
+`[source.ip, source.host]`, so SSH host names (ADR-0035) count too. New rules start as `test`
+(PRH-AUTH-009 `experimental`); the built-in rule policy now allows those statuses.
+
+**Engine additions:** an aggregate may list several distinct thresholds that must all be reached
+in one window (each set keeps at most its threshold's values, so state stays bounded); a distinct
+field may list alternatives; `source.ip_prefix` is a derived field (IPv4 /24, IPv6 /48) computed
+when read.
+
+**Not done, and why.**
+
+- `source.asn` from enrichment before detection: no batch or streaming path enriches events
+  before the rules run, so there is nothing to group by. Deferred.
+- "Each account tried only a few times" (credential stuffing) cannot be expressed as an
+  aggregate; PRH-AUTH-008 relies on many accounts and many addresses at once instead.
+- Incident grouping needs no change: per-account alerts link on `user.*` already, and the
+  per-log alerts (PRH-AUTH-008, 009) form incidents of their own. A test checks both.
+- PRH-ACCT-001's false positives (48 to 80 per scenario) were checked: exactly one alert per
+  benign account change after a sign-in, so the rule works as designed (it cannot know an owner's
+  usual address); documented, not changed.
+
+**Consequences.**
+
+- A 24-hour window makes the streaming incident stage's hold time 24 h 35 min (65 min before):
+  open incidents wait that long in alert time. Following live logs therefore now closes quiet
+  incidents after at most an hour by default (`--idle-close` overrides it); the Docker stack
+  already uses 60 seconds.
+- The per-account rules are noisier behind shared networks, during password resets and on SSH
+  servers open to the internet; the per-log thresholds are absolute and need raising on a busy
+  site (suppressions come in step 32).
+- **Simulator effects that flatter or hurt the numbers.** All simulated hostile addresses share
+  one /24 (203.0.113.0/24) and internet hosts another, so a per-network rule groups a "spread"
+  attack for free in the 1.0 held-out variants. All customers share 192.0.2.0/24 too, which
+  pushes the benign per-network maximum (19), and with it PRH-AUTH-007's threshold, far above a
+  real shop's. `heldout2` spreads sources over networks to measure the first effect.
+- The account-takeover sample also raises PRH-AUTH-010 now, so its incident id (and the sample
+  incident's file name) changed.
+- **Not met:** "the per-account rules fire in every held-out spraying run". The per-network rule
+  PRH-AUTH-007 missed every spraying run on both held-out sets (30 accounts against its 38), and
+  spraying spread over networks (`heldout2`) is missed by every rule, old and new. The cause is
+  the simulator's address model (every customer in one /24), not a threshold to tune after
+  scoring; the follow-up is a simulator with customers spread over networks, with a re-frozen
+  baseline, as its own step.
+- After scoring, only wording changed: PRH-AUTH-006's description said "in a day" for a maximum
+  measured in a 3-hour log. Its logic and threshold are unchanged.

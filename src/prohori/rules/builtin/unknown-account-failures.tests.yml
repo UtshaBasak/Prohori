@@ -1,0 +1,65 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+# Copyright (c) 2026 Utsha Basak
+rule: PRH-AUTH-009
+start: 2026-10-24T13:00:00Z
+defaults:
+  log_source: app-security
+  event.category: authentication
+  event.outcome: failure
+cases:
+  - name: unknown accounts from ten addresses alert
+    expect: {alerts: 1, entities: [{log_source: app-security}]}
+    events:
+      - {event.action: auth.signin.failure, event.reason: unknown_user, source.ip: 198.51.100.1, after: 1m}
+      - {event.action: auth.signin.failure, event.reason: unknown_user, source.ip: 198.51.100.71, after: 1m}
+      - {event.action: auth.signin.failure, event.reason: unknown_user, source.ip: 198.51.100.141, after: 1m}
+      - {event.action: auth.signin.failure, event.reason: unknown_user, source.ip: 198.51.100.211, after: 1m}
+      - {event.action: auth.signin.failure, event.reason: unknown_user, source.ip: 203.0.113.31, after: 1m}
+      - {event.action: auth.signin.failure, event.reason: unknown_user, source.ip: 203.0.113.101, after: 1m}
+      - {event.action: auth.signin.failure, event.reason: unknown_user, source.ip: 203.0.113.171, after: 1m}
+      - {event.action: auth.signin.failure, event.reason: unknown_user, source.ip: 203.0.113.241, after: 1m}
+      - {event.action: auth.signin.failure, event.reason: unknown_user, source.ip: 192.0.2.61, after: 1m}
+      - {event.action: auth.signin.failure, event.reason: unknown_user, source.ip: 192.0.2.131, after: 1m}
+
+  - name: nine addresses do not alert
+    expect: {alerts: 0}
+    events:
+      - {event.action: auth.signin.failure, event.reason: unknown_user, source.ip: 198.51.100.1, after: 1m}
+      - {event.action: auth.signin.failure, event.reason: unknown_user, source.ip: 198.51.100.71, after: 1m}
+      - {event.action: auth.signin.failure, event.reason: unknown_user, source.ip: 198.51.100.141, after: 1m}
+      - {event.action: auth.signin.failure, event.reason: unknown_user, source.ip: 198.51.100.211, after: 1m}
+      - {event.action: auth.signin.failure, event.reason: unknown_user, source.ip: 203.0.113.31, after: 1m}
+      - {event.action: auth.signin.failure, event.reason: unknown_user, source.ip: 203.0.113.101, after: 1m}
+      - {event.action: auth.signin.failure, event.reason: unknown_user, source.ip: 203.0.113.171, after: 1m}
+      - {event.action: auth.signin.failure, event.reason: unknown_user, source.ip: 203.0.113.241, after: 1m}
+      - {event.action: auth.signin.failure, event.reason: unknown_user, source.ip: 192.0.2.61, after: 1m}
+
+  - name: wrong passwords for known accounts are not counted
+    expect: {alerts: 0}
+    events:
+      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-0, source.ip: 198.51.100.1, after: 1m}
+      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-1, source.ip: 198.51.100.71, after: 1m}
+      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-2, source.ip: 198.51.100.141, after: 1m}
+      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-3, source.ip: 198.51.100.211, after: 1m}
+      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-4, source.ip: 203.0.113.31, after: 1m}
+      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-5, source.ip: 203.0.113.101, after: 1m}
+      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-6, source.ip: 203.0.113.171, after: 1m}
+      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-7, source.ip: 203.0.113.241, after: 1m}
+      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-8, source.ip: 192.0.2.61, after: 1m}
+      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-9, source.ip: 192.0.2.131, after: 1m}
+
+  - name: unknown-account failures from ten addresses through the app_json parser
+    expect: {alerts: 1, entities: [{log_source: app-security}]}
+    log:
+      parser: app_json
+      lines:
+        - "{\"time\": \"2026-10-24T13:00:00Z\", \"event\": {\"action\": \"auth.signin.failure\", \"reason\": \"unknown_user\"}, \"source\": {\"ip\": \"198.51.100.1\"}}"
+        - "{\"time\": \"2026-10-24T13:01:00Z\", \"event\": {\"action\": \"auth.signin.failure\", \"reason\": \"unknown_user\"}, \"source\": {\"ip\": \"198.51.100.71\"}}"
+        - "{\"time\": \"2026-10-24T13:02:00Z\", \"event\": {\"action\": \"auth.signin.failure\", \"reason\": \"unknown_user\"}, \"source\": {\"ip\": \"198.51.100.141\"}}"
+        - "{\"time\": \"2026-10-24T13:03:00Z\", \"event\": {\"action\": \"auth.signin.failure\", \"reason\": \"unknown_user\"}, \"source\": {\"ip\": \"198.51.100.211\"}}"
+        - "{\"time\": \"2026-10-24T13:04:00Z\", \"event\": {\"action\": \"auth.signin.failure\", \"reason\": \"unknown_user\"}, \"source\": {\"ip\": \"203.0.113.31\"}}"
+        - "{\"time\": \"2026-10-24T13:05:00Z\", \"event\": {\"action\": \"auth.signin.failure\", \"reason\": \"unknown_user\"}, \"source\": {\"ip\": \"203.0.113.101\"}}"
+        - "{\"time\": \"2026-10-24T13:06:00Z\", \"event\": {\"action\": \"auth.signin.failure\", \"reason\": \"unknown_user\"}, \"source\": {\"ip\": \"203.0.113.171\"}}"
+        - "{\"time\": \"2026-10-24T13:07:00Z\", \"event\": {\"action\": \"auth.signin.failure\", \"reason\": \"unknown_user\"}, \"source\": {\"ip\": \"203.0.113.241\"}}"
+        - "{\"time\": \"2026-10-24T13:08:00Z\", \"event\": {\"action\": \"auth.signin.failure\", \"reason\": \"unknown_user\"}, \"source\": {\"ip\": \"192.0.2.61\"}}"
+        - "{\"time\": \"2026-10-24T13:09:00Z\", \"event\": {\"action\": \"auth.signin.failure\", \"reason\": \"unknown_user\"}, \"source\": {\"ip\": \"192.0.2.131\"}}"

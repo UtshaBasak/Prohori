@@ -7,7 +7,7 @@ documentation. This module is the single mapping between the two.
 """
 
 from enum import Enum
-from ipaddress import IPv4Address, IPv6Address
+from ipaddress import IPv4Address, IPv6Address, ip_network
 
 from pydantic import BaseModel
 
@@ -36,12 +36,27 @@ def _collect_paths() -> tuple[str, ...]:
 #: Every dotted field path an event exposes, excluding ``extra.*`` (which is open-ended).
 FIELD_PATHS: frozenset[str] = frozenset(_collect_paths())
 
+#: Fields computed from others when read, never stored: ``source.ip_prefix`` is the network of
+#: ``source.ip`` (a /24 for IPv4, a /48 for IPv6), for rules that count per network.
+DERIVED_PATHS: frozenset[str] = frozenset({"source.ip_prefix"})
+IPV4_PREFIX = 24
+IPV6_PREFIX = 48
+
 
 def is_valid_path(path: str) -> bool:
-    """Return whether ``path`` names an event field (``extra.<key>`` is always accepted)."""
+    """Return whether ``path`` names an event field (``extra.<key>`` is always accepted).
+
+    Derived fields (:data:`DERIVED_PATHS`) are valid: they can be read, but not set.
+    """
     if path.startswith("extra."):
         return len(path) > len("extra.")
-    return path in FIELD_PATHS
+    return path in FIELD_PATHS or path in DERIVED_PATHS
+
+
+def ip_prefix(address: IPv4Address | IPv6Address) -> str:
+    """The network a rule counts ``address`` in: its /24 (IPv4) or /48 (IPv6)."""
+    bits = IPV4_PREFIX if isinstance(address, IPv4Address) else IPV6_PREFIX
+    return str(ip_network((address, bits), strict=False))
 
 
 def get_field(event: Event, path: str) -> JsonScalar:
@@ -54,6 +69,8 @@ def get_field(event: Event, path: str) -> JsonScalar:
     """
     if not is_valid_path(path):
         raise KeyError(path)
+    if path == "source.ip_prefix":
+        return ip_prefix(event.source.ip) if event.source.ip is not None else None
     head, _, tail = path.partition(".")
     if head == "extra":
         return event.extra.get(tail)

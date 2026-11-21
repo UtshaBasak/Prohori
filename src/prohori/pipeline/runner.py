@@ -36,6 +36,9 @@ from prohori.rules import CompiledRule
 
 #: Messages each stage reads per input and round.
 BATCH_SIZE = 500
+#: Longest default wait, in seconds, before quiet live logs' open incidents are written. The hold
+#: time is far longer with a 24-hour rule (PRH-AUTH-006), and nobody following a log waits a day.
+MAX_DEFAULT_IDLE_CLOSE = 3600.0
 #: The stages, in pipeline order.
 STAGES = ("normalise", "detect", "incidents", "sink")
 
@@ -53,7 +56,7 @@ class LiteSettings:
     enrichment: str = "none"
     follow: bool = False  # live logs: reject future timestamps, close incidents when quiet
     #: Seconds without new alerts after which open incidents are written (default when
-    #: following: the incident hold time; never otherwise).
+    #: following: the incident hold time, at most an hour; never otherwise).
     idle_close: float | None = None
 
 
@@ -87,7 +90,7 @@ def make_stage(
         if settings.idle_close is not None:
             stage.idle_close = settings.idle_close
         elif settings.follow:
-            stage.idle_close = stage.hold.total_seconds()
+            stage.idle_close = min(stage.hold.total_seconds(), MAX_DEFAULT_IDLE_CLOSE)
         return stage
     if name == "sink":
         if postgres:

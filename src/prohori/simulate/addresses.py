@@ -57,3 +57,26 @@ class AddressPool:
 
     def take_many(self, network: str, count: int) -> list[str]:
         return [self.take(network) for _ in range(count)]
+
+    def take_spread(self, count: int) -> list[str]:
+        """Distinct addresses spread over every documentation network, in turn: the hostile and
+        internet /24s, and IPv6 addresses each in a /48 of its own (inside 2001:db8::/32).
+
+        For attacks that rotate through many providers, so that no single network holds them.
+        """
+        found: list[str] = []
+        v6 = ipaddress.ip_network(IPV6)
+        while len(found) < count:
+            turn = len(found) % 3
+            if turn < 2:
+                found.append(self.take((HOSTILE, INTERNET)[turn]))
+                continue
+            address = str(
+                v6.network_address
+                + (self._rng.randrange(1, 2**16) << 80)  # bits 32-47: the /48
+                + self._rng.randrange(1, 2**32)
+            )
+            if address not in self._used:
+                self._used.add(address)
+                found.append(address)
+        return found

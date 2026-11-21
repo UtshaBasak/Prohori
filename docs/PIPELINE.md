@@ -80,8 +80,10 @@ open incidents), in pipeline order, so the last incidents reach the database.
 (30 minutes by default) of the group's last alert. A threshold or sequence alert can start up to
 its rule's window before it is raised, and events may arrive up to the lateness (5 minutes) out
 of order. The incident stage therefore closes a group only when the newest alert time is past the
-group's end by gap + longest rule window + lateness (65 minutes with the built-in rules). When
-following live logs, a group also closes after that much wall-clock time without new alerts.
+group's end by gap + longest rule window + lateness: 24 hours 35 minutes with the built-in rules
+since 1.1, whose slow-guessing rule (PRH-AUTH-006) counts over a day (65 minutes before). When
+following live logs, a group also closes after that much wall-clock time without new alerts, but
+never later than one hour by default (`--idle-close` changes it).
 
 **Same results as the batch command.** The integration tests replay every simulator scenario
 twice through lite mode. They check that the incidents in DuckDB are exactly those of
@@ -325,11 +327,14 @@ rest. `prohori pipeline run --stage NAME` is what each container runs. It takes 
 `PROHORI_POSTGRES_DSN`.
 
 **Incidents in a long-running stack.** The containers never reach the end of their input, so an
-incident is written when its group can no longer grow (65 minutes past its end in alert time)
-or, in the stack, after 60 seconds without new alerts. Without that, the last incident of a
+incident is written when its group can no longer grow (24 hours 35 minutes past its end in alert
+time with the built-in rules) or, in the stack, after 60 seconds without new alerts. Without that, the last incident of a
 replay would wait for the next attack. The cost is that an attack slower than one alert every
 minute can be split into two incidents. Raise `--idle-close` in the compose file if that
-matters more than speed.
+matters more than speed. On a busy site where alerts never stop for 60 seconds (owners' own
+account changes keep PRH-ACCT-001 firing), open incidents wait for the hold time instead, about
+a day since the 24-hour rule of 1.1, and their alerts stay in the incident stage's memory that
+long.
 
 **Same answers as batch.** The smoke test (`tests/integration/test_docker_stack.py`, run by the
 `Docker stack` workflow on Linux) starts the real stack from empty volumes. It replays a
