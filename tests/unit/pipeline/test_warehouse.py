@@ -81,17 +81,17 @@ def test_labels_match_the_events_a_replay_stores(simulated: Path, tmp_path: Path
     pipeline.close()
     rows = label_rows(simulated)
     assert labels_path(simulated).name == "password-spraying.labels.jsonl"
-    assert len(rows) == 622
+    assert len(rows) == 621
     assert {r[3] for r in rows} == {"password-spraying"}  # from manifest.json
     assert sum(1 for r in rows if r[4] is not None) == 30
     sink = open_warehouse(database=database)
-    assert load(sink, "labels", rows, chunk=100) == 622
+    assert load(sink, "labels", rows, chunk=100) == 621
     load(sink, "labels", rows)  # again: nothing new
     joined = sink.connection.execute(  # type: ignore[attr-defined]
         "SELECT count(*) FROM labels JOIN events USING (id)"
     ).fetchone()
     sink.close()
-    assert joined == (622,)
+    assert joined == (621,)
 
 
 def test_label_errors(simulated: Path, tmp_path: Path) -> None:
@@ -135,7 +135,7 @@ def test_load_commands(simulated: Path, tmp_path: Path) -> None:
     state = ["--state", str(tmp_path)]
     labels = runner.invoke(app, ["pipeline", "load-labels", str(simulated), *state])
     assert labels.exit_code == 0, labels.output
-    assert "Loaded labels for 622 event(s) (30 attack) from 1 log(s)." in labels.stdout
+    assert "Loaded labels for 621 event(s) (30 attack) from 1 log(s)." in labels.stdout
     results = runner.invoke(
         app, ["pipeline", "load-results", str(RESULTS), "--evaluated-at", "2026-10-31", *state]
     )

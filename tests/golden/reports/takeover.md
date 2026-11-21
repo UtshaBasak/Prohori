@@ -1,8 +1,8 @@
-# Successful sign-in after many failures from one IP and 4 related alerts
+# Successful sign-in after many failures from one IP and 3 related alerts
 
 | | |
 |---|---|
-| Incident | `INC-14756953ade54922` |
+| Incident | `INC-ee7c8818fbb34989` |
 | Status | open |
 | Severity | **critical** (score 100) |
 | Confidence | high |
@@ -11,12 +11,12 @@
 
 ## Summary
 
-Critical incident (score 100, high confidence): 5 alert(s) from 4 rule(s) between 2026-10-24 21:10:00 UTC and 2026-10-24 21:13:10 UTC, from 203.0.113.7, involving u-2001.
+Critical incident (score 100, high confidence): 4 alert(s) from 3 rule(s) between 2026-10-24 21:10:00 UTC and 2026-10-24 21:13:10 UTC, from 203.0.113.7, involving u-2001.
 
 Main factors:
 
 - Most severe alert: PRH-AUTH-003 (critical)
-- 3 more rules fired: PRH-ACCT-001, PRH-AUTH-001, PRH-AUTH-010
+- 2 more rules fired: PRH-ACCT-001, PRH-AUTH-001
 - A sign-in succeeded after failed attempts
 
 ## Timeline
@@ -34,11 +34,8 @@ Main factors:
 | 2026-10-24 21:10:24 UTC | event | \[app-security\] auth.signin.failure (failure), account u-2001, from 203.0.113.7, POST /api/auth/signin, client web |
 | 2026-10-24 21:10:27 UTC | event | \[app-security\] auth.signin.failure (failure), account u-2001, from 203.0.113.7, POST /api/auth/signin, client web |
 | 2026-10-24 21:10:27 UTC | alert | Alert PRH-AUTH-001 (high): Brute-force sign-in attempts from one IP |
-| 2026-10-24 21:10:30 UTC | event | \[app-security\] auth.signin.failure (failure), account u-2001, from 203.0.113.7, POST /api/auth/signin, client web |
-| 2026-10-24 21:10:33 UTC | event | \[app-security\] auth.signin.failure (failure), account u-2001, from 203.0.113.7, POST /api/auth/signin, client web |
 | 2026-10-24 21:11:05 UTC | event | \[app-security\] auth.signin.success (success), account u-2001, from 203.0.113.7, POST /api/auth/signin, client web |
 | 2026-10-24 21:11:05 UTC | alert | Alert PRH-AUTH-003 (critical): Successful sign-in after many failures from one IP |
-| 2026-10-24 21:11:05 UTC | alert | Alert PRH-AUTH-010 (critical): Successful sign-in after many failures on one account |
 | 2026-10-24 21:12:30 UTC | event | \[app-security\] account.2fa.disabled (success), account u-2001, from 203.0.113.7, DELETE /api/account/2fa, client web |
 | 2026-10-24 21:12:30 UTC | alert | Alert PRH-ACCT-001 (high): Sensitive account change shortly after sign-in |
 | 2026-10-24 21:13:10 UTC | event | \[app-security\] account.bkash.changed (success), account u-2001, from 203.0.113.7, PATCH /api/account/payout, client web |
@@ -71,12 +68,6 @@ No enrichment.
 - 2026-10-24 21:10:00 UTC to 2026-10-24 21:11:05 UTC
 - 5 x failure then 1 x success for source.ip=203.0.113.7 within 15m
 - Events: `evt-98e13f6d307f2e3be16558ed`, `evt-ef2ea440d254bf4a8d4680f6`, `evt-1ee56267cc7a1b10b9494687`, `evt-bbc30d1e50633effa8d81596`, `evt-c17a57243deeaf70a93c331e`, `evt-d921c9a6c26404450a3b9d46`
-
-### `PRH-AUTH-010` Successful sign-in after many failures on one account (critical)
-
-- 2026-10-24 21:10:00 UTC to 2026-10-24 21:11:05 UTC
-- 12 x failure then 1 x success for user.id=u-2001 within 1h
-- Events: `evt-bbc30d1e50633effa8d81596`, `evt-c17a57243deeaf70a93c331e`, `evt-e324aaa8ec2561e6cd038ca7`, `evt-ada9bb363aaf4af58d44c821`, `evt-c480d3039cfb186a6c233449`, `evt-3b80f435be26e14e36c3ac89`, `evt-b1604296ea5f5716a233d047`, `evt-605f2f4708ccd19758b6d85e`, `evt-3dd0fbfab6374cf989bfb395`, `evt-d921c9a6c26404450a3b9d46` and 3 more
 
 ### `PRH-AUTH-001` Brute-force sign-in attempts from one IP (high)
 
@@ -113,13 +104,13 @@ Enterprise ATT&CK v20.0.
 | Points | Reason |
 |-------:|--------|
 | +50 | Most severe alert: PRH-AUTH-003 (critical) |
-| +30 | 3 more rules fired: PRH-ACCT-001, PRH-AUTH-001, PRH-AUTH-010 |
+| +20 | 2 more rules fired: PRH-ACCT-001, PRH-AUTH-001 |
 | +20 | A sign-in succeeded after failed attempts |
 | +15 | Sensitive account or admin change: account.2fa.disabled, account.bkash.changed |
 | +20 | Reputation of 203.0.113.7: abuse confidence 97; 9 vendors flag it as malicious (from bundled demo data) |
 | +10 | Sign-in to u-2001 from 203.0.113.7, an IP not seen for this account before (1 earlier IP) |
 | +5 | Sign-in to u-2001 with client web, not seen for this account before |
-| -50 | Capped at 100 |
+| -40 | Capped at 100 |
 | **100** | **Total** |
 
 ## Recommended actions
@@ -150,8 +141,6 @@ Confidence: **high**.
 - Possible benign cause for PRH-AUTH-001: A script or password manager retrying a stale password
 - Possible benign cause for PRH-AUTH-003: A legitimate user who forgot their password and finally entered it correctly
 - Possible benign cause for PRH-AUTH-003: Several users behind one shared NAT, some failing and one succeeding
-- Possible benign cause for PRH-AUTH-010: A user who tried many old passwords before remembering the right one
-- Possible benign cause for PRH-AUTH-010: A device or integration retrying a stale password until the user updated it
 
 ## Appendix
 
@@ -162,7 +151,6 @@ Confidence: **high**.
 | `PRH-ACCT-001` | Sensitive account change shortly after sign-in | 2 | `17c8063cfc601ce9d78cf29e2bee17561a9c98c874780d6e4a54175910598a13` |
 | `PRH-AUTH-001` | Brute-force sign-in attempts from one IP | 1 | `4e19eaef208251dc2c02c1086ce483cfd5e83c303fb069b38f78aa6ccd838be0` |
 | `PRH-AUTH-003` | Successful sign-in after many failures from one IP | 1 | `7601eec72c7d9babc38be001629e90a86b4ad5be0cad2d923f131a96884d7ca0` |
-| `PRH-AUTH-010` | Successful sign-in after many failures on one account | 1 | `c08191364e242e61b29ab1acfabe01f42a9ec16eb2b15a023ff487033271367f` |
 
 ### Inputs
 

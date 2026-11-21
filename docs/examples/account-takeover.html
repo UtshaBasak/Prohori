@@ -6,7 +6,7 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src 'none'; form-action 'none'; base-uri 'none'">
 <meta name="referrer" content="no-referrer">
 <meta name="generator" content="prohori 1.0.1">
-<title>INC-14756953ade54922: Successful sign-in after many failures from one IP and 4 related alerts</title>
+<title>INC-ee7c8818fbb34989: Successful sign-in after many failures from one IP and 3 related alerts</title>
 <style>
 :root { --fg: #1d232b; --muted: #5b6573; --bg: #ffffff; --panel: #f5f7fa; --line: #d8dde4;
   --low: #3b7a57; --medium: #a66a00; --high: #c2410c; --critical: #b91c1c; }
@@ -40,10 +40,10 @@ td.num, th.num { text-align: right; white-space: nowrap; }
 <body>
 <main>
 <header>
-<h1>Successful sign-in after many failures from one IP and 4 related alerts</h1>
+<h1>Successful sign-in after many failures from one IP and 3 related alerts</h1>
 <div class="meta">
 <span><span class="badge sev-critical">critical</span> score 100</span>
-<span>Incident <code>INC-14756953ade54922</code></span>
+<span>Incident <code>INC-ee7c8818fbb34989</code></span>
 <span>Status: open</span>
 <span>Confidence: high</span>
 <span>2026-10-24 21:10:00 UTC to 2026-10-24 21:13:10 UTC</span>
@@ -52,11 +52,11 @@ td.num, th.num { text-align: right; white-space: nowrap; }
 
 <h2>Summary</h2>
 <div class="summary">
-<p>Critical incident (score 100, high confidence): 5 alert(s) from 4 rule(s) between 2026-10-24 21:10:00 UTC and 2026-10-24 21:13:10 UTC, from 203.0.113.7, involving u-2001.</p>
+<p>Critical incident (score 100, high confidence): 4 alert(s) from 3 rule(s) between 2026-10-24 21:10:00 UTC and 2026-10-24 21:13:10 UTC, from 203.0.113.7, involving u-2001.</p>
 <p>Main factors:</p>
 <ul>
 <li>Most severe alert: PRH-AUTH-003 (critical)</li>
-<li>3 more rules fired: PRH-ACCT-001, PRH-AUTH-001, PRH-AUTH-010</li>
+<li>2 more rules fired: PRH-ACCT-001, PRH-AUTH-001</li>
 <li>A sign-in succeeded after failed attempts</li>
 </ul>
 </div>
@@ -77,11 +77,8 @@ td.num, th.num { text-align: right; white-space: nowrap; }
 <tr class="kind-event"><td class="mono">2026-10-24 21:10:24 UTC</td><td>event</td><td>[app-security] auth.signin.failure (failure), account u-2001, from 203.0.113.7, POST /api/auth/signin, client web</td></tr>
 <tr class="kind-event"><td class="mono">2026-10-24 21:10:27 UTC</td><td>event</td><td>[app-security] auth.signin.failure (failure), account u-2001, from 203.0.113.7, POST /api/auth/signin, client web</td></tr>
 <tr class="kind-alert"><td class="mono">2026-10-24 21:10:27 UTC</td><td>alert</td><td>Alert PRH-AUTH-001 (high): Brute-force sign-in attempts from one IP</td></tr>
-<tr class="kind-event"><td class="mono">2026-10-24 21:10:30 UTC</td><td>event</td><td>[app-security] auth.signin.failure (failure), account u-2001, from 203.0.113.7, POST /api/auth/signin, client web</td></tr>
-<tr class="kind-event"><td class="mono">2026-10-24 21:10:33 UTC</td><td>event</td><td>[app-security] auth.signin.failure (failure), account u-2001, from 203.0.113.7, POST /api/auth/signin, client web</td></tr>
 <tr class="kind-event"><td class="mono">2026-10-24 21:11:05 UTC</td><td>event</td><td>[app-security] auth.signin.success (success), account u-2001, from 203.0.113.7, POST /api/auth/signin, client web</td></tr>
 <tr class="kind-alert"><td class="mono">2026-10-24 21:11:05 UTC</td><td>alert</td><td>Alert PRH-AUTH-003 (critical): Successful sign-in after many failures from one IP</td></tr>
-<tr class="kind-alert"><td class="mono">2026-10-24 21:11:05 UTC</td><td>alert</td><td>Alert PRH-AUTH-010 (critical): Successful sign-in after many failures on one account</td></tr>
 <tr class="kind-event"><td class="mono">2026-10-24 21:12:30 UTC</td><td>event</td><td>[app-security] account.2fa.disabled (success), account u-2001, from 203.0.113.7, DELETE /api/account/2fa, client web</td></tr>
 <tr class="kind-alert"><td class="mono">2026-10-24 21:12:30 UTC</td><td>alert</td><td>Alert PRH-ACCT-001 (high): Sensitive account change shortly after sign-in</td></tr>
 <tr class="kind-event"><td class="mono">2026-10-24 21:13:10 UTC</td><td>event</td><td>[app-security] account.bkash.changed (success), account u-2001, from 203.0.113.7, PATCH /api/account/payout, client web</td></tr>
@@ -121,12 +118,6 @@ td.num, th.num { text-align: right; white-space: nowrap; }
 <li>5 x failure then 1 x success for source.ip=203.0.113.7 within 15m</li>
 <li>Events: <code>evt-98e13f6d307f2e3be16558ed</code>, <code>evt-ef2ea440d254bf4a8d4680f6</code>, <code>evt-1ee56267cc7a1b10b9494687</code>, <code>evt-bbc30d1e50633effa8d81596</code>, <code>evt-c17a57243deeaf70a93c331e</code>, <code>evt-d921c9a6c26404450a3b9d46</code></li>
 </ul>
-<h3><code>PRH-AUTH-010</code> Successful sign-in after many failures on one account (critical)</h3>
-<ul>
-<li>2026-10-24 21:10:00 UTC to 2026-10-24 21:11:05 UTC</li>
-<li>12 x failure then 1 x success for user.id=u-2001 within 1h</li>
-<li>Events: <code>evt-bbc30d1e50633effa8d81596</code>, <code>evt-c17a57243deeaf70a93c331e</code>, <code>evt-e324aaa8ec2561e6cd038ca7</code>, <code>evt-ada9bb363aaf4af58d44c821</code>, <code>evt-c480d3039cfb186a6c233449</code>, <code>evt-3b80f435be26e14e36c3ac89</code>, <code>evt-b1604296ea5f5716a233d047</code>, <code>evt-605f2f4708ccd19758b6d85e</code>, <code>evt-3dd0fbfab6374cf989bfb395</code>, <code>evt-d921c9a6c26404450a3b9d46</code> and 3 more</li>
-</ul>
 <h3><code>PRH-AUTH-001</code> Brute-force sign-in attempts from one IP (high)</h3>
 <ul>
 <li>2026-10-24 21:10:00 UTC to 2026-10-24 21:10:27 UTC</li>
@@ -164,13 +155,13 @@ td.num, th.num { text-align: right; white-space: nowrap; }
 <thead><tr><th class="num">Points</th><th>Reason</th></tr></thead>
 <tbody>
 <tr><td class="num">+50</td><td>Most severe alert: PRH-AUTH-003 (critical)</td></tr>
-<tr><td class="num">+30</td><td>3 more rules fired: PRH-ACCT-001, PRH-AUTH-001, PRH-AUTH-010</td></tr>
+<tr><td class="num">+20</td><td>2 more rules fired: PRH-ACCT-001, PRH-AUTH-001</td></tr>
 <tr><td class="num">+20</td><td>A sign-in succeeded after failed attempts</td></tr>
 <tr><td class="num">+15</td><td>Sensitive account or admin change: account.2fa.disabled, account.bkash.changed</td></tr>
 <tr><td class="num">+20</td><td>Reputation of 203.0.113.7: abuse confidence 97; 9 vendors flag it as malicious (from bundled demo data)</td></tr>
 <tr><td class="num">+10</td><td>Sign-in to u-2001 from 203.0.113.7, an IP not seen for this account before (1 earlier IP)</td></tr>
 <tr><td class="num">+5</td><td>Sign-in to u-2001 with client web, not seen for this account before</td></tr>
-<tr><td class="num">-50</td><td>Capped at 100</td></tr>
+<tr><td class="num">-40</td><td>Capped at 100</td></tr>
 <tr><th class="num">100</th><th>Total</th></tr>
 </tbody>
 </table>
@@ -202,8 +193,6 @@ td.num, th.num { text-align: right; white-space: nowrap; }
 <li>Possible benign cause for PRH-AUTH-001: A script or password manager retrying a stale password</li>
 <li>Possible benign cause for PRH-AUTH-003: A legitimate user who forgot their password and finally entered it correctly</li>
 <li>Possible benign cause for PRH-AUTH-003: Several users behind one shared NAT, some failing and one succeeding</li>
-<li>Possible benign cause for PRH-AUTH-010: A user who tried many old passwords before remembering the right one</li>
-<li>Possible benign cause for PRH-AUTH-010: A device or integration retrying a stale password until the user updated it</li>
 </ul>
 
 <h2>Appendix</h2>
@@ -214,7 +203,6 @@ td.num, th.num { text-align: right; white-space: nowrap; }
 <tr><td><code>PRH-ACCT-001</code></td><td>Sensitive account change shortly after sign-in</td><td class="num">2</td><td><code>17c8063cfc601ce9d78cf29e2bee17561a9c98c874780d6e4a54175910598a13</code></td></tr>
 <tr><td><code>PRH-AUTH-001</code></td><td>Brute-force sign-in attempts from one IP</td><td class="num">1</td><td><code>4e19eaef208251dc2c02c1086ce483cfd5e83c303fb069b38f78aa6ccd838be0</code></td></tr>
 <tr><td><code>PRH-AUTH-003</code></td><td>Successful sign-in after many failures from one IP</td><td class="num">1</td><td><code>7601eec72c7d9babc38be001629e90a86b4ad5be0cad2d923f131a96884d7ca0</code></td></tr>
-<tr><td><code>PRH-AUTH-010</code></td><td>Successful sign-in after many failures on one account</td><td class="num">1</td><td><code>c08191364e242e61b29ab1acfabe01f42a9ec16eb2b15a023ff487033271367f</code></td></tr>
 </tbody>
 </table>
 
@@ -231,7 +219,7 @@ td.num, th.num { text-align: right; white-space: nowrap; }
 <li>Incident built with: prohori 1.0.1 (enrichment: offline)</li>
 <li>Report rendered with: prohori 1.0.1</li>
 <li>ATT&amp;CK: Enterprise v20.0</li>
-<li>Incident file: <code>INC-14756953ade54922.json</code>, SHA-256 <code>e20299c9fb53979f02d4ff20bf9f5f9d262e71544bbbc5192101219958edddaf</code></li>
+<li>Incident file: <code>INC-ee7c8818fbb34989.json</code>, SHA-256 <code>e1312d6d70497c1b1984f6f4c3d13437f1602bf0be10e752ab72e835abc179c8</code></li>
 </ul>
 
 <h3>Privacy</h3>

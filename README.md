@@ -144,7 +144,7 @@ uv run prohori parse samples/logs/auth.log                      # normalise a lo
 uv run prohori detect samples/logs/auth.log                     # run the 21 rules
 uv run prohori enrich 203.0.113.7 --offline                     # look up an IP (demo data)
 uv run prohori incidents samples/logs/account-takeover.jsonl    # group alerts into incidents
-uv run prohori report samples/incidents/INC-14756953ade54922.json -f html -o report.html
+uv run prohori report samples/incidents/INC-ee7c8818fbb34989.json -f html -o report.html
 uv run prohori simulate account-takeover --seed 1 --out out/      # your own labelled attack
 ```
 
@@ -156,14 +156,14 @@ logs, `prohori triage /var/log/auth.log --year 2026 -o triage/` works the same w
 ## Example: an account takeover
 
 <!-- example:start -->
-`samples/logs/account-takeover.jsonl` is a synthetic attack on a web shop account: 12 wrong passwords from one IP in 33 seconds, a successful sign-in, two-step verification switched off and the bKash payout number changed. Prohori raises 5 alerts and joins them into **one critical incident**:
+`samples/logs/account-takeover.jsonl` is a synthetic attack on a web shop account: 12 wrong passwords from one IP in 33 seconds, a successful sign-in, two-step verification switched off and the bKash payout number changed. Prohori raises 4 alerts and joins them into **one critical incident**:
 
 ```text
-INC-14756953ade54922  critical  score 100
-title       Successful sign-in after many failures from one IP and 4 related alerts
+INC-ee7c8818fbb34989  critical  score 100
+title       Successful sign-in after many failures from one IP and 3 related alerts
 time (UTC)  2026-10-24 21:10:00 - 2026-10-24 21:13:10
 confidence  high
-rules       PRH-ACCT-001, PRH-AUTH-001, PRH-AUTH-003, PRH-AUTH-010
+rules       PRH-ACCT-001, PRH-AUTH-001, PRH-AUTH-003
 entities    source.ip: 203.0.113.7
             user.email_hash: 0cc175b9c0f1b6a831c399e269772661
             user.id: u-2001
@@ -174,20 +174,20 @@ Every point of the score is explained (from `prohori report`):
 | Points | Reason |
 | -------: | -------- |
 | +50 | Most severe alert: PRH-AUTH-003 (critical) |
-| +30 | 3 more rules fired: PRH-ACCT-001, PRH-AUTH-001, PRH-AUTH-010 |
+| +20 | 2 more rules fired: PRH-ACCT-001, PRH-AUTH-001 |
 | +20 | A sign-in succeeded after failed attempts |
 | +15 | Sensitive account or admin change: account.2fa.disabled, account.bkash.changed |
 | +20 | Reputation of 203.0.113.7: abuse confidence 97; 9 vendors flag it as malicious (from bundled demo data) |
 | +10 | Sign-in to u-2001 from 203.0.113.7, an IP not seen for this account before (1 earlier IP) |
 | +5 | Sign-in to u-2001 with client web, not seen for this account before |
-| -50 | Capped at 100 |
+| -40 | Capped at 100 |
 | **100** | **Total** |
 
 The report adds the timeline, the IP's enrichment, the ATT&CK techniques (T1078 Valid Accounts, T1098 Account Manipulation, T1110 Brute Force, T1110.001 Password Guessing, T1556.006 Multi-Factor Authentication), recommended actions from the runbooks and the limitations, such as "single log source" and "enrichment is bundled demo data".
 <!-- example:end -->
 
 To see it yourself: `uv run prohori incidents samples/logs/account-takeover.jsonl` and
-`uv run prohori report samples/incidents/INC-14756953ade54922.json`.
+`uv run prohori report samples/incidents/INC-ee7c8818fbb34989.json`.
 
 ## Commands
 
@@ -334,10 +334,10 @@ and join the incidents. Compared with the rules on the simulator's held-out atta
 <!-- anomaly:start -->
 | Detector | Attacks caught | Precision | False alerts a run | Caught only by it |
 | ---------- | ------: | ------: | ------: | ------: |
-| Detection rules (any rule) | 36/40 | 39 % | 6.47 | - |
-| Robust z-score | 15/40 | 100 % | 0.0 | 0 |
-| Fixed thresholds | 10/40 | 49 % | 0.93 | 0 |
-| Isolation Forest | 17/40 | 70 % | 0.35 | 0 |
+| Detection rules (any rule) | 40/40 | 45 % | 6.92 | - |
+| Robust z-score | 20/40 | 97 % | 0.05 | 0 |
+| Fixed thresholds | 10/40 | 100 % | 0.0 | 0 |
+| Isolation Forest | 17/40 | 97 % | 0.03 | 0 |
 
 Held-out variants, seeds 1 to 5; an attack is caught when a true-positive alert is credited to it. Any rule counts here, which is why the rules catch one attack more than in the expected-rule count above.
 <!-- anomaly:end -->
@@ -548,9 +548,9 @@ errors, missing indicators and whether injected instructions were followed:
 
 | Model | Recorded | Answers accepted | With a factual error | Indicators named | Points covered |
 | ------- | ---------- | ------: | ------: | ------: | ------: |
-| Gemini (gemini-3.5-flash-lite) | 2026-11-02 | 28/30 | 2/30 | 110/112 | 83/89 |
+| Gemini (gemini-3.5-flash-lite) | 2026-11-02 | 8/30 | 22/30 | 70/113 | 84/90 |
 
-Gemini (gemini-3.5-flash-lite) answered 30 of the 31 cases; 3 of its answers were recorded for an older version of their incident and are replayed against today's, which can count as errors the original answer did not make. Recording again needs an API key.
+Gemini (gemini-3.5-flash-lite) answered 30 of the 31 cases; 22 of its answers were recorded for an older version of their incident and are replayed against today's, which can count as errors the original answer did not make. Recording again needs an API key.
 
 | System | Injections the answer followed | Followed and shown to the analyst |
 | -------- | ------: | ------: |

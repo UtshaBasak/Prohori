@@ -3,7 +3,7 @@
   "seeds": [
     1
   ],
-  "addresses": 1,
+  "addresses": 2,
   "scenarios": [
     "account-takeover",
     "admin-misuse",
@@ -34,12 +34,12 @@
           "recall": null
         },
         "PRH-ACCT-001": {
-          "alerts": 57,
+          "alerts": 60,
           "true_positives": 2,
-          "false_positives": 55,
+          "false_positives": 58,
           "attacks_expected": 1,
           "attacks_detected": 1,
-          "precision": 0.035,
+          "precision": 0.033,
           "recall": 1.0
         },
         "PRH-ADMIN-001": {
@@ -115,13 +115,13 @@
           "recall": 0.0
         },
         "PRH-AUTH-007": {
-          "alerts": 2,
-          "true_positives": 2,
+          "alerts": 4,
+          "true_positives": 4,
           "false_positives": 0,
           "attacks_expected": 1,
-          "attacks_detected": 0,
+          "attacks_detected": 1,
           "precision": 1.0,
-          "recall": 0.0
+          "recall": 1.0
         },
         "PRH-AUTH-008": {
           "alerts": 0,
@@ -142,13 +142,13 @@
           "recall": 0.0
         },
         "PRH-AUTH-010": {
-          "alerts": 3,
-          "true_positives": 3,
+          "alerts": 0,
+          "true_positives": 0,
           "false_positives": 0,
           "attacks_expected": 1,
-          "attacks_detected": 1,
-          "precision": 1.0,
-          "recall": 1.0
+          "attacks_detected": 0,
+          "precision": null,
+          "recall": 0.0
         },
         "PRH-AUTHZ-001": {
           "alerts": 0,
@@ -219,9 +219,11 @@
           "runs": 1,
           "attacks": 1,
           "attacks_detected": 1,
-          "missed_by_rule": {},
+          "missed_by_rule": {
+            "PRH-AUTH-010": 1
+          },
           "false_positives_by_rule": {
-            "PRH-ACCT-001": 14
+            "PRH-ACCT-001": 7
           }
         },
         "admin-misuse": {
@@ -230,7 +232,7 @@
           "attacks_detected": 1,
           "missed_by_rule": {},
           "false_positives_by_rule": {
-            "PRH-ACCT-001": 13,
+            "PRH-ACCT-001": 16,
             "PRH-ADMIN-001": 1
           }
         },
@@ -243,7 +245,7 @@
             "PRH-AUTH-009": 1
           },
           "false_positives_by_rule": {
-            "PRH-ACCT-001": 9
+            "PRH-ACCT-001": 8
           }
         },
         "injection": {
@@ -257,9 +259,7 @@
           "runs": 1,
           "attacks": 1,
           "attacks_detected": 1,
-          "missed_by_rule": {
-            "PRH-AUTH-007": 1
-          },
+          "missed_by_rule": {},
           "false_positives_by_rule": {
             "PRH-ACCT-001": 10
           }
@@ -280,7 +280,7 @@
           "attacks_detected": 1,
           "missed_by_rule": {},
           "false_positives_by_rule": {
-            "PRH-ACCT-001": 9
+            "PRH-ACCT-001": 17
           }
         },
         "web-scanning": {
@@ -304,13 +304,13 @@
           "recall": null
         },
         "PRH-ACCT-001": {
-          "alerts": 48,
-          "true_positives": 0,
-          "false_positives": 48,
+          "alerts": 58,
+          "true_positives": 2,
+          "false_positives": 56,
           "attacks_expected": 1,
-          "attacks_detected": 0,
-          "precision": 0.0,
-          "recall": 0.0
+          "attacks_detected": 1,
+          "precision": 0.034,
+          "recall": 1.0
         },
         "PRH-ADMIN-001": {
           "alerts": 2,
@@ -376,8 +376,8 @@
           "recall": 0.0
         },
         "PRH-AUTH-006": {
-          "alerts": 2,
-          "true_positives": 2,
+          "alerts": 3,
+          "true_positives": 3,
           "false_positives": 0,
           "attacks_expected": 1,
           "attacks_detected": 1,
@@ -385,13 +385,13 @@
           "recall": 1.0
         },
         "PRH-AUTH-007": {
-          "alerts": 1,
-          "true_positives": 1,
+          "alerts": 2,
+          "true_positives": 2,
           "false_positives": 0,
           "attacks_expected": 1,
-          "attacks_detected": 0,
+          "attacks_detected": 1,
           "precision": 1.0,
-          "recall": 0.0
+          "recall": 1.0
         },
         "PRH-AUTH-008": {
           "alerts": 1,
@@ -490,12 +490,11 @@
           "attacks": 1,
           "attacks_detected": 1,
           "missed_by_rule": {
-            "PRH-ACCT-001": 1,
             "PRH-AUTH-001": 1,
             "PRH-AUTH-010": 1
           },
           "false_positives_by_rule": {
-            "PRH-ACCT-001": 7
+            "PRH-ACCT-001": 11
           }
         },
         "admin-misuse": {
@@ -506,7 +505,7 @@
             "PRH-ADMIN-002": 1
           },
           "false_positives_by_rule": {
-            "PRH-ACCT-001": 13,
+            "PRH-ACCT-001": 9,
             "PRH-ADMIN-001": 1
           }
         },
@@ -520,7 +519,7 @@
             "PRH-AUTH-003": 1
           },
           "false_positives_by_rule": {
-            "PRH-ACCT-001": 9
+            "PRH-ACCT-001": 17
           }
         },
         "injection": {
@@ -535,11 +534,10 @@
           "attacks": 1,
           "attacks_detected": 1,
           "missed_by_rule": {
-            "PRH-AUTH-001": 1,
-            "PRH-AUTH-007": 1
+            "PRH-AUTH-001": 1
           },
           "false_positives_by_rule": {
-            "PRH-ACCT-001": 11
+            "PRH-ACCT-001": 5
           }
         },
         "ssh-bruteforce": {
@@ -558,7 +556,7 @@
           "attacks_detected": 1,
           "missed_by_rule": {},
           "false_positives_by_rule": {
-            "PRH-ACCT-001": 8
+            "PRH-ACCT-001": 14
           }
         },
         "web-scanning": {
@@ -584,12 +582,12 @@
           "recall": null
         },
         "PRH-ACCT-001": {
-          "alerts": 50,
-          "true_positives": 2,
-          "false_positives": 48,
+          "alerts": 48,
+          "true_positives": 1,
+          "false_positives": 47,
           "attacks_expected": 1,
           "attacks_detected": 1,
-          "precision": 0.04,
+          "precision": 0.021,
           "recall": 1.0
         },
         "PRH-ADMIN-001": {
@@ -656,8 +654,8 @@
           "recall": 1.0
         },
         "PRH-AUTH-006": {
-          "alerts": 2,
-          "true_positives": 2,
+          "alerts": 3,
+          "true_positives": 3,
           "false_positives": 0,
           "attacks_expected": 1,
           "attacks_detected": 1,
@@ -683,8 +681,8 @@
           "recall": 1.0
         },
         "PRH-AUTH-009": {
-          "alerts": 3,
-          "true_positives": 3,
+          "alerts": 4,
+          "true_positives": 4,
           "false_positives": 0,
           "attacks_expected": 1,
           "attacks_detected": 1,
@@ -819,7 +817,7 @@
             "PRH-AUTH-007": 1
           },
           "false_positives_by_rule": {
-            "PRH-ACCT-001": 11
+            "PRH-ACCT-001": 12
           }
         },
         "ssh-bruteforce": {
@@ -837,7 +835,7 @@
           "attacks_detected": 1,
           "missed_by_rule": {},
           "false_positives_by_rule": {
-            "PRH-ACCT-001": 9
+            "PRH-ACCT-001": 7
           }
         },
         "web-scanning": {

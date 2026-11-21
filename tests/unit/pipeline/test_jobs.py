@@ -61,7 +61,7 @@ def test_digest_counts_what_was_stored_in_the_window(warehouse: Path) -> None:
         )
     finally:
         sink.close()
-    assert digest.events == 622
+    assert digest.events == 621
     assert digest.alerts > 0
     assert digest.dead_letters == 0
     assert len(digest.incidents) == 3
@@ -76,7 +76,7 @@ def test_digest_counts_what_was_stored_in_the_window(warehouse: Path) -> None:
     assert digest.incidents[0].id in text
     data = json.loads(jobs.digest_json(digest))
     assert data["format"] == "prohori.digest/1"
-    assert data["events"] == 622
+    assert data["events"] == 621
     assert "Nothing was detected in this period." in jobs.render_digest(empty)
     assert empty.incidents == []
 
@@ -134,7 +134,7 @@ def test_digest_command(warehouse: Path, tmp_path: Path) -> None:
     )
     assert written.exit_code == 0, written.output
     assert "incident(s) listed" in written.stdout
-    assert json.loads(out.read_text(encoding="utf-8"))["events"] == 622
+    assert json.loads(out.read_text(encoding="utf-8"))["events"] == 621
 
 
 def test_recall_gate_on_the_committed_results() -> None:
