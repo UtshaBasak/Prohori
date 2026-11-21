@@ -52,6 +52,27 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   with its address model (format `prohori.rules-eval/2`); the address-model-1 results stay under
   their own labels for reference.
 
+- Warehouse indexes on the time columns the dashboards filter (events, alerts, incidents and
+  dead letters), created with the tables in PostgreSQL, so existing stacks get them too.
+- A message the Kafka client or broker refuses (too large or malformed) becomes a dead letter
+  (stage `kafka-producer`) instead of failing the batch on every restart.
+
+### Security
+
+- **Least privilege in the Docker stack's warehouse** (ADR-0039). The stages, dbt and Airflow's
+  jobs connect as a new role, `prohori_app`, which owns the warehouse schemas and cannot create
+  roles or databases, run server programs or read Airflow's database; the superuser only runs
+  `warehouse-init`, which hands an existing stack's tables and views to `prohori_app` on the first
+  `up`. **Upgrade note:** set `PROHORI_APP_DB_PASSWORD` if you changed the defaults (the
+  superuser keeps `PROHORI_POSTGRES_PASSWORD`); `prohori pipeline status` and the dbt profile now
+  read `PROHORI_APP_DB_PASSWORD`. An explicit `PROHORI_POSTGRES_DSN` still wins.
+- **Redpanda syncs to disk.** The stack no longer runs Redpanda in `dev-container` mode, which
+  skipped fsync and cached writes; a host crash can no longer lose messages already committed.
+  A one-shot `redpanda-init` service turns write caching off on clusters created before.
+  Start-up time and memory measured the same.
+- Any database password works in the stack, including `@/:#%`: passwords are never written into
+  a URL (`PGPASSWORD`, libpq keyword strings, and a URL-quoted Airflow database URL).
+
 ### Changed
 
 - SonarQube Cloud now analyses from a GitHub Actions workflow (`sonarcloud.yml`, configured by
@@ -118,6 +139,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- `prohori.llm.evaluate record`: after a `--fresh` recording stops at the daily budget, the
+  message says to continue without `--fresh` (running the same command again discarded it).
 - The Kafka transport retries the broker's start-up errors (no leader or no coordinator yet,
   such as `NOT_LEADER_FOR_PARTITION` and `NOT_COORDINATOR`) on every call made at start-up, until
   the broker timeout; the Docker smoke test failed on them now and then.

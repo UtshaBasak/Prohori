@@ -285,11 +285,34 @@ The limits add up to about 3.9 GB, or 6.9 GB with `--orchestration`. Measured wi
   context holds only `pyproject.toml`, `uv.lock`, the README, licence, changelog and `src/`
   (see `.dockerignore`), never `data/`.
 - **Ports** are published on 127.0.0.1 only: the broker on 19092, PostgreSQL on 15432,
-  Grafana on 13000 and Airflow on 18080, chosen so they do not clash with local services. The PostgreSQL password defaults to a local-only
-  value. To change it, set `PROHORI_POSTGRES_PASSWORD` (and `PROHORI_POSTGRES_PORT`) in the
-  environment of both `prohori pipeline up` and `prohori pipeline status`. Compose also reads
-  them from `pipeline/.env` (git-ignored), but `status` reads only the environment. The broker
+  Grafana on 13000 and Airflow on 18080, chosen so they do not clash with local services. The broker
   has no authentication or TLS, which is fine on one machine and not anywhere else.
+- **Least privilege in the warehouse** (since 1.1, ADR-0039). The stages, dbt and Airflow's jobs
+  connect as `prohori_app`, a role that owns the `raw`, `staging`, `intermediate`, `marts` and
+  `analytics` schemas and nothing else: it cannot create roles or databases, run server programs
+  (`COPY ... TO PROGRAM`) or read Airflow's database. The superuser (`prohori`) is used only by
+  the `warehouse-init` service, which creates the roles and schemas on every `up`; on a stack
+  created by 1.0 it also hands the existing tables and views to `prohori_app`. Grafana reads with
+  its own read-only role.
+- **Passwords** default to local-only values. To change them, set them in the environment of
+  `prohori pipeline up` (Compose also reads `pipeline/.env`, git-ignored):
+  `PROHORI_APP_DB_PASSWORD` (`prohori_app`; `prohori pipeline status` and the dbt profile read it
+  too), `PROHORI_POSTGRES_PASSWORD` (the superuser; fixed when the database volume is first
+  created), `PROHORI_GRAFANA_DB_PASSWORD`, `PROHORI_AIRFLOW_DB_PASSWORD` and
+  `PROHORI_GRAFANA_PASSWORD` (Grafana's admin). Any characters work, including `@/:#%`: no
+  password is ever written into a URL (the stages read theirs from `PGPASSWORD`, and Airflow's
+  database URL is built with the password URL-quoted). `PROHORI_POSTGRES_PORT` moves the port.
+  An explicit `PROHORI_POSTGRES_DSN` still wins everywhere; pointing it at the superuser works
+  but gives up the least privilege.
+- **Durable broker** (since 1.1). Redpanda syncs every write to disk (`--unsafe-bypass-fsync=false`,
+  write caching off), so a host crash loses no message a stage has already committed past. The
+  stack used Redpanda's `dev-container` mode before, which skips both. A one-shot
+  `redpanda-init` service turns write caching off on a cluster created that way. Start-up time
+  and idle memory measured the same both ways (about 2.5 s to healthy, about 70 MB).
+- **Indexes.** The warehouse's time columns that the dashboards filter on (events by timestamp
+  and storage time, alerts by `last_seen`, incidents by `first_seen` and `last_seen`, every
+  table by `stored_at`) are indexed in PostgreSQL, created with the tables. Lite mode's DuckDB
+  has none: its automatic min-max indexes already narrow time ranges.
 - **Health.** Redpanda, PostgreSQL and Grafana have their own health checks (PostgreSQL's
   connects over TCP, so it does not pass during the first start's initialisation). Each stage container touches
   a heartbeat file after every round and is healthy while the file is less than a minute old, so
@@ -302,14 +325,17 @@ The limits add up to about 3.9 GB, or 6.9 GB with `--orchestration`. Measured wi
   of an attack never writes the first part as an incident of its own. Open incidents are
   written after the next `up`. The stack stops in a few seconds.
 - **Containers restart** unless stopped. A stage that hits a database or broker error stops
-  without committing, restarts, and processes the same batch again.
+  without committing, restarts, and processes the same batch again. A message the broker refuses
+  for its own sake (too large or malformed) is the exception: it becomes a dead letter (stage
+  `kafka-producer`) and the batch is committed, instead of failing again on every restart.
 
 ### Over Kafka
 
 `prohori.pipeline.kafka.KafkaTransport` implements the same transport as lite mode:
 
 - Every topic has one partition and unlimited retention. Topics are created with those settings
-  by whichever client starts first, before anything is published.
+  by whichever client starts first, before anything is published. Calls made while the broker is
+  still settling (no leader or no group coordinator yet) are retried for up to 30 seconds.
 - Each consumer group is assigned the partition directly, without rebalancing. A stage commits
   the offset after its output has been flushed. The producer is idempotent and waits for every
   replica, and a message that was not delivered makes the flush fail, so input is never
