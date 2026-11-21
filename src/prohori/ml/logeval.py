@@ -32,9 +32,13 @@ from prohori.ml import anomaly
 from prohori.ml.features import Window, extract
 from prohori.rules import CompiledRule, builtin_rules_dir, load_rules
 from prohori.schema import Alert, Event
-from prohori.simulate import SCENARIOS, VARIANTS, simulate
+from prohori.simulate import SCENARIOS, simulate
 from prohori.simulate.evaluate import DEFAULT_SEEDS, Detection, detect
 from prohori.simulate.run import Simulation
+
+#: The variants the anomaly detectors are evaluated on (``heldout2`` was added for the
+#: rule study of ADR-0036, after these results were recorded).
+LOG_VARIANTS = ("default", "heldout")
 
 RESULTS_FORMAT = "prohori.log-anomaly-eval/1"
 RULES = "rules"
@@ -190,7 +194,7 @@ def evaluate(
         variant: [
             prepare(simulate(n, seed=s, variant=variant), rules) for n in names for s in seeds
         ]
-        for variant in VARIANTS
+        for variant in LOG_VARIANTS
     }
     variants: dict[str, Any] = {}
     for variant, variant_runs in runs.items():

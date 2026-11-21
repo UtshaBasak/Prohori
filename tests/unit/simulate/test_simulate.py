@@ -151,7 +151,12 @@ def test_write_creates_log_labels_and_manifest(tmp_path: Path) -> None:
     assert b"\r\n" not in log
     assert stored["year"] == 2026
     assert stored["parser"] == "auth_log"
-    assert stored["attacks"][0]["expected_rules"] == ["PRH-AUTH-001", "PRH-SSH-001"]
+    assert stored["attacks"][0]["expected_rules"] == [
+        "PRH-AUTH-001",
+        "PRH-SSH-001",
+        "PRH-AUTH-005",
+        "PRH-AUTH-006",
+    ]
     assert str(tmp_path) not in json.dumps(stored)  # no absolute paths
 
 

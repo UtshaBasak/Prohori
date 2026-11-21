@@ -2,10 +2,13 @@
 # Copyright (c) 2026 Utsha Basak
 """The attack scenarios. Each declares, before any evaluation is run, which rules should detect it.
 
-Every scenario has a ``default`` variant and a ``heldout`` variant. The held-out variants change
-the attacker's behaviour in ways a real attacker would (slower, spread over more addresses,
-obfuscated, outside a time window) and exist to show where the rules stop working. The expected
-rules are the same for both variants: a miss in the held-out variant is a real miss.
+Every scenario has a ``default`` variant and two held-out variants. ``heldout`` changes the
+attacker's behaviour in ways a real attacker would (slower, spread over more addresses,
+obfuscated, outside a time window) and exists to show where the rules stop working.
+``heldout2`` was added after the evasion-resistant rules were fixed (ADR-0036) and is derived
+from ``heldout`` by a fixed rule: rates halved, sources doubled, and a distributed attack's
+sources spread over every documentation network (:meth:`AddressPool.take_spread`). The expected
+rules are the same for every variant: a miss in a held-out variant is a real miss.
 """
 
 from collections.abc import Callable, Mapping
@@ -29,7 +32,7 @@ from prohori.simulate.model import Attack, Recorder
 Params = Mapping[str, float]
 Generator = Callable[[Recorder, AddressPool, Params, str], None]
 
-VARIANTS: Final = ("default", "heldout")
+VARIANTS: Final = ("default", "heldout", "heldout2")
 
 
 @dataclass(frozen=True)
@@ -53,14 +56,19 @@ def _int(params: Params, name: str) -> int:
     return int(params[name])
 
 
+def _sources(pool: AddressPool, network: str, count: int, variant: str) -> list[str]:
+    """An attack's sources: from one range, or spread over every network in ``heldout2``."""
+    return pool.take_spread(count) if variant == "heldout2" else pool.take_many(network, count)
+
+
 # --------------------------------------------------------------------------- SSH
 
 
 def ssh_bruteforce(rec: Recorder, pool: AddressPool, p: Params, variant: str) -> None:
     ssh_background(rec, pool, _int(p, "duration"), p["noise"])
-    sources = pool.take_many(HOSTILE, _int(p, "sources"))
+    sources = _sources(pool, HOSTILE, _int(p, "sources"), variant)
     names: tuple[str, ...] = ("root", "admin", "ubuntu", "test", "oracle", "postgres")
-    if variant == "heldout":
+    if variant != "default":
         names = ("root",)  # only a real account: no "Invalid user" lines
     attack = rec.attack(
         Attack(
@@ -164,7 +172,7 @@ def _app_setup(rec: Recorder, pool: AddressPool, p: Params) -> tuple[RequestIds,
 
 def password_spraying(rec: Recorder, pool: AddressPool, p: Params, variant: str) -> None:
     ids, accounts = _app_setup(rec, pool, p)
-    sources = pool.take_many(HOSTILE, _int(p, "sources"))
+    sources = _sources(pool, HOSTILE, _int(p, "sources"), variant)
     targets = accounts[: _int(p, "attempts")] if _int(p, "attempts") <= len(accounts) else accounts
     attack = rec.attack(
         Attack(
@@ -199,7 +207,9 @@ def password_spraying(rec: Recorder, pool: AddressPool, p: Params, variant: str)
 
 def credential_stuffing(rec: Recorder, pool: AddressPool, p: Params, variant: str) -> None:
     ids, accounts = _app_setup(rec, pool, p)
-    sources = pool.take_many(HOSTILE if variant == "default" else INTERNET, _int(p, "sources"))
+    sources = _sources(
+        pool, HOSTILE if variant == "default" else INTERNET, _int(p, "sources"), variant
+    )
     attack = rec.attack(
         Attack(
             id="credential-stuffing-1",
@@ -258,7 +268,7 @@ def credential_stuffing(rec: Recorder, pool: AddressPool, p: Params, variant: st
 def token_reuse(rec: Recorder, pool: AddressPool, p: Params, variant: str) -> None:
     ids, accounts = _app_setup(rec, pool, p)
     victims = accounts[: _int(p, "attempts")]
-    source = pool.take(IPV6 if variant == "heldout" else HOSTILE)
+    source = pool.take(HOSTILE if variant == "default" else IPV6)
     attack = rec.attack(
         Attack(
             id="token-reuse-1",
@@ -271,7 +281,7 @@ def token_reuse(rec: Recorder, pool: AddressPool, p: Params, variant: str) -> No
     )
     for n, victim in enumerate(victims):
         when = rec.at(p["attack_at"] + n * 7.5 + rec.rng.uniform(0, 2))
-        client = "android/10203" if variant == "heldout" else "web"
+        client = "web" if variant == "default" else "android/10203"
         rec.add(
             when,
             formats.app(
@@ -343,7 +353,7 @@ def account_takeover(rec: Recorder, pool: AddressPool, p: Params, variant: str) 
         attack,
     )
     changes = (("account.2fa.disabled", 1.5), ("account.bkash.changed", 2.2))
-    if variant == "heldout":  # waits longer than PRH-ACCT-001's 30 minutes before acting
+    if variant != "default":  # waits longer than PRH-ACCT-001's 30 minutes before acting
         changes = (("account.bkash.changed", 35.0), ("account.password.changed", 41.0))
     for action, after in changes:
         when = rec.at(signed_in + after)

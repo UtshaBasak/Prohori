@@ -52,14 +52,29 @@ def get_scenario(name: str) -> Scenario:
         raise SimulationError(f"unknown scenario {name!r}; choose from {choices}") from None
 
 
+def heldout2_params(heldout: Mapping[str, float]) -> dict[str, float]:
+    """``heldout2`` from ``heldout``, by the rule fixed in ADR-0036: rates halved, sources doubled.
+
+    (Spreading a distributed attack's sources over every network is done by the scenarios.)
+    """
+    params = dict(heldout)
+    if "rate" in params:
+        params["rate"] = params["rate"] / 2
+    if "sources" in params:
+        params["sources"] = params["sources"] * 2
+    return params
+
+
 def resolve_params(
     scenario: Scenario, variant: str, overrides: Mapping[str, str] | None = None
 ) -> tuple[dict[str, float], str]:
     """The scenario's defaults for ``variant`` with ``overrides`` applied and validated."""
     if variant not in VARIANTS:
         raise SimulationError(f"unknown variant {variant!r}; choose from {', '.join(VARIANTS)}")
-    params = dict(scenario.defaults[variant])
-    start = scenario.starts[variant]
+    params = dict(scenario.defaults[variant]) if variant in scenario.defaults else {}
+    start = scenario.starts.get(variant, "")
+    if variant == "heldout2" and variant not in scenario.defaults:
+        params, start = heldout2_params(scenario.defaults["heldout"]), scenario.starts["heldout"]
     for name, text in (overrides or {}).items():
         if name == "start":
             parse_start(text)
