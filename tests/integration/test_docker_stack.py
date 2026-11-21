@@ -11,6 +11,7 @@ starts about 3 GB of containers and **deletes the stack's data volumes** before 
 
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -136,10 +137,85 @@ def _memory_within_limits() -> list[str]:
     return over
 
 
+#: Passwords with every character a URL would need escaped (and %41, which URL-decoding would
+#: turn into "A"), so a connection string that is not built safely fails the test.
+AWKWARD = "@/:#%41 '"
+SUPERUSER_SECRET = "su" + AWKWARD
+APP_SECRET = "app" + AWKWARD
+
+
+def _superuser_dsn() -> str:
+    port = os.environ.get("PROHORI_POSTGRES_PORT", str(stack.POSTGRES_PORT))
+    return stack.conninfo(
+        host="127.0.0.1", port=port, dbname="prohori", user="prohori", password=SUPERUSER_SECRET
+    )
+
+
+def _check_least_privilege(dsn: str) -> None:
+    """The stages connect as prohori_app, which owns the raw tables and nothing more."""
+    import psycopg
+
+    with psycopg.connect(_superuser_dsn(), connect_timeout=5) as admin:
+        users = {
+            row[0]
+            for row in admin.execute(
+                "SELECT usename FROM pg_stat_activity WHERE datname = 'prohori' AND usename IS NOT"
+                " NULL AND pid <> pg_backend_pid() AND usename NOT IN ('grafana')"
+            ).fetchall()
+        }
+        assert users == {stack.APP_ROLE}, users
+        owners = admin.execute(
+            "SELECT DISTINCT tableowner FROM pg_tables WHERE schemaname = 'raw'"
+        ).fetchall()
+        assert owners == [(stack.APP_ROLE,)], owners
+    with psycopg.connect(dsn, connect_timeout=5, autocommit=True) as app_connection:
+        for statement in ("COPY (SELECT 1) TO PROGRAM 'true'", "CREATE ROLE intruder"):
+            with pytest.raises(psycopg.errors.InsufficientPrivilege):
+                app_connection.execute(statement)
+
+
+def _explain_dashboard_queries(dsn: str) -> dict[str, str]:
+    """The plan of every dashboard query that filters a raw table by time, with sequential scans
+    off: a few thousand rows always fit a sequential scan, so this shows whether an index *can*
+    serve the filter, which is what matters once the table is large."""
+    import psycopg
+
+    plans = {}
+    with psycopg.connect(dsn, connect_timeout=5) as connection:
+        connection.execute("SET enable_seqscan = off")
+        for board in sorted(DASHBOARDS.glob("*.json")):
+            for panel in json.loads(board.read_text(encoding="utf-8"))["panels"]:
+                for target in panel.get("targets", []):
+                    sql = target.get("rawSql", "")
+                    if "FROM raw." not in sql or "$__timeFilter" not in sql:
+                        continue
+                    sql = re.sub(
+                        r"\$__timeFilter\(([^)]+)\)",
+                        r"\1 BETWEEN now() - interval '30 days' AND now()",
+                        sql,
+                    )
+                    sql = re.sub(
+                        r"\$__timeGroupAlias\(([^,]+), '1h'\)",
+                        r"date_trunc('hour', \1) AS time",
+                        sql,
+                    )
+                    sql = re.sub(
+                        r"\$__timeGroupAlias\(([^,]+), '1m'\)",
+                        r"date_trunc('minute', \1) AS time",
+                        sql,
+                    )
+                    rows = connection.execute("EXPLAIN " + sql).fetchall()
+                    plans[panel["title"]] = "\n".join(r[0] for r in rows)
+    return plans
+
+
 def test_replay_reaches_postgres_once_and_matches_batch(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     monkeypatch.chdir(ROOT)
+    monkeypatch.delenv("PROHORI_POSTGRES_DSN", raising=False)
+    monkeypatch.setenv("PROHORI_POSTGRES_PASSWORD", SUPERUSER_SECRET)
+    monkeypatch.setenv("PROHORI_APP_DB_PASSWORD", APP_SECRET)
     stack.down(COMPOSE, volumes=True)  # start from empty topics and an empty warehouse
     try:
         up = runner.invoke(app, ["pipeline", "up", "--timeout", "600"])
@@ -185,6 +261,10 @@ def test_replay_reaches_postgres_once_and_matches_batch(
         assert status.exit_code == 0, status.output
         assert f"incidents {len(expected)}" in status.stdout, status.stdout
         assert _memory_within_limits() == []
+        _check_least_privilege(dsn)
+        for title, plan in _explain_dashboard_queries(dsn).items():
+            assert "Index" in plan, (title, plan)
+            assert "Seq Scan" not in plan, (title, plan)
 
         # The provisioned dashboards fill without any setup: every panel on the raw tables
         # returns rows (dead letters excepted: there are none).

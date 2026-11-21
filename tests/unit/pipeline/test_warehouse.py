@@ -53,6 +53,11 @@ def test_ddl_for_both_databases() -> None:
     assert "record JSONB NOT NULL" in postgres
     assert "stored_at TIMESTAMPTZ NOT NULL DEFAULT current_timestamp" in duck
     assert "DEFAULT now()" in postgres
+    assert (
+        'CREATE INDEX IF NOT EXISTS events_timestamp_idx ON raw.events ("timestamp");' in postgres
+    )
+    assert postgres.count("CREATE INDEX IF NOT EXISTS") == 8
+    assert "CREATE INDEX" not in duck  # zone maps cover time ranges in DuckDB (ADR-0039)
     assert column_names("labels") == ("id", "source", "line", "scenario", "attack_id")
     assert json_columns("events") == {"record"}
     assert json_columns("labels") == frozenset()

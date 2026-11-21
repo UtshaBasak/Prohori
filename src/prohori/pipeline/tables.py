@@ -127,6 +127,17 @@ TABLES: dict[str, tuple[Column, ...]] = {
 #: The tables the sinks write.
 STREAM_TABLES = ("events", "alerts", "incidents", "dead_letters")
 
+#: Indexes for the dashboards' time filters, PostgreSQL only. DuckDB gets none: it uses its
+#: indexes (ART) for equality and very selective lookups, not time ranges, which its automatic
+#: min-max indexes already narrow; ART indexes would slow every insert and use memory its buffer
+#: manager does not control (ADR-0039).
+INDEXES: dict[str, tuple[str, ...]] = {
+    "events": ("timestamp", "stored_at"),
+    "alerts": ("last_seen", "stored_at"),
+    "incidents": ("first_seen", "last_seen", "stored_at"),
+    "dead_letters": ("stored_at",),
+}
+
 
 def column_names(table: str) -> tuple[str, ...]:
     """The columns a writer supplies, in row order (``stored_at`` is filled by the database)."""
@@ -138,7 +149,8 @@ def json_columns(table: str) -> frozenset[str]:
 
 
 def ddl(dialect: Dialect, prefix: str = "") -> str:
-    """``CREATE TABLE IF NOT EXISTS`` for every table, and ``stored_at`` for older tables."""
+    """``CREATE TABLE IF NOT EXISTS`` for every table, ``stored_at`` for older tables and, for
+    PostgreSQL, the :data:`INDEXES`. Every statement is idempotent."""
     types = _TYPES[dialect]
     now = "current_timestamp" if dialect == "duckdb" else "now()"
     statements = []
@@ -156,4 +168,10 @@ def ddl(dialect: Dialect, prefix: str = "") -> str:
             f"ALTER TABLE {prefix}{table} ADD COLUMN IF NOT EXISTS stored_at TIMESTAMPTZ "
             f"DEFAULT {now};"
         )
+    if dialect == "postgres":
+        for table, indexed in INDEXES.items():
+            statements += [
+                f'CREATE INDEX IF NOT EXISTS {table}_{column}_idx ON {prefix}{table} ("{column}");'
+                for column in indexed
+            ]
     return "\n".join(statements) + "\n"

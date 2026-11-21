@@ -90,6 +90,12 @@ def _rows(dsn: str, table: str) -> int:
 
 def test_every_dag_runs_in_the_stack(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.chdir(ROOT)
+    # Airflow's database URL is built with the password URL-quoted: these characters would break
+    # a URL written by hand (and %41 would decode to "A").
+    awkward = "@/:#%41 '"
+    monkeypatch.setenv("PROHORI_AIRFLOW_DB_PASSWORD", "af" + awkward)
+    monkeypatch.setenv("PROHORI_APP_DB_PASSWORD", "app" + awkward)
+    monkeypatch.delenv("PROHORI_POSTGRES_DSN", raising=False)
     stack.down(COMPOSE, volumes=True)
     try:
         up = runner.invoke(app, ["pipeline", "up", "--orchestration", "--timeout", "900"])

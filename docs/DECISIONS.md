@@ -1749,3 +1749,84 @@ committed (d46e17b) before any rule was scored on it, from a stated source where
   address, a bug the new evaluation cases exposed.
 - The Kafka transport retries the broker's start-up errors (no leader or no coordinator yet) on
   every call made at start-up, which made the Docker smoke test fail now and then.
+
+## ADR-0039: Least privilege in the warehouse, safe connection strings, a durable broker
+
+- **Date:** 2026-11-21
+- **Status:** Accepted
+
+**Context.** The Docker stack ran every stage, dbt and Airflow's jobs as the PostgreSQL superuser
+(`prohori`, the image's `POSTGRES_USER`), so a bug or an injected statement in any of them could
+read every database, create roles or run programs on the server (`COPY ... TO PROGRAM`). Its
+connection strings were URLs with the password inside, which break on `@`, `/`, `:`, `#` or `%`.
+Redpanda ran in `dev-container` mode, and the dashboards filtered unindexed time columns.
+
+**Decision.**
+
+- **An application role.** `warehouse-init.sql` creates `prohori_app` (`NOSUPERUSER NOCREATEDB
+  NOCREATEROLE NOREPLICATION NOBYPASSRLS`), which owns the `raw`, `staging`, `intermediate`,
+  `marts` and `analytics` schemas. It has CREATE on the database only because PostgreSQL checks
+  that privilege for `CREATE SCHEMA IF NOT EXISTS` even when the schema exists (checked against
+  the stack's PostgreSQL 17), and the sink and dbt issue that statement. It is never granted a
+  predefined role such as `pg_execute_server_program`, and `PUBLIC` loses CONNECT on Airflow's
+  database. The stages, dbt and Airflow's jobs connect as `prohori_app`; the superuser only runs
+  `warehouse-init`. Its password stays `PROHORI_POSTGRES_PASSWORD` (it is fixed when the volume
+  is created, so renaming it would break existing stacks); the new role's is
+  `PROHORI_APP_DB_PASSWORD`.
+- **In-place migration.** On every start, `warehouse-init` hands the five schemas, and every
+  table, view, materialised view and free-standing sequence in them, to `prohori_app` with a
+  `DO` block over `pg_class`. `REASSIGN OWNED BY prohori` cannot be used: the bootstrap superuser
+  owns the system catalogs and the database. Grafana's default privileges cover tables created
+  by either role. Tested against a database built by the 1.0 script (tables, a view, a mart and a
+  serial column owned by the superuser): after two runs every object belongs to `prohori_app`,
+  the sink connects and adds its indexes, a dbt-style mart replacement works and Grafana reads it.
+- **Connection strings.** Compose never puts a password in a URL: the stages and Airflow's jobs
+  get a keyword DSN without a password and `PGPASSWORD`, which libpq reads; Airflow's own
+  database URL is built by every Airflow process (`AIRFLOW__DATABASE__SQL_ALCHEMY_CONN_CMD`) with the password URL-quoted. On the host,
+  `prohori.pipeline.stack.default_dsn` builds a keyword DSN with every value quoted. The smoke
+  tests use passwords containing `@/:#%41`, a space and a quote (`%41` would turn into `A` if
+  anything URL-decoded it).
+- **Indexes** (PostgreSQL, created with the tables, so idempotent and applied to old stacks):
+  `events(timestamp, stored_at)`, `alerts(last_seen, stored_at)`, `incidents(first_seen,
+  last_seen, stored_at)` and `dead_letters(stored_at)`. The plan named `incidents(last_seen)`;
+  the dashboards filter incidents by `first_seen`, so both are indexed, and the pipeline-health
+  panels filter by `stored_at`. A unit test ties every dashboard time filter to an index, and the
+  smoke test checks with `EXPLAIN` (sequential scans off, since a few thousand rows always fit a
+  sequential scan) that each such query can use one. **DuckDB gets none**, against the plan:
+  DuckDB's documentation says its ART indexes serve "point and very highly selective (i.e., <
+  0.1%) queries" and equality or `IN` filters, slow loading, and use buffers "not yet
+  buffer-managed", while the min-max indexes it creates automatically already skip row groups
+  for range filters on ordered columns such as timestamps.
+- **Redpanda syncs to disk.** Its documentation says `--mode dev-container` bundles
+  `--unsafe-bypass-fsync` and `write_caching_default: true`. Dropping the mode was not enough:
+  the image's own `redpanda.yaml` sets `developer_mode: true` and write caching, and with it rpk
+  still passed `--unsafe-bypass-fsync=true`. The stack now passes
+  `--unsafe-bypass-fsync=false`, `--set redpanda.developer_mode=false` and
+  `--set redpanda.write_caching_default=false`, plus the container flags it needs
+  (`--overprovisioned`, `--reserve-memory=0M`, `--check=false`); a one-shot `redpanda-init`
+  service sets `write_caching_default` to false on a cluster created before, since `--set` only
+  seeds a new cluster. Measured on the same machine, twice each: about 2.3-2.6 s to healthy and
+  about 70 MB of memory either way.
+- **Refused messages.** A message the Kafka client or broker refuses for its own sake
+  (`MSG_SIZE_TOO_LARGE`, `RECORD_LIST_TOO_LARGE`, `INVALID_RECORD`, `INVALID_MSG`, not fatal)
+  becomes a dead letter (stage `kafka-producer`), delivered before the batch is committed. Any
+  other error still fails the batch, as before; a refused dead letter raises.
+- **A consumer whose start-up read failed is replaced.** With fsync on, the local smoke test
+  failed in 2 of 4 runs: everything started, the replay was published, and no event reached the
+  warehouse for four minutes, without an error. A consumer whose first fetch of the group's
+  committed offset fails ("Not coordinator") may never fetch it again; step 28c had made that
+  error a silent retry, where before it crashed the stage and the restart recovered. The
+  transport now closes that consumer and starts a fresh one on that read. Three runs in a row
+  passed afterwards.
+
+**Consequences.**
+
+- Upgrading keeps working without any setting: the defaults of both passwords are local-only
+  values, and `warehouse-init` migrates ownership on the first `up`. A user who set
+  `PROHORI_POSTGRES_PASSWORD` keeps it for the superuser and should also set
+  `PROHORI_APP_DB_PASSWORD`. An explicit `PROHORI_POSTGRES_DSN` still wins; pointing it at the
+  superuser works but gives up the least privilege.
+- Creating the indexes on a large existing table blocks writes to it once, on the first start.
+- Fsync costs throughput under heavy load; it was not measurable at the stack's volumes here.
+- Dead letters for refused messages are not counted in the stage's own `dead_letters` counter
+  (the transport writes them); they are in the warehouse like any other.

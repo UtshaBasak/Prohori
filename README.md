@@ -479,7 +479,18 @@ uv run prohori pipeline down                  # --volumes also deletes the data
 The measured memory use is in [docs/PIPELINE.md](docs/PIPELINE.md). A smoke test in CI starts it from empty
 volumes, replays a simulated attack twice and checks that the warehouse holds each event once
 and exactly the incidents of the batch command. Images are pinned by digest, the containers run
-unprivileged, and the ports are bound to 127.0.0.1 only.
+unprivileged, and the ports are bound to 127.0.0.1 only. Since 1.1:
+
+- **Least privilege:** the stages, dbt and Airflow connect as `prohori_app`, which owns the
+  warehouse schemas and cannot create roles, run server programs or read other databases; the
+  superuser only initialises the database (and moves a 1.0 stack's tables to the new role on
+  the first start).
+- **Any password works**, including `@/:#%`: none is ever written into a URL. Set
+  `PROHORI_APP_DB_PASSWORD` and the other passwords in the environment of `pipeline up`.
+- **Durable broker:** Redpanda syncs writes to disk (no longer its developer mode), so a host
+  crash loses no message a stage has committed past.
+- **Indexed dashboards:** the time columns the dashboards filter are indexed, and a message the
+  broker refuses as too large becomes a dead letter instead of a crash loop.
 
 Details: [docs/PIPELINE.md](docs/PIPELINE.md).
 

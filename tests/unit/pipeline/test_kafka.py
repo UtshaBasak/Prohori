@@ -12,8 +12,14 @@ from types import SimpleNamespace
 import pytest
 
 from prohori.pipeline import kafka as kafka_module
-from prohori.pipeline.kafka import TOPIC_CONFIG, KafkaTransport, TransportError, decode_message
-from prohori.pipeline.messages import Topic
+from prohori.pipeline.kafka import (
+    REJECTED_BY,
+    TOPIC_CONFIG,
+    KafkaTransport,
+    TransportError,
+    decode_message,
+)
+from prohori.pipeline.messages import MAX_DEAD_LETTER_PAYLOAD, DeadLetter, Topic
 from prohori.pipeline.producers import replay
 from prohori.pipeline.runner import LiteSettings, make_stage, serve
 from prohori.rules import builtin_rules_dir, load_rules
@@ -121,7 +127,12 @@ def test_settling_read_errors_read_as_empty_until_the_timeout(
     transport.publish(Topic.ALERTS, "k", {"n": 1})
     transport.flush()
     broker.call_errors["consume"] = [FakeKafkaError.NOT_COORDINATOR] * 2
+    first = transport._consumer("g", Topic.ALERTS)
     assert transport.poll(Topic.ALERTS, "g", 10) == []
+    # The consumer that met the error is replaced: librdkafka may never retry its fetch of the
+    # committed offset, and the stage would read nothing at all (seen in the Docker stack).
+    assert first.closed  # type: ignore[attr-defined]
+    assert transport._consumer("g", Topic.ALERTS) is not first
     assert transport.poll(Topic.ALERTS, "g", 10) == []
     assert len(transport.poll(Topic.ALERTS, "g", 10)) == 1
     monkeypatch.setattr("prohori.pipeline.kafka.BROKER_TIMEOUT", -1.0)
@@ -208,6 +219,52 @@ def test_failed_delivery_makes_flush_raise(broker: Broker, transport: KafkaTrans
     broker.fail_delivery = False
     broker.undelivered = 2
     with pytest.raises(TransportError, match="2 message"):
+        transport.flush()
+
+
+def _dead_letters(broker: Broker) -> list[DeadLetter]:
+    return [DeadLetter.model_validate_json(v or b"") for _, v in broker.topics["dead-letter"]]
+
+
+@pytest.mark.parametrize("where", ["client", "broker"])
+def test_a_refused_message_becomes_a_dead_letter(
+    broker: Broker, transport: KafkaTransport, where: str
+) -> None:
+    """A message too large for the client (produce raises) or the broker (the delivery report
+    fails) is replaced by a dead letter, so the batch is not delivered again and again."""
+    if where == "client":
+        broker.max_message_bytes = 10_000
+    else:
+        broker.broker_max_bytes = 10_000
+    transport.publish(Topic.EVENTS, "small", {"n": 1})
+    transport.publish(Topic.INCIDENTS, "big", {"text": "x" * 50_000})
+    transport.flush()  # no error: the batch can be committed
+    assert [k for k, _ in broker.topics["events"]] == [b"small"]
+    assert broker.topics["incidents"] == []
+    (letter,) = _dead_letters(broker)
+    assert (letter.stage, letter.topic, letter.key) == (REJECTED_BY, "incidents", "big")
+    assert "too large" in letter.reason
+    assert len(letter.payload) == MAX_DEAD_LETTER_PAYLOAD  # the start of the message only
+    transport.publish(Topic.INCIDENTS, "big", {"text": "x" * 50_000})
+    transport.flush()
+    first, again = _dead_letters(broker)
+    assert first.id == again.id  # the same message gives the same id, stored once by the sink
+
+
+def test_other_produce_errors_still_raise(broker: Broker, transport: KafkaTransport) -> None:
+    def fatal(*args: object, **kwargs: object) -> None:
+        error = FakeKafkaError(FakeKafkaError.MSG_SIZE_TOO_LARGE, "fenced", fatal=True)
+        raise FakeKafkaException(error)
+
+    transport.producer.produce = fatal
+    with pytest.raises(FakeKafkaException):  # a fatal error is never a dead letter
+        transport.publish(Topic.EVENTS, "k", {"n": 1})
+
+
+def test_a_refused_dead_letter_is_an_error(broker: Broker, transport: KafkaTransport) -> None:
+    broker.broker_max_bytes = 10
+    transport.publish(Topic.DEAD_LETTER, "dlq", {"payload": "x" * 100})
+    with pytest.raises(TransportError, match="not delivered"):
         transport.flush()
 
 

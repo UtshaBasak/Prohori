@@ -10,7 +10,7 @@ from typing import Any
 import pytest
 import yaml
 
-from prohori.pipeline.tables import TABLES
+from prohori.pipeline.tables import INDEXES, TABLES
 
 ROOT = Path(__file__).resolve().parents[3]
 GRAFANA = ROOT / "pipeline" / "grafana"
@@ -71,6 +71,19 @@ def test_queries_read_existing_tables_only(path: Path) -> None:
             assert not re.search(r"\b(insert|update|delete|drop|alter|create|grant)\b", sql, re.I)
 
 
+@pytest.mark.parametrize("path", DASHBOARDS, ids=lambda p: p.stem)
+def test_time_filters_on_raw_tables_are_indexed(path: Path) -> None:
+    """Every ``$__timeFilter(column)`` on a raw table has a PostgreSQL index on that column."""
+    for panel in _load(path)["panels"]:
+        for target in panel.get("targets", []):
+            sql = target.get("rawSql", "")
+            for part in re.split(r"\bUNION ALL\b", sql):
+                table = re.search(r"\bFROM raw\.(\w+)", part)
+                for column in re.findall(r'\$__timeFilter\("?(\w+)"?\)', part):
+                    if table:
+                        assert column in INDEXES[table.group(1)], (panel["title"], column)
+
+
 def test_compose_mounts_the_provisioning_and_reader_role() -> None:
     services = yaml.safe_load(COMPOSE.read_text(encoding="utf-8"))["services"]
     grafana = services["grafana"]
@@ -82,4 +95,9 @@ def test_compose_mounts_the_provisioning_and_reader_role() -> None:
     assert _datasource()["user"] == "grafana"
     init = (ROOT / "pipeline" / "postgres" / "warehouse-init.sql").read_text(encoding="utf-8")
     assert "GRANT SELECT ON TABLES TO grafana" in init
-    assert "superuser" not in init.lower().replace("nosuperuser", "")
+    assert not re.search(r"(?<!NO)SUPERUSER", init)  # no role is ever made a superuser
+    app = re.search(r"ALTER ROLE prohori_app WITH ([^;]+);", init)
+    assert app is not None
+    for attribute in ("NOSUPERUSER", "NOCREATEDB", "NOCREATEROLE", "NOREPLICATION", "NOBYPASSRLS"):
+        assert attribute in app.group(1)
+    assert not re.search(r"GRANT\s+pg_", init)  # no predefined role (server programs, files)

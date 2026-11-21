@@ -49,7 +49,8 @@ and stores no secrets:
 
 - the DuckDB file comes from `PROHORI_DUCKDB` (default `.prohori/pipeline/prohori.duckdb`);
 - PostgreSQL comes from `PROHORI_POSTGRES_HOST`, `PROHORI_POSTGRES_PORT` and
-  `PROHORI_POSTGRES_PASSWORD`, with the stack's defaults.
+  `PROHORI_APP_DB_PASSWORD`, with the stack's defaults. dbt connects as `prohori_app`, the role
+  that owns the warehouse schemas (not the superuser; see PIPELINE.md).
 
 **DuckDB allows one writer**, so stop a running lite pipeline before you build the models. The
 models are written next to the pipeline's tables, in the `staging`, `intermediate` and `marts`
