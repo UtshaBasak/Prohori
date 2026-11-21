@@ -147,11 +147,15 @@ def allowed_from(data: Mapping[str, Any], sources: Iterable[str] = ()) -> Allowe
         values += [(f"indicator.{i['type']}", i["value"]) for i in data["indicators"]]
         for key, value in values:
             text = str(value).translate(FENCE_CHARS).strip()
-            if key.endswith("ip"):
+            if key.endswith(("ip", "ip_prefix")):
                 if _PSEUDONYM.fullmatch(text):
                     allowed.pseudonyms.add(text)
-                else:
-                    allowed.ips |= {ip for ip in _ips(text) if ip == text or f"[{ip}]" == text}
+                else:  # an address, or a network's own address (203.0.113.0 of 203.0.113.0/24)
+                    allowed.ips |= {
+                        ip
+                        for ip in _ips(text)
+                        if text in (ip, f"[{ip}]") or text.startswith(f"{ip}/")
+                    }
             elif _PSEUDONYM.fullmatch(text):
                 allowed.pseudonyms.add(text)
     for text in sources:
