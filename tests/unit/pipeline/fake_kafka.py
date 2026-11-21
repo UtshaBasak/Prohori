@@ -12,16 +12,22 @@ INVALID = -1001
 
 class FakeKafkaError:
     TOPIC_ALREADY_EXISTS = 36
+    INVALID_MSG = 2
     UNKNOWN_TOPIC_OR_PART = 3
+    MSG_SIZE_TOO_LARGE = 10
     LEADER_NOT_AVAILABLE = 5
     NOT_LEADER_FOR_PARTITION = 6
     COORDINATOR_LOAD_IN_PROGRESS = 14
     COORDINATOR_NOT_AVAILABLE = 15
     NOT_COORDINATOR = 16
 
-    def __init__(self, code: int, text: str = "") -> None:
+    def __init__(self, code: int, text: str = "", *, fatal: bool = False) -> None:
         self._code = code
         self.text = text or f"error {code}"
+        self._fatal = fatal
+
+    def fatal(self) -> bool:
+        return self._fatal
 
     def code(self) -> int:
         return self._code
@@ -62,6 +68,24 @@ class FakeMessage:
 
 
 @dataclass
+class DeliveredMessage:
+    """What a delivery report carries."""
+
+    _topic: str
+    _key: bytes | None
+    _value: bytes | None
+
+    def topic(self) -> str:
+        return self._topic
+
+    def key(self) -> bytes | None:
+        return self._key
+
+    def value(self) -> bytes | None:
+        return self._value
+
+
+@dataclass
 class Broker:
     """Topics, committed offsets and switches for failure tests."""
 
@@ -72,6 +96,8 @@ class Broker:
     unreachable: bool = False
     undelivered: int = 0
     create_error: int | None = None
+    max_message_bytes: int | None = None  # larger values: produce() raises MSG_SIZE_TOO_LARGE
+    broker_max_bytes: int | None = None  # larger values: the delivery report fails (code 10)
     leaderless_lookups: int = 0  # list_topics calls that still report no leader
     #: Error codes the next calls of a consumer method raise, one per call, by method name
     #: (``get_watermark_offsets``, ``committed``, ``commit``, or ``consume`` for a message error).
@@ -151,7 +177,9 @@ def fake_kafka(broker: Broker) -> SimpleNamespace:
     class Producer:
         def __init__(self, config: dict[str, Any]) -> None:
             assert config["enable.idempotence"] is True
-            self.pending: list[tuple[Callable[..., None], FakeKafkaError | None]] = []
+            self.pending: list[
+                tuple[Callable[..., None], FakeKafkaError | None, DeliveredMessage]
+            ] = []
             self.full_once = False
 
         def produce(
@@ -160,16 +188,21 @@ def fake_kafka(broker: Broker) -> SimpleNamespace:
             if self.full_once:
                 self.full_once = False
                 raise BufferError
+            if broker.max_message_bytes is not None and len(value) > broker.max_message_bytes:
+                too_large = FakeKafkaError(FakeKafkaError.MSG_SIZE_TOO_LARGE, "too large")
+                raise FakeKafkaException(too_large)
             error = FakeKafkaError(1, "broker down") if broker.fail_delivery else None
+            if broker.broker_max_bytes is not None and len(value) > broker.broker_max_bytes:
+                error = FakeKafkaError(FakeKafkaError.MSG_SIZE_TOO_LARGE, "Broker: too large")
             if error is None:
                 broker.append(topic, key, value)
-            self.pending.append((on_delivery, error))
+            self.pending.append((on_delivery, error, DeliveredMessage(topic, key, value)))
 
         def poll(self, timeout: float = 0) -> int:
             del timeout
             pending, self.pending = self.pending, []
-            for callback, error in pending:
-                callback(error, None)
+            for callback, error, message in pending:
+                callback(error, message)
             return len(pending)
 
         def flush(self, timeout: float = -1) -> int:

@@ -23,7 +23,7 @@ from types import SimpleNamespace
 from typing import Any, Protocol, TypeVar
 
 from prohori.pipeline import MissingExtraError
-from prohori.pipeline.messages import MAX_DEAD_LETTER_PAYLOAD, Topic
+from prohori.pipeline.messages import MAX_DEAD_LETTER_PAYLOAD, Topic, dead_letter
 from prohori.pipeline.transport import Record
 
 #: Settings for the topics Prohori creates.
@@ -42,6 +42,12 @@ SETTLING_ERRORS = (
     "COORDINATOR_NOT_AVAILABLE",
     "NOT_COORDINATOR",
 )
+
+#: Errors about one message, not the broker: the message is too large or malformed. It becomes a
+#: dead letter instead of failing the batch, which would be delivered again and fail again.
+REJECTED_ERRORS = ("MSG_SIZE_TOO_LARGE", "RECORD_LIST_TOO_LARGE", "INVALID_RECORD", "INVALID_MSG")
+#: The ``stage`` of a dead letter for a message the Kafka client or broker refused.
+REJECTED_BY = "kafka-producer"
 
 _T = TypeVar("_T")
 
@@ -153,6 +159,12 @@ class KafkaTransport:
             if hasattr(self.kafka.KafkaError, name)
         )
         self._settling_since: dict[tuple[str, Topic], float] = {}
+        self._rejecting = frozenset(
+            getattr(self.kafka.KafkaError, name)
+            for name in REJECTED_ERRORS
+            if hasattr(self.kafka.KafkaError, name)
+        )
+        self._rejected: list[tuple[str, bytes | None, bytes | None, str]] = []
         self.producer = self.kafka.Producer(
             {
                 "bootstrap.servers": bootstrap,
@@ -210,32 +222,66 @@ class KafkaTransport:
 
     # ------------------------------------------------------------------ writing
 
-    def _delivered(self, error: object, message: object) -> None:
-        del message
-        if error is not None:
+    def _is_rejection(self, error: Any, topic: str) -> bool:  # noqa: ANN401 - a KafkaError
+        """Whether ``error`` is about this one message (and the message is not a dead letter)."""
+        code = error.code() if hasattr(error, "code") else None
+        fatal = bool(error.fatal()) if hasattr(error, "fatal") else False
+        return code in self._rejecting and not fatal and topic != Topic.DEAD_LETTER.value
+
+    def _delivered(self, error: Any, message: Any) -> None:  # noqa: ANN401 - confluent_kafka
+        if error is None:
+            return
+        topic = message.topic() if message is not None else ""
+        if self._is_rejection(error, topic):
+            self._rejected.append((topic, message.key(), message.value(), str(error)))
+        else:
             self._errors.append(str(error))
 
     def publish(self, topic: Topic, key: str, value: Mapping[str, Any]) -> None:
         data = json.dumps(value, separators=(",", ":")).encode()
+        self._produce(topic.value, key.encode(), data)
+
+    def _produce(self, topic: str, key: bytes, data: bytes) -> None:
         while True:
             try:
-                self.producer.produce(
-                    topic.value, key=key.encode(), value=data, on_delivery=self._delivered
-                )
+                self.producer.produce(topic, key=key, value=data, on_delivery=self._delivered)
                 break
             except BufferError:  # the local queue is full: let it drain
                 self.producer.poll(1.0)
+            except self.kafka.KafkaException as exc:
+                error = exc.args[0] if exc.args else None
+                if error is None or not self._is_rejection(error, topic):
+                    raise
+                self._rejected.append((topic, key, data, str(error)))
+                break
         self.producer.poll(0)
 
+    def _dead_letter_rejected(self) -> None:
+        """Publish a dead letter for every message the client or the broker refused."""
+        rejected, self._rejected = self._rejected, []
+        for topic, key, data, reason in rejected:
+            text = (data or b"").decode("utf-8", errors="replace")
+            key_text = key.decode("utf-8", errors="replace") if key is not None else None
+            letter = dead_letter(REJECTED_BY, topic, key_text, f"refused: {reason}", text)
+            payload = json.dumps(letter.model_dump(mode="json"), separators=(",", ":")).encode()
+            self._produce(Topic.DEAD_LETTER.value, letter.id.encode(), payload)
+
     def flush(self) -> None:
-        remaining = self.producer.flush(BROKER_TIMEOUT)
-        errors, self._errors = self._errors, []
-        if remaining:
-            msg = f"{remaining} message(s) not delivered to {self.bootstrap} in time"
-            raise TransportError(msg)
-        if errors:
-            msg = f"{len(errors)} message(s) not delivered: {errors[0]}"
-            raise TransportError(msg)
+        """Wait until every message is delivered. A message refused for its own sake (too large,
+        malformed) is replaced by a dead letter, delivered before this returns; any other failure
+        raises, so the input is not committed and is read again."""
+        while True:
+            remaining = self.producer.flush(BROKER_TIMEOUT)
+            errors, self._errors = self._errors, []
+            if remaining:
+                msg = f"{remaining} message(s) not delivered to {self.bootstrap} in time"
+                raise TransportError(msg)
+            if errors:
+                msg = f"{len(errors)} message(s) not delivered: {errors[0]}"
+                raise TransportError(msg)
+            if not self._rejected:
+                return
+            self._dead_letter_rejected()
 
     # ------------------------------------------------------------------ reading
 
