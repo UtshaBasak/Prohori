@@ -264,17 +264,20 @@ class KafkaTransport:
     def poll(self, topic: Topic, group: str, max_records: int) -> list[Record]:
         consumer = self._consumer(group, topic)
         records: list[Record] = []
+        settling = False
         for message in consumer.consume(num_messages=max_records, timeout=self.timeout):
             error = message.error()
             if error is not None:
                 if error.code() in self._settling and not self._settling_too_long(group, topic):
+                    settling = True
                     continue  # read as empty until the topic or the group has settled
                 msg = f"cannot read {topic.value}: {error}"
                 raise TransportError(msg)
-            self._settling_since.pop((group, topic), None)
             records.append(
                 decode_message(topic, message.offset() + 1, message.key(), message.value())
             )
+        if not settling:  # settled, even if nothing was there to read
+            self._settling_since.pop((group, topic), None)
         return records
 
     def _settling_too_long(self, group: str, topic: Topic) -> bool:

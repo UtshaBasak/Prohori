@@ -130,6 +130,21 @@ def test_settling_read_errors_read_as_empty_until_the_timeout(
         transport.poll(Topic.ALERTS, "g", 10)
 
 
+def test_a_settled_empty_topic_starts_a_new_settling_period(
+    broker: Broker, transport: KafkaTransport, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A group that met a settling error at start-up and then read an empty topic for a long
+    time must tolerate a later, brief settling error (a leader or coordinator move)."""
+    clock = [1000.0]
+    monkeypatch.setattr("prohori.pipeline.kafka.time.monotonic", lambda: clock[0])
+    broker.call_errors["consume"] = [FakeKafkaError.NOT_COORDINATOR]
+    assert transport.poll(Topic.ALERTS, "g", 10) == []  # settling at start-up
+    assert transport.poll(Topic.ALERTS, "g", 10) == []  # settled; the topic is just empty
+    clock[0] += 10 * kafka_module.BROKER_TIMEOUT
+    broker.call_errors["consume"] = [FakeKafkaError.NOT_LEADER_FOR_PARTITION]
+    assert transport.poll(Topic.ALERTS, "g", 10) == []  # a new, brief settling period
+
+
 def test_unreachable_broker_and_refused_topics_are_errors(broker: Broker) -> None:
     broker.unreachable = True
     with pytest.raises(TransportError, match="cannot reach the Kafka broker"):
