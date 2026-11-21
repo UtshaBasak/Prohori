@@ -143,14 +143,25 @@ returning the data.
    is kept. Since identifiers are already gone, two flows that differ only in their id, port or
    timestamp count as duplicates. Then every row of a group with equal features but different
    classes is removed, because no label is right for all of them.
-6. **Split.**
-   - UNSW-NB15: the official training file is the training data, minus a validation set of
-     20 % stratified by class; the official testing file is the test data.
-   - CIC-IDS-2017: after deduplication, a split seeded by `seed` and stratified by class:
-     50 % training, 20 % validation, 30 % test. Each class with at least two rows gets at least
-     one row in the second part of each split; a class with a single row stays in training.
+6. **Split, by time block (since 1.1).** Each class's rows are put in time order and cut into
+   50 contiguous blocks (rows with the same time share a block); whole blocks are held out,
+   chosen by `seed`. Flows captured moments apart, which are often near-copies of each other,
+   then stay on the same side of the split.
+   - UNSW-NB15: the official training file is the training data, minus about 20 % of each
+     class's blocks for validation; the official testing file is the test data. The partition
+     files hold no timestamps, so the time order is the file order (the `id` column).
+   - CIC-IDS-2017: after deduplication, about 30 % of each class's blocks (in capture-time
+     order, from the `timestamp` column) become the test split, then about 20 % of the whole of
+     the rest's blocks become validation: roughly 50 % training, 20 % validation, 30 % test.
+     Whole capture days could not be held out: every attack class was captured on a single
+     day, so a day-disjoint split would leave classes out of training.
+   - Every class with at least two rows has at least one block on each side; a class with a
+     single row stays in training.
    - Validation is for choosing thresholds. The test split is meant to be used once, for the
      final result.
+   - 1.0 drew validation (and CIC-IDS-2017's test split) as random rows, stratified by class.
+     `validation="random"` keeps that for the calibration study in the
+     [model card](MODEL_CARD.md#calibration-study).
 7. **Cross-split overlap.** Validation rows whose features occur in training, and test rows whose
    features occur in training or validation, are removed and counted. For UNSW-NB15 this changes
    the official test set: results are therefore not directly comparable with papers that keep it
@@ -165,7 +176,9 @@ returning the data.
 - no split has two rows with the same features, and no two splits share a row (compared on a
   64-bit hash of all feature values);
 - the imputation medians equal the training split's medians and the learned categories are
-  exactly the training split's values.
+  exactly the training split's values;
+- no training row lies inside the time range of a held-out block of its class (validation, and
+  CIC-IDS-2017's test split). This is checked on the times themselves, not on the block labels.
 
 The tests in `tests/unit/ml/` check each rule on the fixture datasets, and also that the check
 catches a preprocessor fitted on all data, copied training rows in the test split and an
@@ -227,7 +240,7 @@ laptop, most of it the first conversion to Parquet):
 | Exact duplicates removed | 384,648 |
 | Rows with equal features but different classes removed | 226 |
 | Infinite values replaced | 10 values |
-| Left: train / validation / test | 857,551 / 343,020 / 514,531 |
+| Left: train / validation / test (seed 0) | 864,418 / 336,140 / 514,544 |
 | Validation or test rows also in an earlier split | 0 |
 
 | Class | Rows as published | After cleaning (all splits) |

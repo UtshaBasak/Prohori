@@ -34,7 +34,7 @@ Each task runs a Prohori command, so the same jobs work without Airflow:
 | Job | Command |
 | ----- | --------- |
 | Digest | `prohori pipeline digest --hours 24 [--out FILE] [-f json]` |
-| Recall gate | `prohori pipeline check-recall results/ml_unsw-nb15.json --min-recall 0.75` |
+| Recall gate | `prohori pipeline check-recall results/ml_unsw-nb15.json --min-recall 0.62` |
 | Enrichment refresh | `prohori pipeline refresh-enrichment --days 7 [--online]` |
 | Marts and checks | `uv run dbt build --project-dir pipeline/dbt --profiles-dir pipeline/dbt --target postgres` |
 
@@ -44,8 +44,11 @@ DuckDB file by default. See [CLI.md](CLI.md#prohori-pipeline).
 **The recall gate.** `check-recall` averages the test-split recall of one model, variant and
 operating point over the seeds in a results file. It exits 1 below the minimum. The default
 checks the gradient-boosting model on the cleaned data at a 1 % false-positive rate, with a
-minimum of 0.75. The committed results measure 0.8175 on average over three seeds, and the
-nightly job's seed 0 measured 0.8199. The results are loaded before the gate runs, so a drop
+minimum of 0.62. The committed results measure 0.6887 on average over three seeds (0.672 to
+0.713). In 1.0 the minimum was 0.75 against 0.8175, but that recall came with a threshold that
+let through 4.5 % false positives instead of 1 %; since the validation split is made of time
+blocks (step 30) the threshold holds, and recall at a true 1 % is lower. The minimum keeps about
+the same margin below the mean. The results are loaded before the gate runs, so a drop
 still shows on the dashboard.
 
 **Without the dataset** (it is not in the repository; see [DATASETS.md](DATASETS.md)), the
@@ -86,7 +89,7 @@ Jobs write to the `airflow-output` volume:
 /opt/prohori-output/
 ├── digests/incidents-YYYY-MM-DD.md and .json
 ├── results/ml_unsw-nb15-<time>.json
-└── models/unsw-nb15/              the retrained models (pickles; only load your own)
+└── models/unsw-nb15/              the retrained models (skops files; only load your own)
 ```
 
 Copy them out with:
@@ -152,6 +155,6 @@ The marts the jobs build show up in the Detection quality dashboard ([DASHBOARD.
 - **Local use only:** no login, default passwords, one container.
 - **One seed, one dataset** in the nightly evaluation, to keep it to seconds. The full
   evaluation (three seeds, both datasets) stays a manual `python -m prohori.ml.train` run.
-- **Model files** written by the nightly job are pickles in the output volume. Prohori never
-  loads them on its own.
+- **Model files** written by the nightly job are skops files (not pickles) in the output volume.
+  Prohori never loads them on its own.
 - **Linux containers only.** Airflow does not run on Windows; the stack runs it in Docker.

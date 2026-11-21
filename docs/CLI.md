@@ -179,7 +179,8 @@ Writes a labelled scenario: `--out DIR`, `--seed`, `--variant default|heldout|he
 
 ```bash
 prohori score flows.csv --model cicids2017/hgb-seed0            # a model under ./models
-prohori score flows.csv -m models/unsw-nb15/hgb-seed1.joblib --fpr 0.01 -f json --top 0
+prohori score flows.csv -m models/unsw-nb15/hgb-seed1.skops --fpr 0.01 -f json --top 0
+prohori score flows.csv -m shared/hgb-seed0.skops --sha256 <hash from a source you trust>
 ```
 
 Scores every flow in a CSV with a model saved by `python -m prohori.ml.train` (see
@@ -197,10 +198,15 @@ with `1`.
   timestamps are shown next to flagged flows to help find them, but never used for scoring.
   `--top N` limits the list (default 20, `0` for all); `--models-dir` (default `models`) is where
   model names are looked up; `--exit-zero` exits `0` when flows are flagged.
-- **Safety:** model files are pickles, and loading one runs code from it. The command refuses a
-  file whose SHA-256 does not match its JSON sidecar and prints a warning; only use models you
-  trained yourself. A model trained on lab data misses attacks and flags benign flows on other
-  networks (see the cross-dataset results in the model card): treat flagged flows as leads.
+- **Safety:** model files are skops files (since 1.1), read without pickle and only into the
+  types a Prohori model needs. The command refuses a file whose SHA-256 does not match its JSON
+  sidecar, or `--sha256 HASH` when given (the one check that stops someone who can replace both
+  files), and a model made with another major or minor version of Python, scikit-learn, numpy or
+  pandas unless `--allow-version-mismatch` is passed (it then warns). A 1.0 `.joblib` model
+  still loads, through an unpickler limited to the classes a model needs, with a warning to
+  retrain it. Only use models you trained yourself or got from someone you trust. A model
+  trained on lab data misses attacks and flags benign flows on other networks (see the
+  cross-dataset results in the model card): treat flagged flows as leads.
 
 To try it on the repository's synthetic fixtures:
 
@@ -271,7 +277,7 @@ prohori pipeline down --volumes                              # stop and delete t
   severity, the top `--limit` incidents by score, alerts per rule and dead letters, as Markdown
   or `-f json`, printed or written to `--out FILE`.
 - **`check-recall RESULTS`** exits 1 when a flow model's mean test recall in a results file is
-  below `--min-recall` (default 0.75), for `--model` (hgb), `--variant` (cleaned) and
+  below `--min-recall` (default 0.62), for `--model` (hgb), `--variant` (cleaned) and
   `--operating-point` (fpr_0.01); 2 if the file has no such runs.
 - **`refresh-enrichment`** removes expired enrichment cache entries and looks up again the
   public source addresses of events stored in the last `--days` (default 7, at most `--limit`

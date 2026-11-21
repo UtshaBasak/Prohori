@@ -57,6 +57,15 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - A message the Kafka client or broker refuses (too large or malformed) becomes a dead letter
   (stage `kafka-producer`) instead of failing the batch on every restart.
 
+- **Calibration study for the flow models** (ADR-0040). Every training run measures, on the same
+  test split, three ways of choosing thresholds: validation time blocks, out-of-fold scores over
+  folds of time blocks, and 1.0's random validation rows, with the share of benign validation
+  flows that have a near-duplicate in training. `results/ml_*.json` (format
+  `prohori.ml-eval/2`) holds the study and the model card a generated table; `--no-study` skips
+  it and `--calibration out-of-fold` uses the other method.
+- `prohori.ml.safety`: hash, library-version, skops-type and pickle-allowlist checks, reusable by
+  other commands (`scan_joblib` lists what a pickle model asks for without running it).
+
 ### Security
 
 - **Least privilege in the Docker stack's warehouse** (ADR-0039). The stages, dbt and Airflow's
@@ -72,9 +81,43 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   Start-up time and memory measured the same.
 - Any database password works in the stack, including `@/:#%`: passwords are never written into
   a URL (`PGPASSWORD`, libpq keyword strings, and a URL-quoted Airflow database URL).
+- **Flow models are no longer pickles** (ADR-0040). Training saves skops files
+  (`models/<dataset>/<model>-seed<N>.skops` with `.skops.json`), read without pickle into an
+  explicit list of types; a file asking for anything else is refused. 1.0 `.joblib` models still
+  load, through an unpickler that resolves only the 30 classes and functions a Prohori model
+  needs, so a file asking for `os.system` or `eval` is refused before it runs; retraining
+  replaces them. The sidecar records Python, scikit-learn, numpy and pandas versions, and
+  loading refuses another major or minor version unless `prohori score --allow-version-mismatch`
+  (a warning). `prohori score --sha256 HASH` refuses a file with another hash, the one check
+  that stops someone who can replace both the model and its sidecar. `skops` (MIT) joins the
+  `ml` extra.
 
 ### Changed
 
+- **Step 30: the flow-model numbers moved, and why.** Validation is now made of time blocks the
+  training split does not touch (each class's rows in time order, CIC-IDS-2017 by capture time,
+  UNSW-NB15 by file order, cut into 50 blocks; whole blocks held out), and CIC-IDS-2017's test
+  split is made of time blocks too. A leakage test checks that no training row lies inside a
+  held-out block's time range. The 1.0 tables stay in the model card as history.
+  - UNSW-NB15, gradient boosting (cleaned): the 1 % threshold now holds, 0.91 % false positives
+    on the test file instead of 4.50 %, and recall at it falls from 81.8 % to 68.9 % (290 to
+    59 false alerts per 10,000 flows). At 0.1 %: recall 46.0 % to 24.7 %, false positives
+    0.07 % to 0.03 %. PR-AUC 0.952 to 0.950. The model is the same; 1.0's thresholds were too
+    loose because random validation rows had near-copies in training. Without the TTL columns:
+    recall at 1 % 79.3 % to 67.3 %. Uncleaned: PR-AUC 0.989 to 0.988, recall at 0.1 % 78.1 % to
+    70.3 %. Fuzzers recall at 1 % 37 % to 7 %, Analysis 16 % to 2 %.
+  - UNSW-NB15, Isolation Forest: within the seed spread (PR-AUC 0.522 to 0.532, recall at 1 %
+    4.5 % to 4.8 %).
+  - CIC-IDS-2017: within a few tenths of a point (gradient boosting recall at 0.1 % 99.98 % to
+    99.92 %, false positives 0.10 % both); split sizes for seed 0 857,551 / 343,020 / 514,531 to
+    864,418 / 336,140 / 514,544.
+  - Cross-dataset test: ROC-AUC on the other dataset 0.639 to 0.636 and 0.614 to 0.590; benign
+    flows flagged by the 1 % threshold on the other dataset 42.2 % to 41.8 % and 60.5 % (same).
+  - The rule for choosing the method was fixed before the full runs; time blocks won (mean
+    calibration error 0.354, out-of-fold 0.476, random rows 0.770).
+  - The nightly evaluation's recall gate moves from 0.75 to 0.62: 1.0's 0.82 came with a 4.5 %
+    false-positive rate, and at a true 1 % the committed results measure 0.69. The nightly job
+    skips the calibration study. The warehouse loader reads results formats /1 and /2.
 - SonarQube Cloud now analyses from a GitHub Actions workflow (`sonarcloud.yml`, configured by
   `sonar-project.properties`) instead of Automatic Analysis, with test coverage, and ignores its
   two path-traversal rules only in `scripts/` and five reviewed modules where the path is a file

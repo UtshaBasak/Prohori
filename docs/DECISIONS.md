@@ -625,6 +625,10 @@ The validation split is drawn at random from the training data with exact duplic
 so near-duplicate flows can sit on both sides; the model card names this as the likely cause of
 the threshold shift on UNSW-NB15.
 
+*Amended 2026-11-21:* validation (and CIC-IDS-2017's test split) are now made of time blocks,
+and the UNSW-NB15 threshold shift is gone; see
+[ADR-0040](#adr-0040-time-block-validation-and-model-files-without-pickle).
+
 ---
 
 ## ADR-0020: Flow models and how they are evaluated
@@ -1830,3 +1834,80 @@ Redpanda ran in `dev-container` mode, and the dashboards filtered unindexed time
 - Fsync costs throughput under heavy load; it was not measurable at the stack's volumes here.
 - Dead letters for refused messages are not counted in the stage's own `dead_letters` counter
   (the transport writes them); they are in the warehouse like any other.
+
+---
+
+## ADR-0040: Time-block validation and model files without pickle
+
+- **Date:** 2026-11-21
+- **Status:** Accepted
+
+**Context.** Two weaknesses of the 1.0 flow models (plan items A6 and A7). First, the validation
+split was rows drawn at random from the training data, so flows captured moments apart, often
+near-copies, sat on both sides; on UNSW-NB15 the threshold chosen for a 1 % false-positive rate
+gave 4.5 % on the test file, and ADR-0019's amendment named the random split as the likely
+cause. Second, models were joblib pickles: loading one runs code from it, the JSON sidecar only
+caught accidents, and a model made with other library versions loaded silently and could score
+differently.
+
+**Decision.**
+
+- **Time blocks.** Each class's rows are put in time order (CIC-IDS-2017: the capture
+  timestamp; UNSW-NB15's partition files have none, so the file order, `id`) and cut into 50
+  contiguous blocks; whole blocks are held out, chosen by the seed. Validation is about 20 % of
+  each class's training blocks. CIC-IDS-2017's test split is also made of blocks (about 30 %),
+  so its comparison between methods is not biased by a random test split. Whole capture days
+  were rejected: every CIC-IDS-2017 attack class was captured on one day, so holding out days
+  would leave classes out of training. Blocks are per class so every class keeps training rows;
+  for benign traffic, which is what thresholds are set on, a block is a true time window.
+- **The leakage test checks times, not labels.** `check_time_blocks` fails if any training row
+  lies inside the time range of a held-out block of its class, so a split that labelled blocks
+  correctly but moved rows would still be caught. The order and block columns are internal:
+  never features, never part of a deduplication key.
+- **Chosen by measurement.** Every run measures three ways of choosing thresholds on the same
+  test split: time-block validation, out-of-fold (five models on folds of whole time blocks of
+  training and validation, final model fitted on all of it) and 1.0's random rows. The rule was
+  written down before the full runs (`prohori.ml.train.SELECTION_RULE`): the lower mean
+  |test FPR / target - 1| over both datasets, both models, both targets and three seeds wins;
+  time-block wins a difference under 0.05; random is never chosen. Result: time-block 0.354,
+  out-of-fold 0.476, random 0.770. Time-block is used for the published numbers and saved
+  models. The choice used the test split once, to pick a method, never a threshold; that is
+  disclosed in the model card.
+- **skops by default.** Models are saved as skops files (zip archives of plain data, read
+  without pickle). Loading trusts only the types skops trusts plus an explicit list measured on
+  both detectors (`SKOPS_TYPES`), never the types a file declares. The `Detector` dataclass is
+  stored as a plain dict and rebuilt. Sidecars are named per file (`m.skops.json`), so a 1.0
+  `m.joblib` and its `m.json` never collide; saving `m.skops` removes them.
+- **1.0 joblib files keep loading**, through joblib's unpickler with `find_class` limited to the
+  30 globals the 1.0 models need (`JOBLIB_GLOBALS`), measured on all twelve. This relies on two
+  joblib internals; a test loads a freshly saved joblib model through them so an upgrade fails
+  loudly. Static scanning with `pickletools` was rejected: joblib writes raw array bytes inside
+  the pickle stream, which stops the scan. `scan_joblib` lists what a file asks for, standing in
+  a harmless object for refused globals, which step 63's `prohori model scan` builds on.
+- **Versions.** The sidecar records Python, scikit-learn, numpy and pandas; loading refuses a
+  different major or minor version before any byte is deserialised, unless
+  `--allow-version-mismatch` (a warning). 1.0 sidecars recorded scikit-learn only: it is
+  checked, and a warning names the libraries that were not recorded, so those models still load.
+- **`prohori score --sha256`** compares the file with a hash given out of band, the one check an
+  attacker who can replace both the model and its sidecar cannot pass.
+- **The recall gate** of the nightly evaluation moves from 0.75 to 0.62: 1.0's 0.8175 came with
+  a threshold that let through 4.5 % false positives; at a true 1 % the mean is 0.6887, and the
+  gate keeps about the same margin. The nightly run skips the calibration study (`--no-study`).
+
+**Consequences.**
+
+- On UNSW-NB15 the 1 % threshold now holds (0.91 % on test; 4.76 % with random validation rows
+  in the same code), and gradient boosting's recall at that rate falls from 81.8 % to 68.9 %;
+  at 0.1 % it falls from 46.0 % to 24.7 %. PR-AUC barely moves (0.952 to 0.950): the model is
+  the same, the thresholds were too loose. That supports the cause named in ADR-0019's
+  amendment, though not the mechanism exactly: benign validation flows with a near-duplicate in
+  training (two significant digits) are 1.2 % with random rows and 0.7 % with time blocks, too
+  few to explain a fourfold shift alone. The file order of the training file carries the rest
+  (its benign rows come in long runs), and so does the remaining difference between the training
+  and testing files, which no split inside the training file can remove.
+- On CIC-IDS-2017 little moves: thresholds held before and hold now; near-duplicates are 17 to
+  19 % with either split, because benign traffic there repeats all week rather than in bursts.
+- Out-of-fold made gradient boosting's thresholds too strict on UNSW-NB15 (0.30 % test FPR at
+  the 1 % target) and too loose on CIC-IDS-2017 (1.70 %): models fitted on four fifths of the
+  data score differently from the final model.
+- `skops` (MIT) joins the `ml` extra. skops files are larger than compressed joblib files.
