@@ -322,7 +322,13 @@ class KafkaTransport:
             records.append(
                 decode_message(topic, message.offset() + 1, message.key(), message.value())
             )
-        if not settling:  # settled, even if nothing was there to read
+        if settling:
+            # A consumer whose first fetch of the group's committed offset failed (for example
+            # "Not coordinator" just after the broker started) may never fetch it again and then
+            # reads nothing, silently. Start a fresh one; it reads from the committed offset, and
+            # every record returned before has been committed by the stage, or is returned now.
+            self._consumers.pop((group, topic)).close()
+        else:  # settled, even if nothing was there to read
             self._settling_since.pop((group, topic), None)
         return records
 

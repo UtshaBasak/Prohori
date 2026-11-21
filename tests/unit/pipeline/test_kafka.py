@@ -127,7 +127,12 @@ def test_settling_read_errors_read_as_empty_until_the_timeout(
     transport.publish(Topic.ALERTS, "k", {"n": 1})
     transport.flush()
     broker.call_errors["consume"] = [FakeKafkaError.NOT_COORDINATOR] * 2
+    first = transport._consumer("g", Topic.ALERTS)
     assert transport.poll(Topic.ALERTS, "g", 10) == []
+    # The consumer that met the error is replaced: librdkafka may never retry its fetch of the
+    # committed offset, and the stage would read nothing at all (seen in the Docker stack).
+    assert first.closed  # type: ignore[attr-defined]
+    assert transport._consumer("g", Topic.ALERTS) is not first
     assert transport.poll(Topic.ALERTS, "g", 10) == []
     assert len(transport.poll(Topic.ALERTS, "g", 10)) == 1
     monkeypatch.setattr("prohori.pipeline.kafka.BROKER_TIMEOUT", -1.0)
