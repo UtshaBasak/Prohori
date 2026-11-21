@@ -194,7 +194,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
-- CodeQL: two unnecessary `del` statements in `prohori.ml.safety`'s scan stand-in.
+- CodeQL: two unnecessary `del` statements in `prohori.ml.safety`'s scan stand-in, and two
+  implicitly concatenated table headers in `scripts/generate_results_table.py`.
 - `prohori.llm.evaluate record`: after a `--fresh` recording stops at the daily budget, the
   message says to continue without `--fresh` (running the same command again discarded it).
 - The Kafka transport retries the broker's start-up errors (no leader or no coordinator yet,
