@@ -6,6 +6,10 @@ Runs every scenario in both variants (default and held-out) for each seed, compa
 with the line labels and writes per-rule precision and recall to ``results/rules_eval.json``.
 Then run ``scripts/generate_results_table.py`` to update the table in ``docs/SIMULATOR.md``.
 
+The results file keeps a frozen **baseline**: the 1.0 rules' results, recorded once with
+``--freeze-baseline`` before the rules were changed, so the before-and-after comparison cannot
+drift. Later runs copy it over unchanged.
+
     uv run python scripts/evaluate_rules.py [--seeds 5] [--out results/rules_eval.json]
 """
 
@@ -26,6 +30,11 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--seeds", type=int, default=5, help="seeds 1..N per scenario and variant")
     parser.add_argument("--out", type=Path, default=DEFAULT_OUT, help="results file to write")
+    parser.add_argument(
+        "--freeze-baseline",
+        metavar="LABEL",
+        help="record this run as the baseline (once, before changing the rules)",
+    )
     args = parser.parse_args(argv)
     if not 1 <= args.seeds <= 100:
         parser.error("--seeds must be between 1 and 100")
@@ -35,6 +44,18 @@ def main(argv: list[str] | None = None) -> int:
         print("a built-in rule is invalid; run 'prohori rules validate'", file=sys.stderr)
         return 1
     results = evaluate(rules, seeds=range(1, args.seeds + 1))
+    previous = json.loads(args.out.read_text(encoding="utf-8")) if args.out.exists() else {}
+    if args.freeze_baseline:
+        if "baseline" in previous:
+            print("a baseline is already frozen; it is never replaced", file=sys.stderr)
+            return 1
+        results["baseline"] = {
+            "label": args.freeze_baseline,
+            "rules": sorted(r.id for r in rules),
+            "variants": results["variants"],
+        }
+    elif "baseline" in previous:
+        results["baseline"] = previous["baseline"]
     args.out.parent.mkdir(parents=True, exist_ok=True)
     args.out.write_text(json.dumps(results, indent=2) + "\n", encoding="utf-8", newline="\n")
     print(f"wrote {args.out} ({len(SCENARIOS)} scenarios x 2 variants x {args.seeds} seeds)")
