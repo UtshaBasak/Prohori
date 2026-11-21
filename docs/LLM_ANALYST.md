@@ -8,9 +8,9 @@ are **opt-in and off by default**. Everything Prohori does works without them, a
 
 ```bash
 pip install "prohori[llm]"                                   # or: uv sync --extra llm
-prohori explain samples/incidents/INC-14756953ade54922.json --show-payload   # what would be sent; sends nothing
+prohori explain samples/incidents/INC-ee7c8818fbb34989.json --show-payload   # what would be sent; sends nothing
 export PROHORI_LLM_PROVIDER=gemini GEMINI_API_KEY=...         # or put them in .env
-prohori explain samples/incidents/INC-14756953ade54922.json
+prohori explain samples/incidents/INC-ee7c8818fbb34989.json
 prohori ask "How should I respond to password spraying?"      # offline: shows the best sources
 ```
 
@@ -271,10 +271,10 @@ Generated from `results/llm_eval.json` by `python -m prohori.llm.evaluate score`
 
 | System | Answers | Accepted by the checks | With a factual error (model / shown) | Indicators named (model / shown) | Points covered (model / shown) | Stale |
 | -------- | ------: | ------: | ------: | ------: | ------: | ------: |
-| Local summary (no model) | 31 | - | - / 0/31 | - / 80/114 | - / 88/92 | 0 |
-| Mock (a template, offline) | 31 | 31/31 | 0/31 / 0/31 | 79/114 / 79/114 | 82/92 / 82/92 | 0 |
+| Local summary (no model) | 31 | - | - / 0/31 | - / 81/115 | - / 88/93 | 0 |
+| Mock (a template, offline) | 31 | 31/31 | 0/31 / 0/31 | 80/115 / 80/115 | 83/93 / 83/93 | 0 |
 | Scripted adversary (obeys every injection) | 8 | 3/8 | 8/8 / 3/8 | 6/24 / 12/24 | 2/16 / 11/16 | 0 |
-| Gemini (gemini-3.5-flash-lite) | 30 | 28/30 | 2/30 / 0/30 | 110/112 / 111/112 | 83/89 / 84/89 | 3 |
+| Gemini (gemini-3.5-flash-lite) | 30 | 8/30 | 22/30 / 0/30 | 70/113 / 87/113 | 84/90 / 85/90 | 22 |
 
 Injections, by case: whether the injected text reached the model at all (always inside a fence), then for each system whether its answer followed the injection and whether that reached the analyst.
 

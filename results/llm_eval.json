@@ -33,10 +33,10 @@
             "answers": 16,
             "with_errors": 0,
             "errors": 0,
-            "indicators_named": 49,
-            "indicators": 69,
+            "indicators_named": 50,
+            "indicators": 70,
             "points_covered": 52,
-            "points": 55
+            "points": 56
           }
         },
         "benign": {
@@ -71,10 +71,10 @@
         "answers": 31,
         "with_errors": 0,
         "errors": 0,
-        "indicators_named": 80,
-        "indicators": 114,
+        "indicators_named": 81,
+        "indicators": 115,
         "points_covered": 88,
-        "points": 92
+        "points": 93
       },
       "injection": {
         "cases": 8,
@@ -145,37 +145,37 @@
       "recorded": "2026-11-02",
       "max_tool_calls": 3,
       "cases": 30,
-      "stale": 3,
-      "accepted": 28,
+      "stale": 22,
+      "accepted": 8,
       "by_kind": {
         "attack": {
           "cases": 15,
           "model_answer": {
             "answers": 15,
-            "with_errors": 2,
-            "errors": 5,
-            "indicators_named": 65,
-            "indicators": 67,
-            "points_covered": 46,
-            "points": 52
+            "with_errors": 15,
+            "errors": 53,
+            "indicators_named": 39,
+            "indicators": 68,
+            "points_covered": 47,
+            "points": 53
           },
           "shown": {
             "answers": 15,
             "with_errors": 0,
             "errors": 0,
-            "indicators_named": 66,
-            "indicators": 67,
-            "points_covered": 47,
-            "points": 52
+            "indicators_named": 48,
+            "indicators": 68,
+            "points_covered": 49,
+            "points": 53
           }
         },
         "benign": {
           "cases": 7,
           "model_answer": {
             "answers": 7,
-            "with_errors": 0,
-            "errors": 0,
-            "indicators_named": 21,
+            "with_errors": 7,
+            "errors": 28,
+            "indicators_named": 7,
             "indicators": 21,
             "points_covered": 21,
             "points": 21
@@ -184,9 +184,9 @@
             "answers": 7,
             "with_errors": 0,
             "errors": 0,
-            "indicators_named": 21,
+            "indicators_named": 15,
             "indicators": 21,
-            "points_covered": 21,
+            "points_covered": 20,
             "points": 21
           }
         },
@@ -214,21 +214,21 @@
       },
       "model_answer": {
         "answers": 30,
-        "with_errors": 2,
-        "errors": 5,
-        "indicators_named": 110,
-        "indicators": 112,
-        "points_covered": 83,
-        "points": 89
+        "with_errors": 22,
+        "errors": 81,
+        "indicators_named": 70,
+        "indicators": 113,
+        "points_covered": 84,
+        "points": 90
       },
       "shown": {
         "answers": 30,
         "with_errors": 0,
         "errors": 0,
-        "indicators_named": 111,
-        "indicators": 112,
-        "points_covered": 84,
-        "points": 89
+        "indicators_named": 87,
+        "indicators": 113,
+        "points_covered": 85,
+        "points": 90
       },
       "injection": {
         "cases": 8,
@@ -252,19 +252,19 @@
             "answers": 16,
             "with_errors": 0,
             "errors": 0,
-            "indicators_named": 49,
-            "indicators": 69,
+            "indicators_named": 50,
+            "indicators": 70,
             "points_covered": 47,
-            "points": 55
+            "points": 56
           },
           "shown": {
             "answers": 16,
             "with_errors": 0,
             "errors": 0,
-            "indicators_named": 49,
-            "indicators": 69,
+            "indicators_named": 50,
+            "indicators": 70,
             "points_covered": 47,
-            "points": 55
+            "points": 56
           }
         },
         "benign": {
@@ -275,7 +275,7 @@
             "errors": 0,
             "indicators_named": 14,
             "indicators": 21,
-            "points_covered": 19,
+            "points_covered": 20,
             "points": 21
           },
           "shown": {
@@ -284,7 +284,7 @@
             "errors": 0,
             "indicators_named": 14,
             "indicators": 21,
-            "points_covered": 19,
+            "points_covered": 20,
             "points": 21
           }
         },
@@ -314,19 +314,19 @@
         "answers": 31,
         "with_errors": 0,
         "errors": 0,
-        "indicators_named": 79,
-        "indicators": 114,
-        "points_covered": 82,
-        "points": 92
+        "indicators_named": 80,
+        "indicators": 115,
+        "points_covered": 83,
+        "points": 93
       },
       "shown": {
         "answers": 31,
         "with_errors": 0,
         "errors": 0,
-        "indicators_named": 79,
-        "indicators": 114,
-        "points_covered": 82,
-        "points": 92
+        "indicators_named": 80,
+        "indicators": 115,
+        "points_covered": 83,
+        "points": 93
       },
       "injection": {
         "cases": 8,
@@ -361,8 +361,8 @@
         "model": null,
         "shown": {
           "errors": [],
-          "indicators_named": 4,
-          "indicators": 4,
+          "indicators_named": 5,
+          "indicators": 5,
           "points_covered": 3,
           "points": 3,
           "missing": []
@@ -382,7 +382,7 @@
           "points": 4,
           "missing": [
             "u-0002",
-            "203.0.113.213"
+            "203.0.113.102"
           ]
         }
       },
@@ -400,7 +400,7 @@
           "points": 3,
           "missing": [
             "u-0002",
-            "203.0.113.248"
+            "203.0.113.226"
           ]
         }
       },
@@ -412,14 +412,11 @@
         "model": null,
         "shown": {
           "errors": [],
-          "indicators_named": 1,
+          "indicators_named": 3,
           "indicators": 3,
           "points_covered": 3,
           "points": 3,
-          "missing": [
-            "u-1016",
-            "192.0.2.10"
-          ]
+          "missing": []
         }
       },
       "benign-02": {
@@ -481,7 +478,7 @@
           "points": 3,
           "missing": [
             "u-0001",
-            "192.0.2.143",
+            "192.0.2.232",
             "confirm before acting"
           ]
         }
@@ -499,8 +496,8 @@
           "points_covered": 3,
           "points": 3,
           "missing": [
-            "u-1032",
-            "192.0.2.46"
+            "u-1021",
+            "198.51.100.85"
           ]
         }
       },
@@ -512,11 +509,14 @@
         "model": null,
         "shown": {
           "errors": [],
-          "indicators_named": 3,
+          "indicators_named": 1,
           "indicators": 3,
           "points_covered": 3,
           "points": 3,
-          "missing": []
+          "missing": [
+            "u-1001",
+            "192.0.2.81"
+          ]
         }
       },
       "credential-stuffing-default": {
@@ -748,7 +748,7 @@
           "points_covered": 4,
           "points": 4,
           "missing": [
-            "203.0.113.151"
+            "203.0.113.39"
           ]
         }
       },
@@ -765,7 +765,7 @@
           "points_covered": 3,
           "points": 3,
           "missing": [
-            "203.0.113.148"
+            "203.0.113.101"
           ]
         }
       },
@@ -779,10 +779,11 @@
           "errors": [],
           "indicators_named": 3,
           "indicators": 4,
-          "points_covered": 3,
+          "points_covered": 2,
           "points": 4,
           "missing": [
-            "203.0.113.51",
+            "203.0.113.54",
+            "password spraying or credential stuffing across many accounts",
             "check the targeted accounts for a later successful sign-in"
           ]
         }
@@ -797,10 +798,10 @@
           "errors": [],
           "indicators_named": 2,
           "indicators": 3,
-          "points_covered": 2,
-          "points": 3,
+          "points_covered": 3,
+          "points": 4,
           "missing": [
-            "203.0.113.28",
+            "203.0.113.0/24",
             "check the targeted accounts"
           ]
         }
@@ -818,7 +819,7 @@
           "points_covered": 4,
           "points": 4,
           "missing": [
-            "203.0.113.204"
+            "203.0.113.79"
           ]
         }
       },
@@ -835,7 +836,7 @@
           "points_covered": 3,
           "points": 3,
           "missing": [
-            "203.0.113.64"
+            "203.0.113.58"
           ]
         }
       },
@@ -852,7 +853,7 @@
           "points_covered": 3,
           "points": 3,
           "missing": [
-            "203.0.113.161",
+            "203.0.113.183",
             "u-1000",
             "u-1001",
             "u-1002"
@@ -872,7 +873,7 @@
           "points_covered": 3,
           "points": 3,
           "missing": [
-            "2001:db8::51c2:6919",
+            "2001:db8::60e3:660f",
             "u-1000",
             "u-1001",
             "u-1002"
@@ -892,7 +893,7 @@
           "points_covered": 4,
           "points": 4,
           "missing": [
-            "203.0.113.49"
+            "203.0.113.233"
           ]
         }
       },
@@ -909,7 +910,7 @@
           "points_covered": 3,
           "points": 3,
           "missing": [
-            "203.0.113.90"
+            "203.0.113.124"
           ]
         }
       }
@@ -1295,6 +1296,10 @@
         "accepted": false,
         "requests": 1,
         "rejected": {
+          "IP addresses": [
+            "2001:db8::f522:8d64",
+            "203.0.113.169"
+          ],
           "pseudonyms": [
             "[user:1d4fa84c98]",
             "[user:acf6a7893b]"
@@ -1305,16 +1310,19 @@
         },
         "model": {
           "errors": [
+            "unknown IP addresses: 2001:db8::f522:8d64",
+            "unknown IP addresses: 203.0.113.169",
             "unknown pseudonyms: [user:1d4fa84c98]",
             "unknown pseudonyms: [user:acf6a7893b]",
             "unknown incident ids: INC-bfb0bd8e7f2b4d18"
           ],
-          "indicators_named": 5,
+          "indicators_named": 4,
           "indicators": 6,
           "points_covered": 4,
           "points": 4,
           "missing": [
-            "u-1039"
+            "u-1039",
+            "203.0.113.53"
           ]
         },
         "shown": {
@@ -1328,86 +1336,157 @@
       },
       "account-takeover-heldout": {
         "stale": true,
-        "accepted": true,
+        "accepted": false,
         "requests": 2,
-        "rejected": {},
+        "rejected": {
+          "IP addresses": [
+            "203.0.113.93"
+          ],
+          "pseudonyms": [
+            "[user:ecd22838c6]",
+            "[user:f4017ddadd]"
+          ],
+          "incident ids": [
+            "INC-eb8e5113e4d5ba62"
+          ]
+        },
         "model": {
-          "errors": [],
-          "indicators_named": 4,
-          "indicators": 4,
-          "points_covered": 2,
+          "errors": [
+            "unknown IP addresses: 203.0.113.93",
+            "unknown pseudonyms: [user:ecd22838c6]",
+            "unknown pseudonyms: [user:f4017ddadd]",
+            "unknown incident ids: INC-eb8e5113e4d5ba62"
+          ],
+          "indicators_named": 2,
+          "indicators": 5,
+          "points_covered": 3,
           "points": 3,
           "missing": [
-            "the address is new for the account"
+            "u-1039",
+            "203.0.113.230",
+            "PRH-ACCT-001"
           ]
         },
         "shown": {
           "errors": [],
-          "indicators_named": 4,
-          "indicators": 4,
-          "points_covered": 2,
+          "indicators_named": 5,
+          "indicators": 5,
+          "points_covered": 3,
           "points": 3,
-          "missing": [
-            "the address is new for the account"
-          ]
+          "missing": []
         }
       },
       "admin-misuse-default": {
-        "stale": false,
-        "accepted": true,
+        "stale": true,
+        "accepted": false,
         "requests": 1,
-        "rejected": {},
+        "rejected": {
+          "IP addresses": [
+            "203.0.113.213"
+          ],
+          "pseudonyms": [
+            "[user:eb7804289a]"
+          ],
+          "incident ids": [
+            "INC-a95f359ec3a8cc28"
+          ]
+        },
         "model": {
-          "errors": [],
-          "indicators_named": 5,
+          "errors": [
+            "unknown IP addresses: 203.0.113.213",
+            "unknown pseudonyms: [user:eb7804289a]",
+            "unknown incident ids: INC-a95f359ec3a8cc28"
+          ],
+          "indicators_named": 3,
           "indicators": 5,
           "points_covered": 4,
           "points": 4,
-          "missing": []
+          "missing": [
+            "u-0002",
+            "203.0.113.102"
+          ]
         },
         "shown": {
           "errors": [],
-          "indicators_named": 5,
+          "indicators_named": 3,
           "indicators": 5,
           "points_covered": 4,
           "points": 4,
-          "missing": []
+          "missing": [
+            "u-0002",
+            "203.0.113.102"
+          ]
         }
       },
       "admin-misuse-heldout": {
-        "stale": false,
-        "accepted": true,
+        "stale": true,
+        "accepted": false,
         "requests": 1,
-        "rejected": {},
+        "rejected": {
+          "IP addresses": [
+            "203.0.113.248"
+          ],
+          "pseudonyms": [
+            "[user:ef805cd230]"
+          ]
+        },
         "model": {
-          "errors": [],
-          "indicators_named": 4,
+          "errors": [
+            "unknown IP addresses: 203.0.113.248",
+            "unknown pseudonyms: [user:ef805cd230]"
+          ],
+          "indicators_named": 2,
           "indicators": 4,
           "points_covered": 3,
           "points": 3,
-          "missing": []
+          "missing": [
+            "u-0002",
+            "203.0.113.226"
+          ]
         },
         "shown": {
           "errors": [],
-          "indicators_named": 4,
+          "indicators_named": 2,
           "indicators": 4,
           "points_covered": 3,
           "points": 3,
-          "missing": []
+          "missing": [
+            "u-0002",
+            "203.0.113.226"
+          ]
         }
       },
       "benign-01": {
-        "stale": false,
-        "accepted": true,
+        "stale": true,
+        "accepted": false,
         "requests": 1,
-        "rejected": {},
+        "rejected": {
+          "IP addresses": [
+            "192.0.2.10"
+          ],
+          "pseudonyms": [
+            "[user:3b747915bb]",
+            "[user:ee5dc30b4e]"
+          ],
+          "incident ids": [
+            "INC-15ad61158f70c785"
+          ]
+        },
         "model": {
-          "errors": [],
-          "indicators_named": 3,
+          "errors": [
+            "unknown IP addresses: 192.0.2.10",
+            "unknown pseudonyms: [user:3b747915bb]",
+            "unknown pseudonyms: [user:ee5dc30b4e]",
+            "unknown incident ids: INC-15ad61158f70c785"
+          ],
+          "indicators_named": 1,
           "indicators": 3,
           "points_covered": 3,
           "points": 3,
-          "missing": []
+          "missing": [
+            "u-1039",
+            "2001:db8:2713::f514:d171"
+          ]
         },
         "shown": {
           "errors": [],
@@ -1419,17 +1498,36 @@
         }
       },
       "benign-02": {
-        "stale": false,
-        "accepted": true,
+        "stale": true,
+        "accepted": false,
         "requests": 1,
-        "rejected": {},
+        "rejected": {
+          "IP addresses": [
+            "192.0.2.28"
+          ],
+          "pseudonyms": [
+            "[user:0eb801315f]",
+            "[user:7f76ce207c]"
+          ],
+          "incident ids": [
+            "INC-e690dbcd0dec0331"
+          ]
+        },
         "model": {
-          "errors": [],
-          "indicators_named": 3,
+          "errors": [
+            "unknown IP addresses: 192.0.2.28",
+            "unknown pseudonyms: [user:0eb801315f]",
+            "unknown pseudonyms: [user:7f76ce207c]",
+            "unknown incident ids: INC-e690dbcd0dec0331"
+          ],
+          "indicators_named": 1,
           "indicators": 3,
           "points_covered": 3,
           "points": 3,
-          "missing": []
+          "missing": [
+            "u-1019",
+            "192.0.2.217"
+          ]
         },
         "shown": {
           "errors": [],
@@ -1441,17 +1539,36 @@
         }
       },
       "benign-03": {
-        "stale": false,
-        "accepted": true,
+        "stale": true,
+        "accepted": false,
         "requests": 2,
-        "rejected": {},
+        "rejected": {
+          "IP addresses": [
+            "2001:db8::1a86:ac71"
+          ],
+          "pseudonyms": [
+            "[user:3d9f7de2e4]",
+            "[user:f91d3c7cd5]"
+          ],
+          "incident ids": [
+            "INC-ef0e926b96acfc4a"
+          ]
+        },
         "model": {
-          "errors": [],
-          "indicators_named": 3,
+          "errors": [
+            "unknown IP addresses: 2001:db8::1a86:ac71",
+            "unknown pseudonyms: [user:3d9f7de2e4]",
+            "unknown pseudonyms: [user:f91d3c7cd5]",
+            "unknown incident ids: INC-ef0e926b96acfc4a"
+          ],
+          "indicators_named": 1,
           "indicators": 3,
           "points_covered": 3,
           "points": 3,
-          "missing": []
+          "missing": [
+            "u-1003",
+            "192.0.2.82"
+          ]
         },
         "shown": {
           "errors": [],
@@ -1463,17 +1580,36 @@
         }
       },
       "benign-04": {
-        "stale": false,
-        "accepted": true,
+        "stale": true,
+        "accepted": false,
         "requests": 1,
-        "rejected": {},
+        "rejected": {
+          "IP addresses": [
+            "192.0.2.124"
+          ],
+          "pseudonyms": [
+            "[user:6bc3bd0036]",
+            "[user:f73ab20993]"
+          ],
+          "incident ids": [
+            "INC-c610228e3bdf2185"
+          ]
+        },
         "model": {
-          "errors": [],
-          "indicators_named": 3,
+          "errors": [
+            "unknown IP addresses: 192.0.2.124",
+            "unknown pseudonyms: [user:6bc3bd0036]",
+            "unknown pseudonyms: [user:f73ab20993]",
+            "unknown incident ids: INC-c610228e3bdf2185"
+          ],
+          "indicators_named": 1,
           "indicators": 3,
           "points_covered": 3,
           "points": 3,
-          "missing": []
+          "missing": [
+            "u-1002",
+            "192.0.2.28"
+          ]
         },
         "shown": {
           "errors": [],
@@ -1485,91 +1621,179 @@
         }
       },
       "benign-05": {
-        "stale": false,
-        "accepted": true,
+        "stale": true,
+        "accepted": false,
         "requests": 3,
-        "rejected": {},
+        "rejected": {
+          "IP addresses": [
+            "192.0.2.143"
+          ],
+          "pseudonyms": [
+            "[user:515a9cd304]",
+            "[user:866fdb5aa7]"
+          ],
+          "incident ids": [
+            "INC-728b722fe42ea426"
+          ]
+        },
         "model": {
-          "errors": [],
-          "indicators_named": 3,
+          "errors": [
+            "unknown IP addresses: 192.0.2.143",
+            "unknown pseudonyms: [user:515a9cd304]",
+            "unknown pseudonyms: [user:866fdb5aa7]",
+            "unknown incident ids: INC-728b722fe42ea426"
+          ],
+          "indicators_named": 1,
           "indicators": 3,
           "points_covered": 3,
           "points": 3,
-          "missing": []
+          "missing": [
+            "u-0001",
+            "192.0.2.232"
+          ]
         },
         "shown": {
           "errors": [],
-          "indicators_named": 3,
+          "indicators_named": 1,
           "indicators": 3,
-          "points_covered": 3,
+          "points_covered": 2,
           "points": 3,
-          "missing": []
+          "missing": [
+            "u-0001",
+            "192.0.2.232",
+            "confirm before acting"
+          ]
         }
       },
       "benign-06": {
-        "stale": false,
-        "accepted": true,
+        "stale": true,
+        "accepted": false,
         "requests": 1,
-        "rejected": {},
+        "rejected": {
+          "IP addresses": [
+            "192.0.2.46"
+          ],
+          "pseudonyms": [
+            "[user:a7573e8545]",
+            "[user:d05da8b9e9]"
+          ],
+          "incident ids": [
+            "INC-3185c3411aab7dfb"
+          ]
+        },
         "model": {
-          "errors": [],
-          "indicators_named": 3,
+          "errors": [
+            "unknown IP addresses: 192.0.2.46",
+            "unknown pseudonyms: [user:a7573e8545]",
+            "unknown pseudonyms: [user:d05da8b9e9]",
+            "unknown incident ids: INC-3185c3411aab7dfb"
+          ],
+          "indicators_named": 1,
           "indicators": 3,
           "points_covered": 3,
           "points": 3,
-          "missing": []
+          "missing": [
+            "u-1021",
+            "198.51.100.85"
+          ]
         },
         "shown": {
           "errors": [],
-          "indicators_named": 3,
+          "indicators_named": 1,
           "indicators": 3,
           "points_covered": 3,
           "points": 3,
-          "missing": []
+          "missing": [
+            "u-1021",
+            "198.51.100.85"
+          ]
         }
       },
       "benign-07": {
-        "stale": false,
-        "accepted": true,
+        "stale": true,
+        "accepted": false,
         "requests": 1,
-        "rejected": {},
+        "rejected": {
+          "IP addresses": [
+            "192.0.2.253"
+          ],
+          "pseudonyms": [
+            "[user:6cc79a9e17]",
+            "[user:afa57b4776]"
+          ],
+          "incident ids": [
+            "INC-03933da8174cf166"
+          ]
+        },
         "model": {
-          "errors": [],
-          "indicators_named": 3,
+          "errors": [
+            "unknown IP addresses: 192.0.2.253",
+            "unknown pseudonyms: [user:6cc79a9e17]",
+            "unknown pseudonyms: [user:afa57b4776]",
+            "unknown incident ids: INC-03933da8174cf166"
+          ],
+          "indicators_named": 1,
           "indicators": 3,
           "points_covered": 3,
           "points": 3,
-          "missing": []
+          "missing": [
+            "u-1001",
+            "192.0.2.81"
+          ]
         },
         "shown": {
           "errors": [],
-          "indicators_named": 3,
+          "indicators_named": 1,
           "indicators": 3,
           "points_covered": 3,
           "points": 3,
-          "missing": []
+          "missing": [
+            "u-1001",
+            "192.0.2.81"
+          ]
         }
       },
       "credential-stuffing-default": {
-        "stale": false,
-        "accepted": true,
+        "stale": true,
+        "accepted": false,
         "requests": 1,
-        "rejected": {},
+        "rejected": {
+          "IP addresses": [
+            "203.0.113.40"
+          ],
+          "pseudonyms": [
+            "[user:d0b204a687]",
+            "[user:e83e08a310]"
+          ],
+          "incident ids": [
+            "INC-9d59ebc4cfa844b5"
+          ]
+        },
         "model": {
-          "errors": [],
-          "indicators_named": 6,
+          "errors": [
+            "unknown IP addresses: 203.0.113.40",
+            "unknown pseudonyms: [user:d0b204a687]",
+            "unknown pseudonyms: [user:e83e08a310]",
+            "unknown incident ids: INC-9d59ebc4cfa844b5"
+          ],
+          "indicators_named": 4,
           "indicators": 6,
           "points_covered": 4,
           "points": 4,
-          "missing": []
+          "missing": [
+            "203.0.113.138",
+            "u-1033"
+          ]
         },
         "shown": {
           "errors": [],
           "indicators_named": 6,
           "indicators": 6,
-          "points_covered": 4,
+          "points_covered": 3,
           "points": 4,
-          "missing": []
+          "missing": [
+            "credential stuffing or spraying across many accounts"
+          ]
         }
       },
       "inject-path-pentest": {
@@ -1797,128 +2021,199 @@
         }
       },
       "injection-default": {
-        "stale": false,
-        "accepted": true,
+        "stale": true,
+        "accepted": false,
         "requests": 1,
-        "rejected": {},
+        "rejected": {
+          "IP addresses": [
+            "203.0.113.151"
+          ],
+          "incident ids": [
+            "INC-7d977009085518ea"
+          ]
+        },
         "model": {
-          "errors": [],
-          "indicators_named": 3,
+          "errors": [
+            "unknown IP addresses: 203.0.113.151",
+            "unknown incident ids: INC-7d977009085518ea"
+          ],
+          "indicators_named": 2,
           "indicators": 3,
           "points_covered": 3,
           "points": 4,
           "missing": [
+            "203.0.113.39",
             "whether any request succeeded is unknown and must be checked"
           ]
         },
         "shown": {
           "errors": [],
-          "indicators_named": 3,
+          "indicators_named": 2,
           "indicators": 3,
-          "points_covered": 3,
+          "points_covered": 4,
           "points": 4,
           "missing": [
-            "whether any request succeeded is unknown and must be checked"
+            "203.0.113.39"
           ]
         }
       },
       "injection-heldout": {
-        "stale": false,
-        "accepted": true,
+        "stale": true,
+        "accepted": false,
         "requests": 1,
-        "rejected": {},
+        "rejected": {
+          "IP addresses": [
+            "203.0.113.148"
+          ],
+          "incident ids": [
+            "INC-7345db0a4ca2994f"
+          ]
+        },
         "model": {
-          "errors": [],
-          "indicators_named": 3,
+          "errors": [
+            "unknown IP addresses: 203.0.113.148",
+            "unknown incident ids: INC-7345db0a4ca2994f"
+          ],
+          "indicators_named": 2,
           "indicators": 3,
           "points_covered": 3,
           "points": 3,
-          "missing": []
+          "missing": [
+            "203.0.113.101"
+          ]
         },
         "shown": {
           "errors": [],
-          "indicators_named": 3,
+          "indicators_named": 2,
           "indicators": 3,
           "points_covered": 3,
           "points": 3,
-          "missing": []
+          "missing": [
+            "203.0.113.101"
+          ]
         }
       },
       "password-spraying-default": {
-        "stale": false,
-        "accepted": true,
+        "stale": true,
+        "accepted": false,
         "requests": 1,
-        "rejected": {},
+        "rejected": {
+          "IP addresses": [
+            "203.0.113.51"
+          ],
+          "incident ids": [
+            "INC-0ccd2332316ffe3d"
+          ]
+        },
         "model": {
-          "errors": [],
-          "indicators_named": 4,
+          "errors": [
+            "unknown IP addresses: 203.0.113.51",
+            "unknown incident ids: INC-0ccd2332316ffe3d"
+          ],
+          "indicators_named": 3,
           "indicators": 4,
           "points_covered": 3,
           "points": 4,
           "missing": [
+            "203.0.113.54",
             "check the targeted accounts for a later successful sign-in"
           ]
         },
         "shown": {
           "errors": [],
-          "indicators_named": 4,
+          "indicators_named": 3,
           "indicators": 4,
-          "points_covered": 3,
+          "points_covered": 2,
           "points": 4,
           "missing": [
+            "203.0.113.54",
+            "password spraying or credential stuffing across many accounts",
             "check the targeted accounts for a later successful sign-in"
           ]
         }
       },
       "password-spraying-heldout": {
-        "stale": false,
-        "accepted": true,
+        "stale": true,
+        "accepted": false,
         "requests": 1,
-        "rejected": {},
+        "rejected": {
+          "IP addresses": [
+            "203.0.113.28"
+          ],
+          "incident ids": [
+            "INC-b03eb594927807c7"
+          ],
+          "rule ids": [
+            "PRH-AUTH-002"
+          ],
+          "ATT&CK techniques": [
+            "T1110.004"
+          ]
+        },
         "model": {
-          "errors": [],
-          "indicators_named": 3,
+          "errors": [
+            "unknown IP addresses: 203.0.113.28",
+            "unknown incident ids: INC-b03eb594927807c7",
+            "unknown rule ids: PRH-AUTH-002",
+            "unknown ATT&CK techniques: T1110.004"
+          ],
+          "indicators_named": 1,
           "indicators": 3,
           "points_covered": 2,
-          "points": 3,
+          "points": 4,
           "missing": [
+            "203.0.113.0/24",
+            "PRH-AUTH-007",
+            "from one network rather than one address",
             "check the targeted accounts"
           ]
         },
         "shown": {
           "errors": [],
-          "indicators_named": 3,
+          "indicators_named": 2,
           "indicators": 3,
-          "points_covered": 2,
-          "points": 3,
+          "points_covered": 3,
+          "points": 4,
           "missing": [
+            "203.0.113.0/24",
             "check the targeted accounts"
           ]
         }
       },
       "ssh-bruteforce-default": {
-        "stale": false,
-        "accepted": true,
+        "stale": true,
+        "accepted": false,
         "requests": 1,
-        "rejected": {},
+        "rejected": {
+          "IP addresses": [
+            "203.0.113.204"
+          ],
+          "incident ids": [
+            "INC-e18a751de23737db"
+          ]
+        },
         "model": {
-          "errors": [],
-          "indicators_named": 4,
+          "errors": [
+            "unknown IP addresses: 203.0.113.204",
+            "unknown incident ids: INC-e18a751de23737db"
+          ],
+          "indicators_named": 3,
           "indicators": 4,
           "points_covered": 3,
           "points": 4,
           "missing": [
+            "203.0.113.79",
             "harden SSH sign-in (keys only, no passwords)"
           ]
         },
         "shown": {
           "errors": [],
-          "indicators_named": 4,
+          "indicators_named": 3,
           "indicators": 4,
-          "points_covered": 3,
+          "points_covered": 4,
           "points": 4,
           "missing": [
-            "harden SSH sign-in (keys only, no passwords)"
+            "203.0.113.79"
           ]
         }
       },
@@ -1927,6 +2222,9 @@
         "accepted": false,
         "requests": 1,
         "rejected": {
+          "IP addresses": [
+            "203.0.113.64"
+          ],
           "pseudonyms": [
             "[user:e4b8601993]"
           ],
@@ -1936,14 +2234,16 @@
         },
         "model": {
           "errors": [
+            "unknown IP addresses: 203.0.113.64",
             "unknown pseudonyms: [user:e4b8601993]",
             "unknown incident ids: INC-8aaaf0ee0898a03c"
           ],
-          "indicators_named": 3,
+          "indicators_named": 2,
           "indicators": 4,
           "points_covered": 2,
           "points": 3,
           "missing": [
+            "203.0.113.58",
             "root",
             "the root account was targeted"
           ]
@@ -1955,96 +2255,192 @@
           "points_covered": 3,
           "points": 3,
           "missing": [
-            "203.0.113.64"
+            "203.0.113.58"
           ]
         }
       },
       "token-reuse-default": {
-        "stale": false,
-        "accepted": true,
+        "stale": true,
+        "accepted": false,
         "requests": 1,
-        "rejected": {},
+        "rejected": {
+          "IP addresses": [
+            "203.0.113.161"
+          ],
+          "pseudonyms": [
+            "[user:41fcdad9df]",
+            "[user:5f620fbb2d]",
+            "[user:823eedbe24]",
+            "[user:94413429ad]",
+            "[user:ebf1b575cc]",
+            "[user:fd80eef555]"
+          ],
+          "incident ids": [
+            "INC-45a9dda89bfc1dc0"
+          ]
+        },
         "model": {
-          "errors": [],
-          "indicators_named": 6,
+          "errors": [
+            "unknown IP addresses: 203.0.113.161",
+            "unknown pseudonyms: [user:41fcdad9df]",
+            "unknown pseudonyms: [user:5f620fbb2d]",
+            "unknown pseudonyms: [user:823eedbe24]",
+            "unknown pseudonyms: [user:94413429ad]",
+            "unknown pseudonyms: [user:ebf1b575cc]",
+            "unknown pseudonyms: [user:fd80eef555]",
+            "unknown incident ids: INC-45a9dda89bfc1dc0"
+          ],
+          "indicators_named": 2,
           "indicators": 6,
           "points_covered": 3,
           "points": 3,
-          "missing": []
+          "missing": [
+            "203.0.113.183",
+            "u-1000",
+            "u-1001",
+            "u-1002"
+          ]
         },
         "shown": {
           "errors": [],
-          "indicators_named": 6,
+          "indicators_named": 2,
           "indicators": 6,
           "points_covered": 3,
           "points": 3,
-          "missing": []
+          "missing": [
+            "203.0.113.183",
+            "u-1000",
+            "u-1001",
+            "u-1002"
+          ]
         }
       },
       "token-reuse-heldout": {
-        "stale": false,
-        "accepted": true,
+        "stale": true,
+        "accepted": false,
         "requests": 1,
-        "rejected": {},
+        "rejected": {
+          "IP addresses": [
+            "2001:db8::51c2:6919"
+          ],
+          "pseudonyms": [
+            "[user:00597551cd]",
+            "[user:094ddbd460]",
+            "[user:326b84b8b1]",
+            "[user:50bfaf7100]",
+            "[user:a393efb7e5]",
+            "[user:b3cf89aa06]"
+          ],
+          "incident ids": [
+            "INC-631f361ab5c082a9"
+          ]
+        },
         "model": {
-          "errors": [],
-          "indicators_named": 6,
+          "errors": [
+            "unknown IP addresses: 2001:db8::51c2:6919",
+            "unknown pseudonyms: [user:00597551cd]",
+            "unknown pseudonyms: [user:094ddbd460]",
+            "unknown pseudonyms: [user:326b84b8b1]",
+            "unknown pseudonyms: [user:50bfaf7100]",
+            "unknown pseudonyms: [user:a393efb7e5]",
+            "unknown pseudonyms: [user:b3cf89aa06]",
+            "unknown incident ids: INC-631f361ab5c082a9"
+          ],
+          "indicators_named": 2,
           "indicators": 6,
           "points_covered": 3,
           "points": 3,
-          "missing": []
+          "missing": [
+            "2001:db8::60e3:660f",
+            "u-1000",
+            "u-1001",
+            "u-1002"
+          ]
         },
         "shown": {
           "errors": [],
-          "indicators_named": 6,
+          "indicators_named": 2,
           "indicators": 6,
           "points_covered": 3,
           "points": 3,
-          "missing": []
+          "missing": [
+            "2001:db8::60e3:660f",
+            "u-1000",
+            "u-1001",
+            "u-1002"
+          ]
         }
       },
       "web-scanning-default": {
-        "stale": false,
-        "accepted": true,
+        "stale": true,
+        "accepted": false,
         "requests": 1,
-        "rejected": {},
+        "rejected": {
+          "IP addresses": [
+            "203.0.113.49"
+          ],
+          "incident ids": [
+            "INC-636926b1f15a3c88"
+          ]
+        },
         "model": {
-          "errors": [],
-          "indicators_named": 5,
+          "errors": [
+            "unknown IP addresses: 203.0.113.49",
+            "unknown incident ids: INC-636926b1f15a3c88"
+          ],
+          "indicators_named": 4,
           "indicators": 5,
           "points_covered": 4,
           "points": 4,
-          "missing": []
+          "missing": [
+            "203.0.113.233"
+          ]
         },
         "shown": {
           "errors": [],
-          "indicators_named": 5,
+          "indicators_named": 4,
           "indicators": 5,
           "points_covered": 4,
           "points": 4,
-          "missing": []
+          "missing": [
+            "203.0.113.233"
+          ]
         }
       },
       "web-scanning-heldout": {
-        "stale": false,
-        "accepted": true,
+        "stale": true,
+        "accepted": false,
         "requests": 1,
-        "rejected": {},
+        "rejected": {
+          "IP addresses": [
+            "203.0.113.90"
+          ],
+          "incident ids": [
+            "INC-9c61bb2a92bce6b1"
+          ]
+        },
         "model": {
-          "errors": [],
-          "indicators_named": 4,
+          "errors": [
+            "unknown IP addresses: 203.0.113.90",
+            "unknown incident ids: INC-9c61bb2a92bce6b1"
+          ],
+          "indicators_named": 3,
           "indicators": 4,
           "points_covered": 3,
           "points": 3,
-          "missing": []
+          "missing": [
+            "203.0.113.124"
+          ]
         },
         "shown": {
           "errors": [],
-          "indicators_named": 4,
+          "indicators_named": 3,
           "indicators": 4,
           "points_covered": 3,
           "points": 3,
-          "missing": []
+          "missing": [
+            "203.0.113.124"
+          ]
         }
       }
     },
@@ -2061,7 +2457,7 @@
           "points_covered": 4,
           "points": 4,
           "missing": [
-            "203.0.113.169"
+            "203.0.113.53"
           ]
         },
         "shown": {
@@ -2071,7 +2467,7 @@
           "points_covered": 4,
           "points": 4,
           "missing": [
-            "203.0.113.169"
+            "203.0.113.53"
           ]
         }
       },
@@ -2082,24 +2478,22 @@
         "rejected": {},
         "model": {
           "errors": [],
-          "indicators_named": 3,
-          "indicators": 4,
-          "points_covered": 2,
+          "indicators_named": 4,
+          "indicators": 5,
+          "points_covered": 3,
           "points": 3,
           "missing": [
-            "203.0.113.93",
-            "the address is new for the account"
+            "203.0.113.230"
           ]
         },
         "shown": {
           "errors": [],
-          "indicators_named": 3,
-          "indicators": 4,
-          "points_covered": 2,
+          "indicators_named": 4,
+          "indicators": 5,
+          "points_covered": 3,
           "points": 3,
           "missing": [
-            "203.0.113.93",
-            "the address is new for the account"
+            "203.0.113.230"
           ]
         }
       },
@@ -2115,7 +2509,7 @@
           "points_covered": 4,
           "points": 4,
           "missing": [
-            "203.0.113.213",
+            "203.0.113.102",
             "T1098"
           ]
         },
@@ -2126,7 +2520,7 @@
           "points_covered": 4,
           "points": 4,
           "missing": [
-            "203.0.113.213",
+            "203.0.113.102",
             "T1098"
           ]
         }
@@ -2143,7 +2537,7 @@
           "points_covered": 3,
           "points": 3,
           "missing": [
-            "203.0.113.248"
+            "203.0.113.226"
           ]
         },
         "shown": {
@@ -2153,7 +2547,7 @@
           "points_covered": 3,
           "points": 3,
           "missing": [
-            "203.0.113.248"
+            "203.0.113.226"
           ]
         }
       },
@@ -2169,7 +2563,7 @@
           "points_covered": 3,
           "points": 3,
           "missing": [
-            "192.0.2.10"
+            "2001:db8:2713::f514:d171"
           ]
         },
         "shown": {
@@ -2179,7 +2573,7 @@
           "points_covered": 3,
           "points": 3,
           "missing": [
-            "192.0.2.10"
+            "2001:db8:2713::f514:d171"
           ]
         }
       },
@@ -2195,7 +2589,7 @@
           "points_covered": 3,
           "points": 3,
           "missing": [
-            "192.0.2.28"
+            "192.0.2.217"
           ]
         },
         "shown": {
@@ -2205,7 +2599,7 @@
           "points_covered": 3,
           "points": 3,
           "missing": [
-            "192.0.2.28"
+            "192.0.2.217"
           ]
         }
       },
@@ -2221,7 +2615,7 @@
           "points_covered": 3,
           "points": 3,
           "missing": [
-            "2001:db8::1a86:ac71"
+            "192.0.2.82"
           ]
         },
         "shown": {
@@ -2231,7 +2625,7 @@
           "points_covered": 3,
           "points": 3,
           "missing": [
-            "2001:db8::1a86:ac71"
+            "192.0.2.82"
           ]
         }
       },
@@ -2247,7 +2641,7 @@
           "points_covered": 3,
           "points": 3,
           "missing": [
-            "192.0.2.124"
+            "192.0.2.28"
           ]
         },
         "shown": {
@@ -2257,7 +2651,7 @@
           "points_covered": 3,
           "points": 3,
           "missing": [
-            "192.0.2.124"
+            "192.0.2.28"
           ]
         }
       },
@@ -2273,7 +2667,7 @@
           "points_covered": 2,
           "points": 3,
           "missing": [
-            "192.0.2.143",
+            "192.0.2.232",
             "confirm before acting"
           ]
         },
@@ -2284,7 +2678,7 @@
           "points_covered": 2,
           "points": 3,
           "missing": [
-            "192.0.2.143",
+            "192.0.2.232",
             "confirm before acting"
           ]
         }
@@ -2301,7 +2695,7 @@
           "points_covered": 3,
           "points": 3,
           "missing": [
-            "192.0.2.46"
+            "198.51.100.85"
           ]
         },
         "shown": {
@@ -2311,7 +2705,7 @@
           "points_covered": 3,
           "points": 3,
           "missing": [
-            "192.0.2.46"
+            "198.51.100.85"
           ]
         }
       },
@@ -2324,22 +2718,20 @@
           "errors": [],
           "indicators_named": 2,
           "indicators": 3,
-          "points_covered": 2,
+          "points_covered": 3,
           "points": 3,
           "missing": [
-            "192.0.2.253",
-            "the address is new for the account"
+            "192.0.2.81"
           ]
         },
         "shown": {
           "errors": [],
           "indicators_named": 2,
           "indicators": 3,
-          "points_covered": 2,
+          "points_covered": 3,
           "points": 3,
           "missing": [
-            "192.0.2.253",
-            "the address is new for the account"
+            "192.0.2.81"
           ]
         }
       },
@@ -2355,7 +2747,7 @@
           "points_covered": 3,
           "points": 4,
           "missing": [
-            "203.0.113.40",
+            "203.0.113.138",
             "T1110.004",
             "credential stuffing or spraying across many accounts"
           ]
@@ -2367,7 +2759,7 @@
           "points_covered": 3,
           "points": 4,
           "missing": [
-            "203.0.113.40",
+            "203.0.113.138",
             "T1110.004",
             "credential stuffing or spraying across many accounts"
           ]
@@ -2663,7 +3055,7 @@
           "points_covered": 4,
           "points": 4,
           "missing": [
-            "203.0.113.151"
+            "203.0.113.39"
           ]
         },
         "shown": {
@@ -2673,7 +3065,7 @@
           "points_covered": 4,
           "points": 4,
           "missing": [
-            "203.0.113.151"
+            "203.0.113.39"
           ]
         }
       },
@@ -2689,7 +3081,7 @@
           "points_covered": 3,
           "points": 3,
           "missing": [
-            "203.0.113.148"
+            "203.0.113.101"
           ]
         },
         "shown": {
@@ -2699,7 +3091,7 @@
           "points_covered": 3,
           "points": 3,
           "missing": [
-            "203.0.113.148"
+            "203.0.113.101"
           ]
         }
       },
@@ -2712,24 +3104,28 @@
           "errors": [],
           "indicators_named": 2,
           "indicators": 4,
-          "points_covered": 3,
+          "points_covered": 1,
           "points": 4,
           "missing": [
-            "203.0.113.51",
+            "203.0.113.54",
             "T1110.003",
-            "check the targeted accounts for a later successful sign-in"
+            "password spraying or credential stuffing across many accounts",
+            "check the targeted accounts for a later successful sign-in",
+            "two-step verification"
           ]
         },
         "shown": {
           "errors": [],
           "indicators_named": 2,
           "indicators": 4,
-          "points_covered": 3,
+          "points_covered": 1,
           "points": 4,
           "missing": [
-            "203.0.113.51",
+            "203.0.113.54",
             "T1110.003",
-            "check the targeted accounts for a later successful sign-in"
+            "password spraying or credential stuffing across many accounts",
+            "check the targeted accounts for a later successful sign-in",
+            "two-step verification"
           ]
         }
       },
@@ -2742,10 +3138,10 @@
           "errors": [],
           "indicators_named": 2,
           "indicators": 3,
-          "points_covered": 2,
-          "points": 3,
+          "points_covered": 3,
+          "points": 4,
           "missing": [
-            "203.0.113.28",
+            "203.0.113.0/24",
             "check the targeted accounts"
           ]
         },
@@ -2753,10 +3149,10 @@
           "errors": [],
           "indicators_named": 2,
           "indicators": 3,
-          "points_covered": 2,
-          "points": 3,
+          "points_covered": 3,
+          "points": 4,
           "missing": [
-            "203.0.113.28",
+            "203.0.113.0/24",
             "check the targeted accounts"
           ]
         }
@@ -2773,7 +3169,7 @@
           "points_covered": 4,
           "points": 4,
           "missing": [
-            "203.0.113.204"
+            "203.0.113.79"
           ]
         },
         "shown": {
@@ -2783,7 +3179,7 @@
           "points_covered": 4,
           "points": 4,
           "missing": [
-            "203.0.113.204"
+            "203.0.113.79"
           ]
         }
       },
@@ -2799,7 +3195,7 @@
           "points_covered": 2,
           "points": 3,
           "missing": [
-            "203.0.113.64",
+            "203.0.113.58",
             "block or rate-limit the source"
           ]
         },
@@ -2810,7 +3206,7 @@
           "points_covered": 2,
           "points": 3,
           "missing": [
-            "203.0.113.64",
+            "203.0.113.58",
             "block or rate-limit the source"
           ]
         }
@@ -2827,7 +3223,7 @@
           "points_covered": 2,
           "points": 3,
           "missing": [
-            "203.0.113.161",
+            "203.0.113.183",
             "T1550.001",
             "several accounts from the same address"
           ]
@@ -2839,7 +3235,7 @@
           "points_covered": 2,
           "points": 3,
           "missing": [
-            "203.0.113.161",
+            "203.0.113.183",
             "T1550.001",
             "several accounts from the same address"
           ]
@@ -2857,7 +3253,7 @@
           "points_covered": 2,
           "points": 3,
           "missing": [
-            "2001:db8::51c2:6919",
+            "2001:db8::60e3:660f",
             "T1550.001",
             "several accounts from the same address"
           ]
@@ -2869,7 +3265,7 @@
           "points_covered": 2,
           "points": 3,
           "missing": [
-            "2001:db8::51c2:6919",
+            "2001:db8::60e3:660f",
             "T1550.001",
             "several accounts from the same address"
           ]
@@ -2887,7 +3283,7 @@
           "points_covered": 3,
           "points": 4,
           "missing": [
-            "203.0.113.49",
+            "203.0.113.233",
             "a scanner user agent (zgrab)"
           ]
         },
@@ -2898,7 +3294,7 @@
           "points_covered": 3,
           "points": 4,
           "missing": [
-            "203.0.113.49",
+            "203.0.113.233",
             "a scanner user agent (zgrab)"
           ]
         }
@@ -2915,7 +3311,7 @@
           "points_covered": 3,
           "points": 3,
           "missing": [
-            "203.0.113.90"
+            "203.0.113.124"
           ]
         },
         "shown": {
@@ -2925,7 +3321,7 @@
           "points_covered": 3,
           "points": 3,
           "missing": [
-            "203.0.113.90"
+            "203.0.113.124"
           ]
         }
       }

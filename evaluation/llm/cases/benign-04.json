@@ -9,7 +9,7 @@
     "seed": 1
   },
   "incident": {
-    "id": "INC-c610228e3bdf2185",
+    "id": "INC-316e666c318f5362",
     "title": "Sensitive account change shortly after sign-in",
     "status": "open",
     "severity": "high",
@@ -24,36 +24,36 @@
         "points": 15.0
       }
     ],
-    "first_seen": "2026-10-24T12:10:33.089000Z",
-    "last_seen": "2026-10-24T12:32:53.554000Z",
+    "first_seen": "2026-10-24T12:05:26.778000Z",
+    "last_seen": "2026-10-24T12:09:32.190000Z",
     "entities": {
       "source.ip": [
-        "192.0.2.124"
+        "192.0.2.28"
       ],
       "user.email_hash": [
-        "5459e60c60eaf85a15f0cb102024e075"
+        "056283803f260725097de8ab012f7716"
       ],
       "user.id": [
-        "u-1001"
+        "u-1002"
       ]
     },
     "alerts": [
       {
-        "id": "alr-40ff0fdc6039e3a599b41d40",
+        "id": "alr-48ce0d6b0ef1f33bff01a7f9",
         "detector_id": "PRH-ACCT-001",
         "detector_kind": "rule",
         "title": "Sensitive account change shortly after sign-in",
         "severity": "high",
         "score": 75.0,
         "event_ids": [
-          "evt-1da58e06860945a772931e5c",
-          "evt-c4ee213c869f9ec363296805"
+          "evt-04b56829d6905f7c47b9ef6c",
+          "evt-40d61d24a5ef732e6b615353"
         ],
         "entities": {
-          "user.id": "u-1001"
+          "user.id": "u-1002"
         },
-        "first_seen": "2026-10-24T12:10:33.089000Z",
-        "last_seen": "2026-10-24T12:32:53.554000Z",
+        "first_seen": "2026-10-24T12:05:26.778000Z",
+        "last_seen": "2026-10-24T12:09:32.190000Z",
         "attack": [
           "attack.persistence",
           "attack.privilege_escalation",
@@ -62,34 +62,39 @@
           "attack.t1098",
           "attack.t1556.006"
         ],
-        "explanation": "1 x signin then 1 x change for user.id=u-1001 within 30m"
+        "explanation": "1 x signin then 1 x change for user.id=u-1002 within 30m"
       }
     ],
     "timeline": [
       {
-        "timestamp": "2026-10-24T12:10:33.089000Z",
-        "description": "[app-security] auth.signin.success (success), account u-1001, from 192.0.2.124, POST /api/auth/signin, client web",
-        "event_id": "evt-1da58e06860945a772931e5c",
-        "account": "u-1001",
-        "source_ip": "192.0.2.124"
+        "timestamp": "2026-10-24T12:05:26.778000Z",
+        "description": "[app-security] auth.signin.success (success), account u-1002, from 192.0.2.28, POST /api/auth/signin, client android/10203",
+        "event_id": "evt-04b56829d6905f7c47b9ef6c",
+        "account": "u-1002",
+        "source_ip": "192.0.2.28"
       },
       {
-        "timestamp": "2026-10-24T12:32:53.554000Z",
-        "description": "[app-security] account.password.changed (success), account u-1001, from 192.0.2.43, PATCH /api/account, client web",
-        "event_id": "evt-c4ee213c869f9ec363296805",
-        "account": "u-1001",
-        "source_ip": "192.0.2.43"
+        "timestamp": "2026-10-24T12:09:32.190000Z",
+        "description": "[app-security] account.password.changed (success), account u-1002, from 192.0.2.28, PATCH /api/account, client android/10203",
+        "event_id": "evt-40d61d24a5ef732e6b615353",
+        "account": "u-1002",
+        "source_ip": "192.0.2.28"
       },
       {
-        "timestamp": "2026-10-24T12:32:53.554000Z",
+        "timestamp": "2026-10-24T12:09:32.190000Z",
         "description": "Alert PRH-ACCT-001 (high): Sensitive account change shortly after sign-in",
-        "alert_id": "alr-40ff0fdc6039e3a599b41d40"
+        "alert_id": "alr-48ce0d6b0ef1f33bff01a7f9"
       }
     ],
     "indicators": [
       {
+        "type": "ip",
+        "value": "192.0.2.28",
+        "enrichment": []
+      },
+      {
         "type": "user_agent",
-        "value": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0 Safari/537.36",
+        "value": "okhttp/4.12.0",
         "enrichment": []
       }
     ],
@@ -109,8 +114,9 @@
     ],
     "confidence": "medium",
     "limitations": [
+      "Enrichment not run: IP reputation and location were not considered",
       "Single log source (app-security): no other log corroborates it",
-      "No earlier sign-in to u-1001 in the input: could not tell whether 192.0.2.124 is new for it",
+      "No earlier sign-in to u-1002 in the input: could not tell whether 192.0.2.28 is new for it",
       "Possible benign cause for PRH-ACCT-001: The account owner changing their own settings after signing in",
       "Possible benign cause for PRH-ACCT-001: Support staff helping a user recover an account"
     ]

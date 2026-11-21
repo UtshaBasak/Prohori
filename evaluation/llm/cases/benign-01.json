@@ -9,7 +9,7 @@
     "seed": 1
   },
   "incident": {
-    "id": "INC-15ad61158f70c785",
+    "id": "INC-ea649e51a7002d11",
     "title": "Sensitive account change shortly after sign-in",
     "status": "open",
     "severity": "high",
@@ -20,40 +20,40 @@
         "points": 35.0
       },
       {
-        "reason": "Sensitive account or admin change: account.password.changed",
+        "reason": "Sensitive account or admin change: account.bkash.changed",
         "points": 15.0
       }
     ],
-    "first_seen": "2026-10-24T07:13:07.553000Z",
-    "last_seen": "2026-10-24T07:39:29.235000Z",
+    "first_seen": "2026-10-24T06:29:30.332000Z",
+    "last_seen": "2026-10-24T06:38:53.254000Z",
     "entities": {
       "source.ip": [
-        "192.0.2.10"
+        "2001:db8:2713::f514:d171"
       ],
       "user.email_hash": [
-        "35cb0e770e8bdf25fbb5a1c362d1e63e"
+        "aa82a27d969a48a60e0df2bdfe316969"
       ],
       "user.id": [
-        "u-1016"
+        "u-1039"
       ]
     },
     "alerts": [
       {
-        "id": "alr-145356905f2906a22298f262",
+        "id": "alr-21f47829f5ba472fb1a9ce11",
         "detector_id": "PRH-ACCT-001",
         "detector_kind": "rule",
         "title": "Sensitive account change shortly after sign-in",
         "severity": "high",
         "score": 75.0,
         "event_ids": [
-          "evt-c2ffe4c7f501a49a24bb9436",
-          "evt-9c6a141aa8d2c9dbde3db0ef"
+          "evt-fe1e68f79914694adadb3d26",
+          "evt-3d52c5836fb3a9edeb78268d"
         ],
         "entities": {
-          "user.id": "u-1016"
+          "user.id": "u-1039"
         },
-        "first_seen": "2026-10-24T07:13:07.553000Z",
-        "last_seen": "2026-10-24T07:39:29.235000Z",
+        "first_seen": "2026-10-24T06:29:30.332000Z",
+        "last_seen": "2026-10-24T06:38:53.254000Z",
         "attack": [
           "attack.persistence",
           "attack.privilege_escalation",
@@ -62,39 +62,39 @@
           "attack.t1098",
           "attack.t1556.006"
         ],
-        "explanation": "1 x signin then 1 x change for user.id=u-1016 within 30m"
+        "explanation": "1 x signin then 1 x change for user.id=u-1039 within 30m"
       }
     ],
     "timeline": [
       {
-        "timestamp": "2026-10-24T07:13:07.553000Z",
-        "description": "[app-security] auth.signin.success (success), account u-1016, from 192.0.2.10, POST /api/auth/signin, client android/10203",
-        "event_id": "evt-c2ffe4c7f501a49a24bb9436",
-        "account": "u-1016",
-        "source_ip": "192.0.2.10"
+        "timestamp": "2026-10-24T06:29:30.332000Z",
+        "description": "[app-security] auth.signin.success (success), account u-1039, from 2001:db8:2713::f514:d171, POST /api/auth/signin, client web",
+        "event_id": "evt-fe1e68f79914694adadb3d26",
+        "account": "u-1039",
+        "source_ip": "2001:db8:2713::f514:d171"
       },
       {
-        "timestamp": "2026-10-24T07:39:29.235000Z",
-        "description": "[app-security] account.password.changed (success), account u-1016, from 192.0.2.10, PATCH /api/account, client android/10203",
-        "event_id": "evt-9c6a141aa8d2c9dbde3db0ef",
-        "account": "u-1016",
-        "source_ip": "192.0.2.10"
+        "timestamp": "2026-10-24T06:38:53.254000Z",
+        "description": "[app-security] account.bkash.changed (success), account u-1039, from 2001:db8:2713::f514:d171, PATCH /api/account, client web",
+        "event_id": "evt-3d52c5836fb3a9edeb78268d",
+        "account": "u-1039",
+        "source_ip": "2001:db8:2713::f514:d171"
       },
       {
-        "timestamp": "2026-10-24T07:39:29.235000Z",
+        "timestamp": "2026-10-24T06:38:53.254000Z",
         "description": "Alert PRH-ACCT-001 (high): Sensitive account change shortly after sign-in",
-        "alert_id": "alr-145356905f2906a22298f262"
+        "alert_id": "alr-21f47829f5ba472fb1a9ce11"
       }
     ],
     "indicators": [
       {
         "type": "ip",
-        "value": "192.0.2.10",
+        "value": "2001:db8:2713::f514:d171",
         "enrichment": []
       },
       {
         "type": "user_agent",
-        "value": "okhttp/4.12.0",
+        "value": "Mozilla/5.0 (X11; Linux x86_64; rv:131.0) Gecko/20100101 Firefox/131.0",
         "enrichment": []
       }
     ],
@@ -116,6 +116,7 @@
     "limitations": [
       "Enrichment not run: IP reputation and location were not considered",
       "Single log source (app-security): no other log corroborates it",
+      "No earlier sign-in to u-1039 in the input: could not tell whether 2001:db8:2713::f514:d171 is new for it",
       "Possible benign cause for PRH-ACCT-001: The account owner changing their own settings after signing in",
       "Possible benign cause for PRH-ACCT-001: Support staff helping a user recover an account"
     ]

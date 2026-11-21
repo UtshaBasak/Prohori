@@ -9,7 +9,7 @@
     "seed": 1
   },
   "incident": {
-    "id": "INC-a95f359ec3a8cc28",
+    "id": "INC-6a599ad81626b12a",
     "title": "Admin role granted and 2 related alerts",
     "status": "open",
     "severity": "high",
@@ -28,15 +28,15 @@
         "points": 15.0
       }
     ],
-    "first_seen": "2026-10-23T20:44:54.945000Z",
-    "last_seen": "2026-10-23T20:48:51.226000Z",
+    "first_seen": "2026-10-23T20:44:42.975000Z",
+    "last_seen": "2026-10-23T20:48:07.859000Z",
     "entities": {
       "request_id": [
-        "req-000788",
-        "req-000789"
+        "req-000791",
+        "req-000792"
       ],
       "source.ip": [
-        "203.0.113.213"
+        "203.0.113.102"
       ],
       "user.id": [
         "u-0002"
@@ -44,46 +44,22 @@
     },
     "alerts": [
       {
-        "id": "alr-d0d97156f7d29c7b4d1e9805",
-        "detector_id": "PRH-ADMIN-001",
-        "detector_kind": "rule",
-        "title": "Admin role granted",
-        "severity": "high",
-        "score": 75.0,
-        "event_ids": [
-          "evt-1b5d0375a14c87b43bdaea40"
-        ],
-        "entities": {
-          "source.ip": "203.0.113.213",
-          "user.id": "u-0002",
-          "request_id": "req-000788"
-        },
-        "first_seen": "2026-10-23T20:44:54.945000Z",
-        "last_seen": "2026-10-23T20:44:54.945000Z",
-        "attack": [
-          "attack.persistence",
-          "attack.privilege_escalation",
-          "attack.t1098"
-        ],
-        "explanation": "admin.role.granted matched the rule"
-      },
-      {
-        "id": "alr-ec4af1c3d996f59488193694",
+        "id": "alr-2797276e0f740e8ec43bd9a7",
         "detector_id": "PRH-ADMIN-002",
         "detector_kind": "rule",
         "title": "Admin action at an unusual hour",
         "severity": "medium",
         "score": 50.0,
         "event_ids": [
-          "evt-1b5d0375a14c87b43bdaea40"
+          "evt-57c2298297fc324e913d5267"
         ],
         "entities": {
-          "source.ip": "203.0.113.213",
+          "source.ip": "203.0.113.102",
           "user.id": "u-0002",
-          "request_id": "req-000788"
+          "request_id": "req-000791"
         },
-        "first_seen": "2026-10-23T20:44:54.945000Z",
-        "last_seen": "2026-10-23T20:44:54.945000Z",
+        "first_seen": "2026-10-23T20:44:42.975000Z",
+        "last_seen": "2026-10-23T20:44:42.975000Z",
         "attack": [
           "attack.persistence",
           "attack.privilege_escalation",
@@ -92,22 +68,46 @@
         "explanation": "admin.role.granted matched the rule"
       },
       {
-        "id": "alr-89f68da0ac99e46551d7822c",
+        "id": "alr-a15c2f3c9b338e2515e8e808",
+        "detector_id": "PRH-ADMIN-001",
+        "detector_kind": "rule",
+        "title": "Admin role granted",
+        "severity": "high",
+        "score": 75.0,
+        "event_ids": [
+          "evt-57c2298297fc324e913d5267"
+        ],
+        "entities": {
+          "source.ip": "203.0.113.102",
+          "user.id": "u-0002",
+          "request_id": "req-000791"
+        },
+        "first_seen": "2026-10-23T20:44:42.975000Z",
+        "last_seen": "2026-10-23T20:44:42.975000Z",
+        "attack": [
+          "attack.persistence",
+          "attack.privilege_escalation",
+          "attack.t1098"
+        ],
+        "explanation": "admin.role.granted matched the rule"
+      },
+      {
+        "id": "alr-a5667fec2eeda9e058909b43",
         "detector_id": "PRH-ADMIN-002",
         "detector_kind": "rule",
         "title": "Admin action at an unusual hour",
         "severity": "medium",
         "score": 50.0,
         "event_ids": [
-          "evt-b4e59be28c1d8d5c4b8ca8a2"
+          "evt-53b84fa6bc53c9fcc093b02f"
         ],
         "entities": {
-          "source.ip": "203.0.113.213",
+          "source.ip": "203.0.113.102",
           "user.id": "u-0002",
-          "request_id": "req-000789"
+          "request_id": "req-000792"
         },
-        "first_seen": "2026-10-23T20:48:51.226000Z",
-        "last_seen": "2026-10-23T20:48:51.226000Z",
+        "first_seen": "2026-10-23T20:48:07.859000Z",
+        "last_seen": "2026-10-23T20:48:07.859000Z",
         "attack": [
           "attack.persistence",
           "attack.privilege_escalation",
@@ -118,39 +118,39 @@
     ],
     "timeline": [
       {
-        "timestamp": "2026-10-23T20:44:54.945000Z",
-        "description": "[app-security] admin.role.granted (success), account u-0002, from 203.0.113.213, POST /api/admin/roles, client web",
-        "event_id": "evt-1b5d0375a14c87b43bdaea40",
+        "timestamp": "2026-10-23T20:44:42.975000Z",
+        "description": "[app-security] admin.role.granted (success), account u-0002, from 203.0.113.102, POST /api/admin/roles, client web",
+        "event_id": "evt-57c2298297fc324e913d5267",
         "account": "u-0002",
-        "source_ip": "203.0.113.213"
+        "source_ip": "203.0.113.102"
       },
       {
-        "timestamp": "2026-10-23T20:44:54.945000Z",
+        "timestamp": "2026-10-23T20:44:42.975000Z",
+        "description": "Alert PRH-ADMIN-002 (medium): Admin action at an unusual hour",
+        "alert_id": "alr-2797276e0f740e8ec43bd9a7"
+      },
+      {
+        "timestamp": "2026-10-23T20:44:42.975000Z",
         "description": "Alert PRH-ADMIN-001 (high): Admin role granted",
-        "alert_id": "alr-d0d97156f7d29c7b4d1e9805"
+        "alert_id": "alr-a15c2f3c9b338e2515e8e808"
       },
       {
-        "timestamp": "2026-10-23T20:44:54.945000Z",
-        "description": "Alert PRH-ADMIN-002 (medium): Admin action at an unusual hour",
-        "alert_id": "alr-ec4af1c3d996f59488193694"
-      },
-      {
-        "timestamp": "2026-10-23T20:48:51.226000Z",
-        "description": "[app-security] admin.payout.recorded (success), account u-0002, from 203.0.113.213, POST /api/admin/payouts, client web",
-        "event_id": "evt-b4e59be28c1d8d5c4b8ca8a2",
+        "timestamp": "2026-10-23T20:48:07.859000Z",
+        "description": "[app-security] admin.payout.recorded (success), account u-0002, from 203.0.113.102, POST /api/admin/payouts, client web",
+        "event_id": "evt-53b84fa6bc53c9fcc093b02f",
         "account": "u-0002",
-        "source_ip": "203.0.113.213"
+        "source_ip": "203.0.113.102"
       },
       {
-        "timestamp": "2026-10-23T20:48:51.226000Z",
+        "timestamp": "2026-10-23T20:48:07.859000Z",
         "description": "Alert PRH-ADMIN-002 (medium): Admin action at an unusual hour",
-        "alert_id": "alr-89f68da0ac99e46551d7822c"
+        "alert_id": "alr-a5667fec2eeda9e058909b43"
       }
     ],
     "indicators": [
       {
         "type": "ip",
-        "value": "203.0.113.213",
+        "value": "203.0.113.102",
         "enrichment": []
       }
     ],

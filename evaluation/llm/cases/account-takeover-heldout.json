@@ -9,30 +9,43 @@
     "seed": 1
   },
   "incident": {
-    "id": "INC-eb8e5113e4d5ba62",
-    "title": "Successful sign-in after many failures from one IP",
+    "id": "INC-5a8e741568fd4bcd",
+    "title": "Successful sign-in after many failures from one IP and 2 related alerts",
     "status": "open",
     "severity": "critical",
-    "score": 80.0,
+    "score": 100.0,
     "score_breakdown": [
       {
         "reason": "Most severe alert: PRH-AUTH-003 (critical)",
         "points": 50.0
       },
       {
+        "reason": "1 more rule fired: PRH-ACCT-001",
+        "points": 10.0
+      },
+      {
         "reason": "A sign-in succeeded after failed attempts",
         "points": 20.0
       },
       {
-        "reason": "Sign-in to u-1039 from 203.0.113.93, an IP not seen for this account before (1 earlier IP)",
+        "reason": "Sensitive account or admin change: account.bkash.changed, account.password.changed",
+        "points": 15.0
+      },
+      {
+        "reason": "Sign-in to u-1039 from 203.0.113.230, an IP not seen for this account before (1 earlier IP)",
         "points": 10.0
+      },
+      {
+        "reason": "Capped at 100",
+        "points": -5.0
       }
     ],
-    "first_seen": "2026-10-24T13:30:03.150000Z",
-    "last_seen": "2026-10-24T13:36:07.500000Z",
+    "first_seen": "2026-10-24T13:30:06.864000Z",
+    "last_seen": "2026-10-24T14:17:07.500000Z",
     "entities": {
       "source.ip": [
-        "203.0.113.93"
+        "192.0.2.97",
+        "203.0.113.230"
       ],
       "user.email_hash": [
         "aa82a27d969a48a60e0df2bdfe316969"
@@ -43,24 +56,24 @@
     },
     "alerts": [
       {
-        "id": "alr-97089b797e862f2d1087829d",
+        "id": "alr-e5af0f4de3cf7d1f29ca0247",
         "detector_id": "PRH-AUTH-003",
         "detector_kind": "rule",
         "title": "Successful sign-in after many failures from one IP",
         "severity": "critical",
         "score": 100.0,
         "event_ids": [
-          "evt-86a347962686026636660869",
-          "evt-1f16330c32a0ff9f0b45eb17",
-          "evt-dda95279925068c300fc4d0d",
-          "evt-13900f8cc02fce3878885f1f",
-          "evt-f3594ff4352f733e5aeb7f2e",
-          "evt-3f09d6afe85a3067add43185"
+          "evt-b0df104d484ecae10e454074",
+          "evt-56f0104c71d875ed5b66dffa",
+          "evt-cc599855310a9f4d28ff989f",
+          "evt-eafd97c42cf6e11be21a5bd4",
+          "evt-9f8b4f9421d8f4ddfe059190",
+          "evt-b378c6b3eee464009b05cdab"
         ],
         "entities": {
-          "source.ip": "203.0.113.93"
+          "source.ip": "203.0.113.230"
         },
-        "first_seen": "2026-10-24T13:30:03.150000Z",
+        "first_seen": "2026-10-24T13:30:06.864000Z",
         "last_seen": "2026-10-24T13:36:07.500000Z",
         "attack": [
           "attack.credential_access",
@@ -68,62 +81,150 @@
           "attack.t1110",
           "attack.t1078"
         ],
-        "explanation": "5 x failure then 1 x success for source.ip=203.0.113.93 within 15m"
+        "explanation": "5 x failure then 1 x success for source.ip=203.0.113.230 within 15m"
+      },
+      {
+        "id": "alr-1690585b6b64771f64602b31",
+        "detector_id": "PRH-ACCT-001",
+        "detector_kind": "rule",
+        "title": "Sensitive account change shortly after sign-in",
+        "severity": "high",
+        "score": 75.0,
+        "event_ids": [
+          "evt-7ccbb73e59bbf44869b22838",
+          "evt-274c87f054f5bf741b396a98"
+        ],
+        "entities": {
+          "user.id": "u-1039"
+        },
+        "first_seen": "2026-10-24T13:57:43.006000Z",
+        "last_seen": "2026-10-24T14:17:07.500000Z",
+        "attack": [
+          "attack.persistence",
+          "attack.privilege_escalation",
+          "attack.defense_impairment",
+          "attack.credential_access",
+          "attack.t1098",
+          "attack.t1556.006"
+        ],
+        "explanation": "1 x signin then 1 x change for user.id=u-1039 within 30m"
+      },
+      {
+        "id": "alr-4ecae63ad4d9e2c2c4930871",
+        "detector_id": "PRH-ACCT-001",
+        "detector_kind": "rule",
+        "title": "Sensitive account change shortly after sign-in",
+        "severity": "high",
+        "score": 75.0,
+        "event_ids": [
+          "evt-7ccbb73e59bbf44869b22838",
+          "evt-d1bea5a264b5f1660968301d"
+        ],
+        "entities": {
+          "user.id": "u-1039"
+        },
+        "first_seen": "2026-10-24T13:57:43.006000Z",
+        "last_seen": "2026-10-24T14:11:07.500000Z",
+        "attack": [
+          "attack.persistence",
+          "attack.privilege_escalation",
+          "attack.defense_impairment",
+          "attack.credential_access",
+          "attack.t1098",
+          "attack.t1556.006"
+        ],
+        "explanation": "1 x signin then 1 x change for user.id=u-1039 within 30m"
       }
     ],
     "timeline": [
       {
-        "timestamp": "2026-10-24T13:30:03.150000Z",
-        "description": "[app-security] auth.signin.failure (failure), account u-1039, from 203.0.113.93, POST /api/auth/signin, client web",
-        "event_id": "evt-86a347962686026636660869",
+        "timestamp": "2026-10-24T13:30:06.864000Z",
+        "description": "[app-security] auth.signin.failure (failure), account u-1039, from 203.0.113.230, POST /api/auth/signin, client web",
+        "event_id": "evt-b0df104d484ecae10e454074",
         "account": "u-1039",
-        "source_ip": "203.0.113.93"
+        "source_ip": "203.0.113.230"
       },
       {
-        "timestamp": "2026-10-24T13:30:39.016000Z",
-        "description": "[app-security] auth.signin.failure (failure), account u-1039, from 203.0.113.93, POST /api/auth/signin, client web",
-        "event_id": "evt-1f16330c32a0ff9f0b45eb17",
+        "timestamp": "2026-10-24T13:30:40.691000Z",
+        "description": "[app-security] auth.signin.failure (failure), account u-1039, from 203.0.113.230, POST /api/auth/signin, client web",
+        "event_id": "evt-56f0104c71d875ed5b66dffa",
         "account": "u-1039",
-        "source_ip": "203.0.113.93"
+        "source_ip": "203.0.113.230"
       },
       {
-        "timestamp": "2026-10-24T13:31:17.863000Z",
-        "description": "[app-security] auth.signin.failure (failure), account u-1039, from 203.0.113.93, POST /api/auth/signin, client web",
-        "event_id": "evt-dda95279925068c300fc4d0d",
+        "timestamp": "2026-10-24T13:31:16.095000Z",
+        "description": "[app-security] auth.signin.failure (failure), account u-1039, from 203.0.113.230, POST /api/auth/signin, client web",
+        "event_id": "evt-cc599855310a9f4d28ff989f",
         "account": "u-1039",
-        "source_ip": "203.0.113.93"
+        "source_ip": "203.0.113.230"
       },
       {
-        "timestamp": "2026-10-24T13:31:58.771000Z",
-        "description": "[app-security] auth.signin.failure (failure), account u-1039, from 203.0.113.93, POST /api/auth/signin, client web",
-        "event_id": "evt-13900f8cc02fce3878885f1f",
+        "timestamp": "2026-10-24T13:31:57.103000Z",
+        "description": "[app-security] auth.signin.failure (failure), account u-1039, from 203.0.113.230, POST /api/auth/signin, client web",
+        "event_id": "evt-eafd97c42cf6e11be21a5bd4",
         "account": "u-1039",
-        "source_ip": "203.0.113.93"
+        "source_ip": "203.0.113.230"
       },
       {
-        "timestamp": "2026-10-24T13:32:33.419000Z",
-        "description": "[app-security] auth.signin.failure (failure), account u-1039, from 203.0.113.93, POST /api/auth/signin, client web",
-        "event_id": "evt-f3594ff4352f733e5aeb7f2e",
+        "timestamp": "2026-10-24T13:32:34.034000Z",
+        "description": "[app-security] auth.signin.failure (failure), account u-1039, from 203.0.113.230, POST /api/auth/signin, client web",
+        "event_id": "evt-9f8b4f9421d8f4ddfe059190",
         "account": "u-1039",
-        "source_ip": "203.0.113.93"
+        "source_ip": "203.0.113.230"
       },
       {
         "timestamp": "2026-10-24T13:36:07.500000Z",
-        "description": "[app-security] auth.signin.success (success), account u-1039, from 203.0.113.93, POST /api/auth/signin, client web",
-        "event_id": "evt-3f09d6afe85a3067add43185",
+        "description": "[app-security] auth.signin.success (success), account u-1039, from 203.0.113.230, POST /api/auth/signin, client web",
+        "event_id": "evt-b378c6b3eee464009b05cdab",
         "account": "u-1039",
-        "source_ip": "203.0.113.93"
+        "source_ip": "203.0.113.230"
       },
       {
         "timestamp": "2026-10-24T13:36:07.500000Z",
         "description": "Alert PRH-AUTH-003 (critical): Successful sign-in after many failures from one IP",
-        "alert_id": "alr-97089b797e862f2d1087829d"
+        "alert_id": "alr-e5af0f4de3cf7d1f29ca0247"
+      },
+      {
+        "timestamp": "2026-10-24T13:57:43.006000Z",
+        "description": "[app-security] auth.signin.success (success), account u-1039, from 192.0.2.97, POST /api/auth/signin, client web",
+        "event_id": "evt-7ccbb73e59bbf44869b22838",
+        "account": "u-1039",
+        "source_ip": "192.0.2.97"
+      },
+      {
+        "timestamp": "2026-10-24T14:11:07.500000Z",
+        "description": "[app-security] account.bkash.changed (success), account u-1039, from 203.0.113.230, PATCH /api/account, client web",
+        "event_id": "evt-d1bea5a264b5f1660968301d",
+        "account": "u-1039",
+        "source_ip": "203.0.113.230"
+      },
+      {
+        "timestamp": "2026-10-24T14:11:07.500000Z",
+        "description": "Alert PRH-ACCT-001 (high): Sensitive account change shortly after sign-in",
+        "alert_id": "alr-4ecae63ad4d9e2c2c4930871"
+      },
+      {
+        "timestamp": "2026-10-24T14:17:07.500000Z",
+        "description": "[app-security] account.password.changed (success), account u-1039, from 203.0.113.230, PATCH /api/account, client web",
+        "event_id": "evt-274c87f054f5bf741b396a98",
+        "account": "u-1039",
+        "source_ip": "203.0.113.230"
+      },
+      {
+        "timestamp": "2026-10-24T14:17:07.500000Z",
+        "description": "Alert PRH-ACCT-001 (high): Sensitive account change shortly after sign-in",
+        "alert_id": "alr-1690585b6b64771f64602b31"
       }
     ],
     "indicators": [
       {
         "type": "ip",
-        "value": "203.0.113.93",
+        "value": "203.0.113.230",
+        "enrichment": []
+      },
+      {
+        "type": "user_agent",
+        "value": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0 Safari/537.36",
         "enrichment": []
       },
       {
@@ -134,21 +235,31 @@
     ],
     "attack": [
       "attack.initial_access",
+      "attack.persistence",
+      "attack.privilege_escalation",
+      "attack.defense_impairment",
       "attack.credential_access",
       "attack.t1078",
-      "attack.t1110"
+      "attack.t1098",
+      "attack.t1110",
+      "attack.t1556.006"
     ],
     "attack_version": "20.0",
     "recommended_actions": [
       "End all sessions of the account and force a password reset.",
       "Block the source IP.",
       "Revert unauthorised changes, such as a changed payout number or disabled two-step verification.",
-      "Require two-step verification for the account."
+      "Require two-step verification for the account.",
+      "If the owner did not make the change: end all sessions, revert the change, reset the password and re-enable two-step verification.",
+      "Hold payouts to a newly changed payout number until the owner confirms it.",
+      "Consider requiring re-authentication or a confirmation code for these changes."
     ],
-    "confidence": "medium",
+    "confidence": "high",
     "limitations": [
       "Enrichment not run: IP reputation and location were not considered",
       "Single log source (app-security): no other log corroborates it",
+      "Possible benign cause for PRH-ACCT-001: The account owner changing their own settings after signing in",
+      "Possible benign cause for PRH-ACCT-001: Support staff helping a user recover an account",
       "Possible benign cause for PRH-AUTH-003: A legitimate user who forgot their password and finally entered it correctly",
       "Possible benign cause for PRH-AUTH-003: Several users behind one shared NAT, some failing and one succeeding"
     ]

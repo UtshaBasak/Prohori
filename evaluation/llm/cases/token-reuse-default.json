@@ -9,7 +9,7 @@
     "seed": 1
   },
   "incident": {
-    "id": "INC-45a9dda89bfc1dc0",
+    "id": "INC-463b3869f7314909",
     "title": "Refresh-token reuse detected and 2 related alerts",
     "status": "open",
     "severity": "high",
@@ -24,16 +24,16 @@
         "points": 10.0
       }
     ],
-    "first_seen": "2026-10-24T07:11:18.684000Z",
-    "last_seen": "2026-10-24T07:25:49.758000Z",
+    "first_seen": "2026-10-24T07:11:03.875000Z",
+    "last_seen": "2026-10-24T07:26:22.125000Z",
     "entities": {
       "request_id": [
-        "req-000590",
-        "req-000591",
-        "req-000592"
+        "req-000594",
+        "req-000595",
+        "req-000596"
       ],
       "source.ip": [
-        "203.0.113.161"
+        "203.0.113.183"
       ],
       "user.email_hash": [
         "056283803f260725097de8ab012f7716",
@@ -48,22 +48,22 @@
     },
     "alerts": [
       {
-        "id": "alr-fa20ad703cdb733d1d337881",
+        "id": "alr-16817a55f4eb9596339253f5",
         "detector_id": "PRH-SESS-001",
         "detector_kind": "rule",
         "title": "Refresh-token reuse detected",
         "severity": "high",
         "score": 75.0,
         "event_ids": [
-          "evt-103429b0d57758ee5c38cbae"
+          "evt-cecd7586c1f8bae068f2c266"
         ],
         "entities": {
-          "source.ip": "203.0.113.161",
+          "source.ip": "203.0.113.183",
           "user.id": "u-1000",
-          "request_id": "req-000590"
+          "request_id": "req-000594"
         },
-        "first_seen": "2026-10-24T07:11:18.684000Z",
-        "last_seen": "2026-10-24T07:11:18.684000Z",
+        "first_seen": "2026-10-24T07:11:03.875000Z",
+        "last_seen": "2026-10-24T07:11:03.875000Z",
         "attack": [
           "attack.credential_access",
           "attack.lateral_movement",
@@ -73,22 +73,22 @@
         "explanation": "session.refresh.reuse_detected matched the rule"
       },
       {
-        "id": "alr-cf35e76c8ebffa368d9bdf98",
+        "id": "alr-926d6aac2cf29fdc82eb276d",
         "detector_id": "PRH-SESS-001",
         "detector_kind": "rule",
         "title": "Refresh-token reuse detected",
         "severity": "high",
         "score": 75.0,
         "event_ids": [
-          "evt-bd264e99f7d6d5465665e9e8"
+          "evt-91c01e5402b288939932d387"
         ],
         "entities": {
-          "source.ip": "203.0.113.161",
+          "source.ip": "203.0.113.183",
           "user.id": "u-1001",
-          "request_id": "req-000591"
+          "request_id": "req-000595"
         },
-        "first_seen": "2026-10-24T07:19:05.703000Z",
-        "last_seen": "2026-10-24T07:19:05.703000Z",
+        "first_seen": "2026-10-24T07:19:05.715000Z",
+        "last_seen": "2026-10-24T07:19:05.715000Z",
         "attack": [
           "attack.credential_access",
           "attack.lateral_movement",
@@ -98,22 +98,22 @@
         "explanation": "session.refresh.reuse_detected matched the rule"
       },
       {
-        "id": "alr-d571b7326b24f60c317af284",
+        "id": "alr-0897fb8f96312d5eaab2d0e8",
         "detector_id": "PRH-SESS-001",
         "detector_kind": "rule",
         "title": "Refresh-token reuse detected",
         "severity": "high",
         "score": 75.0,
         "event_ids": [
-          "evt-3ed221b3444b0947c7801c8f"
+          "evt-0c70fb304c1210e19f944bca"
         ],
         "entities": {
-          "source.ip": "203.0.113.161",
+          "source.ip": "203.0.113.183",
           "user.id": "u-1002",
-          "request_id": "req-000592"
+          "request_id": "req-000596"
         },
-        "first_seen": "2026-10-24T07:25:49.758000Z",
-        "last_seen": "2026-10-24T07:25:49.758000Z",
+        "first_seen": "2026-10-24T07:26:22.125000Z",
+        "last_seen": "2026-10-24T07:26:22.125000Z",
         "attack": [
           "attack.credential_access",
           "attack.lateral_movement",
@@ -125,46 +125,46 @@
     ],
     "timeline": [
       {
-        "timestamp": "2026-10-24T07:11:18.684000Z",
-        "description": "[app-security] session.refresh.reuse_detected (failure), account u-1000, from 203.0.113.161, POST /api/auth/refresh, client web",
-        "event_id": "evt-103429b0d57758ee5c38cbae",
+        "timestamp": "2026-10-24T07:11:03.875000Z",
+        "description": "[app-security] session.refresh.reuse_detected (failure), account u-1000, from 203.0.113.183, POST /api/auth/refresh, client web",
+        "event_id": "evt-cecd7586c1f8bae068f2c266",
         "account": "u-1000",
-        "source_ip": "203.0.113.161"
+        "source_ip": "203.0.113.183"
       },
       {
-        "timestamp": "2026-10-24T07:11:18.684000Z",
+        "timestamp": "2026-10-24T07:11:03.875000Z",
         "description": "Alert PRH-SESS-001 (high): Refresh-token reuse detected",
-        "alert_id": "alr-fa20ad703cdb733d1d337881"
+        "alert_id": "alr-16817a55f4eb9596339253f5"
       },
       {
-        "timestamp": "2026-10-24T07:19:05.703000Z",
-        "description": "[app-security] session.refresh.reuse_detected (failure), account u-1001, from 203.0.113.161, POST /api/auth/refresh, client web",
-        "event_id": "evt-bd264e99f7d6d5465665e9e8",
+        "timestamp": "2026-10-24T07:19:05.715000Z",
+        "description": "[app-security] session.refresh.reuse_detected (failure), account u-1001, from 203.0.113.183, POST /api/auth/refresh, client web",
+        "event_id": "evt-91c01e5402b288939932d387",
         "account": "u-1001",
-        "source_ip": "203.0.113.161"
+        "source_ip": "203.0.113.183"
       },
       {
-        "timestamp": "2026-10-24T07:19:05.703000Z",
+        "timestamp": "2026-10-24T07:19:05.715000Z",
         "description": "Alert PRH-SESS-001 (high): Refresh-token reuse detected",
-        "alert_id": "alr-cf35e76c8ebffa368d9bdf98"
+        "alert_id": "alr-926d6aac2cf29fdc82eb276d"
       },
       {
-        "timestamp": "2026-10-24T07:25:49.758000Z",
-        "description": "[app-security] session.refresh.reuse_detected (failure), account u-1002, from 203.0.113.161, POST /api/auth/refresh, client web",
-        "event_id": "evt-3ed221b3444b0947c7801c8f",
+        "timestamp": "2026-10-24T07:26:22.125000Z",
+        "description": "[app-security] session.refresh.reuse_detected (failure), account u-1002, from 203.0.113.183, POST /api/auth/refresh, client web",
+        "event_id": "evt-0c70fb304c1210e19f944bca",
         "account": "u-1002",
-        "source_ip": "203.0.113.161"
+        "source_ip": "203.0.113.183"
       },
       {
-        "timestamp": "2026-10-24T07:25:49.758000Z",
+        "timestamp": "2026-10-24T07:26:22.125000Z",
         "description": "Alert PRH-SESS-001 (high): Refresh-token reuse detected",
-        "alert_id": "alr-d571b7326b24f60c317af284"
+        "alert_id": "alr-0897fb8f96312d5eaab2d0e8"
       }
     ],
     "indicators": [
       {
         "type": "ip",
-        "value": "203.0.113.161",
+        "value": "203.0.113.183",
         "enrichment": []
       },
       {
