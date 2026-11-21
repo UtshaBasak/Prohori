@@ -63,6 +63,18 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   flows that have a near-duplicate in training. `results/ml_*.json` (format
   `prohori.ml-eval/2`) holds the study and the model card a generated table; `--no-study` skips
   it and `--calibration out-of-fold` uses the other method.
+- **Cross-dataset generalisation study** (step 30b), pre-registered in ADR-0041 and pushed
+  before any run. `scripts/cross_dataset_study.py` tries six low-compute ways to close the gap
+  between the two flow datasets without target labels (per-domain log standardisation,
+  per-domain quantile maps with and without protocol groups, CORAL, importance weighting,
+  domain-invariant feature selection), plus 10, 50 and 100 labelled target flows as an upper
+  bound, in both directions over seeds 0-2 with paired bootstrap intervals; results in
+  `results/ml_adapt.json` (byte-identical on a rerun) and a generated table in the model card.
+  Only the per-domain quantile map helps in both directions (ROC-AUC 0.636 to 0.824 and 0.590
+  to 0.624); 10 labelled target flows do as well, 100 do much better (0.966 and 0.758). The
+  transforms, weights and metrics are in `prohori.ml.adapt`, with leakage tests (the pool's
+  labels reach only the few-shot and reference arms; target test features change nothing that
+  is fitted). Adversarial methods and a third dataset are recorded as future work.
 - `prohori.ml.safety`: hash, library-version, skops-type and pickle-allowlist checks, reusable by
   other commands (`scan_joblib` lists what a pickle model asks for without running it).
 
@@ -182,6 +194,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- CodeQL: two unnecessary `del` statements in `prohori.ml.safety`'s scan stand-in.
 - `prohori.llm.evaluate record`: after a `--fresh` recording stops at the daily budget, the
   message says to continue without `--fresh` (running the same command again discarded it).
 - The Kafka transport retries the broker's start-up errors (no leader or no coordinator yet,

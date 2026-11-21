@@ -1,0 +1,1618 @@
+{
+  "format": "prohori.ml-adapt/1",
+  "prohori_version": "1.0.1",
+  "preregistration": "docs/DECISIONS.md#adr-0041-pre-registration-of-the-cross-dataset-generalisation-study",
+  "seeds": [
+    0,
+    1,
+    2
+  ],
+  "sample": null,
+  "resamples": 1000,
+  "target_fpr": 0.01,
+  "features": [
+    "duration_s",
+    "fwd_packets",
+    "bwd_packets",
+    "fwd_bytes",
+    "bwd_bytes",
+    "fwd_mean_bytes",
+    "bwd_mean_bytes",
+    "fwd_iat_mean_s",
+    "bwd_iat_mean_s",
+    "packets_per_s",
+    "bytes_per_s",
+    "protocol"
+  ],
+  "params": {
+    "max_iter": 300,
+    "learning_rate": 0.1,
+    "early_stopping": true,
+    "validation_fraction": 0.1,
+    "n_iter_no_change": 10
+  },
+  "arms": [
+    "baseline",
+    "standardise",
+    "quantile",
+    "quantile-protocol",
+    "coral",
+    "importance",
+    "invariant",
+    "few-shot-10",
+    "few-shot-50",
+    "few-shot-100",
+    "target-reference"
+  ],
+  "caveat": "Two lab datasets, twelve shared features measured by different tools, three seeds, one model family. The unlabelled target pool is a lab training split with a large attack share, unlike real unlabelled traffic. See ADR-0041 for the pre-registration.",
+  "directions": {
+    "unsw-nb15->cicids2017": {
+      "per_seed": [
+        {
+          "baseline": {
+            "roc_auc": 0.651661,
+            "pr_auc": 0.292683,
+            "prevalence": 0.164514,
+            "recall_frozen": 0.598926,
+            "fpr_frozen": 0.379725,
+            "recall_at_target_fpr": 0.00753724
+          },
+          "standardise": {
+            "roc_auc": 0.656304,
+            "pr_auc": 0.520222,
+            "prevalence": 0.164514,
+            "recall_frozen": 0.4467,
+            "fpr_frozen": 0.115301,
+            "recall_at_target_fpr": 0.337612
+          },
+          "quantile": {
+            "roc_auc": 0.894212,
+            "pr_auc": 0.70578,
+            "prevalence": 0.164514,
+            "recall_frozen": 0.797431,
+            "fpr_frozen": 0.182772,
+            "recall_at_target_fpr": 0.33216
+          },
+          "quantile-protocol": {
+            "roc_auc": 0.609119,
+            "pr_auc": 0.363197,
+            "prevalence": 0.164514,
+            "recall_frozen": 0.399035,
+            "fpr_frozen": 0.0793972,
+            "recall_at_target_fpr": 0.100781
+          },
+          "coral": {
+            "roc_auc": 0.502197,
+            "pr_auc": 0.459689,
+            "prevalence": 0.164514,
+            "recall_frozen": 0.3684,
+            "fpr_frozen": 0.0883207,
+            "recall_at_target_fpr": 0.343347
+          },
+          "importance": {
+            "roc_auc": 0.503388,
+            "pr_auc": 0.15209,
+            "prevalence": 0.164514,
+            "recall_frozen": 0.636873,
+            "fpr_frozen": 0.535786,
+            "recall_at_target_fpr": 0.000924379
+          },
+          "invariant": {
+            "roc_auc": 0.651661,
+            "pr_auc": 0.292683,
+            "prevalence": 0.164514,
+            "recall_frozen": 0.598926,
+            "fpr_frozen": 0.379725,
+            "recall_at_target_fpr": 0.00753724
+          },
+          "few-shot-10": {
+            "roc_auc": 0.849063,
+            "pr_auc": 0.689565,
+            "prevalence": 0.164514,
+            "recall_frozen": 0.678349,
+            "fpr_frozen": 0.146476,
+            "recall_at_target_fpr": 0.44853
+          },
+          "few-shot-50": {
+            "roc_auc": 0.918696,
+            "pr_auc": 0.793496,
+            "prevalence": 0.164514,
+            "recall_frozen": 0.694652,
+            "fpr_frozen": 0.0517571,
+            "recall_at_target_fpr": 0.477214
+          },
+          "few-shot-100": {
+            "roc_auc": 0.969435,
+            "pr_auc": 0.899987,
+            "prevalence": 0.164514,
+            "recall_frozen": 0.8174,
+            "fpr_frozen": 0.0402843,
+            "recall_at_target_fpr": 0.657582
+          },
+          "target-reference": {
+            "roc_auc": 0.999889,
+            "pr_auc": 0.999579,
+            "prevalence": 0.164514,
+            "recall_frozen": 0.999573,
+            "fpr_frozen": 0.0114041,
+            "recall_at_target_fpr": 0.999526
+          }
+        },
+        {
+          "baseline": {
+            "roc_auc": 0.662962,
+            "pr_auc": 0.419993,
+            "prevalence": 0.164422,
+            "recall_frozen": 0.664766,
+            "fpr_frozen": 0.467845,
+            "recall_at_target_fpr": 0.239335
+          },
+          "standardise": {
+            "roc_auc": 0.605455,
+            "pr_auc": 0.422444,
+            "prevalence": 0.164422,
+            "recall_frozen": 0.403152,
+            "fpr_frozen": 0.163967,
+            "recall_at_target_fpr": 0.219533
+          },
+          "quantile": {
+            "roc_auc": 0.791596,
+            "pr_auc": 0.580316,
+            "prevalence": 0.164422,
+            "recall_frozen": 0.632657,
+            "fpr_frozen": 0.272033,
+            "recall_at_target_fpr": 0.294363
+          },
+          "quantile-protocol": {
+            "roc_auc": 0.556583,
+            "pr_auc": 0.313937,
+            "prevalence": 0.164422,
+            "recall_frozen": 0.417854,
+            "fpr_frozen": 0.126981,
+            "recall_at_target_fpr": 0.0849676
+          },
+          "coral": {
+            "roc_auc": 0.504959,
+            "pr_auc": 0.465705,
+            "prevalence": 0.164422,
+            "recall_frozen": 0.382058,
+            "fpr_frozen": 0.0866731,
+            "recall_at_target_fpr": 0.334855
+          },
+          "importance": {
+            "roc_auc": 0.634486,
+            "pr_auc": 0.213106,
+            "prevalence": 0.164422,
+            "recall_frozen": 0.756444,
+            "fpr_frozen": 0.518118,
+            "recall_at_target_fpr": 0.00060471
+          },
+          "invariant": {
+            "roc_auc": 0.662962,
+            "pr_auc": 0.419993,
+            "prevalence": 0.164422,
+            "recall_frozen": 0.664766,
+            "fpr_frozen": 0.467845,
+            "recall_at_target_fpr": 0.239335
+          },
+          "few-shot-10": {
+            "roc_auc": 0.743652,
+            "pr_auc": 0.456941,
+            "prevalence": 0.164422,
+            "recall_frozen": 0.550288,
+            "fpr_frozen": 0.195419,
+            "recall_at_target_fpr": 0.223214
+          },
+          "few-shot-50": {
+            "roc_auc": 0.945065,
+            "pr_auc": 0.871908,
+            "prevalence": 0.164422,
+            "recall_frozen": 0.828905,
+            "fpr_frozen": 0.0716119,
+            "recall_at_target_fpr": 0.664042
+          },
+          "few-shot-100": {
+            "roc_auc": 0.97308,
+            "pr_auc": 0.923787,
+            "prevalence": 0.164422,
+            "recall_frozen": 0.885428,
+            "fpr_frozen": 0.0546758,
+            "recall_at_target_fpr": 0.757694
+          },
+          "target-reference": {
+            "roc_auc": 0.999808,
+            "pr_auc": 0.999219,
+            "prevalence": 0.164422,
+            "recall_frozen": 0.999395,
+            "fpr_frozen": 0.00792349,
+            "recall_at_target_fpr": 0.999419
+          }
+        },
+        {
+          "baseline": {
+            "roc_auc": 0.594759,
+            "pr_auc": 0.275404,
+            "prevalence": 0.164324,
+            "recall_frozen": 0.487362,
+            "fpr_frozen": 0.407526,
+            "recall_at_target_fpr": 0.0973467
+          },
+          "standardise": {
+            "roc_auc": 0.62937,
+            "pr_auc": 0.483947,
+            "prevalence": 0.164324,
+            "recall_frozen": 0.409862,
+            "fpr_frozen": 0.0864382,
+            "recall_at_target_fpr": 0.314862
+          },
+          "quantile": {
+            "roc_auc": 0.786736,
+            "pr_auc": 0.522222,
+            "prevalence": 0.164324,
+            "recall_frozen": 0.591585,
+            "fpr_frozen": 0.204141,
+            "recall_at_target_fpr": 0.196495
+          },
+          "quantile-protocol": {
+            "roc_auc": 0.536728,
+            "pr_auc": 0.342023,
+            "prevalence": 0.164324,
+            "recall_frozen": 0.323422,
+            "fpr_frozen": 0.0667344,
+            "recall_at_target_fpr": 0.0856333
+          },
+          "coral": {
+            "roc_auc": 0.525267,
+            "pr_auc": 0.460912,
+            "prevalence": 0.164324,
+            "recall_frozen": 0.366992,
+            "fpr_frozen": 0.0453382,
+            "recall_at_target_fpr": 0.301928
+          },
+          "importance": {
+            "roc_auc": 0.510321,
+            "pr_auc": 0.153841,
+            "prevalence": 0.164324,
+            "recall_frozen": 0.489306,
+            "fpr_frozen": 0.462831,
+            "recall_at_target_fpr": 0.0
+          },
+          "invariant": {
+            "roc_auc": 0.594759,
+            "pr_auc": 0.275404,
+            "prevalence": 0.164324,
+            "recall_frozen": 0.487362,
+            "fpr_frozen": 0.407526,
+            "recall_at_target_fpr": 0.0973467
+          },
+          "few-shot-10": {
+            "roc_auc": 0.836254,
+            "pr_auc": 0.675958,
+            "prevalence": 0.164324,
+            "recall_frozen": 0.654707,
+            "fpr_frozen": 0.162377,
+            "recall_at_target_fpr": 0.439394
+          },
+          "few-shot-50": {
+            "roc_auc": 0.933456,
+            "pr_auc": 0.857012,
+            "prevalence": 0.164324,
+            "recall_frozen": 0.798883,
+            "fpr_frozen": 0.0561995,
+            "recall_at_target_fpr": 0.648897
+          },
+          "few-shot-100": {
+            "roc_auc": 0.955721,
+            "pr_auc": 0.881161,
+            "prevalence": 0.164324,
+            "recall_frozen": 0.76008,
+            "fpr_frozen": 0.033046,
+            "recall_at_target_fpr": 0.669865
+          },
+          "target-reference": {
+            "roc_auc": 0.999849,
+            "pr_auc": 0.999592,
+            "prevalence": 0.164324,
+            "recall_frozen": 0.999348,
+            "fpr_frozen": 0.00600531,
+            "recall_at_target_fpr": 0.999372
+          }
+        }
+      ],
+      "arms": {
+        "baseline": {
+          "mean": {
+            "roc_auc": 0.636461,
+            "pr_auc": 0.32936,
+            "prevalence": 0.16442,
+            "recall_frozen": 0.583685,
+            "fpr_frozen": 0.418365,
+            "recall_at_target_fpr": 0.11474
+          },
+          "per_seed_roc_auc": [
+            0.651661,
+            0.662962,
+            0.594759
+          ],
+          "roc_auc_interval": [
+            0.6353619125271602,
+            0.6375899934223984
+          ],
+          "pr_auc_interval": [
+            0.32764343468930657,
+            0.33096703927397686
+          ],
+          "roc_auc_difference": 0.0,
+          "roc_auc_difference_interval": [
+            0.0,
+            0.0
+          ],
+          "difference_same_sign_every_seed": null,
+          "gap_closed": 0.0,
+          "improves": false,
+          "worsens": false
+        },
+        "standardise": {
+          "mean": {
+            "roc_auc": 0.630376,
+            "pr_auc": 0.475538,
+            "prevalence": 0.16442,
+            "recall_frozen": 0.419904,
+            "fpr_frozen": 0.121902,
+            "recall_at_target_fpr": 0.290669
+          },
+          "per_seed_roc_auc": [
+            0.656304,
+            0.605455,
+            0.62937
+          ],
+          "roc_auc_interval": [
+            0.6289575114876934,
+            0.631762200915808
+          ],
+          "pr_auc_interval": [
+            0.4735452907080356,
+            0.4773859437380689
+          ],
+          "roc_auc_difference": -0.00608428,
+          "roc_auc_difference_interval": [
+            -0.00765579,
+            -0.00452192
+          ],
+          "difference_same_sign_every_seed": false,
+          "gap_closed": -0.0167432,
+          "improves": false,
+          "worsens": false
+        },
+        "quantile": {
+          "mean": {
+            "roc_auc": 0.824181,
+            "pr_auc": 0.602773,
+            "prevalence": 0.16442,
+            "recall_frozen": 0.673891,
+            "fpr_frozen": 0.219648,
+            "recall_at_target_fpr": 0.27434
+          },
+          "per_seed_roc_auc": [
+            0.894212,
+            0.791596,
+            0.786736
+          ],
+          "roc_auc_interval": [
+            0.8232932651470154,
+            0.8250567008458876
+          ],
+          "pr_auc_interval": [
+            0.600815885961397,
+            0.6047903885986947
+          ],
+          "roc_auc_difference": 0.187721,
+          "roc_auc_difference_interval": [
+            0.186472,
+            0.18895
+          ],
+          "difference_same_sign_every_seed": true,
+          "gap_closed": 0.516585,
+          "improves": true,
+          "worsens": false
+        },
+        "quantile-protocol": {
+          "mean": {
+            "roc_auc": 0.567477,
+            "pr_auc": 0.339719,
+            "prevalence": 0.16442,
+            "recall_frozen": 0.380104,
+            "fpr_frozen": 0.0910376,
+            "recall_at_target_fpr": 0.0904606
+          },
+          "per_seed_roc_auc": [
+            0.609119,
+            0.556583,
+            0.536728
+          ],
+          "roc_auc_interval": [
+            0.5659425570147395,
+            0.5691355240773097
+          ],
+          "pr_auc_interval": [
+            0.33771949536794377,
+            0.34175160924539977
+          ],
+          "roc_auc_difference": -0.0689839,
+          "roc_auc_difference_interval": [
+            -0.0707352,
+            -0.0670573
+          ],
+          "difference_same_sign_every_seed": true,
+          "gap_closed": -0.189835,
+          "improves": false,
+          "worsens": true
+        },
+        "coral": {
+          "mean": {
+            "roc_auc": 0.510808,
+            "pr_auc": 0.462102,
+            "prevalence": 0.16442,
+            "recall_frozen": 0.372483,
+            "fpr_frozen": 0.073444,
+            "recall_at_target_fpr": 0.32671
+          },
+          "per_seed_roc_auc": [
+            0.502197,
+            0.504959,
+            0.525267
+          ],
+          "roc_auc_interval": [
+            0.5090933088352286,
+            0.5125417925420095
+          ],
+          "pr_auc_interval": [
+            0.4603159628956789,
+            0.4639037683416077
+          ],
+          "roc_auc_difference": -0.125653,
+          "roc_auc_difference_interval": [
+            -0.127783,
+            -0.123484
+          ],
+          "difference_same_sign_every_seed": true,
+          "gap_closed": -0.345782,
+          "improves": false,
+          "worsens": true
+        },
+        "importance": {
+          "mean": {
+            "roc_auc": 0.549398,
+            "pr_auc": 0.173012,
+            "prevalence": 0.16442,
+            "recall_frozen": 0.627541,
+            "fpr_frozen": 0.505578,
+            "recall_at_target_fpr": 0.000509696
+          },
+          "per_seed_roc_auc": [
+            0.503388,
+            0.634486,
+            0.510321
+          ],
+          "roc_auc_interval": [
+            0.5483559961137899,
+            0.5504002256720314
+          ],
+          "pr_auc_interval": [
+            0.17227784155933418,
+            0.17378125642935488
+          ],
+          "roc_auc_difference": -0.0870625,
+          "roc_auc_difference_interval": [
+            -0.0875777,
+            -0.0865215
+          ],
+          "difference_same_sign_every_seed": true,
+          "gap_closed": -0.239586,
+          "improves": false,
+          "worsens": true
+        },
+        "invariant": {
+          "mean": {
+            "roc_auc": 0.636461,
+            "pr_auc": 0.32936,
+            "prevalence": 0.16442,
+            "recall_frozen": 0.583685,
+            "fpr_frozen": 0.418365,
+            "recall_at_target_fpr": 0.11474
+          },
+          "per_seed_roc_auc": [
+            0.651661,
+            0.662962,
+            0.594759
+          ],
+          "roc_auc_interval": [
+            0.6353619125271602,
+            0.6375899934223984
+          ],
+          "pr_auc_interval": [
+            0.32764343468930657,
+            0.33096703927397686
+          ],
+          "roc_auc_difference": 0.0,
+          "roc_auc_difference_interval": [
+            0.0,
+            0.0
+          ],
+          "difference_same_sign_every_seed": false,
+          "gap_closed": 0.0,
+          "improves": false,
+          "worsens": false
+        },
+        "few-shot-10": {
+          "mean": {
+            "roc_auc": 0.809656,
+            "pr_auc": 0.607488,
+            "prevalence": 0.16442,
+            "recall_frozen": 0.627781,
+            "fpr_frozen": 0.16809,
+            "recall_at_target_fpr": 0.370379
+          },
+          "per_seed_roc_auc": [
+            0.849063,
+            0.743652,
+            0.836254
+          ],
+          "roc_auc_interval": [
+            0.8088266860313539,
+            0.8104823471863999
+          ],
+          "pr_auc_interval": [
+            0.6061274419516497,
+            0.6089381827285434
+          ],
+          "roc_auc_difference": 0.173196,
+          "roc_auc_difference_interval": [
+            0.172568,
+            0.173848
+          ],
+          "difference_same_sign_every_seed": true,
+          "gap_closed": 0.476614,
+          "improves": true,
+          "worsens": false
+        },
+        "few-shot-50": {
+          "mean": {
+            "roc_auc": 0.932406,
+            "pr_auc": 0.840806,
+            "prevalence": 0.16442,
+            "recall_frozen": 0.774147,
+            "fpr_frozen": 0.0598562,
+            "recall_at_target_fpr": 0.596718
+          },
+          "per_seed_roc_auc": [
+            0.918696,
+            0.945065,
+            0.933456
+          ],
+          "roc_auc_interval": [
+            0.9319141210017161,
+            0.9328837760138906
+          ],
+          "pr_auc_interval": [
+            0.839772988565426,
+            0.8418138383158816
+          ],
+          "roc_auc_difference": 0.295945,
+          "roc_auc_difference_interval": [
+            0.295053,
+            0.296936
+          ],
+          "difference_same_sign_every_seed": true,
+          "gap_closed": 0.814405,
+          "improves": true,
+          "worsens": false
+        },
+        "few-shot-100": {
+          "mean": {
+            "roc_auc": 0.966078,
+            "pr_auc": 0.901645,
+            "prevalence": 0.16442,
+            "recall_frozen": 0.820969,
+            "fpr_frozen": 0.0426687,
+            "recall_at_target_fpr": 0.695047
+          },
+          "per_seed_roc_auc": [
+            0.969435,
+            0.97308,
+            0.955721
+          ],
+          "roc_auc_interval": [
+            0.9657216064639793,
+            0.9664067718900649
+          ],
+          "pr_auc_interval": [
+            0.9007891085198796,
+            0.9024004329722334
+          ],
+          "roc_auc_difference": 0.329618,
+          "roc_auc_difference_interval": [
+            0.328562,
+            0.330718
+          ],
+          "difference_same_sign_every_seed": true,
+          "gap_closed": 0.907068,
+          "improves": true,
+          "worsens": false
+        },
+        "target-reference": {
+          "mean": {
+            "roc_auc": 0.999849,
+            "pr_auc": 0.999463,
+            "prevalence": 0.16442,
+            "recall_frozen": 0.999439,
+            "fpr_frozen": 0.00844431,
+            "recall_at_target_fpr": 0.999439
+          },
+          "per_seed_roc_auc": [
+            0.999889,
+            0.999808,
+            0.999849
+          ],
+          "roc_auc_interval": [
+            0.9998134576120011,
+            0.9998803109700836
+          ],
+          "pr_auc_interval": [
+            0.9993748220364544,
+            0.9995571346606634
+          ],
+          "roc_auc_difference": 0.363388,
+          "roc_auc_difference_interval": [
+            0.362246,
+            0.364493
+          ],
+          "difference_same_sign_every_seed": true,
+          "gap_closed": 1.0,
+          "improves": true,
+          "worsens": false
+        }
+      },
+      "diagnostics": [
+        {
+          "seed": 0,
+          "pool_attack_share": 0.164421,
+          "source_attack_share": 0.458384,
+          "protocol_share": {
+            "source": {
+              "6.0": 0.859794,
+              "17.0": 0.136702,
+              "1.0": 0.000113493,
+              "-1.0": 0.0033906
+            },
+            "pool": {
+              "6.0": 0.509657,
+              "17.0": 0.489236,
+              "1.0": 0.000205091,
+              "-1.0": 0.000901472
+            }
+          },
+          "protocol_groups": [
+            6.0,
+            17.0
+          ],
+          "domain_auc": 0.999932,
+          "effective_sample_share": 0.0207517,
+          "clipped_share": 0.984608,
+          "feature_domain_auc": {
+            "duration_s": 0.507954,
+            "fwd_packets": 0.789007,
+            "bwd_packets": 0.765595,
+            "fwd_bytes": 0.743631,
+            "bwd_bytes": 0.559068,
+            "fwd_mean_bytes": 0.572527,
+            "bwd_mean_bytes": 0.744436,
+            "fwd_iat_mean_s": 0.547455,
+            "bwd_iat_mean_s": 0.566817,
+            "packets_per_s": 0.610528,
+            "bytes_per_s": 0.595214
+          },
+          "invariant_dropped": []
+        },
+        {
+          "seed": 1,
+          "pool_attack_share": 0.164501,
+          "source_attack_share": 0.459496,
+          "protocol_share": {
+            "source": {
+              "6.0": 0.857838,
+              "17.0": 0.137067,
+              "1.0": 0.00015699,
+              "-1.0": 0.00493806
+            },
+            "pool": {
+              "6.0": 0.511404,
+              "17.0": 0.487522,
+              "1.0": 0.000216715,
+              "-1.0": 0.000857587
+            }
+          },
+          "protocol_groups": [
+            6.0,
+            17.0
+          ],
+          "domain_auc": 0.999934,
+          "effective_sample_share": 0.0238252,
+          "clipped_share": 0.983602,
+          "feature_domain_auc": {
+            "duration_s": 0.510193,
+            "fwd_packets": 0.794551,
+            "bwd_packets": 0.771355,
+            "fwd_bytes": 0.747421,
+            "bwd_bytes": 0.561738,
+            "fwd_mean_bytes": 0.573454,
+            "bwd_mean_bytes": 0.743278,
+            "fwd_iat_mean_s": 0.543273,
+            "bwd_iat_mean_s": 0.56802,
+            "packets_per_s": 0.609589,
+            "bytes_per_s": 0.593621
+          },
+          "invariant_dropped": []
+        },
+        {
+          "seed": 2,
+          "pool_attack_share": 0.164525,
+          "source_attack_share": 0.458013,
+          "protocol_share": {
+            "source": {
+              "6.0": 0.855196,
+              "17.0": 0.139953,
+              "1.0": 0.000113806,
+              "-1.0": 0.00473718
+            },
+            "pool": {
+              "6.0": 0.497659,
+              "17.0": 0.501077,
+              "1.0": 0.000353508,
+              "-1.0": 0.000911009
+            }
+          },
+          "protocol_groups": [
+            6.0,
+            17.0
+          ],
+          "domain_auc": 0.999924,
+          "effective_sample_share": 0.0204817,
+          "clipped_share": 0.984622,
+          "feature_domain_auc": {
+            "duration_s": 0.513978,
+            "fwd_packets": 0.795713,
+            "bwd_packets": 0.771746,
+            "fwd_bytes": 0.752971,
+            "bwd_bytes": 0.569113,
+            "fwd_mean_bytes": 0.568133,
+            "bwd_mean_bytes": 0.735575,
+            "fwd_iat_mean_s": 0.546169,
+            "bwd_iat_mean_s": 0.564232,
+            "packets_per_s": 0.6162,
+            "bytes_per_s": 0.602069
+          },
+          "invariant_dropped": []
+        }
+      ]
+    },
+    "cicids2017->unsw-nb15": {
+      "per_seed": [
+        {
+          "baseline": {
+            "roc_auc": 0.585291,
+            "pr_auc": 0.389911,
+            "prevalence": 0.329267,
+            "recall_frozen": 0.690099,
+            "fpr_frozen": 0.605273,
+            "recall_at_target_fpr": 0.0029121
+          },
+          "standardise": {
+            "roc_auc": 0.538354,
+            "pr_auc": 0.363615,
+            "prevalence": 0.329267,
+            "recall_frozen": 0.299336,
+            "fpr_frozen": 0.306659,
+            "recall_at_target_fpr": 0.0372477
+          },
+          "quantile": {
+            "roc_auc": 0.63834,
+            "pr_auc": 0.435476,
+            "prevalence": 0.329267,
+            "recall_frozen": 0.462888,
+            "fpr_frozen": 0.313608,
+            "recall_at_target_fpr": 0.0299336
+          },
+          "quantile-protocol": {
+            "roc_auc": 0.581035,
+            "pr_auc": 0.405361,
+            "prevalence": 0.329267,
+            "recall_frozen": 0.402817,
+            "fpr_frozen": 0.36946,
+            "recall_at_target_fpr": 0.0389408
+          },
+          "coral": {
+            "roc_auc": 0.591655,
+            "pr_auc": 0.410123,
+            "prevalence": 0.329267,
+            "recall_frozen": 0.448192,
+            "fpr_frozen": 0.342332,
+            "recall_at_target_fpr": 0.0558716
+          },
+          "importance": {
+            "roc_auc": 0.647502,
+            "pr_auc": 0.458823,
+            "prevalence": 0.329267,
+            "recall_frozen": 0.693959,
+            "fpr_frozen": 0.563882,
+            "recall_at_target_fpr": 0.0294596
+          },
+          "invariant": {
+            "roc_auc": 0.585291,
+            "pr_auc": 0.389911,
+            "prevalence": 0.329267,
+            "recall_frozen": 0.690099,
+            "fpr_frozen": 0.605273,
+            "recall_at_target_fpr": 0.0029121
+          },
+          "few-shot-10": {
+            "roc_auc": 0.634723,
+            "pr_auc": 0.445172,
+            "prevalence": 0.329267,
+            "recall_frozen": 0.699959,
+            "fpr_frozen": 0.504997,
+            "recall_at_target_fpr": 0.0366247
+          },
+          "few-shot-50": {
+            "roc_auc": 0.717077,
+            "pr_auc": 0.497271,
+            "prevalence": 0.329267,
+            "recall_frozen": 0.811052,
+            "fpr_frozen": 0.469823,
+            "recall_at_target_fpr": 0.0168224
+          },
+          "few-shot-100": {
+            "roc_auc": 0.772572,
+            "pr_auc": 0.567336,
+            "prevalence": 0.329267,
+            "recall_frozen": 0.894609,
+            "fpr_frozen": 0.45937,
+            "recall_at_target_fpr": 0.0642964
+          },
+          "target-reference": {
+            "roc_auc": 0.948477,
+            "pr_auc": 0.913962,
+            "prevalence": 0.329267,
+            "recall_frozen": 0.540973,
+            "fpr_frozen": 0.00345756,
+            "recall_at_target_fpr": 0.597047
+          }
+        },
+        {
+          "baseline": {
+            "roc_auc": 0.585384,
+            "pr_auc": 0.40063,
+            "prevalence": 0.329163,
+            "recall_frozen": 0.67089,
+            "fpr_frozen": 0.597015,
+            "recall_at_target_fpr": 0.0100264
+          },
+          "standardise": {
+            "roc_auc": 0.435598,
+            "pr_auc": 0.291294,
+            "prevalence": 0.329163,
+            "recall_frozen": 0.244225,
+            "fpr_frozen": 0.399927,
+            "recall_at_target_fpr": 0.013617
+          },
+          "quantile": {
+            "roc_auc": 0.599614,
+            "pr_auc": 0.412059,
+            "prevalence": 0.329163,
+            "recall_frozen": 0.360545,
+            "fpr_frozen": 0.276734,
+            "recall_at_target_fpr": 0.0428833
+          },
+          "quantile-protocol": {
+            "roc_auc": 0.57974,
+            "pr_auc": 0.421622,
+            "prevalence": 0.329163,
+            "recall_frozen": 0.336088,
+            "fpr_frozen": 0.331749,
+            "recall_at_target_fpr": 0.0958607
+          },
+          "coral": {
+            "roc_auc": 0.553407,
+            "pr_auc": 0.395622,
+            "prevalence": 0.329163,
+            "recall_frozen": 0.20439,
+            "fpr_frozen": 0.215338,
+            "recall_at_target_fpr": 0.0771628
+          },
+          "importance": {
+            "roc_auc": 0.629673,
+            "pr_auc": 0.427848,
+            "prevalence": 0.329163,
+            "recall_frozen": 0.662557,
+            "fpr_frozen": 0.555696,
+            "recall_at_target_fpr": 0.00894248
+          },
+          "invariant": {
+            "roc_auc": 0.585384,
+            "pr_auc": 0.40063,
+            "prevalence": 0.329163,
+            "recall_frozen": 0.67089,
+            "fpr_frozen": 0.597015,
+            "recall_at_target_fpr": 0.0100264
+          },
+          "few-shot-10": {
+            "roc_auc": 0.640718,
+            "pr_auc": 0.438709,
+            "prevalence": 0.329163,
+            "recall_frozen": 0.747619,
+            "fpr_frozen": 0.547552,
+            "recall_at_target_fpr": 0.033453
+          },
+          "few-shot-50": {
+            "roc_auc": 0.70464,
+            "pr_auc": 0.482395,
+            "prevalence": 0.329163,
+            "recall_frozen": 0.829171,
+            "fpr_frozen": 0.50467,
+            "recall_at_target_fpr": 0.0151209
+          },
+          "few-shot-100": {
+            "roc_auc": 0.75553,
+            "pr_auc": 0.532301,
+            "prevalence": 0.329163,
+            "recall_frozen": 0.891173,
+            "fpr_frozen": 0.46879,
+            "recall_at_target_fpr": 0.0172346
+          },
+          "target-reference": {
+            "roc_auc": 0.94952,
+            "pr_auc": 0.915467,
+            "prevalence": 0.329163,
+            "recall_frozen": 0.673803,
+            "fpr_frozen": 0.0294518,
+            "recall_at_target_fpr": 0.600501
+          }
+        },
+        {
+          "baseline": {
+            "roc_auc": 0.60071,
+            "pr_auc": 0.411289,
+            "prevalence": 0.329216,
+            "recall_frozen": 0.72396,
+            "fpr_frozen": 0.612777,
+            "recall_at_target_fpr": 0.0155086
+          },
+          "standardise": {
+            "roc_auc": 0.627108,
+            "pr_auc": 0.403961,
+            "prevalence": 0.329216,
+            "recall_frozen": 0.477651,
+            "fpr_frozen": 0.356744,
+            "recall_at_target_fpr": 0.00751727
+          },
+          "quantile": {
+            "roc_auc": 0.633938,
+            "pr_auc": 0.416351,
+            "prevalence": 0.329216,
+            "recall_frozen": 0.42415,
+            "fpr_frozen": 0.319318,
+            "recall_at_target_fpr": 0.0344034
+          },
+          "quantile-protocol": {
+            "roc_auc": 0.574864,
+            "pr_auc": 0.385774,
+            "prevalence": 0.329216,
+            "recall_frozen": 0.309427,
+            "fpr_frozen": 0.281759,
+            "recall_at_target_fpr": 0.00914262
+          },
+          "coral": {
+            "roc_auc": 0.582843,
+            "pr_auc": 0.419005,
+            "prevalence": 0.329216,
+            "recall_frozen": 0.195043,
+            "fpr_frozen": 0.173336,
+            "recall_at_target_fpr": 0.0916971
+          },
+          "importance": {
+            "roc_auc": 0.638222,
+            "pr_auc": 0.418918,
+            "prevalence": 0.329216,
+            "recall_frozen": 0.657863,
+            "fpr_frozen": 0.546733,
+            "recall_at_target_fpr": 0.00921035
+          },
+          "invariant": {
+            "roc_auc": 0.60071,
+            "pr_auc": 0.411289,
+            "prevalence": 0.329216,
+            "recall_frozen": 0.72396,
+            "fpr_frozen": 0.612777,
+            "recall_at_target_fpr": 0.0155086
+          },
+          "few-shot-10": {
+            "roc_auc": 0.601557,
+            "pr_auc": 0.404561,
+            "prevalence": 0.329216,
+            "recall_frozen": 0.600623,
+            "fpr_frozen": 0.464548,
+            "recall_at_target_fpr": 0.0148178
+          },
+          "few-shot-50": {
+            "roc_auc": 0.708848,
+            "pr_auc": 0.488384,
+            "prevalence": 0.329216,
+            "recall_frozen": 0.759596,
+            "fpr_frozen": 0.4397,
+            "recall_at_target_fpr": 0.0239063
+          },
+          "few-shot-100": {
+            "roc_auc": 0.744593,
+            "pr_auc": 0.511975,
+            "prevalence": 0.329216,
+            "recall_frozen": 0.866504,
+            "fpr_frozen": 0.413827,
+            "recall_at_target_fpr": 0.0225247
+          },
+          "target-reference": {
+            "roc_auc": 0.95109,
+            "pr_auc": 0.913278,
+            "prevalence": 0.329216,
+            "recall_frozen": 0.569823,
+            "fpr_frozen": 0.00953932,
+            "recall_at_target_fpr": 0.572396
+          }
+        }
+      ],
+      "arms": {
+        "baseline": {
+          "mean": {
+            "roc_auc": 0.590462,
+            "pr_auc": 0.40061,
+            "prevalence": 0.329216,
+            "recall_frozen": 0.694983,
+            "fpr_frozen": 0.605021,
+            "recall_at_target_fpr": 0.00948237
+          },
+          "per_seed_roc_auc": [
+            0.585291,
+            0.585384,
+            0.60071
+          ],
+          "roc_auc_interval": [
+            0.5873714431339578,
+            0.5934080058725877
+          ],
+          "pr_auc_interval": [
+            0.39638556608242315,
+            0.40479423943376913
+          ],
+          "roc_auc_difference": 0.0,
+          "roc_auc_difference_interval": [
+            0.0,
+            0.0
+          ],
+          "difference_same_sign_every_seed": null,
+          "gap_closed": 0.0,
+          "improves": false,
+          "worsens": false
+        },
+        "standardise": {
+          "mean": {
+            "roc_auc": 0.533687,
+            "pr_auc": 0.352956,
+            "prevalence": 0.329216,
+            "recall_frozen": 0.340404,
+            "fpr_frozen": 0.354443,
+            "recall_at_target_fpr": 0.0194607
+          },
+          "per_seed_roc_auc": [
+            0.538354,
+            0.435598,
+            0.627108
+          ],
+          "roc_auc_interval": [
+            0.5306325302120928,
+            0.5367207570017951
+          ],
+          "pr_auc_interval": [
+            0.34940025580001566,
+            0.35672124334168853
+          ],
+          "roc_auc_difference": -0.0567751,
+          "roc_auc_difference_interval": [
+            -0.0610885,
+            -0.0522451
+          ],
+          "difference_same_sign_every_seed": false,
+          "gap_closed": -0.158045,
+          "improves": false,
+          "worsens": false
+        },
+        "quantile": {
+          "mean": {
+            "roc_auc": 0.623964,
+            "pr_auc": 0.421295,
+            "prevalence": 0.329216,
+            "recall_frozen": 0.415861,
+            "fpr_frozen": 0.30322,
+            "recall_at_target_fpr": 0.0357401
+          },
+          "per_seed_roc_auc": [
+            0.63834,
+            0.599614,
+            0.633938
+          ],
+          "roc_auc_interval": [
+            0.6211089105166502,
+            0.6270056676234796
+          ],
+          "pr_auc_interval": [
+            0.4172657169842858,
+            0.4256439467126939
+          ],
+          "roc_auc_difference": 0.0335022,
+          "roc_auc_difference_interval": [
+            0.0295635,
+            0.0378491
+          ],
+          "difference_same_sign_every_seed": true,
+          "gap_closed": 0.0932602,
+          "improves": true,
+          "worsens": false
+        },
+        "quantile-protocol": {
+          "mean": {
+            "roc_auc": 0.578546,
+            "pr_auc": 0.404252,
+            "prevalence": 0.329216,
+            "recall_frozen": 0.349444,
+            "fpr_frozen": 0.327656,
+            "recall_at_target_fpr": 0.0479814
+          },
+          "per_seed_roc_auc": [
+            0.581035,
+            0.57974,
+            0.574864
+          ],
+          "roc_auc_interval": [
+            0.5752827060823259,
+            0.5816523871437773
+          ],
+          "pr_auc_interval": [
+            0.40025740181633934,
+            0.4081829565410736
+          ],
+          "roc_auc_difference": -0.0119155,
+          "roc_auc_difference_interval": [
+            -0.0164983,
+            -0.00732285
+          ],
+          "difference_same_sign_every_seed": true,
+          "gap_closed": -0.0331692,
+          "improves": false,
+          "worsens": true
+        },
+        "coral": {
+          "mean": {
+            "roc_auc": 0.575968,
+            "pr_auc": 0.40825,
+            "prevalence": 0.329216,
+            "recall_frozen": 0.282541,
+            "fpr_frozen": 0.243669,
+            "recall_at_target_fpr": 0.0749105
+          },
+          "per_seed_roc_auc": [
+            0.591655,
+            0.553407,
+            0.582843
+          ],
+          "roc_auc_interval": [
+            0.5728991290793992,
+            0.5791641925817423
+          ],
+          "pr_auc_interval": [
+            0.4041392676758314,
+            0.41243397878464716
+          ],
+          "roc_auc_difference": -0.0144939,
+          "roc_auc_difference_interval": [
+            -0.0189808,
+            -0.00998463
+          ],
+          "difference_same_sign_every_seed": false,
+          "gap_closed": -0.0403467,
+          "improves": false,
+          "worsens": false
+        },
+        "importance": {
+          "mean": {
+            "roc_auc": 0.638465,
+            "pr_auc": 0.435196,
+            "prevalence": 0.329216,
+            "recall_frozen": 0.671459,
+            "fpr_frozen": 0.555437,
+            "recall_at_target_fpr": 0.0158708
+          },
+          "per_seed_roc_auc": [
+            0.647502,
+            0.629673,
+            0.638222
+          ],
+          "roc_auc_interval": [
+            0.635591748216893,
+            0.6413616296347558
+          ],
+          "pr_auc_interval": [
+            0.43099756238540526,
+            0.4395834385545382
+          ],
+          "roc_auc_difference": 0.0480036,
+          "roc_auc_difference_interval": [
+            0.0464346,
+            0.04966
+          ],
+          "difference_same_sign_every_seed": true,
+          "gap_closed": 0.133628,
+          "improves": true,
+          "worsens": false
+        },
+        "invariant": {
+          "mean": {
+            "roc_auc": 0.590462,
+            "pr_auc": 0.40061,
+            "prevalence": 0.329216,
+            "recall_frozen": 0.694983,
+            "fpr_frozen": 0.605021,
+            "recall_at_target_fpr": 0.00948237
+          },
+          "per_seed_roc_auc": [
+            0.585291,
+            0.585384,
+            0.60071
+          ],
+          "roc_auc_interval": [
+            0.5873714431339578,
+            0.5934080058725877
+          ],
+          "pr_auc_interval": [
+            0.39638556608242315,
+            0.40479423943376913
+          ],
+          "roc_auc_difference": 0.0,
+          "roc_auc_difference_interval": [
+            0.0,
+            0.0
+          ],
+          "difference_same_sign_every_seed": false,
+          "gap_closed": 0.0,
+          "improves": false,
+          "worsens": false
+        },
+        "few-shot-10": {
+          "mean": {
+            "roc_auc": 0.625666,
+            "pr_auc": 0.42948,
+            "prevalence": 0.329216,
+            "recall_frozen": 0.682734,
+            "fpr_frozen": 0.505699,
+            "recall_at_target_fpr": 0.0282985
+          },
+          "per_seed_roc_auc": [
+            0.634723,
+            0.640718,
+            0.601557
+          ],
+          "roc_auc_interval": [
+            0.6230605935378911,
+            0.6280718413099138
+          ],
+          "pr_auc_interval": [
+            0.4258413544834952,
+            0.4331190338325734
+          ],
+          "roc_auc_difference": 0.0352039,
+          "roc_auc_difference_interval": [
+            0.0337086,
+            0.0368158
+          ],
+          "difference_same_sign_every_seed": true,
+          "gap_closed": 0.097997,
+          "improves": true,
+          "worsens": false
+        },
+        "few-shot-50": {
+          "mean": {
+            "roc_auc": 0.710188,
+            "pr_auc": 0.48935,
+            "prevalence": 0.329216,
+            "recall_frozen": 0.79994,
+            "fpr_frozen": 0.471398,
+            "recall_at_target_fpr": 0.0186165
+          },
+          "per_seed_roc_auc": [
+            0.717077,
+            0.70464,
+            0.708848
+          ],
+          "roc_auc_interval": [
+            0.7081411473204706,
+            0.7122568596709011
+          ],
+          "pr_auc_interval": [
+            0.48567086434529966,
+            0.4930543124672702
+          ],
+          "roc_auc_difference": 0.119726,
+          "roc_auc_difference_interval": [
+            0.117692,
+            0.121816
+          ],
+          "difference_same_sign_every_seed": true,
+          "gap_closed": 0.333283,
+          "improves": true,
+          "worsens": false
+        },
+        "few-shot-100": {
+          "mean": {
+            "roc_auc": 0.757565,
+            "pr_auc": 0.537204,
+            "prevalence": 0.329216,
+            "recall_frozen": 0.884095,
+            "fpr_frozen": 0.447329,
+            "recall_at_target_fpr": 0.0346852
+          },
+          "per_seed_roc_auc": [
+            0.772572,
+            0.75553,
+            0.744593
+          ],
+          "roc_auc_interval": [
+            0.7555050644355935,
+            0.7595670610194285
+          ],
+          "pr_auc_interval": [
+            0.5333668163975649,
+            0.5409478263478874
+          ],
+          "roc_auc_difference": 0.167103,
+          "roc_auc_difference_interval": [
+            0.164774,
+            0.169595
+          ],
+          "difference_same_sign_every_seed": true,
+          "gap_closed": 0.465166,
+          "improves": true,
+          "worsens": false
+        },
+        "target-reference": {
+          "mean": {
+            "roc_auc": 0.949696,
+            "pr_auc": 0.914236,
+            "prevalence": 0.329216,
+            "recall_frozen": 0.594866,
+            "fpr_frozen": 0.0141496,
+            "recall_at_target_fpr": 0.589982
+          },
+          "per_seed_roc_auc": [
+            0.948477,
+            0.94952,
+            0.95109
+          ],
+          "roc_auc_interval": [
+            0.9486685405489734,
+            0.9507103099812293
+          ],
+          "pr_auc_interval": [
+            0.912324119684213,
+            0.9161341274338899
+          ],
+          "roc_auc_difference": 0.359234,
+          "roc_auc_difference_interval": [
+            0.356232,
+            0.362667
+          ],
+          "difference_same_sign_every_seed": true,
+          "gap_closed": 1.0,
+          "improves": true,
+          "worsens": false
+        }
+      },
+      "diagnostics": [
+        {
+          "seed": 0,
+          "pool_attack_share": 0.458384,
+          "source_attack_share": 0.164421,
+          "protocol_share": {
+            "source": {
+              "6.0": 0.509657,
+              "17.0": 0.489236,
+              "1.0": 0.000205091,
+              "-1.0": 0.000901472
+            },
+            "pool": {
+              "6.0": 0.859794,
+              "17.0": 0.136702,
+              "1.0": 0.000113493,
+              "-1.0": 0.0033906
+            }
+          },
+          "protocol_groups": [
+            6.0,
+            17.0
+          ],
+          "domain_auc": 0.999883,
+          "effective_sample_share": 0.0650727,
+          "clipped_share": 0.995976,
+          "feature_domain_auc": {
+            "duration_s": 0.507954,
+            "fwd_packets": 0.789007,
+            "bwd_packets": 0.765595,
+            "fwd_bytes": 0.743631,
+            "bwd_bytes": 0.559068,
+            "fwd_mean_bytes": 0.572527,
+            "bwd_mean_bytes": 0.744436,
+            "fwd_iat_mean_s": 0.547455,
+            "bwd_iat_mean_s": 0.566817,
+            "packets_per_s": 0.610528,
+            "bytes_per_s": 0.595214
+          },
+          "invariant_dropped": []
+        },
+        {
+          "seed": 1,
+          "pool_attack_share": 0.459496,
+          "source_attack_share": 0.164501,
+          "protocol_share": {
+            "source": {
+              "6.0": 0.511404,
+              "17.0": 0.487522,
+              "1.0": 0.000216715,
+              "-1.0": 0.000857587
+            },
+            "pool": {
+              "6.0": 0.857838,
+              "17.0": 0.137067,
+              "1.0": 0.00015699,
+              "-1.0": 0.00493806
+            }
+          },
+          "protocol_groups": [
+            6.0,
+            17.0
+          ],
+          "domain_auc": 0.999812,
+          "effective_sample_share": 0.0474551,
+          "clipped_share": 0.995755,
+          "feature_domain_auc": {
+            "duration_s": 0.510193,
+            "fwd_packets": 0.794551,
+            "bwd_packets": 0.771355,
+            "fwd_bytes": 0.747421,
+            "bwd_bytes": 0.561738,
+            "fwd_mean_bytes": 0.573454,
+            "bwd_mean_bytes": 0.743278,
+            "fwd_iat_mean_s": 0.543273,
+            "bwd_iat_mean_s": 0.56802,
+            "packets_per_s": 0.609589,
+            "bytes_per_s": 0.593621
+          },
+          "invariant_dropped": []
+        },
+        {
+          "seed": 2,
+          "pool_attack_share": 0.458013,
+          "source_attack_share": 0.164525,
+          "protocol_share": {
+            "source": {
+              "6.0": 0.497659,
+              "17.0": 0.501077,
+              "1.0": 0.000353508,
+              "-1.0": 0.000911009
+            },
+            "pool": {
+              "6.0": 0.855196,
+              "17.0": 0.139953,
+              "1.0": 0.000113806,
+              "-1.0": 0.00473718
+            }
+          },
+          "protocol_groups": [
+            6.0,
+            17.0
+          ],
+          "domain_auc": 0.999477,
+          "effective_sample_share": 0.024165,
+          "clipped_share": 0.994525,
+          "feature_domain_auc": {
+            "duration_s": 0.513978,
+            "fwd_packets": 0.795713,
+            "bwd_packets": 0.771746,
+            "fwd_bytes": 0.752971,
+            "bwd_bytes": 0.569113,
+            "fwd_mean_bytes": 0.568133,
+            "bwd_mean_bytes": 0.735575,
+            "fwd_iat_mean_s": 0.546169,
+            "bwd_iat_mean_s": 0.564232,
+            "packets_per_s": 0.6162,
+            "bytes_per_s": 0.602069
+          },
+          "invariant_dropped": []
+        }
+      ]
+    }
+  },
+  "helps": {
+    "standardise": {
+      "improves_both_directions": false,
+      "improves_in": [],
+      "worsens_in": []
+    },
+    "quantile": {
+      "improves_both_directions": true,
+      "improves_in": [
+        "unsw-nb15->cicids2017",
+        "cicids2017->unsw-nb15"
+      ],
+      "worsens_in": []
+    },
+    "quantile-protocol": {
+      "improves_both_directions": false,
+      "improves_in": [],
+      "worsens_in": [
+        "unsw-nb15->cicids2017",
+        "cicids2017->unsw-nb15"
+      ]
+    },
+    "coral": {
+      "improves_both_directions": false,
+      "improves_in": [],
+      "worsens_in": [
+        "unsw-nb15->cicids2017"
+      ]
+    },
+    "importance": {
+      "improves_both_directions": false,
+      "improves_in": [
+        "cicids2017->unsw-nb15"
+      ],
+      "worsens_in": [
+        "unsw-nb15->cicids2017"
+      ]
+    },
+    "invariant": {
+      "improves_both_directions": false,
+      "improves_in": [],
+      "worsens_in": []
+    },
+    "few-shot-10": {
+      "improves_both_directions": true,
+      "improves_in": [
+        "unsw-nb15->cicids2017",
+        "cicids2017->unsw-nb15"
+      ],
+      "worsens_in": []
+    },
+    "few-shot-50": {
+      "improves_both_directions": true,
+      "improves_in": [
+        "unsw-nb15->cicids2017",
+        "cicids2017->unsw-nb15"
+      ],
+      "worsens_in": []
+    },
+    "few-shot-100": {
+      "improves_both_directions": true,
+      "improves_in": [
+        "unsw-nb15->cicids2017",
+        "cicids2017->unsw-nb15"
+      ],
+      "worsens_in": []
+    }
+  }
+}

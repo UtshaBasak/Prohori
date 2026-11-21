@@ -176,14 +176,14 @@ def dump_skops(value: Any) -> bytes:  # noqa: ANN401 - any skops-serialisable va
 class _Refused:
     """Stands in for a refused global while scanning; accepts anything and does nothing."""
 
-    def __init__(self, *args: object, **kwargs: object) -> None:
-        del args, kwargs
+    def __init__(self, *_args: object, **_kwargs: object) -> None:
+        """Ignore whatever the file passes."""
 
-    def __call__(self, *args: object, **kwargs: object) -> "_Refused":
+    def __call__(self, *_args: object, **_kwargs: object) -> "_Refused":
         return self
 
-    def __setstate__(self, state: object) -> None:
-        del state
+    def __setstate__(self, _state: object) -> None:
+        """Ignore the state the file asks to set."""
 
 
 @dataclass

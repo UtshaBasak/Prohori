@@ -1914,3 +1914,129 @@ differently.
   the 1 % target) and too loose on CIC-IDS-2017 (1.70 %): models fitted on four fifths of the
   data score differently from the final model.
 - `skops` (MIT) joins the `ml` extra. skops files are larger than compressed joblib files.
+
+---
+
+## ADR-0041: Pre-registration of the cross-dataset generalisation study
+
+- **Date:** 2026-11-21
+- **Status:** Accepted (pre-registered: written and pushed before any run on the real datasets)
+
+**Context.** A gradient-boosting flow model trained on one public dataset loses most of its
+signal on the other (step 16; ROC-AUC about 0.95 within a dataset, 0.59 and 0.64 across). Step
+30b asks which low-compute methods close how much of that gap without leaking the target
+dataset. To keep the results from being cherry-picked, everything below was fixed before the
+experiments were run. Anything added later is labelled *exploratory, not pre-registered* in the
+results and the write-up.
+
+**Questions.**
+
+1. Q1: How much of the gap does each unsupervised method (unlabelled target data only) close?
+2. Q2: Does dropping the features that differ most between the datasets help?
+3. Q3: How much do k labelled target flows help (an upper bound, not an unsupervised method)?
+
+**Data and roles.** For each seed s in 0, 1, 2 both datasets are prepared with every leakage
+control of steps 14 and 30 (time-block splits) and mapped to the twelve common features with
+`prohori.ml.transfer.common_splits`, exactly as in step 16. Both directions are studied
+(UNSW-NB15 to CIC-IDS-2017 and back). Roles:
+
+- source `train`: labelled, for fitting the model; source `validation`: labelled, for thresholds;
+- target `train`: the **unlabelled pool**. Its features may be used by the methods allowed to
+  see target data; its labels only by the few-shot arms and the reference arm;
+- target `validation`: used only by the reference arm (its thresholds);
+- target `test`: evaluation only; nothing is fitted on it.
+
+**Model.** scikit-learn `HistGradientBoostingClassifier` with step 15's fixed settings
+(`prohori.ml.models.PARAMS["hgb"]`, `random_state = s`), never tuned. The Isolation Forest is
+excluded: steps 15 and 16 found it catches under 5 % of attacks at a 1 % false-positive rate even
+within a dataset, so there is no in-dataset signal to transfer.
+
+**Arms.** Features are the twelve common features; missing values (a rate over a zero duration)
+are imputed with the source training medians as in step 16, except where an arm says otherwise.
+`protocol` (6, 17, 1 or -1, a code) is never transformed. "Per-domain" means fitted separately
+on the source training features and on the target pool, each applied to its own domain. A
+transform applied identically to both domains is pointless for a tree model, which bins
+features by quantiles; only per-domain transforms can change anything.
+
+| Arm | What it does | Sees target |
+| --- | --- | --- |
+| `baseline` | Step 16 unchanged | nothing |
+| `standardise` | `sign(x) log1p(abs(x))`, then per-domain mean and standard deviation (missing values imputed per domain with that domain's median first) | pool features |
+| `quantile` | Per-domain `QuantileTransformer` (uniform output, 1,000 quantiles, fitted on at most 200,000 rows sampled with seed s), missing values imputed per domain first | pool features |
+| `quantile-protocol` | As `quantile`, but fitted per domain and per protocol group (TCP, UDP, other); a group with fewer than 1,000 rows in either domain uses that domain's all-protocol transform | pool features |
+| `coral` | `standardise`, then CORAL (Sun, Feng and Saenko, AAAI 2016): source features multiplied by `Cs^-1/2 Ct^1/2`, with `C = cov + I` (regularisation 1 on standardised features); matrix powers by symmetric eigendecomposition (`numpy.linalg.eigh`), eigenvalues floored at 1e-6 | pool features |
+| `importance` | Covariate-shift weights: a domain classifier (HGB, 100 iterations, otherwise default, `random_state = s`) separates source training rows from an equal-size sample of the pool (or the whole pool if smaller), cross-fitted in 2 folds so no row is scored by a model that saw it; `w = p / (1 - p)`, clipped to [0.05, 20], normalised to mean 1, used as `sample_weight` when fitting | pool features |
+| `invariant` | Drop every non-protocol feature whose univariate domain ROC-AUC (`max(auc, 1 - auc)` of the raw values, source training rows against the pool) is 0.9 or more; if fewer than 4 features would remain, keep the 4 with the lowest domain AUC | pool features |
+| `few-shot-k`, k = 10, 50, 100 | `baseline`, plus k labelled flows drawn from the pool, stratified by label with at least one attack and one benign flow; each drawn flow gets weight `0.1 n_source / k` (the k flows weigh as much as 10 % of the source rows); 5 draws per seed (draw seeds `1000 s + d`, d = 0..4) | k pool labels |
+| `target-reference` | HGB trained on the target's own training split, thresholds on its validation split: the in-dataset ceiling, reported as a reference, never as a method | target labels |
+
+Thresholds of every arm except `target-reference` come from the **source** validation split
+(benign flows, transformed with the source's transforms) for a 1 % false-positive rate, and are
+frozen before the target test split is scored. HGB's `min_samples_leaf` counts rows, not weight,
+so ten heavily weighted few-shot flows can shift splits but not form a leaf of their own; this is
+accepted as part of the arm.
+
+**Metrics** on the target test split, per seed:
+
+- **Primary:** ROC-AUC (independent of the attack share, which differs between the datasets).
+- Secondary: PR-AUC with its chance level (the attack share); recall and the false-positive rate
+  reached at the frozen 1 % threshold (what a deployment would see); recall at a 1 %
+  false-positive rate read off the target ROC curve (threshold-free, not deployable).
+- Gap closed, `(AUC_arm - AUC_baseline) / (AUC_reference - AUC_baseline)`, is secondary; the
+  headline is the absolute ROC-AUC difference to `baseline`.
+
+**Statistics.** Per seed, 1,000 bootstrap resamples of the target test rows (multinomial counts,
+generator seed `10,000 + s`), shared by every arm of that seed so differences are paired; each
+resample's metric is averaged over the three seeds; 95 % percentile intervals for ROC-AUC,
+PR-AUC and the ROC-AUC difference to `baseline`. Few-shot arms first average their five draws.
+**An arm "helps" only if** the 95 % interval of its ROC-AUC difference to `baseline` excludes 0
+and the difference has the same sign in all three seeds, **in both directions**. The bootstrap
+captures evaluation noise only, not training variance, hence the per-seed sign condition. Every
+arm is reported, whatever its result; a method that helps in one direction only is reported as
+such and not called helpful.
+
+**Harness check.** Before any arm is interpreted, `baseline` must reproduce
+`results/ml_cross.json`'s gradient-boosting cross-dataset ROC-AUC for each seed, and
+`target-reference` the reverse direction's in-dataset ROC-AUC.
+
+**Diagnostics, always reported:** the overall domain-classifier ROC-AUC (cross-fitted), each
+non-protocol feature's domain AUC, each domain's share of each protocol code, the importance
+weights' effective sample size `(sum w)^2 / sum w^2` over n and the share of weights at either
+clip, the features `invariant` dropped, and each pool's attack share.
+
+**Threats to validity, stated in advance.**
+
+- Twelve shared features measured by different tools limit everything (the main threat).
+- The unlabelled pool is a lab training split with a large attack share, unlike real unlabelled
+  traffic, which is mostly benign. Per-domain transforms and the domain classifier therefore
+  partly align attack mix (label shift), not only covariate shift.
+- The pool was cleaned with its labels (rows with equal features and different classes were
+  removed), a small label leak shared by every arm.
+- Two datasets, one pair, three seeds, one model family.
+
+**Not run, with reasons.** Adversarial neural methods (DANN and similar): they need a deep
+learning framework and are not expected to finish under an hour on a CPU at these sizes;
+recorded as future work. A third dataset: none with a fitting licence and size is in the
+repository, and adding one needs the owner to download it; recorded as future work.
+
+**Deliverables.** `prohori.ml.adapt` (the transforms, weights, selection, few-shot sampling and
+paired bootstrap, each unit-tested), `scripts/cross_dataset_study.py` (writes
+`results/ml_adapt.json` without timings, so a rerun from the same seeds, lockfile and platform
+is byte-identical; CORAL's linear algebra may differ on other platforms) and generated tables in
+the model card and the README.
+
+**Leakage tests.** Shuffling the pool's labels leaves every arm except `few-shot-k` and
+`target-reference` scoring the target test split identically; changing target test features
+leaves every fitted transform, weight and selection identical; the few-shot arm reads exactly k
+target labels.
+
+*Outcome, added after the runs (2026-11-21; nothing above was changed):* the harness check
+passed exactly (baseline and reference reproduce `results/ml_cross.json` seed by seed). Of the
+unsupervised arms only the per-domain quantile map helps in both directions (ROC-AUC +0.188 and
++0.034); importance weighting improves one direction and worsens the other; per-domain
+standardisation, CORAL and the per-protocol quantile map do not help, and the invariant arm
+dropped no feature (every univariate domain AUC was under 0.79) and equals the baseline. Every
+few-shot arm helps in both directions; 10 labelled flows match the quantile map. The domain
+classifier separated the datasets perfectly (ROC-AUC 1.000), leaving 98 to 99.5 % of importance
+weights at a clip. A second full run gave a byte-identical results file. Tables: the model card's
+"Cross-dataset study".

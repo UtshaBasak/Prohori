@@ -212,6 +212,27 @@ def run_direction(
     return {**rounded(result), "thresholds": thresholds}
 
 
+def mapped_splits(
+    data_dir: Path,
+    seed: int,
+    *,
+    sample: float | None = None,
+    use_cache: bool = True,
+    log: Log | None = None,
+) -> tuple[dict[str, dict[str, pd.DataFrame]], dict[str, CleaningReport]]:
+    """Both datasets prepared for ``seed`` and mapped to the common features, with reports."""
+    mapped: dict[str, dict[str, pd.DataFrame]] = {}
+    reports: dict[str, CleaningReport] = {}
+    for dataset in (UNSW_NB15, CICIDS2017):
+        if log:
+            log(f"seed {seed}: preparing {dataset.name}")
+        prepared = prepare(dataset, data_dir, seed=seed, sample=sample, use_cache=use_cache)
+        splits = {s: prepared.split(s) for s in SPLITS}
+        mapped[dataset.name], reports[dataset.name] = common_splits(splits, dataset.name, seed)
+        del prepared, splits
+    return mapped, reports
+
+
 def run(
     data_dir: Path = DEFAULT_DATA_DIR,
     *,
@@ -230,14 +251,9 @@ def run(
     }
     cleaning: dict[str, list[dict[str, Any]]] = {UNSW_NB15.name: [], CICIDS2017.name: []}
     for seed in seeds:
-        mapped: dict[str, dict[str, pd.DataFrame]] = {}
-        for dataset in (UNSW_NB15, CICIDS2017):
-            log(f"seed {seed}: preparing {dataset.name}")
-            prepared = prepare(dataset, data_dir, seed=seed, sample=sample, use_cache=use_cache)
-            splits = {s: prepared.split(s) for s in SPLITS}
-            mapped[dataset.name], report = common_splits(splits, dataset.name, seed)
-            cleaning[dataset.name].append(_cleaning(report))
-            del prepared, splits
+        mapped, reports = mapped_splits(data_dir, seed, sample=sample, use_cache=use_cache, log=log)
+        for name, report in reports.items():
+            cleaning[name].append(_cleaning(report))
         for src, dst in DIRECTIONS:
             for name in models:
                 log(f"seed {seed}: {name} {src} -> {dst}")

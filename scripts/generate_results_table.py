@@ -44,6 +44,8 @@ COMPARE_START = "<!-- rules-compare:start -->"
 COMPARE_END = "<!-- rules-compare:end -->"
 ML_START = "<!-- ml-results:start -->"
 ML_END = "<!-- ml-results:end -->"
+ADAPT_START = "<!-- ml-adapt:start -->"
+ADAPT_END = "<!-- ml-adapt:end -->"
 CALIBRATION_START = "<!-- ml-calibration:start -->"
 CALIBRATION_END = "<!-- ml-calibration:end -->"
 CROSS_START = "<!-- ml-cross:start -->"
@@ -409,6 +411,150 @@ def render_calibration(all_results: list[dict[str, Any]]) -> str:
         f"Rule, written down before the runs: {studied[0]['calibration_study']['rule']}",
     ]
     return "\n".join(lines)
+
+
+ARM_NAMES = {
+    "baseline": ("Baseline (step 16)", "nothing"),
+    "standardise": ("Per-domain log standardisation", "pool features"),
+    "quantile": ("Per-domain quantile map", "pool features"),
+    "quantile-protocol": ("Per-domain, per-protocol quantile map", "pool features"),
+    "coral": ("CORAL", "pool features"),
+    "importance": ("Importance weighting", "pool features"),
+    "invariant": ("Domain-invariant features only", "pool features"),
+    "few-shot-10": ("10 labelled target flows", "10 pool labels"),
+    "few-shot-50": ("50 labelled target flows", "50 pool labels"),
+    "few-shot-100": ("100 labelled target flows", "100 pool labels"),
+    "target-reference": ("Reference: trained on the target", "target labels"),
+}
+
+
+def _ci(pair: list[float], digits: int = 3) -> str:
+    return f"{pair[0]:.{digits}f} to {pair[1]:.{digits}f}"
+
+
+def render_adapt(results: dict[str, Any]) -> str:
+    """The cross-dataset study's tables for docs/MODEL_CARD.md (step 30b, ADR-0041)."""
+    lines = [
+        f"Seeds {', '.join(map(str, results['seeds']))}; gradient boosting; scored on the "
+        "target's test split. 95 % intervals from "
+        f"{results['resamples']:,} paired bootstrap resamples of the target test rows. An arm "
+        "**improves** only if the interval of its ROC-AUC difference excludes 0 and the "
+        "difference has the same sign in every seed; it **helps** only if it improves in both "
+        "directions. Thresholds come from the source's validation split (1 % false-positive "
+        'rate); "at 1 % on target" reads recall off the target\'s own ROC curve instead (not '
+        "deployable). Generated from `results/ml_adapt.json`; do not edit by hand.",
+    ]
+    for key, direction in results["directions"].items():
+        src, dst = key.split("->")
+        lines += [
+            "",
+            f"### {src} → {dst}",
+            "",
+            "| Arm | Sees from the target | ROC-AUC | 95 % interval | Difference to baseline "
+            "| 95 % interval | Verdict | PR-AUC (chance) | Recall at the source threshold | "
+            "Target FPR reached | Recall at 1 % on target | Gap closed |",
+            "|" + "---|" * 12,
+        ]
+        for arm, found in direction["arms"].items():
+            name, sees = ARM_NAMES.get(arm, (arm, ""))
+            mean = found["mean"]
+            if arm == "baseline":
+                verdict, difference, diff_ci = "-", "-", "-"
+            else:
+                verdict = (
+                    "improves"
+                    if found["improves"]
+                    else "worsens"
+                    if found["worsens"]
+                    else "no clear change"
+                )
+                if arm == "target-reference":
+                    verdict = "reference"
+                difference = f"{found['roc_auc_difference']:+.3f}"
+                diff_ci = _ci(found["roc_auc_difference_interval"])
+            gap = found["gap_closed"]
+            shown = arm not in ("baseline", "target-reference") and gap is not None
+            gap_text = f"{gap * 100:.0f} %" if shown else "-"
+            lines.append(
+                f"| {name} | {sees} | {mean['roc_auc']:.3f} | {_ci(found['roc_auc_interval'])} "
+                f"| {difference} | {diff_ci} | {verdict} | {mean['pr_auc']:.3f} "
+                f"({mean['prevalence']:.2f}) | {mean['recall_frozen'] * 100:.1f} % | "
+                f"{mean['fpr_frozen'] * 100:.1f} % | {mean['recall_at_target_fpr'] * 100:.1f} % "
+                f"| {gap_text} |"
+            )
+    lines += ["", "Diagnostics, per direction (mean over the seeds):", ""]
+    lines += [
+        "| Direction | Pool attack share | Domain classifier ROC-AUC | Effective sample share "
+        "| Weights at a clip | Features dropped as not invariant |",
+        "|---|---|---|---|---|---|",
+    ]
+    for key, direction in results["directions"].items():
+        diag = direction["diagnostics"]
+
+        def avg(name: str, rows: list[dict[str, Any]] = diag) -> float:
+            return float(sum(r[name] for r in rows) / len(rows))
+
+        dropped = sorted({f for r in diag for f in r["invariant_dropped"]})
+        dropped_text = ", ".join(f"`{f}`" for f in dropped) or "none"
+        lines.append(
+            f"| {key.replace('->', ' → ')} | {avg('pool_attack_share') * 100:.0f} % | "
+            f"{avg('domain_auc'):.3f} | {avg('effective_sample_share') * 100:.1f} % | "
+            f"{avg('clipped_share') * 100:.1f} % | {dropped_text} |"
+        )
+    helping = [a for a, h in results["helps"].items() if h["improves_both_directions"]]
+    methods = [a for a in helping if not a.startswith("few-shot")]
+    lines += [
+        "",
+        "Helps in both directions: "
+        + (", ".join(ARM_NAMES[a][0].lower() for a in helping) if helping else "no arm")
+        + ". Unsupervised methods that help: "
+        + (", ".join(ARM_NAMES[a][0].lower() for a in methods) if methods else "none")
+        + ".",
+    ]
+    return "\n".join(lines)
+
+
+def render_adapt_summary(results: dict[str, Any] | None) -> str:
+    """One README paragraph on the cross-dataset study."""
+    if not results:
+        return "No cross-dataset study results yet."
+    parts = []
+    for key, direction in results["directions"].items():
+        arms = direction["arms"]
+        best = max(
+            (
+                a
+                for a in arms
+                if a not in ("baseline", "target-reference") and not a.startswith("few-shot")
+            ),
+            key=lambda a: arms[a]["mean"]["roc_auc"],
+        )
+        parts.append(
+            f"{key.replace('->', ' → ')}: baseline {arms['baseline']['mean']['roc_auc']:.3f}, "
+            f"best unsupervised method {ARM_NAMES[best][0].lower()} "
+            f"{arms[best]['mean']['roc_auc']:.3f} ({arms[best]['roc_auc_difference']:+.3f}), "
+            f"100 labelled target flows {arms['few-shot-100']['mean']['roc_auc']:.3f}, trained "
+            f"on the target {arms['target-reference']['mean']['roc_auc']:.3f}"
+        )
+    helping = [
+        ARM_NAMES[a][0].lower()
+        for a, h in results["helps"].items()
+        if h["improves_both_directions"] and not a.startswith("few-shot")
+    ]
+    verdict = (
+        f"Unsupervised methods that help in both directions: {', '.join(helping)}."
+        if helping
+        else "No unsupervised method helps in both directions."
+    )
+    return (
+        "A pre-registered study (ADR-0041) tried six low-compute ways to close the gap without "
+        "target labels, and a few labelled target flows as an upper bound. Target-test ROC-AUC, "
+        f"means over seeds {', '.join(map(str, results['seeds']))}: "
+        + "; ".join(parts)
+        + ". "
+        + verdict
+        + " Details: [model card](docs/MODEL_CARD.md#cross-dataset-study)."
+    )
 
 
 def render_ml_summary(all_results: list[dict[str, Any]]) -> str:
@@ -1082,6 +1228,8 @@ def main(argv: list[str] | None = None) -> int:
     results = json.loads(RESULTS.read_text(encoding="utf-8"))
     models = ml_results(RESULTS.parent)
     card = "\n\n".join(render_ml(r) for r in models) or "No model results yet."
+    adapt_path = RESULTS.parent / "ml_adapt.json"
+    adapt = json.loads(adapt_path.read_text(encoding="utf-8")) if adapt_path.is_file() else None
     cross_path = RESULTS.parent / "ml_cross.json"
     cross = json.loads(cross_path.read_text(encoding="utf-8")) if cross_path.is_file() else None
     cross_card = render_cross(cross, models) if cross else "No cross-dataset results yet."
@@ -1099,6 +1247,13 @@ def main(argv: list[str] | None = None) -> int:
         (MODEL_CARD, card, ML_START, ML_END),
         (README, render_ml_summary(models), ML_START, ML_END),
         (MODEL_CARD, render_calibration(models), CALIBRATION_START, CALIBRATION_END),
+        (
+            MODEL_CARD,
+            render_adapt(adapt) if adapt else "No cross-dataset study results yet.",
+            ADAPT_START,
+            ADAPT_END,
+        ),
+        (README, render_adapt_summary(adapt), ADAPT_START, ADAPT_END),
         (MODEL_CARD, cross_card, CROSS_START, CROSS_END),
         (README, render_cross_summary(cross), CROSS_START, CROSS_END),
         (
