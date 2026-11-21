@@ -27,7 +27,6 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  UV_LOCKED: "1"
   PYTHONUTF8: "1"
   PANDOC_IMAGE: pandoc/latex@sha256:505c16cb042a5cb2e7825da6ea7368278e8eb8fc3aff06062e80f790ca00dec8 # 3.6
 
@@ -40,12 +39,9 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
-        with:
-          python-version: "3.13"
-          enable-cache: true
       - name: The paper matches the results
-        run: uv run --no-dev python scripts/build_paper.py --check
+        # Standard library only: no project install, no package build step runs.
+        run: python3 scripts/build_paper.py --check
       - name: LaTeX and PDF
         run: |
           mkdir -p build
