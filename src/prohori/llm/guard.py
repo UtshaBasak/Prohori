@@ -49,6 +49,7 @@ TRUSTED_LINK_HOSTS = frozenset({"attack.mitre.org"})
 IDENTITY_KEYS = frozenset(
     {
         "source.ip",
+        "source.ip_prefix",
         "source.host",
         "destination.ip",
         "client.ip",

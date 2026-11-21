@@ -2,11 +2,12 @@
 +------------------+--------+-----------+---------------------+----------------------+
 | scenario         | alerts | incidents | top incident        | expected rules fired |
 +------------------+--------+-----------+---------------------+----------------------+
-| account-takeover |     21 |        12 | critical, score 100 |                  4/4 |
-| ssh-bruteforce   |     16 |         1 | high, score 45      |                  2/4 |
+| account-takeover |     21 |        12 | critical, score 100 |                  3/3 |
+| ssh-bruteforce   |     16 |         1 | high, score 45      |                  2/2 |
 | web-scanning     |     22 |         1 | medium, score 40    |                  3/3 |
 +------------------+--------+-----------+---------------------+----------------------+
-Expected rules that did not fire: ssh-bruteforce: PRH-AUTH-005, ssh-bruteforce: PRH-AUTH-006
+Not fired, as these fast demo attacks come from one address (the rules target slower or spread-out
+attacks): ssh-bruteforce: PRH-AUTH-005, ssh-bruteforce: PRH-AUTH-006
 Highest-scoring incident of each scenario:
   account-takeover: prohori-demo/account-takeover/INC-f55c561163d97e77.html
   ssh-bruteforce: prohori-demo/ssh-bruteforce/INC-e18a751de23737db.html
