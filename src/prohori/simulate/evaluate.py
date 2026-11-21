@@ -24,10 +24,11 @@ from datetime import timedelta
 from prohori.parsers import ParseStats, RawLine, get_parser, iter_text_lines
 from prohori.rules import CompiledRule, RuleEngine
 from prohori.schema import Alert, Event
+from prohori.simulate.addresses import ADDRESS_MODEL
 from prohori.simulate.run import Simulation, simulate
 from prohori.simulate.scenarios import SCENARIOS, VARIANTS
 
-RESULTS_FORMAT = "prohori.rules-eval/1"
+RESULTS_FORMAT = "prohori.rules-eval/2"
 LATENESS = timedelta(minutes=5)
 DEFAULT_SEEDS = (1, 2, 3, 4, 5)
 
@@ -199,6 +200,7 @@ def evaluate(
     return {
         "format": RESULTS_FORMAT,
         "seeds": list(seeds),
+        "addresses": ADDRESS_MODEL,
         "scenarios": names,
         "lateness_seconds": int(LATENESS.total_seconds()),
         "parse_errors": parse_errors,

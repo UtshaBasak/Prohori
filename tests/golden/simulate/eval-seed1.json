@@ -1,8 +1,9 @@
 {
-  "format": "prohori.rules-eval/1",
+  "format": "prohori.rules-eval/2",
   "seeds": [
     1
   ],
+  "addresses": 1,
   "scenarios": [
     "account-takeover",
     "admin-misuse",

@@ -12,7 +12,7 @@ import pytest
 from prohori.parsers import ParseStats
 from prohori.rules import CompiledRule, builtin_rules_dir, load_rules
 from prohori.schema import Alert, Severity
-from prohori.simulate import simulate
+from prohori.simulate import ADDRESS_MODEL, VARIANTS, simulate
 from prohori.simulate.evaluate import Detection, RuleScore, ScenarioScore, evaluate, score_run
 from scripts import evaluate_rules, generate_results_table
 
@@ -121,21 +121,49 @@ def test_generated_tables_use_the_docs_table_style() -> None:
     assert generate_results_table.compact(block) == "| A | B |\n| --- | --: |\n| 1 | 2 |\n| :- |"
 
 
-def test_baseline_is_frozen_once_and_then_kept(tmp_path: Path) -> None:
+def test_baselines_are_frozen_once_and_then_kept(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
     out = tmp_path / "eval.json"
-    assert evaluate_rules.main(["--seeds", "1", "--out", str(out), "--freeze-baseline", "old"]) == 0
-    frozen = json.loads(out.read_text(encoding="utf-8"))["baseline"]
+    freeze = ["--seeds", "1", "--out", str(out), "--freeze-baseline"]
+    assert evaluate_rules.main([*freeze, "old"]) == 0
+    frozen = json.loads(out.read_text(encoding="utf-8"))["baselines"]["old"]
     assert frozen["label"] == "old"
-    assert set(frozen["variants"]) >= {"default", "heldout"}
-    assert evaluate_rules.main(["--seeds", "1", "--out", str(out), "--freeze-baseline", "x"]) == 1
+    assert frozen["addresses"] == ADDRESS_MODEL
+    assert set(frozen["variants"]) == set(VARIANTS)
+    assert evaluate_rules.main([*freeze, "old"]) == 1  # never replaced
+    assert "frozen already" in capsys.readouterr().err
     assert evaluate_rules.main(["--seeds", "1", "--out", str(out)]) == 0
-    assert json.loads(out.read_text(encoding="utf-8"))["baseline"] == frozen
+    document = json.loads(out.read_text(encoding="utf-8"))
+    assert document["baselines"] == {"old": frozen}
+    assert document["addresses"] == ADDRESS_MODEL
+
+    # A baseline frozen on another address model is never extended: freeze a new label.
+    document["baselines"]["old"]["addresses"] = ADDRESS_MODEL - 1
+    del document["baselines"]["old"]["variants"]["heldout2"]
+    out.write_text(json.dumps(document), encoding="utf-8")
+    assert evaluate_rules.main([*freeze, "old"]) == 1
+    assert "freeze a new label instead" in capsys.readouterr().err
+    rules_dir = tmp_path / "rules"
+    rules_dir.mkdir()
+    for name in ("brute-force.yml", "web-scanning.yml"):
+        (rules_dir / name).write_bytes((builtin_rules_dir() / name).read_bytes())
+    assert evaluate_rules.main([*freeze, "new", "--rules", str(rules_dir)]) == 0
+    baselines = json.loads(out.read_text(encoding="utf-8"))["baselines"]
+    assert list(baselines) == ["old", "new"]
+    assert baselines["new"]["rules"] == ["PRH-AUTH-001", "PRH-WEB-001"]
+    assert evaluate_rules.main([*freeze, "new"]) == 1  # the same label with other rules
+    assert "another rule set" in capsys.readouterr().err
 
 
-def test_committed_baseline_is_the_1_0_rule_set() -> None:
+def test_committed_baselines_keep_the_first_simulator() -> None:
     results = json.loads((ROOT / "results" / "rules_eval.json").read_text(encoding="utf-8"))
-    baseline = results["baseline"]
-    assert baseline["label"] == "1.0 rules"
-    assert len(baseline["rules"]) == 15
-    held = baseline["variants"]["heldout"]["scenarios"]["credential-stuffing"]
-    assert held["attacks_detected"] == 0  # what the new rules set out to fix
+    baselines = results["baselines"]
+    first = baselines["1.0 rules (addresses 1)"]
+    assert (first["addresses"], len(first["rules"])) == (1, 15)
+    held = first["variants"]["heldout"]["scenarios"]["credential-stuffing"]
+    assert held["attacks_detected"] == 0  # what the step-28b rules set out to fix
+    step_28b = baselines["1.1 rules, step 28b (addresses 1)"]
+    assert (step_28b["addresses"], len(step_28b["rules"])) == (1, 21)
+    spraying = step_28b["variants"]["heldout2"]["scenarios"]["password-spraying"]
+    assert spraying["attacks_detected"] == 0  # what step 28c set out to measure fairly

@@ -4,7 +4,7 @@
 
 * Rules (``rules_eval.json``): full tables in ``docs/SIMULATOR.md``, a summary in ``README.md``,
   between the ``<!-- results:start -->`` and ``<!-- results:end -->`` markers, and the
-  before-and-after comparison with the frozen baseline in ``docs/RULES.md``, between
+  before-and-after comparison with the frozen baselines in ``docs/RULES.md``, between
   ``<!-- rules-compare:start -->`` and ``<!-- rules-compare:end -->``.
 * Flow models (``ml_<dataset>.json``): full tables in ``docs/MODEL_CARD.md``, a summary in
   ``README.md``, between ``<!-- ml-results:start -->`` and ``<!-- ml-results:end -->``.
@@ -150,58 +150,75 @@ def render(results: dict[str, Any]) -> str:
     return "\n".join(lines)
 
 
-def render_comparison(results: dict[str, Any]) -> str:
-    """Before and after: the frozen baseline against today's rules, per scenario and variant."""
-    baseline = results.get("baseline")
-    if baseline is None:
-        return "No baseline recorded."
-    old, new = baseline["variants"], results["variants"]
-    variants = [(v, label) for v, label in HELD_OUT if v in old and v in new]
-    header = "| Scenario | " + " | ".join(
-        f"{label}: {baseline['label']} | {label}: now" for _, label in variants
-    )
+def _compare(
+    columns: list[tuple[str, dict[str, Any]]], scenarios: list[str], *, with_default: bool = True
+) -> list[str]:
+    """Attacks caught per scenario, one column per held-out variant and rule set."""
+    held = [(v, label) for v, label in HELD_OUT if any(v in found for _, found in columns)]
+    header = " | ".join(f"{label}: {title}" for _, label in held for title, _ in columns)
     lines = [
-        f"Generated from `results/rules_eval.json`: the {baseline['label']} "
-        f"({len(baseline['rules'])}, frozen before the rules changed) against today's "
-        f"{len(new['default']['rules'])} rules, {len(results['seeds'])} seeds per variant. "
-        "Attacks caught by at least one of their expected rules. Do not edit by hand.",
-        "",
-        header + " |",
-        "|----------|" + "-----:|" * (2 * len(variants)),
+        f"| Scenario | {header} |",
+        "|----------|" + "-----:|" * (len(held) * len(columns)),
     ]
-    for scenario in results["scenarios"]:
-        cells = []
-        for variant, _ in variants:
-            before, after = old[variant]["scenarios"][scenario], new[variant]["scenarios"][scenario]
-            cells += [
-                f"{before['attacks_detected']}/{before['attacks']}",
-                f"{after['attacks_detected']}/{after['attacks']}",
-            ]
-        lines.append(f"| {scenario} | " + " | ".join(cells) + " |")
-    totals: list[str] = []
-    noise: list[str] = []
-    for variant, _ in variants:
-        b, a = (
-            _attacks_caught(old[variant]["scenarios"]),
-            _attacks_caught(new[variant]["scenarios"]),
-        )
-        totals += [f"**{b[0]}/{b[1]}**", f"**{a[0]}/{a[1]}**"]
-        noise += [
-            str(_false_positives(old[variant]["scenarios"])),
-            str(_false_positives(new[variant]["scenarios"])),
+
+    def cells(pick: Any) -> list[str]:  # noqa: ANN401 - a formatter
+        return [
+            pick(found[v]["scenarios"]) if v in found else "-"
+            for v, _ in held
+            for _, found in columns
         ]
+
+    for scenario in scenarios:
+        row = cells(lambda f, n=scenario: f"{f[n]['attacks_detected']}/{f[n]['attacks']}")
+        lines.append(f"| {scenario} | " + " | ".join(row) + " |")
+    totals = cells(lambda f: "**{}/{}**".format(*_attacks_caught(f)))
     lines.append("| **All attacks** | " + " | ".join(totals) + " |")
+    noise = cells(lambda f: str(_false_positives(f)))
     lines.append("| False-positive alerts on benign lines | " + " | ".join(noise) + " |")
-    b, a = (
-        _attacks_caught(old["default"]["scenarios"]),
-        _attacks_caught(new["default"]["scenarios"]),
-    )
-    lines += [
+    if with_default:
+        caught = [
+            "{}/{} attacks caught with {} false-positive alerts ({})".format(
+                *_attacks_caught(found["default"]["scenarios"]),
+                _false_positives(found["default"]["scenarios"]),
+                title,
+            )
+            for title, found in columns
+            if "default" in found
+        ]
+        lines += ["", "Default variants: " + "; ".join(caught) + "."]
+    return lines
+
+
+def render_comparison(results: dict[str, Any]) -> str:
+    """Before and after: the frozen baselines on today's simulator against today's rules, then
+    the baselines of earlier address models for reference."""
+    baselines = list(results.get("baselines", {}).values())
+    if not baselines:
+        return "No baseline recorded."
+    model = results["addresses"]
+    same = [b for b in baselines if b["addresses"] == model]
+    earlier = [b for b in baselines if b["addresses"] != model]
+    frozen = "; ".join(f"{b['label']}: {len(b['rules'])} rules" for b in same)
+    lines = [
+        f"Generated from `results/rules_eval.json`, simulator address model {model}: the frozen "
+        f"baselines ({frozen}) against today's {len(results['variants']['default']['rules'])} "
+        f"rules, {len(results['seeds'])} seeds per variant. Attacks caught by at least one of "
+        "their expected rules. Do not edit by hand.",
         "",
-        f"Default variants: {b[0]}/{b[1]} attacks caught before and {a[0]}/{a[1]} now, with "
-        f"{_false_positives(old['default']['scenarios'])} false-positive alerts before and "
-        f"{_false_positives(new['default']['scenarios'])} now.",
+        *_compare(
+            [(b["label"], b["variants"]) for b in same] + [("now", results["variants"])],
+            results["scenarios"],
+        ),
     ]
+    for old in sorted({b["addresses"] for b in earlier}):
+        group = [b for b in earlier if b["addresses"] == old]
+        lines += [
+            "",
+            f"For reference, the same comparison on address model {old} (frozen, not comparable "
+            "with the table above: the simulator's background was different):",
+            "",
+            *_compare([(b["label"], b["variants"]) for b in group], results["scenarios"]),
+        ]
     return "\n".join(lines)
 
 

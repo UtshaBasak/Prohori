@@ -91,22 +91,22 @@ fixed. The reasoning, the threshold table and what this does not show are in ADR
 [case study](case-studies/evasion-resistant-rules.md).
 
 <!-- rules-compare:start -->
-Generated from `results/rules_eval.json`: the 1.0 rules (15, frozen before the rules changed) against today's 21 rules, 5 seeds per variant. Attacks caught by at least one of their expected rules. Do not edit by hand.
+Generated from `results/rules_eval.json`, simulator address model 1: the frozen baselines (1.0 rules (addresses 1): 15 rules; 1.1 rules, step 28b (addresses 1): 21 rules) against today's 21 rules, 5 seeds per variant. Attacks caught by at least one of their expected rules. Do not edit by hand.
 
-| Scenario | Held-out: 1.0 rules | Held-out: now | Held-out 2: 1.0 rules | Held-out 2: now |
-| ---------- | -----: | -----: | -----: | -----: |
-| account-takeover | 5/5 | 5/5 | 5/5 | 5/5 |
-| admin-misuse | 5/5 | 5/5 | 5/5 | 5/5 |
-| credential-stuffing | 0/5 | 5/5 | 0/5 | 5/5 |
-| injection | 5/5 | 5/5 | 5/5 | 5/5 |
-| password-spraying | 5/5 | 5/5 | 0/5 | 0/5 |
-| ssh-bruteforce | 5/5 | 5/5 | 5/5 | 5/5 |
-| token-reuse | 5/5 | 5/5 | 5/5 | 5/5 |
-| web-scanning | 5/5 | 5/5 | 5/5 | 5/5 |
-| **All attacks** | **35/40** | **40/40** | **30/40** | **35/40** |
-| False-positive alerts on benign lines | 259 | 259 | 287 | 287 |
+| Scenario | Held-out: 1.0 rules (addresses 1) | Held-out: 1.1 rules, step 28b (addresses 1) | Held-out: now | Held-out 2: 1.0 rules (addresses 1) | Held-out 2: 1.1 rules, step 28b (addresses 1) | Held-out 2: now |
+| ---------- | -----: | -----: | -----: | -----: | -----: | -----: |
+| account-takeover | 5/5 | 5/5 | 5/5 | 5/5 | 5/5 | 5/5 |
+| admin-misuse | 5/5 | 5/5 | 5/5 | 5/5 | 5/5 | 5/5 |
+| credential-stuffing | 0/5 | 5/5 | 5/5 | 0/5 | 5/5 | 5/5 |
+| injection | 5/5 | 5/5 | 5/5 | 5/5 | 5/5 | 5/5 |
+| password-spraying | 5/5 | 5/5 | 5/5 | 0/5 | 0/5 | 0/5 |
+| ssh-bruteforce | 5/5 | 5/5 | 5/5 | 5/5 | 5/5 | 5/5 |
+| token-reuse | 5/5 | 5/5 | 5/5 | 5/5 | 5/5 | 5/5 |
+| web-scanning | 5/5 | 5/5 | 5/5 | 5/5 | 5/5 | 5/5 |
+| **All attacks** | **35/40** | **40/40** | **40/40** | **30/40** | **35/40** | **35/40** |
+| False-positive alerts on benign lines | 259 | 259 | 259 | 287 | 287 | 287 |
 
-Default variants: 40/40 attacks caught before and 40/40 now, with 295 false-positive alerts before and 295 now.
+Default variants: 40/40 attacks caught with 295 false-positive alerts (1.0 rules (addresses 1)); 40/40 attacks caught with 295 false-positive alerts (1.1 rules, step 28b (addresses 1)); 40/40 attacks caught with 295 false-positive alerts (now).
 <!-- rules-compare:end -->
 
 Known limits, also stated in each rule's description:

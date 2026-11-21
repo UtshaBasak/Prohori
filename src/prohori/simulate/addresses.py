@@ -11,6 +11,10 @@ import ipaddress
 import random
 from typing import Final
 
+#: The address model in use, recorded in every manifest and results file: 1 put every customer
+#: in one /24; numbers measured on one model are not comparable with another's.
+ADDRESS_MODEL: Final = 1
+
 DOCUMENTATION_NETWORKS: Final = (
     ipaddress.ip_network("192.0.2.0/24"),
     ipaddress.ip_network("198.51.100.0/24"),
