@@ -75,7 +75,7 @@ anything outside its own output.
 | Threat | Controls |
 | -------- | ---------- |
 | Code execution from YAML rules or mappings | `yaml.safe_load` only; rule files capped at 128 KiB and one document (`rules/loader.py`); rules validated before they run |
-| Code execution from model files | Models are joblib (pickle) files, which **can run code**. The CLI warns, checks the SHA-256 sidecar written at training (`ml/models.py`) and the docs say to load only models you trained ([MODEL_CARD.md](MODEL_CARD.md)) |
+| Code execution from model files | Since 1.1 models are skops files, read without pickle into allowlisted types only; 1.0 joblib (pickle) files load through an unpickler limited to the classes a model needs (`ml/safety.py`). Loading checks the SHA-256 sidecar, an optional out-of-band `--sha256` and the library versions; the docs say to load only models you trained ([MODEL_CARD.md](MODEL_CARD.md)) |
 | Tampered datasets | The download script pins and checks the size and SHA-256 of the CIC-IDS-2017 archive it fetches, and `verify` checks the pinned UNSW-NB15 files (`scripts/download_datasets.py`); training does not re-check hashes. Datasets are never committed or fetched at import time |
 | Path traversal in outputs | Outputs are written only under the directory given; report file names are built from incident ids, not log content |
 

@@ -842,13 +842,13 @@ def check_recall_command(
         Path,
         typer.Argument(
             metavar="RESULTS",
-            help="A flow-model results file (prohori.ml-eval/1).",
+            help="A flow-model results file (prohori.ml-eval/1 or /2).",
             show_default=False,
         ),
     ],
     minimum: Annotated[
         float, typer.Option("--min-recall", min=0.0, max=1.0, help="Fail below this mean recall.")
-    ] = 0.75,
+    ] = 0.62,
     model: Annotated[str, typer.Option(help="Model to check.")] = "hgb",
     variant: Annotated[str, typer.Option(help="Variant to check.")] = "cleaned",
     operating_point: Annotated[

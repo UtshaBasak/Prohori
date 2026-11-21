@@ -362,22 +362,29 @@ improved CIC-IDS-2017:
   [DATASETS.md](docs/DATASETS.md) has the numbers.
 - **Two models:** gradient boosting (supervised) and an Isolation Forest trained on benign
   traffic only.
-- **Honest metrics.** Thresholds are chosen on a validation split for a 1 % or 0.1 %
-  false-positive rate and frozen; the test split is scored once per seed. Reported: PR-AUC,
-  recall, the false-positive rate actually reached on test, false alerts per 10,000 flows and
-  recall per attack class, as mean and standard deviation over three seeds. Never accuracy.
+- **Honest metrics.** Thresholds are chosen for a 1 % or 0.1 % false-positive rate on a
+  validation split made of **time blocks** the training data does not touch (since 1.1), then
+  frozen; the test split is scored once per seed. Reported: PR-AUC, recall, the false-positive
+  rate actually reached on test, false alerts per 10,000 flows and recall per attack class, as
+  mean and standard deviation over three seeds. Never accuracy. Every run also measures how
+  well each way of choosing thresholds holds on test (the
+  [calibration study](docs/MODEL_CARD.md#calibration-study)).
+- **Model files without pickle.** Saved models are skops files, loaded only into the types a
+  model needs, after checking their SHA-256 (optionally against `prohori score --sha256`) and
+  the library versions they were made with. 1.0 pickle models still load, through an
+  allowlist.
 
 <!-- ml-results:start -->
 | Dataset | Model | PR-AUC | Recall | Test FPR | False alerts / 10k |
 | --------- | ------- | -------: | -------: | ---------: | -------------------: |
-| unsw-nb15 | Gradient boosting (supervised) | 0.952 | 46.00 % | 0.07 % | 4.2 |
-| unsw-nb15 | Isolation Forest (benign only) | 0.522 | 0.71 % | 0.11 % | 6.9 |
-| cicids2017 | Gradient boosting (supervised) | 0.999 | 99.98 % | 0.10 % | 8.7 |
-| cicids2017 | Isolation Forest (benign only) | 0.527 | 0.00 % | 0.10 % | 8.7 |
+| unsw-nb15 | Gradient boosting (supervised) | 0.950 | 24.72 % | 0.03 % | 1.9 |
+| unsw-nb15 | Isolation Forest (benign only) | 0.532 | 2.18 % | 0.12 % | 7.4 |
+| cicids2017 | Gradient boosting (supervised) | 0.999 | 99.92 % | 0.10 % | 8.6 |
+| cicids2017 | Isolation Forest (benign only) | 0.528 | 0.00 % | 0.09 % | 7.9 |
 
 Means over seeds 0, 1, 2 on the cleaned test splits, with thresholds chosen for a 0.1 % false-positive rate on the validation split and then frozen.
 
-What the numbers say: gradient boosting catches 46 % of UNSW-NB15's attacks at 4.2 false alerts per 10,000 flows, missing most fuzzing and analysis traffic, and on CIC-IDS-2017 catches 99.98 %, which says more about that lab dataset than about the model. The 1 % threshold chosen on UNSW-NB15's validation data gave 4.5 % false positives on its test file. The Isolation Forest is not a usable detector on either dataset. Without the leakage controls the same pipeline would report a PR-AUC of 0.989 instead of 0.952 on UNSW-NB15. Cleaning removed 41 % of UNSW-NB15's 257,673 rows and 18 % of CIC-IDS-2017's 2,099,976 flows, mostly duplicates once the identifiers are gone.
+What the numbers say: gradient boosting catches 25 % of UNSW-NB15's attacks at 1.9 false alerts per 10,000 flows, missing most fuzzing and analysis traffic, and on CIC-IDS-2017 catches 99.92 %, which says more about that lab dataset than about the model. Thresholds chosen on validation time blocks held on UNSW-NB15's test file (0.9 % false positives at the 1 % target); with validation rows drawn at random, as in 1.0, the same target gave 4.8 %. The Isolation Forest is not a usable detector on either dataset. Without the leakage controls the same pipeline would report a PR-AUC of 0.988 instead of 0.950 on UNSW-NB15. Cleaning removed 41 % of UNSW-NB15's 257,673 rows and 18 % of CIC-IDS-2017's 2,099,976 flows, mostly duplicates once the identifiers are gone.
 <!-- ml-results:end -->
 
 Details, failure cases and limitations: [docs/MODEL_CARD.md](docs/MODEL_CARD.md).
@@ -385,12 +392,12 @@ Details, failure cases and limitations: [docs/MODEL_CARD.md](docs/MODEL_CARD.md)
 **Do the models work on another network?** Not usefully.
 
 <!-- ml-cross:start -->
-Trained on the 12 features both datasets share and tested on the *other* dataset, gradient boosting's ROC-AUC falls from 0.95 and 1.00 to 0.64 and 0.61, weak but above chance, and the threshold that gave 1 % false positives at home flags 42 % to 60 % of the other dataset's benign flows:
+Trained on the 12 features both datasets share and tested on the *other* dataset, gradient boosting's ROC-AUC falls from 0.95 and 1.00 to 0.64 and 0.59, weak but above chance, and the threshold that gave 1 % false positives at home flags 42 % to 61 % of the other dataset's benign flows:
 
 | Trained on → tested on | ROC-AUC, same dataset | ROC-AUC, other dataset | PR-AUC (chance), same dataset | PR-AUC (chance), other dataset | Benign flows flagged on the other dataset (1 % threshold) |
 | ------------------------ | ------: | ------: | ------: | ------: | ------: |
-| unsw-nb15 → cicids2017 | 0.952 | 0.639 | 0.918 (0.33) | 0.323 (0.16) | 42.2 % |
-| cicids2017 → unsw-nb15 | 1.000 | 0.614 | 0.999 (0.16) | 0.404 (0.33) | 60.5 % |
+| unsw-nb15 → cicids2017 | 0.950 | 0.636 | 0.914 (0.33) | 0.329 (0.16) | 41.8 % |
+| cicids2017 → unsw-nb15 | 1.000 | 0.590 | 0.999 (0.16) | 0.401 (0.33) | 60.5 % |
 
 Gradient boosting, means over seeds 0, 1, 2. ROC-AUC: 0.5 is chance. PR-AUC: chance is the attack share, in brackets.
 <!-- ml-cross:end -->
@@ -535,7 +542,7 @@ with five DAGs:
 | ----- | ------ | -------------- |
 | Backfill | By hand | Replays all eight simulated scenarios with their labels, then builds the marts |
 | Data quality | Hourly | `dbt build` with its 68 checks, and a freshness check on the events |
-| Nightly evaluation | 02:00 UTC | Retrains the flow models; the run fails if recall drops below 0.75 |
+| Nightly evaluation | 02:00 UTC | Retrains the flow models; the run fails if recall drops below 0.62 |
 | Incident digest | 06:00 UTC | The last day's incidents, rules and dead letters, as Markdown and JSON |
 | Enrichment refresh | 03:30 UTC | Keeps the incident stage's enrichment cache current (offline without API keys) |
 

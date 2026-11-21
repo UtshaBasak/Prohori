@@ -133,6 +133,7 @@ from PyPI.
 | Jinja2 | always | BSD 3-Clause |
 | geoip2, maxminddb | `geoip` extra | Apache 2.0 |
 | scikit-learn, pandas, joblib | `ml` extra | BSD 3-Clause |
+| skops | `ml` extra | MIT |
 | pyarrow | `ml` extra | Apache 2.0 |
 | confluent-kafka | `pipeline` extra | Apache 2.0 (librdkafka: BSD 2-Clause) |
 | duckdb | `pipeline` extra | MIT |

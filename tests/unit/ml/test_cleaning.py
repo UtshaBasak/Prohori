@@ -11,19 +11,29 @@ import pytest
 
 from prohori.ml.cleaning import (
     BENIGN,
+    BLOCK,
     CATEGORY,
     LABEL,
+    ORDER,
+    RANDOM,
     SPLITS,
+    TIME_BLOCK,
     CleaningReport,
     LeakageError,
     Prepared,
+    _interleaved,
+    block_split,
     check_leakage,
+    check_time_blocks,
     feature_keys,
     make_preprocessor,
+    near_duplicate_share,
+    order_key,
     prepare,
     prepare_frames,
     standardise_labels,
     stratified_split,
+    time_blocks,
 )
 from prohori.ml.datasets import ALL, load
 from prohori.ml.registry import CICIDS2017, UNSW_NB15, Dataset
@@ -218,3 +228,92 @@ def test_report_is_plain_data(data_dir: Path) -> None:
     assert report["dataset"] == "cicids2017"
     assert report["rows_loaded"] == {ALL: 55}
     assert set(report["rows"]) == set(SPLITS)
+
+
+# --------------------------------------------------------------------------- time blocks (step 30)
+
+
+def _timeline(n: int, classes: tuple[str, ...] = ("Benign",)) -> pd.DataFrame:
+    rng = np.random.default_rng(1)
+    return pd.DataFrame(
+        {
+            CATEGORY: rng.choice(np.array(classes, dtype=object), size=n),
+            ORDER: rng.permutation(n).astype("int64"),
+            "x": rng.normal(size=n),
+        }
+    )
+
+
+def test_no_training_row_lies_inside_a_held_out_time_block(prepared: Prepared) -> None:
+    assert prepared.validation_method == TIME_BLOCK
+    assert check_time_blocks(prepared) == []
+    for name in ("train", "validation"):
+        assert prepared.split(name)[BLOCK].notna().all()
+    held = set(prepared.validation[BLOCK])
+    assert held.isdisjoint(set(prepared.train[BLOCK]))
+
+
+def test_whole_blocks_move_and_every_class_keeps_training_rows() -> None:
+    frame = _timeline(1000, ("Benign", "DoS", "Worms"))
+    rest, part = block_split(frame, 0.2, seed=0, blocks=10)
+    assert len(rest) + len(part) == len(frame)
+    for name, group in part.groupby(CATEGORY):
+        assert group[BLOCK].nunique() == 2  # 20 % of 10 blocks
+        assert name in set(rest[CATEGORY])
+    assert set(part[BLOCK]).isdisjoint(set(rest[BLOCK]))
+    assert _interleaved(part, rest, "validation", "train") == []
+    again, _ = block_split(frame, 0.2, seed=0, blocks=10)
+    other, _ = block_split(frame, 0.2, seed=1, blocks=10)
+    assert again.equals(rest)
+    assert not other.equals(rest)
+
+
+def test_rows_moved_between_blocks_are_caught_by_their_times() -> None:
+    frame = _timeline(400)
+    rest, part = block_split(frame, 0.25, seed=0, blocks=8)
+    # A held-out row put back into training sits inside its block's time range.
+    middle = part.sort_values(ORDER).iloc[[len(part) // 2]]
+    leaked = pd.concat([rest, middle])
+    assert _interleaved(part, leaked, "validation", "train") == [
+        "1 train rows lie inside a time block of validation"
+    ]
+
+
+def test_equal_times_share_a_block() -> None:
+    frame = pd.DataFrame({CATEGORY: ["Benign"] * 6, ORDER: [5, 5, 5, 6, 6, 7], "x": range(6)})
+    blocks = time_blocks(frame, blocks=6)
+    assert blocks.tolist() == ["Benign#0"] * 3 + ["Benign#3"] * 2 + ["Benign#5"]
+
+
+def test_order_comes_from_times_or_the_file_order() -> None:
+    times = pd.DataFrame(
+        {"timestamp": pd.array(["2017-07-07 11:59:50.5", None, "bad"], dtype="string")}
+    )
+    order = order_key(times, CICIDS2017)
+    assert order[0] == pd.Timestamp("2017-07-07 11:59:50.5").value
+    assert order[1:].tolist() == [1, 2]  # unreadable: the row's position
+    ids = pd.DataFrame({"id": pd.array(["10", "x", "30"], dtype="string")})
+    assert order_key(ids, UNSW_NB15).tolist() == [10, 1, 30]
+    assert order_key(pd.DataFrame({"y": [1, 2]}), UNSW_NB15).tolist() == [0, 1]
+
+
+def test_internal_columns_are_never_features(prepared: Prepared) -> None:
+    for column in (ORDER, BLOCK):
+        assert column not in prepared.features
+        assert column not in prepared.x("train").columns
+
+
+def test_random_validation_is_kept_for_comparison(data_dir: Path) -> None:
+    random = prepare(UNSW_NB15, data_dir, seed=0, validation=RANDOM)
+    assert random.report.validation_method == RANDOM
+    assert check_leakage(random) == []
+    with pytest.raises(ValueError, match="validation must be one of"):
+        prepare(UNSW_NB15, data_dir, seed=0, validation="days")
+
+
+def test_near_duplicates_are_counted_after_rounding() -> None:
+    train = pd.DataFrame({LABEL: [0, 0, 1], "x": [1.234, 50.0, 7.0]})
+    validation = pd.DataFrame({LABEL: [0, 0, 0, 1], "x": [1.236, 50.4, 9.0, 7.0]})
+    # 1.236 rounds like 1.234 and 50.4 like 50 (two significant digits); attacks are ignored.
+    assert near_duplicate_share(train, validation, ["x"]) == pytest.approx(2 / 3)
+    assert near_duplicate_share(train, validation[validation[LABEL] == 1], ["x"]) is None

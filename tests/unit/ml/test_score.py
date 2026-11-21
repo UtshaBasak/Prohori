@@ -2,6 +2,7 @@
 # Copyright (c) 2026 Utsha Basak
 """``prohori score`` and prohori.ml.score, with models trained on the fixture datasets."""
 
+import hashlib
 import json
 import re
 import subprocess
@@ -14,6 +15,7 @@ from typer.testing import CliRunner
 from prohori.cli import app
 from prohori.cli.exit_codes import ExitCode
 from prohori.ml import train
+from prohori.ml.models import sidecar_path
 from prohori.ml.registry import CICIDS2017, UNSW_NB15
 from prohori.ml.score import ScoreInputError, resolve_model, score_file
 
@@ -49,7 +51,7 @@ def test_definition_of_done_example(models_dir: Path) -> None:
     assert "Flagged flows" in out
     assert re.search(r"25 flows scored with cicids2017/iforest-seed0; \d+ flagged", out)
     assert "lab dataset" in out
-    assert "pickles" in result.stderr
+    assert "pickles" not in result.stderr  # a skops file, read without pickle
 
 
 def test_json_output_and_exit_zero(models_dir: Path) -> None:
@@ -68,7 +70,7 @@ def test_json_output_and_exit_zero(models_dir: Path) -> None:
 
 
 def test_top_keeps_the_highest_scores(models_dir: Path) -> None:
-    path = models_dir / "cicids2017" / "iforest-seed0.joblib"
+    path = models_dir / "cicids2017" / "iforest-seed0.skops"
     every = score_file(FLOWS, path, fpr=0.01, top=0)
     three = score_file(FLOWS, path, fpr=0.01, top=3)
     assert three.flagged == every.flagged
@@ -80,14 +82,14 @@ def test_top_keeps_the_highest_scores(models_dir: Path) -> None:
 
 
 def test_default_threshold_is_the_strictest(models_dir: Path) -> None:
-    path = models_dir / "cicids2017" / "hgb-seed0.joblib"
+    path = models_dir / "cicids2017" / "hgb-seed0.skops"
     assert score_file(FLOWS, path).threshold_name == "fpr_0.001"
     with pytest.raises(ScoreInputError, match=r"no threshold for a 0\.05"):
         score_file(FLOWS, path, fpr=0.05)
 
 
 def test_wrong_layout_is_explained(models_dir: Path) -> None:
-    path = models_dir / "unsw-nb15" / "hgb-seed0.joblib"
+    path = models_dir / "unsw-nb15" / "hgb-seed0.skops"
     with pytest.raises(ScoreInputError, match=r"lacks \d+ column\(s\) the model needs: dur, "):
         score_file(FLOWS, path)
     args = ["score", str(FLOWS), "-m", "unsw-nb15/hgb-seed0", "--models-dir", str(models_dir)]
@@ -97,7 +99,7 @@ def test_wrong_layout_is_explained(models_dir: Path) -> None:
 
 
 def test_unreadable_input(models_dir: Path, tmp_path: Path) -> None:
-    path = models_dir / "cicids2017" / "hgb-seed0.joblib"
+    path = models_dir / "cicids2017" / "hgb-seed0.skops"
     empty = tmp_path / "empty.csv"
     empty.write_text("", encoding="utf-8")
     with pytest.raises(ScoreInputError, match="cannot read"):
@@ -113,7 +115,7 @@ def test_unreadable_input(models_dir: Path, tmp_path: Path) -> None:
 
 
 def test_model_names_and_paths(models_dir: Path) -> None:
-    path = models_dir / "cicids2017" / "hgb-seed0.joblib"
+    path = models_dir / "cicids2017" / "hgb-seed0.skops"
     assert resolve_model(str(path), models_dir) == path
     assert resolve_model("cicids2017/hgb-seed0", models_dir) == path
     with pytest.raises(FileNotFoundError, match="available: cicids2017/hgb-seed0"):
@@ -122,20 +124,64 @@ def test_model_names_and_paths(models_dir: Path) -> None:
         resolve_model("nope", models_dir / "missing")
     result = runner.invoke(app, ["score", "missing.csv", "-m", str(path)])
     assert result.exit_code == ExitCode.USAGE
-    tampered = models_dir / "cicids2017" / "hgb-seed1.joblib"
+    tampered = models_dir / "cicids2017" / "hgb-seed1.skops"
     tampered.write_bytes(path.read_bytes() + b"\0")
-    tampered.with_suffix(".json").write_text(
-        path.with_suffix(".json").read_text(encoding="utf-8"), encoding="utf-8"
-    )
+    sidecar = sidecar_path(path).read_text(encoding="utf-8")
+    sidecar_path(tampered).write_text(sidecar, encoding="utf-8")
     result = runner.invoke(app, ["score", str(FLOWS), "-m", str(tampered)])
     assert result.exit_code == 1
     assert "refusing to load" in result.stderr
 
 
+def test_sha256_given_out_of_band(models_dir: Path) -> None:
+    path = models_dir / "cicids2017" / "iforest-seed0.skops"
+    digest = hashlib.sha256(path.read_bytes()).hexdigest()
+    args = ["score", str(FLOWS), "-m", str(path), "--exit-zero"]
+    assert runner.invoke(app, [*args, "--sha256", digest.upper()]).exit_code == 0
+    result = runner.invoke(app, [*args, "--sha256", "0" * 64])
+    assert result.exit_code == 1
+    assert "not the one given" in result.stderr
+
+
+def test_other_library_versions_are_refused_unless_allowed(
+    models_dir: Path, tmp_path: Path
+) -> None:
+    source = models_dir / "cicids2017" / "iforest-seed0.skops"
+    path = tmp_path / source.name
+    path.write_bytes(source.read_bytes())
+    meta = json.loads(sidecar_path(source).read_text(encoding="utf-8"))
+    meta["versions"]["scikit-learn"] = "0.24.2"
+    sidecar_path(path).write_text(json.dumps(meta), encoding="utf-8")
+    args = ["score", str(FLOWS), "-m", str(path), "--exit-zero"]
+    refused = runner.invoke(app, args)
+    assert refused.exit_code == 1
+    assert "scikit-learn 0.24.2 (model)" in refused.stderr
+    assert "--allow-version-mismatch" in refused.stderr
+    allowed = runner.invoke(app, [*args, "--allow-version-mismatch"])
+    assert allowed.exit_code == 0
+    assert "despite other library versions" in allowed.stderr
+
+
+def test_a_legacy_joblib_model_still_scores(models_dir: Path, tmp_path: Path) -> None:
+    from prohori.ml.models import load_model, save_model
+
+    bundle, meta = load_model(models_dir / "cicids2017" / "iforest-seed0.skops")
+    legacy = save_model(tmp_path / "old.joblib", bundle, meta)
+    # A 1.0 sidecar recorded the scikit-learn version only.
+    old = json.loads(sidecar_path(legacy).read_text(encoding="utf-8"))
+    old["scikit_learn_version"] = old.pop("versions")["scikit-learn"]
+    sidecar_path(legacy).write_text(json.dumps(old), encoding="utf-8")
+    result = runner.invoke(app, ["score", str(FLOWS), "-m", str(legacy), "--exit-zero"])
+    assert result.exit_code == 0, result.stderr
+    assert "pickles" in result.stderr
+    assert "Retrain it" in result.stderr
+    assert "did not record the versions of python, numpy, pandas" in result.stderr
+
+
 def test_score_without_the_ml_extra() -> None:
     code = """
 import sys
-for name in ("pandas", "sklearn", "pyarrow", "numpy", "joblib"):
+for name in ("pandas", "sklearn", "pyarrow", "numpy", "joblib", "skops"):
     sys.modules[name] = None
 from typer.testing import CliRunner
 from prohori.cli import app

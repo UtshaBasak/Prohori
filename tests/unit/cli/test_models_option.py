@@ -82,7 +82,7 @@ def test_models_without_the_ml_extra(web_log: Path) -> None:
     """With scikit-learn missing, --models still runs the z-score detector."""
     code = f"""
 import sys
-for name in ("sklearn", "pandas", "pyarrow", "joblib", "numpy", "scipy"):
+for name in ("sklearn", "pandas", "pyarrow", "joblib", "numpy", "scipy", "skops"):
     sys.modules[name] = None
 from typer.testing import CliRunner
 from prohori.cli import app

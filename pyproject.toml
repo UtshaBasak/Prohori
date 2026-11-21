@@ -58,6 +58,7 @@ ml = [
     "pandas>=2.2",
     "pyarrow>=18.0",
     "joblib>=1.4",
+    "skops>=0.16",  # model files without pickle (step 30)
 ]
 pipeline = [
     "confluent-kafka>=2.6",
@@ -102,6 +103,7 @@ dev = [
     "pandas-stubs>=2.2",
     "pyarrow>=18.0",
     "joblib>=1.4",
+    "skops>=0.16",
     "duckdb>=1.1",
     "confluent-kafka>=2.6",
     "psycopg[binary]>=3.2",
@@ -238,7 +240,7 @@ ignore_missing_imports = true
 
 [[tool.mypy.overrides]]
 # scikit-learn, pyarrow and joblib ship no type hints (the ml extra).
-module = ["sklearn.*", "pyarrow.*", "joblib.*"]
+module = ["sklearn.*", "pyarrow.*", "joblib.*", "skops.*"]
 ignore_missing_imports = true
 
 [tool.pydantic-mypy]

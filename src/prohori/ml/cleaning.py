@@ -13,8 +13,13 @@
 4. **Duplicates.** Exact duplicates (features and class) are removed. Rows whose features are
    identical but whose classes differ are all removed, since no label is right for them.
 5. **Split.** The official partition when there is one, with a validation set carved out of the
-   training data; otherwise a seeded split stratified by class. Validation is for tuning
-   thresholds; the test set is for the one final evaluation.
+   training data; otherwise a test set is carved out first. Held-out sets are made of **time
+   blocks**: each class's rows are put in time order (the capture time, or the file order when
+   the file has no times) and cut into contiguous blocks, and whole blocks are held out, chosen
+   by the seed. Near-identical flows captured moments apart then stay on one side, so they
+   cannot make validation look easier than new traffic (``validation="random"``, the 1.0
+   behaviour, draws rows at random and is kept only to measure the difference). Validation is
+   for choosing thresholds; the test set is for the one final evaluation.
 6. **Overlap.** A validation or test row whose features also occur in an earlier split is
    removed and counted.
 7. **Transforms.** Imputation medians and category codes are fitted on the training split only.
@@ -55,6 +60,17 @@ SUSPECT = "suspect"
 SPLITS = ("train", "validation", "test")
 VALIDATION_SIZE = 0.2
 TEST_SIZE = 0.3
+#: Internal columns: a row's place in time, and the time block it was held out or kept with.
+#: Never features, never part of a deduplication key.
+ORDER = "_order"
+BLOCK = "_block"
+INTERNAL = (LABEL, CATEGORY, ORDER, BLOCK)
+#: Blocks per class; a class with fewer rows gets one block per row.
+BLOCKS = 50
+#: How the validation set is drawn from the training data.
+TIME_BLOCK = "time-block"
+RANDOM = "random"
+VALIDATION_METHODS = (TIME_BLOCK, RANDOM)
 
 
 class LeakageError(AssertionError):
@@ -83,6 +99,11 @@ class CleaningReport:
     overlap_removed: dict[str, int] = field(default_factory=dict)
     rows: dict[str, int] = field(default_factory=dict)
     classes: dict[str, dict[str, int]] = field(default_factory=dict)
+    #: How validation was drawn (``time-block`` or ``random``); the test set of a dataset without
+    #: an official partition is always made of time blocks.
+    validation_method: str = "time-block"
+    #: Share of benign validation flows with a near-duplicate among benign training flows.
+    near_duplicate_share: float | None = None
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -100,6 +121,7 @@ class Prepared:
     categorical: list[str]
     preprocessor: ColumnTransformer
     report: CleaningReport
+    validation_method: str = "time-block"
 
     def split(self, name: str) -> pd.DataFrame:
         frames = {"train": self.train, "validation": self.validation, "test": self.test}
@@ -164,7 +186,26 @@ def drop_columns(
 
 
 def feature_columns(frame: pd.DataFrame) -> list[str]:
-    return [c for c in frame.columns if c not in (LABEL, CATEGORY)]
+    return [c for c in frame.columns if c not in INTERNAL]
+
+
+def order_key(frame: pd.DataFrame, dataset: Dataset) -> np.ndarray:
+    """Each row's place in time: the capture time when the dataset has one, else the file order.
+
+    Missing or unreadable times fall back to the row's position, so a row is never dropped.
+    """
+    position = np.arange(len(frame), dtype="int64")
+    column = dataset.order_column
+    if column is None or column not in frame:
+        return position
+    values = frame[column]
+    if dataset.order_is_time:
+        times = pd.to_datetime(values, errors="coerce", format="ISO8601")
+        missing = times.isna().to_numpy()
+        nanoseconds = times.dt.as_unit("ns").to_numpy(dtype="datetime64[ns]").view("int64")
+        return np.where(missing, position, nanoseconds).astype("int64")
+    numbers = np.asarray(pd.to_numeric(values, errors="coerce"), dtype="float64")
+    return np.where(np.isnan(numbers), position, numbers).astype("int64")
 
 
 def replace_non_finite(frame: pd.DataFrame, report: CleaningReport) -> pd.DataFrame:
@@ -215,6 +256,47 @@ def stratified_split(
     return frame[~taken], frame[taken]
 
 
+def time_blocks(frame: pd.DataFrame, blocks: int = BLOCKS) -> pd.Series:
+    """Label each row ``"<class>#<n>"``: its class's rows in time order, cut into ``blocks``.
+
+    Rows with the same time always share a block, so a block's time range never contains a
+    row of another block of the same class.
+    """
+    pieces: list[pd.Series] = []
+    for name, group in frame.groupby(CATEGORY, sort=True):
+        ordered = group[ORDER].sort_values(kind="stable")
+        n = len(ordered)
+        count = min(blocks, n)
+        number = pd.Series(np.arange(n) * count // n, index=ordered.index)
+        number = number.groupby(ordered.to_numpy()).transform("min")
+        pieces.append(f"{name}#" + number.astype(str))
+    if not pieces:
+        return pd.Series("", index=frame.index, dtype=object)
+    labels: pd.Series = pd.concat(pieces).reindex(frame.index).astype(object)
+    return labels
+
+
+def block_split(
+    frame: pd.DataFrame, fraction: float, seed: int, blocks: int = BLOCKS
+) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """Move about ``fraction`` of each class's time blocks to the second frame.
+
+    Whole blocks move, at least one and never all, chosen by the seed; a class with a single
+    row stays in the first frame. Every row is labelled with its block in ``_block``.
+    """
+    frame = frame.assign(**{BLOCK: time_blocks(frame, blocks).to_numpy()})
+    rng = np.random.default_rng(seed)
+    chosen: list[str] = []
+    for _, group in frame.groupby(CATEGORY, sort=True):
+        names = sorted(set(group[BLOCK]), key=lambda b: int(b.rsplit("#", 1)[1]))
+        if len(group) < 2 or len(names) < 2:
+            continue
+        k = min(max(round(len(names) * fraction), 1), len(names) - 1)
+        chosen.extend(rng.choice(np.array(names, dtype=object), size=k, replace=False))
+    taken = frame[BLOCK].isin(chosen).to_numpy()
+    return frame[~taken], frame[taken]
+
+
 def remove_overlap(
     frame: pd.DataFrame, earlier: list[pd.DataFrame], report: CleaningReport, split: str
 ) -> pd.DataFrame:
@@ -260,35 +342,48 @@ def prepare_frames(
     test_size: float = TEST_SIZE,
     drop_suspect: bool = False,
     clean: bool = True,
+    validation: str = TIME_BLOCK,
 ) -> Prepared:
     """Apply every control to loaded frames (``train``/``test``, or ``all``)."""
-    report = CleaningReport(dataset=dataset.name, seed=seed, cleaned=clean)
+    if validation not in VALIDATION_METHODS:
+        msg = f"validation must be one of {', '.join(VALIDATION_METHODS)}, got {validation!r}"
+        raise ValueError(msg)
+    report = CleaningReport(
+        dataset=dataset.name, seed=seed, cleaned=clean, validation_method=validation
+    )
     cleaned: dict[str, pd.DataFrame] = {}
     for split, frame in frames.items():
         report.rows_loaded[split] = len(frame)
+        frame = frame.assign(**{ORDER: order_key(frame, dataset)})
         frame = standardise_labels(frame, dataset, report)
         frame = drop_columns(frame, dataset, report, drop_suspect=drop_suspect, clean=clean)
         frame = replace_non_finite(frame, report)
         frame = _categorical(frame, dataset)
         cleaned[split] = deduplicate(frame, report, split) if clean else frame
     if set(cleaned) == {"train", "test"}:
-        train, validation = stratified_split(cleaned["train"], validation_size, seed)
-        test = cleaned["test"]
+        rest, test, share = cleaned["train"], cleaned["test"], validation_size
     elif set(cleaned) == {ALL}:
-        rest, test = stratified_split(cleaned[ALL], test_size, seed)
-        train, validation = stratified_split(rest, validation_size / (1 - test_size), seed + 1)
+        rest, test = block_split(cleaned[ALL], test_size, seed)
+        test = test.assign(**{BLOCK: "test:" + test[BLOCK].astype(str)})
+        rest = rest.drop(columns=BLOCK)
+        share = validation_size / (1 - test_size)
     else:
         msg = f"expected splits train+test or {ALL}, got {sorted(cleaned)}"
         raise ValueError(msg)
+    if validation == TIME_BLOCK:
+        train, held_out = block_split(rest, share, seed + 1)
+    else:
+        train, held_out = stratified_split(rest, share, seed + 1)
     if clean:
-        validation = remove_overlap(validation, [train], report, "validation")
-        test = remove_overlap(test, [train, validation], report, "test")
+        held_out = remove_overlap(held_out, [train], report, "validation")
+        test = remove_overlap(test, [train, held_out], report, "test")
 
     features = feature_columns(train)
+    report.near_duplicate_share = near_duplicate_share(train, held_out, features)
     categorical = [c for c in dataset.categorical_columns if c in features]
     numeric = [c for c in features if c not in categorical]
     preprocessor = make_preprocessor(numeric, categorical).fit(train[features])
-    splits = {"train": train, "validation": validation, "test": test}
+    splits = {"train": train, "validation": held_out, "test": test}
     for name, frame in splits.items():
         splits[name] = frame.reset_index(drop=True)
         report.rows[name] = len(frame)
@@ -304,6 +399,7 @@ def prepare_frames(
         categorical=categorical,
         preprocessor=preprocessor,
         report=report,
+        validation_method=validation,
     )
     problems = check_leakage(prepared) if clean else []
     if problems:
@@ -320,11 +416,17 @@ def prepare(
     drop_suspect: bool = False,
     clean: bool = True,
     use_cache: bool = True,
+    validation: str = TIME_BLOCK,
 ) -> Prepared:
     """Load ``dataset`` from ``data_dir`` and :func:`prepare_frames` it."""
     loaded = load(dataset, data_dir, sample=sample, seed=seed, use_cache=use_cache)
     prepared = prepare_frames(
-        dataset, loaded.frames, seed=seed, drop_suspect=drop_suspect, clean=clean
+        dataset,
+        loaded.frames,
+        seed=seed,
+        drop_suspect=drop_suspect,
+        clean=clean,
+        validation=validation,
     )
     for stats in loaded.files.values():
         for column, count in stats.non_numeric.items():
@@ -353,7 +455,77 @@ def check_leakage(prepared: Prepared) -> list[str]:
             if shared:
                 problems.append(f"{shared} rows of {second} also occur in {first}")
     problems.extend(_fitted_on_train(prepared))
+    problems.extend(check_time_blocks(prepared))
     return problems
+
+
+def check_time_blocks(prepared: Prepared) -> list[str]:
+    """No training row lies inside a held-out time block of its class.
+
+    Checked on the times themselves, not on the block labels, so it would catch a split that
+    labels blocks correctly but moves rows between them.
+    """
+    problems: list[str] = []
+    if prepared.validation_method == TIME_BLOCK:
+        problems += _interleaved(prepared.validation, prepared.train, "validation", "train")
+    if not prepared.dataset.has_official_split:
+        for earlier in ("train", "validation"):
+            problems += _interleaved(prepared.test, prepared.split(earlier), "test", earlier)
+    return problems
+
+
+def _interleaved(
+    held_out: pd.DataFrame, kept: pd.DataFrame, held_name: str, kept_name: str
+) -> list[str]:
+    """Rows of ``kept`` that fall inside the time range of one of ``held_out``'s blocks."""
+    if held_out.empty or kept.empty:
+        return []
+    ranges = held_out.groupby([CATEGORY, BLOCK], sort=False)[ORDER].agg(["min", "max"])
+    classes = set(ranges.index.get_level_values(0))
+    inside = 0
+    for name, group in kept.groupby(CATEGORY, sort=False):
+        if name not in classes:
+            continue
+        times = np.sort(group[ORDER].to_numpy())
+        limits = ranges.loc[name]
+        lower = np.searchsorted(times, limits["min"].to_numpy(), side="left")
+        upper = np.searchsorted(times, limits["max"].to_numpy(), side="right")
+        inside += int((upper - lower).sum())
+    if inside:
+        return [f"{inside} {kept_name} rows lie inside a time block of {held_name}"]
+    return []
+
+
+#: Significant digits kept when looking for near-duplicates.
+NEAR_DIGITS = 2
+
+
+def near_keys(frame: pd.DataFrame, features: list[str], digits: int = NEAR_DIGITS) -> pd.Series:
+    """Feature hashes after rounding every number to ``digits`` significant digits."""
+    rounded = frame[features].copy()
+    for column in rounded.columns:
+        if pd.api.types.is_numeric_dtype(rounded[column]):
+            values = rounded[column].to_numpy(dtype="float64")
+            with np.errstate(divide="ignore", invalid="ignore"):
+                exponent = np.floor(np.log10(np.abs(values))) - (digits - 1)
+            scale = 10.0 ** np.nan_to_num(exponent, nan=0.0, posinf=0.0, neginf=0.0)
+            rounded[column] = np.round(values / scale) * scale
+    return pd.util.hash_pandas_object(rounded, index=False)
+
+
+def near_duplicate_share(
+    train: pd.DataFrame, validation: pd.DataFrame, features: list[str]
+) -> float | None:
+    """Share of benign validation flows equal to a benign training flow after rounding.
+
+    A measure of how much easier validation is than new traffic: such a flow is scored almost
+    exactly like one the model was fitted on.
+    """
+    benign = validation[validation[LABEL] == 0]
+    if benign.empty:
+        return None
+    seen = set(near_keys(train[train[LABEL] == 0], features).tolist())
+    return float(near_keys(benign, features).isin(seen).mean())
 
 
 def _fitted_on_train(prepared: Prepared) -> list[str]:
