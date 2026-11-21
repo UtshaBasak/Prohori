@@ -36,8 +36,10 @@ ssh-bruteforce-default:
 ssh-bruteforce-heldout:
   summary: >-
     A slower attack from 203.0.113.64 caused two SSH invalid-user storm alerts (PRH-SSH-001) over
-    about twelve minutes, including attempts as root; mapped to T1110.001. The brute-force rule did
-    not fire because the attempts were spread out. No successful sign-in is shown. Block the
+    about twelve minutes, including attempts as root; mapped to T1110.001. The per-address
+    brute-force rule did not fire because the attempts were spread out, but the root account
+    collected enough failures for the slow-guessing rule (PRH-AUTH-006, since 1.1). No successful
+    sign-in is shown. Block the
     address, make sure root cannot sign in with a password, and rule out an automation tool with
     a wrong username.
   indicators: [203.0.113.64, PRH-SSH-001, T1110, root]
@@ -109,10 +111,31 @@ credential-stuffing-default:
     - '\bno (?:sign-in|login|log-in) succeeded\b'
     - '\b(?:all|every) (?:sign-in|login|log-in)s?(?: attempts?)? failed\b'
 
+credential-stuffing-heldout:
+  summary: >-
+    Failed sign-ins for many different accounts from many different addresses within an hour in
+    the app's log (PRH-AUTH-008, high, score 35), mapped to T1110.004: credential stuffing spread
+    over many addresses, each staying under the per-address limits. The incident names no single
+    source address or account, and nothing in it shows which sign-ins, if any, succeeded. Check
+    which accounts signed in during the burst and reset them, and add a bot check or rate limit to
+    the sign-in form. A busy day or a sign-in outage can look similar.
+  indicators: [PRH-AUTH-008, T1110.004]
+  points:
+    - point: credential stuffing across many accounts and addresses
+      any: ['credential[- ]stuffing', '(?:many|several|multiple|different|distinct) (?:accounts|addresses|ips?)']
+    - point: check which accounts signed in during the burst
+      any: ['(?:which|any) accounts? (?:signed|logged) in', 'successful sign-?ins?', 'signed in (?:during|after)', 'check (?:for )?(?:any )?success']
+    - point: protect the sign-in form (bot check, rate limit, two-step verification)
+      any: ['bot', 'captcha', 'rate[- ]limit', 'two-step', '2fa', 'mfa', 'multi-factor']
+  contradictions:
+    - '\bfrom (?:a single|one) (?:address|ip)\b'
+    - '\b(?:the|this) account (?:was|has been) (?:taken over|compromised)\b'
+
 account-takeover-default:
   summary: >-
     Account u-1039 was taken over. 203.0.113.169, an address new for the account, made at least
-    10 failed sign-ins (PRH-AUTH-001) and then signed in (PRH-AUTH-003, critical); sensitive
+    10 failed sign-ins (PRH-AUTH-001) and then signed in (PRH-AUTH-003, critical; the per-account
+    rule PRH-AUTH-010 fired too); sensitive
     changes followed (PRH-ACCT-001): two-step verification was disabled and the bKash payout
     number changed. Mapped to T1078 and T1110; score 100, critical. End the account's sessions, reset its password, revert
     the payout and two-step changes, block the address.

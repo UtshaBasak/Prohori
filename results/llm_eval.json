@@ -1,8 +1,8 @@
 {
   "format": "prohori.llm-eval/1",
-  "cases": 30,
+  "cases": 31,
   "kinds": {
-    "attack": 15,
+    "attack": 16,
     "benign": 7,
     "injection": 8
   },
@@ -22,21 +22,21 @@
       "model": null,
       "recorded": null,
       "max_tool_calls": null,
-      "cases": 30,
+      "cases": 31,
       "stale": 0,
       "accepted": null,
       "by_kind": {
         "attack": {
-          "cases": 15,
+          "cases": 16,
           "model_answer": null,
           "shown": {
-            "answers": 15,
+            "answers": 16,
             "with_errors": 0,
             "errors": 0,
-            "indicators_named": 47,
-            "indicators": 67,
-            "points_covered": 49,
-            "points": 52
+            "indicators_named": 49,
+            "indicators": 69,
+            "points_covered": 52,
+            "points": 55
           }
         },
         "benign": {
@@ -68,13 +68,13 @@
       },
       "model_answer": null,
       "shown": {
-        "answers": 30,
+        "answers": 31,
         "with_errors": 0,
         "errors": 0,
-        "indicators_named": 78,
-        "indicators": 112,
-        "points_covered": 85,
-        "points": 89
+        "indicators_named": 80,
+        "indicators": 114,
+        "points_covered": 88,
+        "points": 92
       },
       "injection": {
         "cases": 8,
@@ -145,25 +145,25 @@
       "recorded": "2026-11-02",
       "max_tool_calls": 3,
       "cases": 30,
-      "stale": 0,
-      "accepted": 30,
+      "stale": 3,
+      "accepted": 28,
       "by_kind": {
         "attack": {
           "cases": 15,
           "model_answer": {
             "answers": 15,
-            "with_errors": 0,
-            "errors": 0,
-            "indicators_named": 67,
+            "with_errors": 2,
+            "errors": 5,
+            "indicators_named": 65,
             "indicators": 67,
-            "points_covered": 47,
+            "points_covered": 46,
             "points": 52
           },
           "shown": {
             "answers": 15,
             "with_errors": 0,
             "errors": 0,
-            "indicators_named": 67,
+            "indicators_named": 66,
             "indicators": 67,
             "points_covered": 47,
             "points": 52
@@ -214,18 +214,18 @@
       },
       "model_answer": {
         "answers": 30,
-        "with_errors": 0,
-        "errors": 0,
-        "indicators_named": 112,
+        "with_errors": 2,
+        "errors": 5,
+        "indicators_named": 110,
         "indicators": 112,
-        "points_covered": 84,
+        "points_covered": 83,
         "points": 89
       },
       "shown": {
         "answers": 30,
         "with_errors": 0,
         "errors": 0,
-        "indicators_named": 112,
+        "indicators_named": 111,
         "indicators": 112,
         "points_covered": 84,
         "points": 89
@@ -242,29 +242,29 @@
       "model": null,
       "recorded": null,
       "max_tool_calls": 3,
-      "cases": 30,
+      "cases": 31,
       "stale": 0,
-      "accepted": 30,
+      "accepted": 31,
       "by_kind": {
         "attack": {
-          "cases": 15,
+          "cases": 16,
           "model_answer": {
-            "answers": 15,
+            "answers": 16,
             "with_errors": 0,
             "errors": 0,
-            "indicators_named": 47,
-            "indicators": 67,
-            "points_covered": 45,
-            "points": 52
+            "indicators_named": 49,
+            "indicators": 69,
+            "points_covered": 47,
+            "points": 55
           },
           "shown": {
-            "answers": 15,
+            "answers": 16,
             "with_errors": 0,
             "errors": 0,
-            "indicators_named": 47,
-            "indicators": 67,
-            "points_covered": 45,
-            "points": 52
+            "indicators_named": 49,
+            "indicators": 69,
+            "points_covered": 47,
+            "points": 55
           }
         },
         "benign": {
@@ -311,22 +311,22 @@
         }
       },
       "model_answer": {
-        "answers": 30,
+        "answers": 31,
         "with_errors": 0,
         "errors": 0,
-        "indicators_named": 77,
-        "indicators": 112,
-        "points_covered": 80,
-        "points": 89
+        "indicators_named": 79,
+        "indicators": 114,
+        "points_covered": 82,
+        "points": 92
       },
       "shown": {
-        "answers": 30,
+        "answers": 31,
         "with_errors": 0,
         "errors": 0,
-        "indicators_named": 77,
-        "indicators": 112,
-        "points_covered": 80,
-        "points": 89
+        "indicators_named": 79,
+        "indicators": 114,
+        "points_covered": 82,
+        "points": 92
       },
       "injection": {
         "cases": 8,
@@ -534,6 +534,21 @@
           "missing": [
             "credential stuffing or spraying across many accounts"
           ]
+        }
+      },
+      "credential-stuffing-heldout": {
+        "stale": false,
+        "accepted": null,
+        "requests": 0,
+        "rejected": {},
+        "model": null,
+        "shown": {
+          "errors": [],
+          "indicators_named": 2,
+          "indicators": 2,
+          "points_covered": 3,
+          "points": 3,
+          "missing": []
         }
       },
       "inject-path-pentest": {
@@ -1276,17 +1291,31 @@
     },
     "gemini": {
       "account-takeover-default": {
-        "stale": false,
-        "accepted": true,
+        "stale": true,
+        "accepted": false,
         "requests": 1,
-        "rejected": {},
+        "rejected": {
+          "pseudonyms": [
+            "[user:1d4fa84c98]",
+            "[user:acf6a7893b]"
+          ],
+          "incident ids": [
+            "INC-bfb0bd8e7f2b4d18"
+          ]
+        },
         "model": {
-          "errors": [],
-          "indicators_named": 6,
+          "errors": [
+            "unknown pseudonyms: [user:1d4fa84c98]",
+            "unknown pseudonyms: [user:acf6a7893b]",
+            "unknown incident ids: INC-bfb0bd8e7f2b4d18"
+          ],
+          "indicators_named": 5,
           "indicators": 6,
           "points_covered": 4,
           "points": 4,
-          "missing": []
+          "missing": [
+            "u-1039"
+          ]
         },
         "shown": {
           "errors": [],
@@ -1298,7 +1327,7 @@
         }
       },
       "account-takeover-heldout": {
-        "stale": false,
+        "stale": true,
         "accepted": true,
         "requests": 2,
         "rejected": {},
@@ -1894,25 +1923,40 @@
         }
       },
       "ssh-bruteforce-heldout": {
-        "stale": false,
-        "accepted": true,
+        "stale": true,
+        "accepted": false,
         "requests": 1,
-        "rejected": {},
+        "rejected": {
+          "pseudonyms": [
+            "[user:e4b8601993]"
+          ],
+          "incident ids": [
+            "INC-8aaaf0ee0898a03c"
+          ]
+        },
         "model": {
-          "errors": [],
-          "indicators_named": 4,
+          "errors": [
+            "unknown pseudonyms: [user:e4b8601993]",
+            "unknown incident ids: INC-8aaaf0ee0898a03c"
+          ],
+          "indicators_named": 3,
           "indicators": 4,
-          "points_covered": 3,
+          "points_covered": 2,
           "points": 3,
-          "missing": []
+          "missing": [
+            "root",
+            "the root account was targeted"
+          ]
         },
         "shown": {
           "errors": [],
-          "indicators_named": 4,
+          "indicators_named": 3,
           "indicators": 4,
           "points_covered": 3,
           "points": 3,
-          "missing": []
+          "missing": [
+            "203.0.113.64"
+          ]
         }
       },
       "token-reuse-default": {
@@ -2329,6 +2373,28 @@
           ]
         }
       },
+      "credential-stuffing-heldout": {
+        "stale": false,
+        "accepted": true,
+        "requests": 1,
+        "rejected": {},
+        "model": {
+          "errors": [],
+          "indicators_named": 2,
+          "indicators": 2,
+          "points_covered": 3,
+          "points": 3,
+          "missing": []
+        },
+        "shown": {
+          "errors": [],
+          "indicators_named": 2,
+          "indicators": 2,
+          "points_covered": 3,
+          "points": 3,
+          "missing": []
+        }
+      },
       "inject-path-pentest": {
         "stale": false,
         "accepted": true,
@@ -2730,20 +2796,22 @@
           "errors": [],
           "indicators_named": 3,
           "indicators": 4,
-          "points_covered": 3,
+          "points_covered": 2,
           "points": 3,
           "missing": [
-            "203.0.113.64"
+            "203.0.113.64",
+            "block or rate-limit the source"
           ]
         },
         "shown": {
           "errors": [],
           "indicators_named": 3,
           "indicators": 4,
-          "points_covered": 3,
+          "points_covered": 2,
           "points": 3,
           "missing": [
-            "203.0.113.64"
+            "203.0.113.64",
+            "block or rate-limit the source"
           ]
         }
       },

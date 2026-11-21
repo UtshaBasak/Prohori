@@ -9,8 +9,8 @@
     "seed": 1
   },
   "incident": {
-    "id": "INC-bfb0bd8e7f2b4d18",
-    "title": "Successful sign-in after many failures from one IP and 4 related alerts",
+    "id": "INC-f55c561163d97e77",
+    "title": "Successful sign-in after many failures from one IP and 7 related alerts",
     "status": "open",
     "severity": "critical",
     "score": 100.0,
@@ -20,8 +20,8 @@
         "points": 50.0
       },
       {
-        "reason": "2 more rules fired: PRH-ACCT-001, PRH-AUTH-001",
-        "points": 20.0
+        "reason": "3 more rules fired: PRH-ACCT-001, PRH-AUTH-001, PRH-AUTH-010",
+        "points": 30.0
       },
       {
         "reason": "A sign-in succeeded after failed attempts",
@@ -41,11 +41,11 @@
       },
       {
         "reason": "Capped at 100",
-        "points": -20.0
+        "points": -30.0
       }
     ],
     "first_seen": "2026-10-24T12:58:45.103000Z",
-    "last_seen": "2026-10-24T13:33:18Z",
+    "last_seen": "2026-10-24T14:26:51.613000Z",
     "entities": {
       "source.ip": [
         "2001:db8::f522:8d64",
@@ -143,6 +143,111 @@
           "attack.t1078"
         ],
         "explanation": "5 x failure then 1 x success for source.ip=203.0.113.169 within 15m"
+      },
+      {
+        "id": "alr-47ae3da8c29f2421cfe9823a",
+        "detector_id": "PRH-AUTH-010",
+        "detector_kind": "rule",
+        "title": "Successful sign-in after many failures on one account",
+        "severity": "critical",
+        "score": 100.0,
+        "event_ids": [
+          "evt-18a135ae2e80169439e1fdd2",
+          "evt-2f47a4500627a6d024075404",
+          "evt-92dea6a0b170ee8f5867f51d",
+          "evt-2481385dffb54278be965a93",
+          "evt-c6683427e6bf8551870f674e",
+          "evt-cdc1f9b46f1de665fa1d09f8",
+          "evt-cae8c698a6068f6bf667c996",
+          "evt-128b163a083b599363a59336",
+          "evt-e1734960726daf8ca86ab3f7",
+          "evt-d9926182418cefed0c473f23",
+          "evt-6a572bc62c2428ee95888bf2",
+          "evt-c80abbfca3be715994656f30",
+          "evt-6c11112e3eace70cc9bcfdbc"
+        ],
+        "entities": {
+          "user.id": "u-1039"
+        },
+        "first_seen": "2026-10-24T13:30:00.128000Z",
+        "last_seen": "2026-10-24T14:26:51.613000Z",
+        "attack": [
+          "attack.credential_access",
+          "attack.initial_access",
+          "attack.t1110",
+          "attack.t1078"
+        ],
+        "explanation": "12 x failure then 1 x success for user.id=u-1039 within 1h"
+      },
+      {
+        "id": "alr-5cfdf9a5763f828f6180ceec",
+        "detector_id": "PRH-AUTH-010",
+        "detector_kind": "rule",
+        "title": "Successful sign-in after many failures on one account",
+        "severity": "critical",
+        "score": 100.0,
+        "event_ids": [
+          "evt-18a135ae2e80169439e1fdd2",
+          "evt-2f47a4500627a6d024075404",
+          "evt-92dea6a0b170ee8f5867f51d",
+          "evt-2481385dffb54278be965a93",
+          "evt-c6683427e6bf8551870f674e",
+          "evt-cdc1f9b46f1de665fa1d09f8",
+          "evt-cae8c698a6068f6bf667c996",
+          "evt-128b163a083b599363a59336",
+          "evt-e1734960726daf8ca86ab3f7",
+          "evt-d9926182418cefed0c473f23",
+          "evt-6a572bc62c2428ee95888bf2",
+          "evt-c80abbfca3be715994656f30",
+          "evt-0d52eba8deb8d8cbcba683b7"
+        ],
+        "entities": {
+          "user.id": "u-1039"
+        },
+        "first_seen": "2026-10-24T13:30:00.128000Z",
+        "last_seen": "2026-10-24T13:31:06Z",
+        "attack": [
+          "attack.credential_access",
+          "attack.initial_access",
+          "attack.t1110",
+          "attack.t1078"
+        ],
+        "explanation": "12 x failure then 1 x success for user.id=u-1039 within 1h"
+      },
+      {
+        "id": "alr-63ada1311d0a32a6e8aa838c",
+        "detector_id": "PRH-AUTH-010",
+        "detector_kind": "rule",
+        "title": "Successful sign-in after many failures on one account",
+        "severity": "critical",
+        "score": 100.0,
+        "event_ids": [
+          "evt-18a135ae2e80169439e1fdd2",
+          "evt-2f47a4500627a6d024075404",
+          "evt-92dea6a0b170ee8f5867f51d",
+          "evt-2481385dffb54278be965a93",
+          "evt-c6683427e6bf8551870f674e",
+          "evt-cdc1f9b46f1de665fa1d09f8",
+          "evt-cae8c698a6068f6bf667c996",
+          "evt-128b163a083b599363a59336",
+          "evt-e1734960726daf8ca86ab3f7",
+          "evt-d9926182418cefed0c473f23",
+          "evt-6a572bc62c2428ee95888bf2",
+          "evt-c80abbfca3be715994656f30",
+          "evt-e25e6d838e1635e927ff4b29"
+        ],
+        "entities": {
+          "user.id": "u-1039"
+        },
+        "first_seen": "2026-10-24T13:30:00.128000Z",
+        "last_seen": "2026-10-24T14:06:32.963000Z",
+        "attack": [
+          "attack.credential_access",
+          "attack.initial_access",
+          "attack.t1110",
+          "attack.t1078"
+        ],
+        "explanation": "12 x failure then 1 x success for user.id=u-1039 within 1h"
       },
       {
         "id": "alr-29a4c33208b4a715dfe5aa1c",
@@ -293,6 +398,20 @@
         "alert_id": "alr-01d6255f57fc785500290e23"
       },
       {
+        "timestamp": "2026-10-24T13:30:30.243000Z",
+        "description": "[app-security] auth.signin.failure (failure), account u-1039, from 203.0.113.169, POST /api/auth/signin, client web",
+        "event_id": "evt-6a572bc62c2428ee95888bf2",
+        "account": "u-1039",
+        "source_ip": "203.0.113.169"
+      },
+      {
+        "timestamp": "2026-10-24T13:30:33.008000Z",
+        "description": "[app-security] auth.signin.failure (failure), account u-1039, from 203.0.113.169, POST /api/auth/signin, client web",
+        "event_id": "evt-c80abbfca3be715994656f30",
+        "account": "u-1039",
+        "source_ip": "203.0.113.169"
+      },
+      {
         "timestamp": "2026-10-24T13:31:06Z",
         "description": "[app-security] auth.signin.success (success), account u-1039, from 203.0.113.169, POST /api/auth/signin, client web",
         "event_id": "evt-0d52eba8deb8d8cbcba683b7",
@@ -303,6 +422,11 @@
         "timestamp": "2026-10-24T13:31:06Z",
         "description": "Alert PRH-AUTH-003 (critical): Successful sign-in after many failures from one IP",
         "alert_id": "alr-08dd9a5402b3d691d02b3448"
+      },
+      {
+        "timestamp": "2026-10-24T13:31:06Z",
+        "description": "Alert PRH-AUTH-010 (critical): Successful sign-in after many failures on one account",
+        "alert_id": "alr-5cfdf9a5763f828f6180ceec"
       },
       {
         "timestamp": "2026-10-24T13:32:36Z",
@@ -327,6 +451,30 @@
         "timestamp": "2026-10-24T13:33:18Z",
         "description": "Alert PRH-ACCT-001 (high): Sensitive account change shortly after sign-in",
         "alert_id": "alr-29a4c33208b4a715dfe5aa1c"
+      },
+      {
+        "timestamp": "2026-10-24T14:06:32.963000Z",
+        "description": "[app-security] auth.signin.success (success), account u-1039, from 2001:db8::f522:8d64, POST /api/auth/signin, client web",
+        "event_id": "evt-e25e6d838e1635e927ff4b29",
+        "account": "u-1039",
+        "source_ip": "2001:db8::f522:8d64"
+      },
+      {
+        "timestamp": "2026-10-24T14:06:32.963000Z",
+        "description": "Alert PRH-AUTH-010 (critical): Successful sign-in after many failures on one account",
+        "alert_id": "alr-63ada1311d0a32a6e8aa838c"
+      },
+      {
+        "timestamp": "2026-10-24T14:26:51.613000Z",
+        "description": "[app-security] auth.signin.success (success), account u-1039, from 2001:db8::f522:8d64, POST /api/auth/signin, client web",
+        "event_id": "evt-6c11112e3eace70cc9bcfdbc",
+        "account": "u-1039",
+        "source_ip": "2001:db8::f522:8d64"
+      },
+      {
+        "timestamp": "2026-10-24T14:26:51.613000Z",
+        "description": "Alert PRH-AUTH-010 (critical): Successful sign-in after many failures on one account",
+        "alert_id": "alr-47ae3da8c29f2421cfe9823a"
       }
     ],
     "indicators": [
@@ -385,7 +533,9 @@
       "Possible benign cause for PRH-AUTH-001: Many users behind one shared NAT or proxy address",
       "Possible benign cause for PRH-AUTH-001: A script or password manager retrying a stale password",
       "Possible benign cause for PRH-AUTH-003: A legitimate user who forgot their password and finally entered it correctly",
-      "Possible benign cause for PRH-AUTH-003: Several users behind one shared NAT, some failing and one succeeding"
+      "Possible benign cause for PRH-AUTH-003: Several users behind one shared NAT, some failing and one succeeding",
+      "Possible benign cause for PRH-AUTH-010: A user who tried many old passwords before remembering the right one",
+      "Possible benign cause for PRH-AUTH-010: A device or integration retrying a stale password until the user updated it"
     ]
   }
 }

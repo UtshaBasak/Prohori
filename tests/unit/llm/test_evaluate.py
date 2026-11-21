@@ -72,7 +72,7 @@ def test_cases_are_rebuilt_byte_for_byte() -> None:
 
 def test_the_cases_and_their_truth(cases: list[Case]) -> None:
     kinds = [c.kind for c in cases]
-    assert (kinds.count("attack"), kinds.count("benign"), kinds.count("injection")) == (15, 7, 8)
+    assert (kinds.count("attack"), kinds.count("benign"), kinds.count("injection")) == (16, 7, 8)
     assert all(c.truth == ("benign" if c.kind == "benign" else "attack") for c in cases)
     assert len({c.incident.id for c in cases}) == len(cases)
     assert {c.injection.vector for c in cases if c.injection} == {
@@ -228,7 +228,7 @@ def test_command_line(
 ) -> None:
     out = tmp_path / "results.json"
     assert evaluate.main(["--dir", str(copy), "score", "--out", str(out)]) == 0
-    assert json.loads(out.read_text(encoding="utf-8"))["cases"] == 30
+    assert json.loads(out.read_text(encoding="utf-8"))["cases"] == 31
     assert evaluate.main(["--dir", str(copy), "record", "--system", "mock"]) == 0
     assert "recorded 0 cases" in capsys.readouterr().err  # all were recorded already
     monkeypatch.delenv("GEMINI_API_KEY", raising=False)
