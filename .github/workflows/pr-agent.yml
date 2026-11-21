@@ -3,7 +3,11 @@ name: PR Agent
 on:
   pull_request:
     types: [opened, reopened, ready_for_review]
-  issue_comment:
+  # zizmor flags issue_comment as a dangerous trigger; reviewed and accepted (owner, 2026-11-22):
+  # the job runs only for the repository owner (the `if` below), never checks out or runs PR
+  # code (the pinned action reads the diff through the API), its token can only read code and
+  # post comments, and it never fails a PR (continue-on-error). /improve and /ask need it.
+  issue_comment: # zizmor: ignore[dangerous-triggers]
     types: [created]
 
 permissions: {}
