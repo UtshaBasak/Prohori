@@ -13,6 +13,7 @@ import pytest
 
 from prohori.parsers import ParseStats, get_parser, iter_text_lines
 from prohori.simulate import (
+    ADDRESS_MODEL,
     SCENARIOS,
     VARIANTS,
     AddressPool,
@@ -23,6 +24,7 @@ from prohori.simulate import (
     write,
 )
 from prohori.simulate import model as model_module
+from prohori.simulate.addresses import CUSTOMER_NETWORKS, HOSTILE, IPV6_SHARE
 
 ROOT = Path(__file__).resolve().parents[3]
 GOLDEN = ROOT / "tests" / "golden" / "simulate"
@@ -174,3 +176,35 @@ def test_address_pool_only_hands_out_documentation_addresses() -> None:
         tiny.take_many("192.0.2.0/24", 300)
     assert not is_documentation("8.8.8.8")
     assert not is_documentation("2001:db9::1")
+
+
+def test_address_model_2_spreads_benign_hosts_over_many_networks() -> None:
+    """Households: a stable address each, IPv6 ones in a /48 of their own, never in the
+    attackers' provider network (ADR-0038)."""
+    import random
+
+    pool = AddressPool(random.Random(7))  # noqa: S311 - test of reproducible simulation
+    homes = [pool.household() for _ in range(400)]
+    assert len(set(homes)) == len(homes)
+    assert all(is_documentation(a) for a in homes)
+    hostile = ipaddress.ip_network(HOSTILE)
+    ips = [ipaddress.ip_address(a) for a in homes]
+    assert not any(ip.version == 4 and ip in hostile for ip in ips)
+    v6 = [ip for ip in ips if ip.version == 6]
+    assert 0.12 < len(v6) / len(ips) < 0.24  # IPV6_SHARE, 0.18
+    assert IPV6_SHARE == 0.18
+    networks = {ipaddress.ip_network((ip, 48), strict=False) for ip in v6}
+    assert len(networks) == len(v6)
+    v4_networks = {ipaddress.ip_network((ip, 24), strict=False) for ip in ips if ip.version == 4}
+    assert {str(n) for n in v4_networks} == set(CUSTOMER_NETWORKS)
+    spread = pool.take_spread(9)
+    assert (
+        len({ipaddress.ip_network((a, 24 if "." in a else 48), strict=False) for a in spread}) > 3
+    )
+    probe = pool.internet_host()
+    assert is_documentation(probe)
+
+
+def test_manifest_records_the_address_model(tmp_path: Path) -> None:
+    manifest = write(simulate("injection", seed=1), tmp_path)
+    assert manifest["addresses"] == ADDRESS_MODEL == 2
