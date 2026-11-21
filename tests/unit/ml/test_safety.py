@@ -3,12 +3,15 @@
 """prohori.ml.safety: allowlisted loading, scans and library versions."""
 
 import io
+import pickle
 from pathlib import Path
+from typing import Any
 
 import joblib
 import numpy as np
 import pandas as pd
 import pytest
+from joblib import numpy_pickle
 from sklearn.ensemble import IsolationForest
 
 from prohori.ml import safety
@@ -48,6 +51,39 @@ def test_a_malicious_joblib_file_is_refused_before_it_runs(tmp_path: Path) -> No
     assert scan.refused[0].endswith(".open")  # _io.open
     assert scan.refused[0] in scan.globals
     assert not marker.exists()  # neither loading nor scanning ran it
+
+
+def test_a_payload_inside_an_object_array_is_refused_too(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """joblib stores object arrays as a nested pickle; it goes through the allowlist as well.
+
+    joblib before 1.6 read that nested pickle with a plain ``pickle.load``; that behaviour is
+    put back here to show the allowlist does not depend on joblib's own fix.
+    """
+
+    def unguarded(self: object, unpickler: Any, ensure_native_byte_order: bool) -> Any:
+        del self, ensure_native_byte_order
+        return pickle.load(unpickler.file_handle)  # noqa: S301 - the old, unsafe behaviour
+
+    monkeypatch.setattr(numpy_pickle.NumpyArrayWrapper, "read_array", unguarded)
+    marker = tmp_path / "ran"
+    payload = np.empty(1, dtype=object)
+    payload[0] = Payload(marker)
+    data = _joblib_bytes({"categories": payload})
+    with pytest.raises(safety.UnsafeModelError, match=r"\.open, which"):
+        safety.load_joblib(data)
+    scan = safety.scan_joblib(data)
+    assert len(scan.refused) == 1
+    assert scan.refused[0].endswith(".open")
+    assert not marker.exists()
+    # Object arrays of plain strings (an encoder's categories) need no global and still load.
+    names = np.array(["tcp", "udp", "-"], dtype=object)
+    assert safety.load_joblib(_joblib_bytes({"categories": names}))["categories"].tolist() == [
+        "tcp",
+        "udp",
+        "-",
+    ]
 
 
 def test_a_prohori_joblib_model_loads_through_the_allowlist() -> None:

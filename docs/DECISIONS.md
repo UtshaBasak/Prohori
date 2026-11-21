@@ -1879,9 +1879,12 @@ differently.
   stored as a plain dict and rebuilt. Sidecars are named per file (`m.skops.json`), so a 1.0
   `m.joblib` and its `m.json` never collide; saving `m.skops` removes them.
 - **1.0 joblib files keep loading**, through joblib's unpickler with `find_class` limited to the
-  30 globals the 1.0 models need (`JOBLIB_GLOBALS`), measured on all twelve. This relies on two
-  joblib internals; a test loads a freshly saved joblib model through them so an upgrade fails
-  loudly. Static scanning with `pickletools` was rejected: joblib writes raw array bytes inside
+  30 globals the 1.0 models need (`JOBLIB_GLOBALS`), measured on all twelve. joblib stores an
+  array of Python objects (an encoder's categories) as a nested pickle, which joblib before 1.6
+  read with a plain `pickle.load`, past any `find_class`; Prohori reads that nested pickle
+  itself, through the same allowlist, whatever the joblib version (tested by putting the old
+  behaviour back). This relies on joblib internals; a test loads a freshly saved joblib model
+  through them so an upgrade fails loudly. Static scanning with `pickletools` was rejected: joblib writes raw array bytes inside
   the pickle stream, which stops the scan. `scan_joblib` lists what a file asks for, standing in
   a harmless object for refused globals, which step 63's `prohori model scan` builds on.
 - **Versions.** The sidecar records Python, scikit-learn, numpy and pandas; loading refuses a

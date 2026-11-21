@@ -23,6 +23,7 @@ models so that other commands can reuse them (step 63's ``prohori model scan`` b
 
 import hashlib
 import io
+import pickle  # only to restrict joblib's unpickler; nothing is loaded without the allowlist
 import sys
 from collections.abc import Iterable
 from dataclasses import dataclass, field
@@ -220,6 +221,31 @@ class _Unpickler(numpy_pickle.NumpyUnpickler):  # type: ignore[misc]  # joblib h
             return _Refused
         msg = f"the model file asks for {full}, which Prohori does not trust; refusing to load it"
         raise UnsafeModelError(msg)
+
+    def load_build(self) -> None:
+        """joblib's BUILD, except that arrays of Python objects go through the allowlist too.
+
+        joblib stores an object array as a nested pickle; before joblib 1.6 it read that with a
+        plain ``pickle.load``, which would bypass :meth:`find_class`. Every version is handled
+        here, the same way.
+        """
+        pickle._Unpickler.load_build(self)  # type: ignore[attr-defined]  # not in typeshed
+        wrapper = self.stack[-1]
+        if isinstance(wrapper, numpy_pickle.NDArrayWrapper):
+            msg = "the model file uses joblib's pre-0.10 format; refusing to load it"
+            raise UnsafeModelError(msg)
+        if not isinstance(wrapper, numpy_pickle.NumpyArrayWrapper):
+            return
+        self.stack.pop()
+        if wrapper.dtype.hasobject:
+            inner = pickle._Unpickler(self.file_handle)
+            inner.find_class = self.find_class  # type: ignore[method-assign]
+            self.stack.append(inner.load())
+        else:
+            self.stack.append(wrapper.read(self, self.ensure_native_byte_order))
+
+    dispatch = numpy_pickle.NumpyUnpickler.dispatch.copy()
+    dispatch[pickle.BUILD[0]] = load_build
 
     def close(self) -> None:
         self._context.__exit__(None, None, None)
