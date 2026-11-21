@@ -19,15 +19,14 @@ on the simulator's labelled attacks. Design decisions are in
 
 ## Summary
 
-- **The detectors caught nothing the rules missed.** On the held-out variants, the attacks the
-  detectors catch are a subset of what the rules catch; the four attacks every rule missed were
-  missed by the detectors too.
-- **They are quieter.** The robust z-score raised no false alert on the held-out variants and the
-  Isolation Forest about one every three runs, against more than six a run for the rules
-  (254 of their 259 held-out false alerts come from PRH-ACCT-001, which is noisy by design).
+- **The detectors caught nothing the rules missed.** On the held-out variants the rules (any
+  rule) catch all 40 attacks, and the attacks the detectors catch are a subset of those.
+- **They are quieter.** On the held-out variants the robust z-score raised 2 false alerts in 40
+  runs and the Isolation Forest 1, against almost seven a run for the rules (272 of their 277
+  held-out false alerts come from PRH-ACCT-001, which is noisy by design).
 - **They catch loud attacks only.** Brute force, scanning and injection probes stand out from the
-  background (and the Isolation Forest catches three of the five slowed-down account takeovers);
-  slow spraying, credential stuffing spread over many addresses, token reuse and an admin acting
+  background (and both the z-score and the Isolation Forest catch all five slowed-down account
+  takeovers); slow spraying, credential stuffing spread over many addresses, token reuse and an admin acting
   at night do not, because in a five-minute window from one address they look like anybody
   else.
 - So the detectors are useful as a second, low-noise signal that confirms a rule, not as a way to
@@ -66,7 +65,8 @@ no model file is saved or loaded.
   z, so only higher-than-usual values count. The scale never drops below a floor (one unit for
   counts, 0.1 for ratios, half a bit of entropy): in most logs the usual number of failures is 0
   with a MAD of 0, and without the floor one failure would be infinitely unusual. Features that
-  are constant in the log are skipped. Flags windows with z of at least **12**.
+  are constant in the log are skipped. Flags windows with z of at least **10** (12 before
+  step 28c; chosen again on the default variants of simulator address model 2).
 - **Isolation Forest** (`PRH-ML-IFOREST`, `ml` extra). 200 trees over the log-scaled features,
   seeded. Flags windows with an anomaly score of at least **0.8** (about 0.5 is ordinary).
 - **Fixed thresholds** (evaluation only): at least 10 failed sign-ins, 5 accounts, 30 paths or
@@ -105,8 +105,9 @@ Each log is parsed once; the built-in rules and the detectors see the same event
 scored like the rules in [SIMULATOR.md](SIMULATOR.md): an alert is a true positive when at least
 half of the events it lists are attack lines, and an attack is **caught** by a detector when a
 true-positive alert is credited to it. Here **any** rule counts for the rules, not only the rules
-a scenario expects, which is why the rules catch 36 held-out attacks here and 35 in the rule
-evaluation.
+a scenario expects, which is why the rules catch 40 held-out attacks here and also 40 in the rule
+evaluation (where only expected rules count). The results below are on simulator address model
+2 (ADR-0038); every number moved with it, including the cut-off selection.
 
 ## Results
 
@@ -167,20 +168,17 @@ Cut-off selection on the default variants (window-level precision, recall and F1
 
 ## What the false alerts are
 
-Every false alert of the z-score and the Isolation Forest in the held-out runs was looked at,
-and a sample of the fixed thresholds':
+Every false alert of the z-score and the Isolation Forest in the held-out runs was looked at:
 
-- **Shared addresses.** Each of the Isolation Forest's 14 false alerts is a window in which three
-  to seven accounts used one address, as the simulated background's shared NAT address does:
-  several customers sign in and refresh sessions within five minutes. Such a window has more
-  events, sign-ins and accounts than the usual window of one person, and an occasional typo adds
-  a failure. Incidents already treat an address seen with many accounts as shared.
-- **Thin backgrounds make small bursts stand out.** In the day-long admin-misuse logs the usual
-  window has one event, so four events and one failed sign-in through the NAT address are enough
-  for the Isolation Forest.
-- **Fixed thresholds** flag windows of the same kind far more often (37 false alerts; the ones
-  sampled all had five or more accounts on one address), because that is common in a busy shop.
-  The z-score's floors and cut-off keep it silent there.
+- **Shared addresses.** Two of the three are the same window, flagged by both detectors: the
+  simulated background's shared NAT address (five customers) with seven sign-in events and a
+  typo in five minutes, at night. Such a window has more events, sign-ins and accounts than the
+  usual window of one person. Incidents already treat an address seen with many accounts as
+  shared.
+- **A busy visitor.** The third (z-score) is a customer who opened twelve pages in five minutes.
+- **Fixed thresholds** raised no false alert on address model 2. On model 1, where 13 customers
+  shared the NAT address, they raised 37, all windows with five or more accounts on one address;
+  how often that happens depends on how many people share an address, which is site-specific.
 
 ## Limitations
 

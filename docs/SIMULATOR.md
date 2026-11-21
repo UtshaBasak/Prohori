@@ -52,12 +52,43 @@ Every scenario has three variants with the same expected rules:
 - **`heldout2`** (since 1.1): added after the evasion-resistant rules PRH-AUTH-005 to 010 were
   fixed, to check they were not fitted to `heldout`. It follows a rule written down before it
   existed (ADR-0036): the `heldout` parameters with rates halved and sources doubled, and a
-  distributed attack's sources spread over every documentation network: the two attacker /24s
-  and IPv6 addresses in /48s of their own. The default and `heldout` logs are unchanged.
+  distributed attack's sources spread over every documentation network: two /24s and IPv6
+  addresses in /48s of their own. The default and `heldout` logs were unchanged by it.
 
 The held-out `token-reuse` variant is no harder than its default (only the address family and
 client change): the reuse event itself is logged either way. A miss in a held-out variant is a
 real miss, and the results below report it.
+
+### Addresses (address model 2)
+
+Since step 28c (ADR-0038) the simulator uses **address model 2**, recorded as `"addresses": 2` in
+every manifest and in `results/rules_eval.json`, and printed by `prohori simulate`. Model 1 put
+every customer in `192.0.2.0/24` (and every IPv6 customer in one /48), so a per-network rule was
+measured against a background no real site has. Model 2, fixed before any rule was scored on
+it:
+
+- **Benign hosts** (customers, web visitors, staff, admins) each have one stable home address.
+  18 % are on IPv6, each in a /48 of its own inside `2001:db8::/32`: APNIC Labs measured 18.3 %
+  IPv6 use in Bangladesh in 2025, and the simulated shop is there (its admins work in Asia/Dhaka
+  time). The rest are on IPv4 in `192.0.2.0/24` or `198.51.100.0/24`. Only three IPv4
+  documentation /24s exist, so IPv4 customers are far more concentrated than on a real site:
+  the per-network counts measured here are an upper bound.
+- **A shared NAT:** five customers (a third of them in model 1) also sign in through one shared
+  address, an office or carrier NAT, so the per-network rule's stated false positive still
+  appears in the background.
+- **Other internet hosts** (SSH background probes) are spread the same way.
+- **Attackers** keep their scenario's meaning. `203.0.113.0/24` is the attackers' provider
+  network and holds no benign address. Every default attack comes from one address there (two
+  for credential stuffing). Held-out SSH guessing (3 addresses) and password spraying (4
+  addresses) stay inside that one provider network, as a careful attacker renting a few servers
+  from one host would. Held-out credential stuffing (30 addresses), described as spread out, and
+  every `heldout2` attack with several sources are spread over every network
+  (`AddressPool.take_spread`). Token reuse comes from one address (IPv6 in the held-out
+  variants); the other scenarios from one address.
+
+The address draws share each scenario's random stream, so every simulated log changed with
+model 2, including the web and SSH scenarios. Results recorded on model 1 are kept in
+`results/rules_eval.json` under their own labels and are not comparable with model 2's.
 
 ### Background activity
 
@@ -68,7 +99,7 @@ cause false positives:
   sessions, and stray probes from the internet.
 - **Web:** customers browsing pages and static files, the odd 404, and a search-engine crawler
   that hits a few dead links.
-- **App:** customers signing in, refreshing sessions, an occasional typo, many customers behind
+- **App:** customers signing in, refreshing sessions, an occasional typo, a few customers behind
   one shared NAT address, authorisation denials, rate-limit hits, owners changing their password
   or payout number shortly after signing in (2% of background events), and admins doing routine
   work in office hours, including one planned role grant.
@@ -122,8 +153,10 @@ lateness. Then:
 - A scenario's expected rules are the same in every variant, so a rule meant for slower or
   spread-out attacks (PRH-AUTH-005 to 010) shows misses in the default variants, whose attacks
   are fast and come from one address. That is by design, not a regression.
-- `results/rules_eval.json` also holds a frozen **baseline**: the 1.0 rules' results, recorded
-  before the rules changed, for the before-and-after table in
+- `results/rules_eval.json` also holds frozen **baselines** under their labels, each with the
+  address model it was scored on: the 1.0 rules and the step-28b rules on address models 1 and
+  2, recorded with `--freeze-baseline LABEL --rules DIR` from those rules' files in git and never
+  replaced. They feed the before-and-after table in
   [RULES.md](RULES.md#evasion-resistant-rules-before-and-after).
 
 ### Results

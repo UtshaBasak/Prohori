@@ -1613,6 +1613,11 @@ when read.
   the simulator's address model (every customer in one /24), not a threshold to tune after
   scoring; the follow-up is a simulator with customers spread over networks, with a re-frozen
   baseline, as its own step.
+  **Amended 2026-11-21 (step 28c, ADR-0038):** done. On address model 2 the thresholds were
+  derived again by this ADR's unchanged rule (the table above is address model 1's), and
+  PRH-AUTH-007 now fires in 5 of 5 held-out spraying runs. The results above stay in
+  `results/rules_eval.json` under the labels `1.0 rules (addresses 1)` and
+  `1.1 rules, step 28b (addresses 1)`.
 - After scoring, only wording changed: PRH-AUTH-006's description said "in a day" for a maximum
   measured in a 3-hour log. Its logic and threshold are unchanged.
 
@@ -1649,3 +1654,98 @@ accepts source and exclusion paths, without wildcards.
 repository). The analysis needs the secret, so it cannot run for pull requests from forks; outside
 code contributions are not accepted (ADR-0033). Ruff, mypy, CodeQL and zizmor keep checking
 `scripts/` and the excepted modules.
+
+## ADR-0038: Simulator address model 2 and re-baselined rule scores
+
+- **Date:** 2026-11-21
+- **Status:** Accepted
+
+**Context.** ADR-0036 missed its spraying goal because of the simulator, not the rules: every
+customer shared `192.0.2.0/24` (and a bug put every IPv6 address in one /48), so the benign
+per-network maximum was 19, PRH-AUTH-007's threshold 38, and held-out spraying from one provider
+network (30 accounts) stayed under it. Any numbers measured on that background say little about
+a real site, whose customers come from thousands of networks.
+
+**Decision: address model 2** (`prohori.simulate.addresses`, `ADDRESS_MODEL = 2`, recorded in
+every manifest and results file and printed by `prohori simulate`). Its parameters were fixed and
+committed (d46e17b) before any rule was scored on it, from a stated source where one exists:
+
+- Benign hosts (customers, web visitors, staff, admins) have one stable home address each.
+  **18 % are on IPv6**, each in a /48 of its own: APNIC Labs measured 18.3 % IPv6 use in
+  Bangladesh in 2025 ("Bangladesh's Internet transformation", blog.apnic.net, 3 November 2025),
+  and the simulated shop is in Bangladesh (its admins work in Asia/Dhaka time). The rest are on
+  IPv4 in `192.0.2.0/24` or `198.51.100.0/24`.
+- **Five customers** (`users // 8`; thirteen in model 1) also sign in through one shared NAT
+  address, so the per-network rule's stated false positive stays in the background. The size is
+  the author's choice.
+- SSH background probes are spread the same way. `203.0.113.0/24` is the attackers' provider
+  network and holds no benign address.
+- Attackers keep their scenario's meaning: default attacks from one address (two for credential
+  stuffing); held-out SSH guessing (3 addresses) and password spraying (4) inside the one
+  provider network; held-out credential stuffing, described as spread out, and every multi-source
+  `heldout2` attack spread over every network. SIMULATOR.md lists each choice.
+
+**Decision: the re-baselining procedure** (each step its own commit, in this order):
+
+1. `results/rules_eval.json` keeps several named baselines, each with its address model
+   (format `prohori.rules-eval/2`); a baseline is never extended on another model. The model-1
+   results moved, number for number, to `1.0 rules (addresses 1)` and
+   `1.1 rules, step 28b (addresses 1)`. Rule files exported from git (792a49b and 294f971) were
+   first checked to reproduce the committed model-1 numbers; the only difference was the 1.0
+   baseline's older list of expected rules, which grew in step 28b.
+2. Address model 2 was committed.
+3. The 1.0 rules (792a49b) and the step-28b rules (294f971) were scored on it, all three
+   variants, and frozen as `1.0 rules (addresses 2)` and `1.1 rules, step 28b (addresses 2)`.
+4. The thresholds were derived again with ADR-0036's unchanged rule on the default variants only
+   (`scripts/benign_maxima.py`), and committed (38e1c12) before held-out scoring:
+
+   | Measure (benign lines only, default variants) | Max (model 1) | Max (model 2) | Rule | Threshold |
+   | --- | ---: | ---: | --- | ---: |
+   | Addresses one existing account failed from, per hour | 2 | 2 | PRH-AUTH-005 | 4 (unchanged) |
+   | Failures of one existing account in 24 hours (3-hour logs) | 11 | 10 | PRH-AUTH-006 | 22 -> 20 |
+   | Existing accounts failing from one /24 or /48, per hour | 19 | 13 | PRH-AUTH-007 | 38 -> 26 |
+   | Existing accounts / addresses failing in one log, per hour | 19 / 18 | 19 / 19 | PRH-AUTH-008 | 38 / 36 -> 38 / 38 |
+   | Addresses with unknown-account failures in one log, per hour | 0 | 0 | PRH-AUTH-009 | 10 (reasoned, unchanged) |
+   | Failures of one account, per hour | 6 | 7 | PRH-AUTH-010 | 12 -> 14 |
+
+5. Targets were written down before scoring (PLAN step 28c): PRH-AUTH-007 fires in at least 4 of
+   5 held-out spraying runs; held-out and `heldout2` credential stuffing stay caught in at least 4
+   of 5; false-positive alerts on the default variants rise by at most 10 % of their total
+   compared with the step-28b rules on the same simulator. Spraying spread over many networks is
+   reported, not a target. Then every variant was scored once.
+
+**Results** (address model 2; the generated tables are in RULES.md and SIMULATOR.md):
+
+- PRH-AUTH-007 fired in **5 of 5** held-out spraying runs (12 alerts, all on attack lines); the
+  step-28b threshold on the same simulator fired in none. Credential stuffing: 5 of 5 on both
+  held-out sets. False-positive alerts on the default variants: 295 for the 1.0, step-28b and
+  step-28c rules alike, a rise of 0. **Every target was met.**
+- Attacks caught by at least one expected rule: held-out 35/40 (1.0), 40/40 (step 28b), 40/40
+  (now); `heldout2` 30/40, 35/40, 35/40.
+
+**What still fails.**
+
+- Spraying spread over many networks (`heldout2`) is missed by every rule, as expected.
+  PRH-AUTH-007 raised 4 alerts on `heldout2`, all on credential stuffing whose spread addresses
+  shared a /24.
+- PRH-AUTH-010's new threshold (14) is above the simulated account takeover's attempts (12, and 9
+  held out), so it fires in no variant; PRH-AUTH-003 catches every takeover. The sample
+  account-takeover log (12 failures) no longer raises it either, so the sample incident has three
+  rules again and its id is `INC-ee7c8818fbb34989`. The threshold follows the rule; the scenario
+  was not changed to suit it.
+- PRH-AUTH-005 misses held-out SSH guessing (3 addresses against its 4); PRH-AUTH-006 catches it.
+- With only three IPv4 documentation /24s, IPv4 customers are far more concentrated than on a
+  real site, so the measured per-network maximum (13) is an upper bound.
+
+**Consequences.**
+
+- Everything derived from the simulator moved, because address draws share each scenario's
+  random stream: the anomaly detectors' cut-off (z-score 12 -> 10, chosen again on the default
+  variants by the frozen procedure) and results, the LLM evaluation cases and their hand-written
+  references (22 recorded Gemini answers are stale until recorded again), goldens, the demo, and
+  the benchmark logs. The CHANGELOG explains each change.
+- The LLM answer check now accepts the network address of a per-network alert
+  (`source.ip_prefix`): an answer naming `203.0.113.0/24` was rejected as citing an unknown
+  address, a bug the new evaluation cases exposed.
+- The Kafka transport retries the broker's start-up errors (no leader or no coordinator yet) on
+  every call made at start-up, which made the Docker smoke test fail now and then.

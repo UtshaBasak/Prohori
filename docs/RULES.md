@@ -58,11 +58,11 @@ verified ATT&CK tags.
 | PRH-AUTH-003 | critical | Successful sign-in after many failures | >= 5 failures then a success, same `source.ip` (or `source.host`), within 15 min |
 | PRH-AUTH-004 | high | Account lockouts across many accounts | `auth.lockout` for >= 3 distinct `user.id` per `log_source` in 15 min |
 | PRH-AUTH-005 | high | Failed sign-ins for one account from many addresses | app or SSH failures of one existing account from >= 4 distinct addresses (or host names) in 1 h |
-| PRH-AUTH-006 | high | Slow password guessing on one account | >= 22 app or SSH failures of one existing account in 24 h (sliding) |
-| PRH-AUTH-007 | medium | Failed sign-ins for many accounts from one network | failures of >= 38 distinct existing accounts per `source.ip_prefix` (IPv4 /24, IPv6 /48) in 1 h |
-| PRH-AUTH-008 | high | Failed sign-ins for many accounts from many addresses | failures of >= 38 distinct existing accounts **and** from >= 36 distinct addresses per `log_source` in 1 h |
+| PRH-AUTH-006 | high | Slow password guessing on one account | >= 20 app or SSH failures of one existing account in 24 h (sliding) |
+| PRH-AUTH-007 | medium | Failed sign-ins for many accounts from one network | failures of >= 26 distinct existing accounts per `source.ip_prefix` (IPv4 /24, IPv6 /48) in 1 h |
+| PRH-AUTH-008 | high | Failed sign-ins for many accounts from many addresses | failures of >= 38 distinct existing accounts **and** from >= 38 distinct addresses per `log_source` in 1 h |
 | PRH-AUTH-009 | medium | Sign-ins for unknown accounts from many addresses | app failures for unknown accounts from >= 10 distinct addresses per `log_source` in 1 h (experimental) |
-| PRH-AUTH-010 | critical | Successful sign-in after many failures on one account | >= 12 failures of one account from any addresses, then a success, within 1 h |
+| PRH-AUTH-010 | critical | Successful sign-in after many failures on one account | >= 14 failures of one account from any addresses, then a success, within 1 h |
 | PRH-SESS-001 | high | Refresh-token reuse (probable stolen token) | every `session.refresh.reuse_detected` event |
 | PRH-ACCT-001 | high | Sensitive account change shortly after sign-in | sign-in success, then a password, payout number or two-step change, same `user.id`, within 30 min |
 | PRH-AUTHZ-001 | medium | Authorisation denials across many resources | `authz.denied` for >= 5 distinct `http.path` per `source.ip` in 10 min |
@@ -89,6 +89,12 @@ were frozen first so the comparison cannot drift, and a second held-out set (`he
 halved, sources doubled and spread over every network) was defined only after the rules were
 fixed. The reasoning, the threshold table and what this does not show are in ADR-0036 and the
 [case study](case-studies/evasion-resistant-rules.md).
+
+Step 28c (ADR-0038) found the simulator itself unfair to the per-network rule: every customer
+shared one documentation /24. **Address model 2** spreads customers over many networks; the
+1.0 and step-28b rules were scored again on it and frozen as new baselines, the thresholds were
+derived again with the same rule, and the rules were scored once. The table compares all three
+rule sets on address model 2; the address-model-1 results stay below it for reference.
 
 <!-- rules-compare:start -->
 Generated from `results/rules_eval.json`, simulator address model 2: the frozen baselines (1.0 rules (addresses 2): 15 rules; 1.1 rules, step 28b (addresses 2): 21 rules) against today's 21 rules, 5 seeds per variant. Attacks caught by at least one of their expected rules. Do not edit by hand.
@@ -385,7 +391,7 @@ aggregate:
   ```yaml
   distinct:
     - {field: [user.id, user.name, user.email_hash], gte: 38}
-    - {field: [source.ip, source.host], gte: 36}
+    - {field: [source.ip, source.host], gte: 38}
   ```
 
 - `ratio`: the share of matching events that also match another selection reaches `gte`, once at

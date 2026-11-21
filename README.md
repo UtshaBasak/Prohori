@@ -258,9 +258,13 @@ spread-out attacks slipped through: held-out credential stuffing was missed in e
 new rules count per account, per network and per log, with thresholds fixed at twice the benign
 maximum before any held-out run was scored. Credential stuffing is now caught in every held-out
 run, with no new false positives anywhere; spraying spread over many networks is still missed.
-The method and its limits are in the
-[case study](docs/case-studies/evasion-resistant-rules.md). Before (the frozen 1.0 rules) and
-after:
+Step 28c then fixed the simulator itself: every customer had shared one /24, which hid
+password spraying from one provider network under the benign background. With customers spread
+over many networks (address model 2), all rule sets were scored again, the thresholds derived
+again by the same rule, and the per-network rule (PRH-AUTH-007) now catches that spraying in
+every held-out run. The method and its limits are in the
+[case study](docs/case-studies/evasion-resistant-rules.md). Before (the frozen 1.0 and step-28b
+rules) and after, on address model 2:
 
 <!-- results:start -->
 Generated from `results/rules_eval.json`, simulator address model 2: the frozen baselines (1.0 rules (addresses 2): 15 rules; 1.1 rules, step 28b (addresses 2): 21 rules) against today's 21 rules, 5 seeds per variant. Attacks caught by at least one of their expected rules. Do not edit by hand.

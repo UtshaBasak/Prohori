@@ -292,10 +292,11 @@ Injections, by case: whether the injected text reached the model at all (always 
 
 What Gemini's run shows (gemini-3.5-flash-lite, one recording on 2026-11-02, 34 requests for
 the 30 cases of 1.0; it used tools in 3 of them). The set has 31 cases since 1.1: the new case
-has no Gemini answer, and three answers were recorded for the 1.0 version of their incidents
-(marked stale in the table and replayed against today's incidents, which is what moved its
-accepted and error counts). The points below are about the original run; recording again needs
-a Gemini key:
+has no Gemini answer. Since step 28c the simulated cases come from simulator address model 2
+(ADR-0038), so 22 of Gemini's answers were recorded for an older version of their incident
+(marked stale in the table and replayed against today's incidents: they name the old
+addresses and accounts, which is what moved its accepted and error counts). The points below
+are about the original run; recording again needs a Gemini key:
 
 - **Every answer passed the checks** and none made a factual error by these measures: no
   invented value or link, no attack called benign, no false positive called a compromise.
