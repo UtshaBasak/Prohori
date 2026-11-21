@@ -7,6 +7,7 @@ by `scripts/generate_results_table.py`.
 | ------ | ---------- | ------------ |
 | `rules_eval.json` | Rule precision and recall on the simulated scenarios ([SIMULATOR.md](../docs/SIMULATOR.md)) | `scripts/evaluate_rules.py` |
 | `ml_unsw-nb15.json`, `ml_cicids2017.json` | Flow-model metrics per seed, variant and model, with seed summaries ([MODEL_CARD.md](../docs/MODEL_CARD.md)) | `python -m prohori.ml.train` |
+| `ml_adapt.json` | Cross-dataset study (pre-registered, ADR-0041): every adaptation arm, bootstrap intervals and diagnostics ([MODEL_CARD.md](../docs/MODEL_CARD.md#cross-dataset-study)) | `python scripts/cross_dataset_study.py` |
 | `ml_cross.json` | Cross-dataset test: both directions, in-dataset and cross-dataset metrics ([MODEL_CARD.md](../docs/MODEL_CARD.md#cross-dataset-test)) | `python -m prohori.ml.transfer` |
 | `ml_logs.json` | Log anomaly detectors against the rules on the simulated scenarios ([ANOMALY.md](../docs/ANOMALY.md)) | `python -m prohori.ml.logeval` |
 | `performance.json` | Throughput and peak memory on logs of a million lines, with the machine ([PERFORMANCE.md](../docs/PERFORMANCE.md)) | `scripts/benchmark.py` |

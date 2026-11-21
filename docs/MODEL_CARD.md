@@ -16,6 +16,7 @@ and tested on, how well they work and where they fail. Design decisions:
 - [Results](#results)
 - [Calibration study](#calibration-study)
 - [Cross-dataset test](#cross-dataset-test)
+- [Cross-dataset study](#cross-dataset-study)
 - [Failure cases](#failure-cases)
 - [Limitations](#limitations)
 - [Reproducing the results](#reproducing-the-results)
@@ -352,6 +353,92 @@ Recall per attack class in the target, cicids2017 → unsw-nb15 (gradient boosti
   in the reverse direction comes from flagging most of the traffic.
 - The generalisation gap is the finding: a flow model trained on one lab's traffic learns that
   lab. Before relying on one, train it and set its threshold on the network it will watch.
+
+## Cross-dataset study
+
+Step 30b asked which low-compute methods close the cross-dataset gap without using the
+target's labels. The questions, the methods with every setting, the metrics, the seeds and the
+decision rule were written down and pushed before any run
+([ADR-0041](DECISIONS.md#adr-0041-pre-registration-of-the-cross-dataset-generalisation-study)).
+Each direction is studied separately. Methods may use the target's training split as an
+**unlabelled pool**; its labels are read only by the few-shot arms (an upper bound) and the
+reference arm (the in-dataset ceiling). Nothing is fitted on the target's test split.
+`python scripts/cross_dataset_study.py` reproduces the results (about an hour on a laptop CPU).
+
+<!-- ml-adapt:start -->
+Seeds 0, 1, 2; gradient boosting; scored on the target's test split. 95 % intervals from 1,000 paired bootstrap resamples of the target test rows. An arm **improves** only if the interval of its ROC-AUC difference excludes 0 and the difference has the same sign in every seed; it **helps** only if it improves in both directions. Thresholds come from the source's validation split (1 % false-positive rate); "at 1 % on target" reads recall off the target's own ROC curve instead (not deployable). Generated from `results/ml_adapt.json`; do not edit by hand.
+
+### unsw-nb15 → cicids2017
+
+| Arm | Sees from the target | ROC-AUC | 95 % interval | Difference to baseline | 95 % interval | Verdict | PR-AUC (chance) | Recall at the source threshold | Target FPR reached | Recall at 1 % on target | Gap closed |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Baseline (step 16) | nothing | 0.636 | 0.635 to 0.638 | - | - | - | 0.329 (0.16) | 58.4 % | 41.8 % | 11.5 % | - |
+| Per-domain log standardisation | pool features | 0.630 | 0.629 to 0.632 | -0.006 | -0.008 to -0.005 | no clear change | 0.476 (0.16) | 42.0 % | 12.2 % | 29.1 % | -2 % |
+| Per-domain quantile map | pool features | 0.824 | 0.823 to 0.825 | +0.188 | 0.186 to 0.189 | improves | 0.603 (0.16) | 67.4 % | 22.0 % | 27.4 % | 52 % |
+| Per-domain, per-protocol quantile map | pool features | 0.567 | 0.566 to 0.569 | -0.069 | -0.071 to -0.067 | worsens | 0.340 (0.16) | 38.0 % | 9.1 % | 9.0 % | -19 % |
+| CORAL | pool features | 0.511 | 0.509 to 0.513 | -0.126 | -0.128 to -0.123 | worsens | 0.462 (0.16) | 37.2 % | 7.3 % | 32.7 % | -35 % |
+| Importance weighting | pool features | 0.549 | 0.548 to 0.550 | -0.087 | -0.088 to -0.087 | worsens | 0.173 (0.16) | 62.8 % | 50.6 % | 0.1 % | -24 % |
+| Domain-invariant features only | pool features | 0.636 | 0.635 to 0.638 | +0.000 | 0.000 to 0.000 | no clear change | 0.329 (0.16) | 58.4 % | 41.8 % | 11.5 % | 0 % |
+| 10 labelled target flows | 10 pool labels | 0.810 | 0.809 to 0.810 | +0.173 | 0.173 to 0.174 | improves | 0.607 (0.16) | 62.8 % | 16.8 % | 37.0 % | 48 % |
+| 50 labelled target flows | 50 pool labels | 0.932 | 0.932 to 0.933 | +0.296 | 0.295 to 0.297 | improves | 0.841 (0.16) | 77.4 % | 6.0 % | 59.7 % | 81 % |
+| 100 labelled target flows | 100 pool labels | 0.966 | 0.966 to 0.966 | +0.330 | 0.329 to 0.331 | improves | 0.902 (0.16) | 82.1 % | 4.3 % | 69.5 % | 91 % |
+| Reference: trained on the target | target labels | 1.000 | 1.000 to 1.000 | +0.363 | 0.362 to 0.364 | reference | 0.999 (0.16) | 99.9 % | 0.8 % | 99.9 % | - |
+
+### cicids2017 → unsw-nb15
+
+| Arm | Sees from the target | ROC-AUC | 95 % interval | Difference to baseline | 95 % interval | Verdict | PR-AUC (chance) | Recall at the source threshold | Target FPR reached | Recall at 1 % on target | Gap closed |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Baseline (step 16) | nothing | 0.590 | 0.587 to 0.593 | - | - | - | 0.401 (0.33) | 69.5 % | 60.5 % | 0.9 % | - |
+| Per-domain log standardisation | pool features | 0.534 | 0.531 to 0.537 | -0.057 | -0.061 to -0.052 | no clear change | 0.353 (0.33) | 34.0 % | 35.4 % | 1.9 % | -16 % |
+| Per-domain quantile map | pool features | 0.624 | 0.621 to 0.627 | +0.034 | 0.030 to 0.038 | improves | 0.421 (0.33) | 41.6 % | 30.3 % | 3.6 % | 9 % |
+| Per-domain, per-protocol quantile map | pool features | 0.579 | 0.575 to 0.582 | -0.012 | -0.016 to -0.007 | worsens | 0.404 (0.33) | 34.9 % | 32.8 % | 4.8 % | -3 % |
+| CORAL | pool features | 0.576 | 0.573 to 0.579 | -0.014 | -0.019 to -0.010 | no clear change | 0.408 (0.33) | 28.3 % | 24.4 % | 7.5 % | -4 % |
+| Importance weighting | pool features | 0.638 | 0.636 to 0.641 | +0.048 | 0.046 to 0.050 | improves | 0.435 (0.33) | 67.1 % | 55.5 % | 1.6 % | 13 % |
+| Domain-invariant features only | pool features | 0.590 | 0.587 to 0.593 | +0.000 | 0.000 to 0.000 | no clear change | 0.401 (0.33) | 69.5 % | 60.5 % | 0.9 % | 0 % |
+| 10 labelled target flows | 10 pool labels | 0.626 | 0.623 to 0.628 | +0.035 | 0.034 to 0.037 | improves | 0.429 (0.33) | 68.3 % | 50.6 % | 2.8 % | 10 % |
+| 50 labelled target flows | 50 pool labels | 0.710 | 0.708 to 0.712 | +0.120 | 0.118 to 0.122 | improves | 0.489 (0.33) | 80.0 % | 47.1 % | 1.9 % | 33 % |
+| 100 labelled target flows | 100 pool labels | 0.758 | 0.756 to 0.760 | +0.167 | 0.165 to 0.170 | improves | 0.537 (0.33) | 88.4 % | 44.7 % | 3.5 % | 47 % |
+| Reference: trained on the target | target labels | 0.950 | 0.949 to 0.951 | +0.359 | 0.356 to 0.363 | reference | 0.914 (0.33) | 59.5 % | 1.4 % | 59.0 % | - |
+
+Diagnostics, per direction (mean over the seeds):
+
+| Direction | Pool attack share | Domain classifier ROC-AUC | Effective sample share | Weights at a clip | Features dropped as not invariant |
+| --- | --- | --- | --- | --- | --- |
+| unsw-nb15 → cicids2017 | 16 % | 1.000 | 2.2 % | 98.4 % | none |
+| cicids2017 → unsw-nb15 | 46 % | 1.000 | 4.6 % | 99.5 % | none |
+
+Helps in both directions: per-domain quantile map, 10 labelled target flows, 50 labelled target flows, 100 labelled target flows. Unsupervised methods that help: per-domain quantile map.
+<!-- ml-adapt:end -->
+
+**What this shows.**
+
+- **One unsupervised method helps in both directions: a per-domain quantile map.** Mapping
+  each feature to its rank within its own dataset (fitted on unlabelled flows) raises ROC-AUC
+  from 0.636 to 0.824 (UNSW-NB15 to CIC-IDS-2017) and from 0.590 to 0.624 (the reverse). It
+  closes about half of the gap in the first direction and a tenth in the second. It is still
+  not deployable: the frozen 1 % threshold flags 22 % and 30 % of the target's benign flows.
+- **Every other unsupervised method fails the pre-registered test.** Per-domain log
+  standardisation and CORAL change the result in different directions from seed to seed or
+  make it worse; CORAL brings UNSW-NB15 to CIC-IDS-2017 down to chance (0.511). A per-protocol
+  quantile map, which was expected to do better than the plain one, makes both directions
+  worse. Importance weighting helps from CIC-IDS-2017 to UNSW-NB15 (+0.048) and hurts the other
+  way (-0.087).
+- **Why importance weighting cannot work here:** a domain classifier tells the datasets apart
+  perfectly (ROC-AUC 1.000) from the twelve features together, though no single feature does
+  (each feature's domain AUC is between 0.51 and 0.79). Almost every weight then sits at a
+  clip, and the effective sample is 2 to 5 % of the source. The supports barely overlap, which
+  is the assumption covariate-shift weighting needs.
+- **Feature selection did nothing:** no feature reached the pre-registered domain AUC of 0.9,
+  so the invariant arm kept all twelve and equals the baseline. The datasets differ in how
+  features combine, not in any one feature.
+- **A few labels beat every unsupervised method.** 10 labelled target flows match the quantile
+  map in both directions; 100 bring UNSW-NB15 to CIC-IDS-2017 to 0.966 and the reverse to 0.758.
+  Labelling a hundred flows of the network a model will watch is cheaper than any of the
+  adaptation tried here, and it is the practical recommendation.
+- **Caveat, stated in advance:** the unlabelled pools are lab training splits with 16 %
+  (CIC-IDS-2017) and 46 % (UNSW-NB15) attacks. A quantile map fitted on them aligns the attack
+  mix too, which real, mostly benign, unlabelled traffic would not allow. The quantile map's
+  gain may be smaller on a real network.
 
 ## Failure cases
 

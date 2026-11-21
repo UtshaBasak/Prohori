@@ -405,6 +405,12 @@ Gradient boosting, means over seeds 0, 1, 2. ROC-AUC: 0.5 is chance. PR-AUC: cha
 A flow model trained on one lab's traffic learns that lab. The mapping, its losses and the
 per-class results are in the [model card](docs/MODEL_CARD.md#cross-dataset-test).
 
+**Can the gap be closed without the target's labels?**
+
+<!-- ml-adapt:start -->
+A pre-registered study (ADR-0041) tried six low-compute ways to close the gap without target labels, and a few labelled target flows as an upper bound. Target-test ROC-AUC, means over seeds 0, 1, 2: unsw-nb15 → cicids2017: baseline 0.636, best unsupervised method per-domain quantile map 0.824 (+0.188), 100 labelled target flows 0.966, trained on the target 1.000; cicids2017 → unsw-nb15: baseline 0.590, best unsupervised method importance weighting 0.638 (+0.048), 100 labelled target flows 0.758, trained on the target 0.950. Unsupervised methods that help in both directions: per-domain quantile map. Details: [model card](docs/MODEL_CARD.md#cross-dataset-study).
+<!-- ml-adapt:end -->
+
 ```bash
 uv run python scripts/download_datasets.py fetch cicids2017      # about 330 MB
 uv run python -m prohori.ml.train --dataset cicids2017 --seeds 0 1 2

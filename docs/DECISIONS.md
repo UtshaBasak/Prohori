@@ -2029,3 +2029,14 @@ the model card and the README.
 `target-reference` scoring the target test split identically; changing target test features
 leaves every fitted transform, weight and selection identical; the few-shot arm reads exactly k
 target labels.
+
+*Outcome, added after the runs (2026-11-21; nothing above was changed):* the harness check
+passed exactly (baseline and reference reproduce `results/ml_cross.json` seed by seed). Of the
+unsupervised arms only the per-domain quantile map helps in both directions (ROC-AUC +0.188 and
++0.034); importance weighting improves one direction and worsens the other; per-domain
+standardisation, CORAL and the per-protocol quantile map do not help, and the invariant arm
+dropped no feature (every univariate domain AUC was under 0.79) and equals the baseline. Every
+few-shot arm helps in both directions; 10 labelled flows match the quantile map. The domain
+classifier separated the datasets perfectly (ROC-AUC 1.000), leaving 98 to 99.5 % of importance
+weights at a clip. A second full run gave a byte-identical results file. Tables: the model card's
+"Cross-dataset study".
