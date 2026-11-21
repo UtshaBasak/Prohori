@@ -5,11 +5,11 @@ title: Successful sign-in after many failures on one account
 status: test
 severity: critical
 description: >-
-  At least 12 failed sign-ins for one account, from any addresses, followed by a successful
+  At least 14 failed sign-ins for one account, from any addresses, followed by a successful
   sign-in to that account within 1 hour. PRH-AUTH-003 needs the failures and the success to come
   from one address; this rule follows the account, so it also catches a distributed or slow
   attack that finally got in. The threshold is twice the most failures any benign account had in
-  an hour in the simulator (6). Failures for accounts that do not exist cannot be followed by a
+  an hour in the simulator (7, in three-hour logs, address model 2). Failures for accounts that do not exist cannot be followed by a
   success for them, so they need no filter here.
 author: Prohori
 tags: [attack.credential_access, attack.initial_access, attack.t1110, attack.t1078]
@@ -23,7 +23,7 @@ detection:
     by: [[user.id, user.name, user.email_hash]]
     within: 1h
     steps:
-      - {selection: failure, count_gte: 12}
+      - {selection: failure, count_gte: 14}
       - {selection: success}
   condition: sequence
 falsepositives:

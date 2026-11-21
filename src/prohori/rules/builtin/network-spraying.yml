@@ -5,11 +5,12 @@ title: Failed sign-ins for many accounts from one network
 status: test
 severity: medium
 description: >-
-  Failed sign-ins for at least 38 different existing accounts from one network (a /24 for IPv4,
+  Failed sign-ins for at least 26 different existing accounts from one network (a /24 for IPv4,
   a /48 for IPv6) within 1 hour. Spraying from several addresses in the same network stays
   under PRH-AUTH-002's per-address limit. The threshold is twice the most accounts that failed
-  from one benign network in an hour in the simulator (19, where every customer shares one
-  documentation /24). Host names and failures for accounts that do not exist are not counted.
+  from one benign network in an hour in the simulator (13, in three-hour logs, address model 2,
+  where IPv4 customers share two documentation /24s; a real site's customers are spread over
+  far more networks). Host names and failures for accounts that do not exist are not counted.
 author: Prohori
 tags: [attack.credential_access, attack.t1110.003]
 logsource: {category: authentication}
@@ -21,7 +22,7 @@ detection:
   aggregate:
     group_by: [source.ip_prefix]
     window: 1h
-    distinct: {field: [user.id, user.name, user.email_hash], gte: 38}
+    distinct: {field: [user.id, user.name, user.email_hash], gte: 26}
   condition: failure and not unknown_account and aggregate
 falsepositives:
   - A large office, school or carrier-grade NAT where many people share one network

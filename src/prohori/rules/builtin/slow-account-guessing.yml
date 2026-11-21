@@ -5,11 +5,11 @@ title: Slow password guessing on one account
 status: test
 severity: high
 description: >-
-  At least 22 failed sign-ins (web app or SSH) for one existing account within 24 hours, from any
+  At least 20 failed sign-ins (web app or SSH) for one existing account within 24 hours, from any
   number of addresses. A slow attacker stays under every per-address and per-minute limit, but
   the account still collects failures. The threshold is twice the most failures any benign
-  account had in one simulated log (11, SSH root in three hours of background); a server open to
-  the internet sees far more in a day. Failures for accounts that do not exist are ignored.
+  account had in one simulated log (10, SSH root in three hours of background, simulator address
+  model 2); a server open to the internet sees far more in a day. Failures for accounts that do not exist are ignored.
 author: Prohori
 tags: [attack.credential_access, attack.t1110, attack.t1110.001]
 logsource: {category: authentication}
@@ -21,7 +21,7 @@ detection:
   aggregate:
     group_by: [[user.id, user.name, user.email_hash]]
     window: 24h
-    count_gte: 22
+    count_gte: 20
   condition: failure and not unknown_account and aggregate
 falsepositives:
   - SSH root on a server reachable from the internet, which scanners try all day; restrict SSH or disable root password logins

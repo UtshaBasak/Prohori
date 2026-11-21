@@ -7,7 +7,7 @@ defaults:
   event.category: authentication
   event.outcome: failure
 cases:
-  - name: thirty-eight accounts failing from one /24 alert
+  - name: twenty-six accounts failing from one /24 alert
     expect: {alerts: 1, entities: [{source.ip_prefix: 203.0.113.0/24}]}
     events:
       - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-2000, source.ip: 203.0.113.10, after: 30s}
@@ -36,20 +36,8 @@ cases:
       - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-2023, source.ip: 203.0.113.13, after: 30s}
       - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-2024, source.ip: 203.0.113.10, after: 30s}
       - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-2025, source.ip: 203.0.113.11, after: 30s}
-      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-2026, source.ip: 203.0.113.12, after: 30s}
-      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-2027, source.ip: 203.0.113.13, after: 30s}
-      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-2028, source.ip: 203.0.113.10, after: 30s}
-      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-2029, source.ip: 203.0.113.11, after: 30s}
-      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-2030, source.ip: 203.0.113.12, after: 30s}
-      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-2031, source.ip: 203.0.113.13, after: 30s}
-      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-2032, source.ip: 203.0.113.10, after: 30s}
-      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-2033, source.ip: 203.0.113.11, after: 30s}
-      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-2034, source.ip: 203.0.113.12, after: 30s}
-      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-2035, source.ip: 203.0.113.13, after: 30s}
-      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-2036, source.ip: 203.0.113.10, after: 30s}
-      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-2037, source.ip: 203.0.113.11, after: 30s}
 
-  - name: thirty-seven accounts do not alert
+  - name: twenty-five accounts do not alert
     expect: {alerts: 0}
     events:
       - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-2000, source.ip: 203.0.113.10, after: 30s}
@@ -77,18 +65,6 @@ cases:
       - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-2022, source.ip: 203.0.113.12, after: 30s}
       - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-2023, source.ip: 203.0.113.13, after: 30s}
       - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-2024, source.ip: 203.0.113.10, after: 30s}
-      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-2025, source.ip: 203.0.113.11, after: 30s}
-      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-2026, source.ip: 203.0.113.12, after: 30s}
-      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-2027, source.ip: 203.0.113.13, after: 30s}
-      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-2028, source.ip: 203.0.113.10, after: 30s}
-      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-2029, source.ip: 203.0.113.11, after: 30s}
-      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-2030, source.ip: 203.0.113.12, after: 30s}
-      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-2031, source.ip: 203.0.113.13, after: 30s}
-      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-2032, source.ip: 203.0.113.10, after: 30s}
-      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-2033, source.ip: 203.0.113.11, after: 30s}
-      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-2034, source.ip: 203.0.113.12, after: 30s}
-      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-2035, source.ip: 203.0.113.13, after: 30s}
-      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-2036, source.ip: 203.0.113.10, after: 30s}
 
   - name: accounts spread over three networks do not alert
     expect: {alerts: 0}
