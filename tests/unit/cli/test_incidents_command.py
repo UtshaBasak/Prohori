@@ -64,7 +64,7 @@ def test_summary_goes_to_stderr() -> None:
         "input": "account-takeover.jsonl",
         "events": 17,
         "parse_errors": 0,
-        "alerts": 4,
+        "alerts": 5,
         "incidents": 1,
     }
 
@@ -74,7 +74,7 @@ def test_table_output() -> None:
     assert result.exit_code == ExitCode.ALERTS_FOUND
     assert "critical  score 100" in result.stdout
     assert "Capped at 100" in result.stdout
-    assert "1 incident(s) from 4 alert(s) in account-takeover.jsonl." in result.stdout
+    assert "1 incident(s) from 5 alert(s) in account-takeover.jsonl." in result.stdout
 
 
 def test_no_enrich_and_exit_zero() -> None:
@@ -167,7 +167,12 @@ def test_provenance_records_the_input_hash_and_rules() -> None:
     (source,) = provenance.inputs
     assert source.sha256 == hashlib.sha256(sample.read_bytes()).hexdigest()
     assert (source.bytes, source.events, source.parser) == (sample.stat().st_size, 17, "app_json")
-    assert [r.id for r in provenance.rules] == ["PRH-ACCT-001", "PRH-AUTH-001", "PRH-AUTH-003"]
+    assert [r.id for r in provenance.rules] == [
+        "PRH-ACCT-001",
+        "PRH-AUTH-001",
+        "PRH-AUTH-003",
+        "PRH-AUTH-010",
+    ]
     assert all(r.sha256 for r in provenance.rules)
 
 

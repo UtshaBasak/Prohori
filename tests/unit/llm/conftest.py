@@ -13,7 +13,7 @@ from prohori.llm.settings import ENV_VARS
 from prohori.schema import Incident
 
 ROOT = Path(__file__).resolve().parents[3]
-SAMPLE = ROOT / "samples" / "incidents" / "INC-ee7c8818fbb34989.json"
+SAMPLE = ROOT / "samples" / "incidents" / "INC-14756953ade54922.json"
 
 USER = "rahim.khan"
 BANGLA_USER = "রহিম"  # a non-ASCII account name

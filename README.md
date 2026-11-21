@@ -144,7 +144,7 @@ uv run prohori parse samples/logs/auth.log                      # normalise a lo
 uv run prohori detect samples/logs/auth.log                     # run the 15 rules
 uv run prohori enrich 203.0.113.7 --offline                     # look up an IP (demo data)
 uv run prohori incidents samples/logs/account-takeover.jsonl    # group alerts into incidents
-uv run prohori report samples/incidents/INC-ee7c8818fbb34989.json -f html -o report.html
+uv run prohori report samples/incidents/INC-14756953ade54922.json -f html -o report.html
 uv run prohori simulate account-takeover --seed 1 --out out/      # your own labelled attack
 ```
 
@@ -159,7 +159,7 @@ logs, `prohori triage /var/log/auth.log --year 2026 -o triage/` works the same w
 `samples/logs/account-takeover.jsonl` is a synthetic attack on a web shop account: 12 wrong passwords from one IP in 33 seconds, a successful sign-in, two-step verification switched off and the bKash payout number changed. Prohori raises 4 alerts and joins them into **one critical incident**:
 
 ```text
-INC-ee7c8818fbb34989  critical  score 100
+INC-14756953ade54922  critical  score 100
 title       Successful sign-in after many failures from one IP and 3 related alerts
 time (UTC)  2026-10-24 21:10:00 - 2026-10-24 21:13:10
 confidence  high
@@ -187,7 +187,7 @@ The report adds the timeline, the IP's enrichment, the ATT&CK techniques (T1078 
 <!-- example:end -->
 
 To see it yourself: `uv run prohori incidents samples/logs/account-takeover.jsonl` and
-`uv run prohori report samples/incidents/INC-ee7c8818fbb34989.json`.
+`uv run prohori report samples/incidents/INC-14756953ade54922.json`.
 
 ## Commands
 

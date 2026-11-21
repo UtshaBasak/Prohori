@@ -49,6 +49,7 @@ def test_account_takeover_becomes_one_critical_incident(rules: list[CompiledRule
     assert {a.detector_id for a in incident.alerts} == {
         "PRH-AUTH-001",
         "PRH-AUTH-003",
+        "PRH-AUTH-010",  # the account itself: many failures, then a success (since 1.1)
         "PRH-ACCT-001",
     }
     assert incident.severity is Severity.CRITICAL
@@ -68,7 +69,7 @@ def test_account_takeover_becomes_one_critical_incident(rules: list[CompiledRule
     )  # from the most severe rule (PRH-AUTH-003) first
     assert len(set(incident.recommended_actions)) == len(incident.recommended_actions)
     assert incident.id == incident_id(a.id for a in incident.alerts)
-    assert incident.title.endswith("and 3 related alerts")
+    assert incident.title.endswith("and 4 related alerts")
     # The payout change after the 2FA change raises its own PRH-ACCT-001 alert (step 11 fix).
     assert [a.detector_id for a in incident.alerts].count("PRH-ACCT-001") == 2
     assert incident.last_seen.isoformat() == "2026-10-24T21:13:10+00:00"
@@ -83,7 +84,7 @@ def test_takeover_timeline_and_indicators(rules: list[CompiledRule]) -> None:
     times = [e.timestamp for e in incident.timeline]
     assert times == sorted(times)
     alert_entries = [e for e in incident.timeline if e.alert_id]
-    assert len(alert_entries) == 4
+    assert len(alert_entries) == 5
     assert any("account.2fa.disabled (success)" in e.description for e in incident.timeline)
     ip = incident.indicators[0]
     assert (ip.type, ip.value) == (IndicatorType.IP, "203.0.113.7")

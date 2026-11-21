@@ -8,9 +8,9 @@ are **opt-in and off by default**. Everything Prohori does works without them, a
 
 ```bash
 pip install "prohori[llm]"                                   # or: uv sync --extra llm
-prohori explain samples/incidents/INC-ee7c8818fbb34989.json --show-payload   # what would be sent; sends nothing
+prohori explain samples/incidents/INC-14756953ade54922.json --show-payload   # what would be sent; sends nothing
 export PROHORI_LLM_PROVIDER=gemini GEMINI_API_KEY=...         # or put them in .env
-prohori explain samples/incidents/INC-ee7c8818fbb34989.json
+prohori explain samples/incidents/INC-14756953ade54922.json
 prohori ask "How should I respond to password spraying?"      # offline: shows the best sources
 ```
 

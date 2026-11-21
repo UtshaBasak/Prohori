@@ -230,7 +230,8 @@ class TestIncidentStage:
     def test_groups_close_once_the_stream_has_moved_on(self) -> None:
         transport = MemoryTransport()
         early = [_signin("alice", m // 3) for m in range(15)]
-        late = [_signin("bob", 600 + m // 3, ip="198.51.100.7") for m in range(15)]
+        # Two days later: past the hold time, which a 24-hour rule (PRH-AUTH-006) makes long.
+        late = [_signin("bob", 2880 + m // 3, ip="198.51.100.7") for m in range(15)]
         alerts = self._alerts(transport, early + late)
         assert {a.entities.get("source.ip") for a in alerts} >= {"203.0.113.9", "198.51.100.7"}
         stage = IncidentStage(transport, RULES, lateness=timedelta(0))
