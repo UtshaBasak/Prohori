@@ -28,6 +28,7 @@ import argparse
 import json
 import re
 import sys
+from collections.abc import Sequence
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -428,6 +429,34 @@ ARM_NAMES = {
 }
 
 
+ADAPT_COLUMNS = (
+    "Arm",
+    "Sees from the target",
+    "ROC-AUC",
+    "95 % interval",
+    "Difference to baseline",
+    "95 % interval",
+    "Verdict",
+    "PR-AUC (chance)",
+    "Recall at the source threshold",
+    "Target FPR reached",
+    "Recall at 1 % on target",
+    "Gap closed",
+)
+DIAGNOSTIC_COLUMNS = (
+    "Direction",
+    "Pool attack share",
+    "Domain classifier ROC-AUC",
+    "Effective sample share",
+    "Weights at a clip",
+    "Features dropped as not invariant",
+)
+
+
+def _row(cells: Sequence[str]) -> str:
+    return "| " + " | ".join(cells) + " |"
+
+
 def _ci(pair: list[float], digits: int = 3) -> str:
     return f"{pair[0]:.{digits}f} to {pair[1]:.{digits}f}"
 
@@ -450,10 +479,8 @@ def render_adapt(results: dict[str, Any]) -> str:
             "",
             f"### {src} → {dst}",
             "",
-            "| Arm | Sees from the target | ROC-AUC | 95 % interval | Difference to baseline "
-            "| 95 % interval | Verdict | PR-AUC (chance) | Recall at the source threshold | "
-            "Target FPR reached | Recall at 1 % on target | Gap closed |",
-            "|" + "---|" * 12,
+            _row(ADAPT_COLUMNS),
+            "|" + "---|" * len(ADAPT_COLUMNS),
         ]
         for arm, found in direction["arms"].items():
             name, sees = ARM_NAMES.get(arm, (arm, ""))
@@ -484,9 +511,8 @@ def render_adapt(results: dict[str, Any]) -> str:
             )
     lines += ["", "Diagnostics, per direction (mean over the seeds):", ""]
     lines += [
-        "| Direction | Pool attack share | Domain classifier ROC-AUC | Effective sample share "
-        "| Weights at a clip | Features dropped as not invariant |",
-        "|---|---|---|---|---|---|",
+        _row(DIAGNOSTIC_COLUMNS),
+        "|" + "---|" * len(DIAGNOSTIC_COLUMNS),
     ]
     for key, direction in results["directions"].items():
         diag = direction["diagnostics"]
