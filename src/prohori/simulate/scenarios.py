@@ -9,6 +9,17 @@ obfuscated, outside a time window) and exists to show where the rules stop worki
 from ``heldout`` by a fixed rule: rates halved, sources doubled, and a distributed attack's
 sources spread over every documentation network (:meth:`AddressPool.take_spread`). The expected
 rules are the same for every variant: a miss in a held-out variant is a real miss.
+
+Where attackers come from (address model 2, fixed before any rule was scored on it):
+
+* every default attack: one address, or two for credential stuffing, in one provider network
+  (``203.0.113.0/24``, which holds no benign address);
+* held-out SSH guessing (3 addresses) and password spraying (4 addresses): inside that one
+  provider network, as a careful attacker renting a few servers from one host would be;
+* held-out credential stuffing (30 addresses), described as spread out: spread over every
+  network, like the whole of ``heldout2``;
+* token reuse: one address (IPv6 in the held-out variants); account takeover, admin misuse, web
+  scanning and injection: one address.
 """
 
 from collections.abc import Callable, Mapping
@@ -16,7 +27,7 @@ from dataclasses import dataclass
 from typing import Final
 
 from prohori.simulate import formats
-from prohori.simulate.addresses import CUSTOMERS, HOSTILE, INTERNET, IPV6, AddressPool
+from prohori.simulate.addresses import HOSTILE, IPV6, AddressPool
 from prohori.simulate.background import (
     BROWSERS,
     RequestIds,
@@ -207,9 +218,8 @@ def password_spraying(rec: Recorder, pool: AddressPool, p: Params, variant: str)
 
 def credential_stuffing(rec: Recorder, pool: AddressPool, p: Params, variant: str) -> None:
     ids, accounts = _app_setup(rec, pool, p)
-    sources = _sources(
-        pool, HOSTILE if variant == "default" else INTERNET, _int(p, "sources"), variant
-    )
+    count = _int(p, "sources")  # spread out except in the default variant
+    sources = pool.take_many(HOSTILE, count) if variant == "default" else pool.take_spread(count)
     attack = rec.attack(
         Attack(
             id="credential-stuffing-1",
@@ -378,7 +388,7 @@ def account_takeover(rec: Recorder, pool: AddressPool, p: Params, variant: str) 
 
 def admin_misuse(rec: Recorder, pool: AddressPool, p: Params, variant: str) -> None:
     ids, _accounts = _app_setup(rec, pool, p)
-    admins = {"u-0001": pool.take(CUSTOMERS), "u-0002": pool.take(CUSTOMERS)}
+    admins = {"u-0001": pool.household(), "u-0002": pool.household()}
     # Background starts at 00:00 Dhaka time (18:00 UTC); office hours are 10:00-18:00 local,
     # which only fall inside the background when it runs that long.
     admin_background(rec, ids, admins, day_start=600, day_end=1080)

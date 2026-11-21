@@ -9,7 +9,7 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from pathlib import Path
 
-from prohori.simulate.addresses import AddressPool
+from prohori.simulate.addresses import ADDRESS_MODEL, AddressPool
 from prohori.simulate.model import PARAMS, Attack, Recorder, SimulationError, parse_start
 from prohori.simulate.scenarios import SCENARIOS, VARIANTS, Scenario
 
@@ -137,6 +137,7 @@ def write(simulation: Simulation, out_dir: Path) -> dict[str, object]:
         },
         "lines": {"attack": attack_lines, "benign": len(simulation.lines) - attack_lines},
         "attacks": [a.as_dict() for a in simulation.attacks],
+        "addresses": ADDRESS_MODEL,
         "note": "Synthetic data. Every IP address is from a documentation range.",
     }
     text = json.dumps(manifest, indent=2) + "\n"

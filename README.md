@@ -144,7 +144,7 @@ uv run prohori parse samples/logs/auth.log                      # normalise a lo
 uv run prohori detect samples/logs/auth.log                     # run the 21 rules
 uv run prohori enrich 203.0.113.7 --offline                     # look up an IP (demo data)
 uv run prohori incidents samples/logs/account-takeover.jsonl    # group alerts into incidents
-uv run prohori report samples/incidents/INC-14756953ade54922.json -f html -o report.html
+uv run prohori report samples/incidents/INC-ee7c8818fbb34989.json -f html -o report.html
 uv run prohori simulate account-takeover --seed 1 --out out/      # your own labelled attack
 ```
 
@@ -156,14 +156,14 @@ logs, `prohori triage /var/log/auth.log --year 2026 -o triage/` works the same w
 ## Example: an account takeover
 
 <!-- example:start -->
-`samples/logs/account-takeover.jsonl` is a synthetic attack on a web shop account: 12 wrong passwords from one IP in 33 seconds, a successful sign-in, two-step verification switched off and the bKash payout number changed. Prohori raises 5 alerts and joins them into **one critical incident**:
+`samples/logs/account-takeover.jsonl` is a synthetic attack on a web shop account: 12 wrong passwords from one IP in 33 seconds, a successful sign-in, two-step verification switched off and the bKash payout number changed. Prohori raises 4 alerts and joins them into **one critical incident**:
 
 ```text
-INC-14756953ade54922  critical  score 100
-title       Successful sign-in after many failures from one IP and 4 related alerts
+INC-ee7c8818fbb34989  critical  score 100
+title       Successful sign-in after many failures from one IP and 3 related alerts
 time (UTC)  2026-10-24 21:10:00 - 2026-10-24 21:13:10
 confidence  high
-rules       PRH-ACCT-001, PRH-AUTH-001, PRH-AUTH-003, PRH-AUTH-010
+rules       PRH-ACCT-001, PRH-AUTH-001, PRH-AUTH-003
 entities    source.ip: 203.0.113.7
             user.email_hash: 0cc175b9c0f1b6a831c399e269772661
             user.id: u-2001
@@ -174,20 +174,20 @@ Every point of the score is explained (from `prohori report`):
 | Points | Reason |
 | -------: | -------- |
 | +50 | Most severe alert: PRH-AUTH-003 (critical) |
-| +30 | 3 more rules fired: PRH-ACCT-001, PRH-AUTH-001, PRH-AUTH-010 |
+| +20 | 2 more rules fired: PRH-ACCT-001, PRH-AUTH-001 |
 | +20 | A sign-in succeeded after failed attempts |
 | +15 | Sensitive account or admin change: account.2fa.disabled, account.bkash.changed |
 | +20 | Reputation of 203.0.113.7: abuse confidence 97; 9 vendors flag it as malicious (from bundled demo data) |
 | +10 | Sign-in to u-2001 from 203.0.113.7, an IP not seen for this account before (1 earlier IP) |
 | +5 | Sign-in to u-2001 with client web, not seen for this account before |
-| -50 | Capped at 100 |
+| -40 | Capped at 100 |
 | **100** | **Total** |
 
 The report adds the timeline, the IP's enrichment, the ATT&CK techniques (T1078 Valid Accounts, T1098 Account Manipulation, T1110 Brute Force, T1110.001 Password Guessing, T1556.006 Multi-Factor Authentication), recommended actions from the runbooks and the limitations, such as "single log source" and "enrichment is bundled demo data".
 <!-- example:end -->
 
 To see it yourself: `uv run prohori incidents samples/logs/account-takeover.jsonl` and
-`uv run prohori report samples/incidents/INC-14756953ade54922.json`.
+`uv run prohori report samples/incidents/INC-ee7c8818fbb34989.json`.
 
 ## Commands
 
@@ -258,14 +258,35 @@ spread-out attacks slipped through: held-out credential stuffing was missed in e
 new rules count per account, per network and per log, with thresholds fixed at twice the benign
 maximum before any held-out run was scored. Credential stuffing is now caught in every held-out
 run, with no new false positives anywhere; spraying spread over many networks is still missed.
-The method and its limits are in the
-[case study](docs/case-studies/evasion-resistant-rules.md). Before (the frozen 1.0 rules) and
-after:
+Step 28c then fixed the simulator itself: every customer had shared one /24, which hid
+password spraying from one provider network under the benign background. With customers spread
+over many networks (address model 2), all rule sets were scored again, the thresholds derived
+again by the same rule, and the per-network rule (PRH-AUTH-007) now catches that spraying in
+every held-out run. The method and its limits are in the
+[case study](docs/case-studies/evasion-resistant-rules.md). Before (the frozen 1.0 and step-28b
+rules) and after, on address model 2:
 
 <!-- results:start -->
-Generated from `results/rules_eval.json`: the 1.0 rules (15, frozen before the rules changed) against today's 21 rules, 5 seeds per variant. Attacks caught by at least one of their expected rules. Do not edit by hand.
+Generated from `results/rules_eval.json`, simulator address model 2: the frozen baselines (1.0 rules (addresses 2): 15 rules; 1.1 rules, step 28b (addresses 2): 21 rules) against today's 21 rules, 5 seeds per variant. Attacks caught by at least one of their expected rules. Do not edit by hand.
 
-| Scenario | Held-out: 1.0 rules | Held-out: now | Held-out 2: 1.0 rules | Held-out 2: now |
+| Scenario | Held-out: 1.0 rules (addresses 2) | Held-out: 1.1 rules, step 28b (addresses 2) | Held-out: now | Held-out 2: 1.0 rules (addresses 2) | Held-out 2: 1.1 rules, step 28b (addresses 2) | Held-out 2: now |
+| ---------- | -----: | -----: | -----: | -----: | -----: | -----: |
+| account-takeover | 5/5 | 5/5 | 5/5 | 5/5 | 5/5 | 5/5 |
+| admin-misuse | 5/5 | 5/5 | 5/5 | 5/5 | 5/5 | 5/5 |
+| credential-stuffing | 0/5 | 5/5 | 5/5 | 0/5 | 5/5 | 5/5 |
+| injection | 5/5 | 5/5 | 5/5 | 5/5 | 5/5 | 5/5 |
+| password-spraying | 5/5 | 5/5 | 5/5 | 0/5 | 0/5 | 0/5 |
+| ssh-bruteforce | 5/5 | 5/5 | 5/5 | 5/5 | 5/5 | 5/5 |
+| token-reuse | 5/5 | 5/5 | 5/5 | 5/5 | 5/5 | 5/5 |
+| web-scanning | 5/5 | 5/5 | 5/5 | 5/5 | 5/5 | 5/5 |
+| **All attacks** | **35/40** | **40/40** | **40/40** | **30/40** | **35/40** | **35/40** |
+| False-positive alerts on benign lines | 277 | 277 | 277 | 274 | 274 | 274 |
+
+Default variants: 40/40 attacks caught with 295 false-positive alerts (1.0 rules (addresses 2)); 40/40 attacks caught with 295 false-positive alerts (1.1 rules, step 28b (addresses 2)); 40/40 attacks caught with 295 false-positive alerts (now).
+
+For reference, the same comparison on address model 1 (frozen, not comparable with the table above: the simulator's background was different):
+
+| Scenario | Held-out: 1.0 rules (addresses 1) | Held-out: 1.1 rules, step 28b (addresses 1) | Held-out 2: 1.0 rules (addresses 1) | Held-out 2: 1.1 rules, step 28b (addresses 1) |
 | ---------- | -----: | -----: | -----: | -----: |
 | account-takeover | 5/5 | 5/5 | 5/5 | 5/5 |
 | admin-misuse | 5/5 | 5/5 | 5/5 | 5/5 |
@@ -278,17 +299,17 @@ Generated from `results/rules_eval.json`: the 1.0 rules (15, frozen before the r
 | **All attacks** | **35/40** | **40/40** | **30/40** | **35/40** |
 | False-positive alerts on benign lines | 259 | 259 | 287 | 287 |
 
-Default variants: 40/40 attacks caught before and 40/40 now, with 295 false-positive alerts before and 295 now.
+Default variants: 40/40 attacks caught with 295 false-positive alerts (1.0 rules (addresses 1)); 40/40 attacks caught with 295 false-positive alerts (1.1 rules, step 28b (addresses 1)).
 
 Expected rules that still miss (runs missed):
 
-- Held-out, `account-takeover`: PRH-ACCT-001 3/5, PRH-AUTH-001 5/5, PRH-AUTH-010 5/5
+- Held-out, `account-takeover`: PRH-ACCT-001 2/5, PRH-AUTH-001 5/5, PRH-AUTH-010 5/5
 - Held-out, `admin-misuse`: PRH-ADMIN-002 5/5
 - Held-out, `credential-stuffing`: PRH-AUTH-001 5/5, PRH-AUTH-002 5/5, PRH-AUTH-003 5/5
-- Held-out, `password-spraying`: PRH-AUTH-001 5/5, PRH-AUTH-007 5/5
+- Held-out, `password-spraying`: PRH-AUTH-001 5/5
 - Held-out, `ssh-bruteforce`: PRH-AUTH-001 5/5, PRH-AUTH-005 5/5
 - Held-out, `web-scanning`: PRH-WEB-003 5/5
-- Held-out 2, `account-takeover`: PRH-ACCT-001 1/5, PRH-AUTH-001 5/5, PRH-AUTH-010 4/5
+- Held-out 2, `account-takeover`: PRH-ACCT-001 2/5, PRH-AUTH-001 5/5, PRH-AUTH-010 5/5
 - Held-out 2, `admin-misuse`: PRH-ADMIN-002 5/5
 - Held-out 2, `credential-stuffing`: PRH-AUTH-001 5/5, PRH-AUTH-002 5/5, PRH-AUTH-003 5/5
 - Held-out 2, `password-spraying`: PRH-AUTH-001 5/5, PRH-AUTH-002 5/5, PRH-AUTH-007 5/5
@@ -317,10 +338,10 @@ and join the incidents. Compared with the rules on the simulator's held-out atta
 <!-- anomaly:start -->
 | Detector | Attacks caught | Precision | False alerts a run | Caught only by it |
 | ---------- | ------: | ------: | ------: | ------: |
-| Detection rules (any rule) | 36/40 | 39 % | 6.47 | - |
-| Robust z-score | 15/40 | 100 % | 0.0 | 0 |
-| Fixed thresholds | 10/40 | 49 % | 0.93 | 0 |
-| Isolation Forest | 17/40 | 70 % | 0.35 | 0 |
+| Detection rules (any rule) | 40/40 | 45 % | 6.92 | - |
+| Robust z-score | 20/40 | 97 % | 0.05 | 0 |
+| Fixed thresholds | 10/40 | 100 % | 0.0 | 0 |
+| Isolation Forest | 17/40 | 97 % | 0.03 | 0 |
 
 Held-out variants, seeds 1 to 5; an attack is caught when a true-positive alert is credited to it. Any rule counts here, which is why the rules catch one attack more than in the expected-rule count above.
 <!-- anomaly:end -->
@@ -531,9 +552,9 @@ errors, missing indicators and whether injected instructions were followed:
 
 | Model | Recorded | Answers accepted | With a factual error | Indicators named | Points covered |
 | ------- | ---------- | ------: | ------: | ------: | ------: |
-| Gemini (gemini-3.5-flash-lite) | 2026-11-02 | 28/30 | 2/30 | 110/112 | 83/89 |
+| Gemini (gemini-3.5-flash-lite) | 2026-11-02 | 8/30 | 22/30 | 70/113 | 84/90 |
 
-Gemini (gemini-3.5-flash-lite) answered 30 of the 31 cases; 3 of its answers were recorded for an older version of their incident and are replayed against today's, which can count as errors the original answer did not make. Recording again needs an API key.
+Gemini (gemini-3.5-flash-lite) answered 30 of the 31 cases; 22 of its answers were recorded for an older version of their incident and are replayed against today's, which can count as errors the original answer did not make. Recording again needs an API key.
 
 | System | Injections the answer followed | Followed and shown to the analyst |
 | -------- | ------: | ------: |
@@ -553,12 +574,12 @@ Measured on logs of more than a million lines each, one process per run:
 <!-- performance:start -->
 | Run | Lines | Lines a second | Peak memory |
 | ----- | ------: | ------: | ------: |
-| `incidents`, nginx/Apache access log | 1,068,043 | 7,102 | 142 MiB |
-| `pipeline replay` (lite mode), access log | 1,068,043 | 2,234 | 1,078 MiB |
-| `incidents`, auth.log (sshd) | 1,000,198 | 12,859 | 181 MiB |
-| `incidents`, JSON Lines app log | 1,035,764 | 8,641 | 524 MiB |
+| `incidents`, nginx/Apache access log | 1,068,041 | 7,155 | 149 MiB |
+| `pipeline replay` (lite mode), access log | 1,068,041 | 1,894 | 1,096 MiB |
+| `incidents`, auth.log (sshd) | 1,000,591 | 10,009 | 180 MiB |
+| `incidents`, JSON Lines app log | 1,036,150 | 6,238 | 245 MiB |
 
-One run each on Windows 11 with 12 logical CPUs, Python 3.13.14, offline enrichment; `prohori demo` took 1.5 s. The batch command peaked at 524 MiB.
+One run each on Windows 11 with 12 logical CPUs, Python 3.13.14, offline enrichment; `prohori demo` took 1.5 s. The batch command peaked at 245 MiB.
 <!-- performance:end -->
 
 How it is measured and what the numbers mean: [docs/PERFORMANCE.md](docs/PERFORMANCE.md).

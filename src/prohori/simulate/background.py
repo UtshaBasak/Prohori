@@ -3,7 +3,7 @@
 """Benign background activity: the normal traffic every attack is hidden in.
 
 Background includes the awkward cases rules must not alert on, or are known to: users who mistype
-a password once, many customers behind one shared NAT address, a search-engine crawler that hits
+a password once, a few customers behind one shared NAT address, a search-engine crawler that hits
 a few dead links, owners changing their own settings, planned admin work, and the stray
 internet probes every public SSH server sees.
 """
@@ -11,7 +11,7 @@ internet probes every public SSH server sees.
 from dataclasses import dataclass, field
 
 from prohori.simulate import formats
-from prohori.simulate.addresses import CUSTOMERS, INTERNET, IPV6, AddressPool
+from prohori.simulate.addresses import CUSTOMERS, INTERNET, AddressPool
 from prohori.simulate.model import Recorder
 
 BROWSERS = (
@@ -37,7 +37,7 @@ class Population:
     accounts: list[str]
     homes: dict[str, str]  # account -> usual IP
     clients: dict[str, tuple[str, str]]  # account -> (client, user agent)
-    nat: str  # one shared address many customers use
+    nat: str  # one shared address a few customers also use (an office or carrier NAT)
     nat_accounts: list[str] = field(default_factory=list)
 
 
@@ -46,10 +46,10 @@ def population(rec: Recorder, pool: AddressPool, users: int) -> Population:
     accounts = [f"u-{1000 + n}" for n in range(users)]
     homes: dict[str, str] = {}
     for account in accounts:
-        homes[account] = pool.take(IPV6) if rng.random() < 0.2 else pool.take(CUSTOMERS)
+        homes[account] = pool.household()
     clients = {account: rng.choice(APP_CLIENTS) for account in accounts}
     nat = pool.take(CUSTOMERS)
-    nat_accounts = accounts[: max(3, users // 3)]
+    nat_accounts = accounts[: max(3, users // 8)]
     return Population(accounts, homes, clients, nat, nat_accounts)
 
 
@@ -278,7 +278,7 @@ def admin_background(
 def ssh_background(rec: Recorder, pool: AddressPool, duration: int, noise: float) -> None:
     """Staff logging in with keys, a mistyped password now and then, cron, internet probes."""
     rng = rec.rng
-    offices = {name: pool.take(CUSTOMERS) for name in STAFF}
+    offices = {name: pool.household() for name in STAFF}
     pid = 3000
     for _ in range(round(duration * noise)):
         pid += 1
@@ -345,7 +345,7 @@ def ssh_background(rec: Recorder, pool: AddressPool, duration: int, noise: float
                 ),
             )
         else:  # a stray probe from somewhere on the internet
-            probe = pool.take(INTERNET) if rng.random() < 0.9 else pool.take(IPV6)
+            probe = pool.internet_host()
             rec.add(
                 when,
                 formats.syslog(
@@ -357,7 +357,7 @@ def ssh_background(rec: Recorder, pool: AddressPool, duration: int, noise: float
 def web_background(rec: Recorder, pool: AddressPool, duration: int, noise: float) -> None:
     """Customers browsing the shop and a crawler that finds a few dead links."""
     rng = rec.rng
-    visitors = pool.take_many(CUSTOMERS, 40)
+    visitors = [pool.household() for _ in range(40)]
     crawler = pool.take(INTERNET)
     for _ in range(round(duration * noise)):
         minute = rng.uniform(0, duration)

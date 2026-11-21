@@ -116,7 +116,8 @@ def test_every_dag_runs_in_the_stack(monkeypatch: pytest.MonkeyPatch) -> None:
                 "airflow",
                 "sh",
                 "-c",
-                "cat /opt/prohori-output/digests/*.json",
+                # The newest digest only: a run that crosses midnight UTC leaves two.
+                'cat "$(ls /opt/prohori-output/digests/incidents-*.json | sort | tail -n 1)"',
             ],
             COMPOSE,
             capture=True,

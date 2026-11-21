@@ -9,7 +9,7 @@
     "seed": 1
   },
   "incident": {
-    "id": "INC-728b722fe42ea426",
+    "id": "INC-6dfe3b581560a7bf",
     "title": "Admin role granted",
     "status": "open",
     "severity": "high",
@@ -24,14 +24,14 @@
         "points": 15.0
       }
     ],
-    "first_seen": "2026-10-24T08:53:31.667000Z",
-    "last_seen": "2026-10-24T08:53:31.667000Z",
+    "first_seen": "2026-10-24T08:15:17.792000Z",
+    "last_seen": "2026-10-24T08:15:17.792000Z",
     "entities": {
       "request_id": [
-        "req-000786"
+        "req-000789"
       ],
       "source.ip": [
-        "192.0.2.143"
+        "192.0.2.232"
       ],
       "user.email_hash": [
         "eb1b3207da8a29b659689d41e5055f5f"
@@ -42,22 +42,22 @@
     },
     "alerts": [
       {
-        "id": "alr-fe777d45ccd7f1a58a2141bb",
+        "id": "alr-fca739f0b9e7e163124248be",
         "detector_id": "PRH-ADMIN-001",
         "detector_kind": "rule",
         "title": "Admin role granted",
         "severity": "high",
         "score": 75.0,
         "event_ids": [
-          "evt-48cb211a3af4b1f8b83eafc4"
+          "evt-9621e348a8da84d820a5c963"
         ],
         "entities": {
-          "source.ip": "192.0.2.143",
+          "source.ip": "192.0.2.232",
           "user.id": "u-0001",
-          "request_id": "req-000786"
+          "request_id": "req-000789"
         },
-        "first_seen": "2026-10-24T08:53:31.667000Z",
-        "last_seen": "2026-10-24T08:53:31.667000Z",
+        "first_seen": "2026-10-24T08:15:17.792000Z",
+        "last_seen": "2026-10-24T08:15:17.792000Z",
         "attack": [
           "attack.persistence",
           "attack.privilege_escalation",
@@ -68,22 +68,22 @@
     ],
     "timeline": [
       {
-        "timestamp": "2026-10-24T08:53:31.667000Z",
-        "description": "[app-security] admin.role.granted (success), account u-0001, from 192.0.2.143, POST /api/admin/roles, client web",
-        "event_id": "evt-48cb211a3af4b1f8b83eafc4",
+        "timestamp": "2026-10-24T08:15:17.792000Z",
+        "description": "[app-security] admin.role.granted (success), account u-0001, from 192.0.2.232, POST /api/admin/roles, client web",
+        "event_id": "evt-9621e348a8da84d820a5c963",
         "account": "u-0001",
-        "source_ip": "192.0.2.143"
+        "source_ip": "192.0.2.232"
       },
       {
-        "timestamp": "2026-10-24T08:53:31.667000Z",
+        "timestamp": "2026-10-24T08:15:17.792000Z",
         "description": "Alert PRH-ADMIN-001 (high): Admin role granted",
-        "alert_id": "alr-fe777d45ccd7f1a58a2141bb"
+        "alert_id": "alr-fca739f0b9e7e163124248be"
       }
     ],
     "indicators": [
       {
         "type": "ip",
-        "value": "192.0.2.143",
+        "value": "192.0.2.232",
         "enrichment": []
       }
     ],

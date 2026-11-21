@@ -9,7 +9,7 @@
     "seed": 1
   },
   "incident": {
-    "id": "INC-3185c3411aab7dfb",
+    "id": "INC-b4f95da88cf4a8af",
     "title": "Sensitive account change shortly after sign-in",
     "status": "open",
     "severity": "high",
@@ -20,40 +20,40 @@
         "points": 35.0
       },
       {
-        "reason": "Sensitive account or admin change: account.bkash.changed",
+        "reason": "Sensitive account or admin change: account.password.changed",
         "points": 15.0
       }
     ],
-    "first_seen": "2026-10-23T21:42:05.132000Z",
-    "last_seen": "2026-10-23T21:50:49.865000Z",
+    "first_seen": "2026-10-23T20:15:32.317000Z",
+    "last_seen": "2026-10-23T20:22:20.209000Z",
     "entities": {
       "source.ip": [
-        "192.0.2.46"
+        "198.51.100.85"
       ],
       "user.email_hash": [
-        "01a67d5bbbc819d89bcec7f80811806f"
+        "cbe29731b45771100a8586053ac5517a"
       ],
       "user.id": [
-        "u-1032"
+        "u-1021"
       ]
     },
     "alerts": [
       {
-        "id": "alr-1c60c9245021ed25cfee1f61",
+        "id": "alr-767841266153c3141fc250f7",
         "detector_id": "PRH-ACCT-001",
         "detector_kind": "rule",
         "title": "Sensitive account change shortly after sign-in",
         "severity": "high",
         "score": 75.0,
         "event_ids": [
-          "evt-bd254abd24efe752652faacf",
-          "evt-5a5833be043a6545fd371e24"
+          "evt-98cb6eeaa9c0399a050ac931",
+          "evt-aa49ee3a071caad6c6747911"
         ],
         "entities": {
-          "user.id": "u-1032"
+          "user.id": "u-1021"
         },
-        "first_seen": "2026-10-23T21:42:05.132000Z",
-        "last_seen": "2026-10-23T21:50:49.865000Z",
+        "first_seen": "2026-10-23T20:15:32.317000Z",
+        "last_seen": "2026-10-23T20:22:20.209000Z",
         "attack": [
           "attack.persistence",
           "attack.privilege_escalation",
@@ -62,34 +62,34 @@
           "attack.t1098",
           "attack.t1556.006"
         ],
-        "explanation": "1 x signin then 1 x change for user.id=u-1032 within 30m"
+        "explanation": "1 x signin then 1 x change for user.id=u-1021 within 30m"
       }
     ],
     "timeline": [
       {
-        "timestamp": "2026-10-23T21:42:05.132000Z",
-        "description": "[app-security] auth.signin.success (success), account u-1032, from 192.0.2.46, POST /api/auth/signin, client web",
-        "event_id": "evt-bd254abd24efe752652faacf",
-        "account": "u-1032",
-        "source_ip": "192.0.2.46"
+        "timestamp": "2026-10-23T20:15:32.317000Z",
+        "description": "[app-security] auth.signin.success (success), account u-1021, from 198.51.100.85, POST /api/auth/signin, client web",
+        "event_id": "evt-98cb6eeaa9c0399a050ac931",
+        "account": "u-1021",
+        "source_ip": "198.51.100.85"
       },
       {
-        "timestamp": "2026-10-23T21:50:49.865000Z",
-        "description": "[app-security] account.bkash.changed (success), account u-1032, from 192.0.2.46, PATCH /api/account, client web",
-        "event_id": "evt-5a5833be043a6545fd371e24",
-        "account": "u-1032",
-        "source_ip": "192.0.2.46"
+        "timestamp": "2026-10-23T20:22:20.209000Z",
+        "description": "[app-security] account.password.changed (success), account u-1021, from 198.51.100.85, PATCH /api/account, client web",
+        "event_id": "evt-aa49ee3a071caad6c6747911",
+        "account": "u-1021",
+        "source_ip": "198.51.100.85"
       },
       {
-        "timestamp": "2026-10-23T21:50:49.865000Z",
+        "timestamp": "2026-10-23T20:22:20.209000Z",
         "description": "Alert PRH-ACCT-001 (high): Sensitive account change shortly after sign-in",
-        "alert_id": "alr-1c60c9245021ed25cfee1f61"
+        "alert_id": "alr-767841266153c3141fc250f7"
       }
     ],
     "indicators": [
       {
         "type": "ip",
-        "value": "192.0.2.46",
+        "value": "198.51.100.85",
         "enrichment": []
       },
       {

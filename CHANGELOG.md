@@ -43,6 +43,15 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - `scripts/benchmark.py --alerts N` measures an alert storm (a log in which every line raises
   alerts) and checks that `detect` and `incidents` stay under a fixed memory bound.
 
+- **Simulator address model 2** (ADR-0038). Customers, visitors and staff each have a stable
+  home address spread over many networks: 18 % on IPv6 in a /48 of their own (APNIC Labs' 2025
+  figure for Bangladesh, where the simulated shop is), the rest on IPv4 in two documentation
+  /24s; five customers (thirteen before) share one NAT address; the attackers' provider network
+  holds no benign address. Manifests and `results/rules_eval.json` record `"addresses": 2`, and
+  `prohori simulate` prints it. `results/rules_eval.json` keeps several named baselines, each
+  with its address model (format `prohori.rules-eval/2`); the address-model-1 results stay under
+  their own labels for reference.
+
 ### Changed
 
 - SonarQube Cloud now analyses from a GitHub Actions workflow (`sonarcloud.yml`, configured by
@@ -55,6 +64,32 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   stable rules as expected and names the new rules that its fast demo attacks do not trigger.
   The LLM evaluation set has 31 cases (the held-out credential-stuffing incident now exists);
   the offline baselines were recorded again, and three Gemini answers are marked stale.
+- **Step 28c: everything derived from the simulator moved, and why.** The address model is
+  drawn from each scenario's random stream, so every simulated log changed, including the web
+  and SSH scenarios.
+  - Rules: the 1.0 and step-28b rules were scored on the new simulator and frozen as baselines
+    before any rule changed, then the thresholds were derived again by ADR-0036's unchanged rule:
+    PRH-AUTH-006 22 -> 20, PRH-AUTH-007 38 -> 26, PRH-AUTH-008 addresses 36 -> 38, PRH-AUTH-010
+    12 -> 14 (PRH-AUTH-005 and 009 unchanged). PRH-AUTH-007 now fires in 5 of 5 held-out
+    spraying runs (0 of 5 with the old threshold on the same simulator); held-out credential
+    stuffing stays caught in 5 of 5 on both held-out sets; false-positive alerts on the default
+    variants are unchanged (295). Spraying spread over many networks is still missed, and
+    PRH-AUTH-010 no longer fires on any simulated takeover (12 attempts, under 14). Held-out
+    false-positive alerts are 277 and 274 (259 and 287 on the old simulator), almost all
+    PRH-ACCT-001 on owners' own changes, whose number follows the background.
+  - The sample account takeover (12 failures) no longer raises PRH-AUTH-010, so the sample
+    incident is `INC-ee7c8818fbb34989` again (3 rules instead of 4, score still 100); the
+    README example, sample reports, demo output and image follow.
+  - Log anomaly detection: the z-score cut-off was chosen again on the default variants (12 ->
+    10). On the held-out variants the z-score catches 20 of 40 attacks (15 before), the Isolation
+    Forest 17 (unchanged), the rules 40 (36 in the previous results file); false alerts a run
+    fall to 0.05, 0.03 and 0 for the fixed thresholds (0, 0.35 and 0.93), because fewer
+    customers share one address.
+  - LLM evaluation: every simulated case was rebuilt and its reference rewritten; the offline
+    baselines were recorded again. 22 Gemini answers were recorded for the old incidents and are
+    marked stale, which moves Gemini's accepted and error counts until it is recorded again.
+  - Golden files and counts taken from simulated logs (pipeline replays, digests, labels) and
+    the performance results follow the new logs.
 - A 24-hour rule makes the streaming incident hold time 24 h 35 min; following live logs now
   writes quiet incidents after at most an hour by default (`--idle-close` overrides it).
 - `--redact-ips` and `--mask-ips` also replace networks named by the per-network rule.
@@ -83,6 +118,12 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- The Kafka transport retries the broker's start-up errors (no leader or no coordinator yet,
+  such as `NOT_LEADER_FOR_PARTITION` and `NOT_COORDINATOR`) on every call made at start-up, until
+  the broker timeout; the Docker smoke test failed on them now and then.
+- The LLM answer check accepts the network of a per-network alert (`203.0.113.0/24`); it was
+  rejected as an unknown address.
+- The Airflow stack test reads only the newest digest, so a run that crosses midnight UTC passes.
 - **No lost events in the daylight-saving hour.** In `auth.log` without offsets, a local time in
   the hour repeated when the clocks go back was always read as its first occurrence, so the
   second half of that hour jumped back and the rules dropped it as late. It is now read as the

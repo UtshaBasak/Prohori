@@ -1,6 +1,6 @@
 {
   "format": "prohori.report/1",
-  "summary": "Critical incident (score 100, high confidence): 5 alert(s) from 4 rule(s) between 2026-10-24 21:10:00 UTC and 2026-10-24 21:13:10 UTC, from 203.0.113.7, involving u-2001.",
+  "summary": "Critical incident (score 100, high confidence): 4 alert(s) from 3 rule(s) between 2026-10-24 21:10:00 UTC and 2026-10-24 21:13:10 UTC, from 203.0.113.7, involving u-2001.",
   "attack": {
     "version": "20.0",
     "tactics": [
@@ -60,12 +60,6 @@
         "title": "Successful sign-in after many failures from one IP",
         "alerts": 1,
         "sha256": "7601eec72c7d9babc38be001629e90a86b4ad5be0cad2d923f131a96884d7ca0"
-      },
-      {
-        "id": "PRH-AUTH-010",
-        "title": "Successful sign-in after many failures on one account",
-        "alerts": 1,
-        "sha256": "c08191364e242e61b29ab1acfabe01f42a9ec16eb2b15a023ff487033271367f"
       }
     ],
     "inputs": [
@@ -87,8 +81,8 @@
     "redaction": "Not redacted: account names, ids and IP addresses are shown as logged."
   },
   "incident": {
-    "id": "INC-14756953ade54922",
-    "title": "Successful sign-in after many failures from one IP and 4 related alerts",
+    "id": "INC-ee7c8818fbb34989",
+    "title": "Successful sign-in after many failures from one IP and 3 related alerts",
     "status": "open",
     "severity": "critical",
     "score": 100.0,
@@ -98,8 +92,8 @@
         "points": 50.0
       },
       {
-        "reason": "3 more rules fired: PRH-ACCT-001, PRH-AUTH-001, PRH-AUTH-010",
-        "points": 30.0
+        "reason": "2 more rules fired: PRH-ACCT-001, PRH-AUTH-001",
+        "points": 20.0
       },
       {
         "reason": "A sign-in succeeded after failed attempts",
@@ -123,7 +117,7 @@
       },
       {
         "reason": "Capped at 100",
-        "points": -50.0
+        "points": -40.0
       }
     ],
     "first_seen": "2026-10-24T21:10:00Z",
@@ -167,41 +161,6 @@
           "attack.t1078"
         ],
         "explanation": "5 x failure then 1 x success for source.ip=203.0.113.7 within 15m"
-      },
-      {
-        "id": "alr-6812a8e6adc17b34d82895cc",
-        "detector_id": "PRH-AUTH-010",
-        "detector_kind": "rule",
-        "title": "Successful sign-in after many failures on one account",
-        "severity": "critical",
-        "score": 100.0,
-        "event_ids": [
-          "evt-98e13f6d307f2e3be16558ed",
-          "evt-ef2ea440d254bf4a8d4680f6",
-          "evt-1ee56267cc7a1b10b9494687",
-          "evt-bbc30d1e50633effa8d81596",
-          "evt-c17a57243deeaf70a93c331e",
-          "evt-e324aaa8ec2561e6cd038ca7",
-          "evt-ada9bb363aaf4af58d44c821",
-          "evt-c480d3039cfb186a6c233449",
-          "evt-3b80f435be26e14e36c3ac89",
-          "evt-b1604296ea5f5716a233d047",
-          "evt-605f2f4708ccd19758b6d85e",
-          "evt-3dd0fbfab6374cf989bfb395",
-          "evt-d921c9a6c26404450a3b9d46"
-        ],
-        "entities": {
-          "user.id": "u-2001"
-        },
-        "first_seen": "2026-10-24T21:10:00Z",
-        "last_seen": "2026-10-24T21:11:05Z",
-        "attack": [
-          "attack.credential_access",
-          "attack.initial_access",
-          "attack.t1110",
-          "attack.t1078"
-        ],
-        "explanation": "12 x failure then 1 x success for user.id=u-2001 within 1h"
       },
       {
         "id": "alr-c0790ef87d77eb35d5aec68e",
@@ -377,22 +336,6 @@
         "source_ip": null
       },
       {
-        "timestamp": "2026-10-24T21:10:30Z",
-        "description": "[app-security] auth.signin.failure (failure), account u-2001, from 203.0.113.7, POST /api/auth/signin, client web",
-        "event_id": "evt-605f2f4708ccd19758b6d85e",
-        "alert_id": null,
-        "account": "u-2001",
-        "source_ip": "203.0.113.7"
-      },
-      {
-        "timestamp": "2026-10-24T21:10:33Z",
-        "description": "[app-security] auth.signin.failure (failure), account u-2001, from 203.0.113.7, POST /api/auth/signin, client web",
-        "event_id": "evt-3dd0fbfab6374cf989bfb395",
-        "alert_id": null,
-        "account": "u-2001",
-        "source_ip": "203.0.113.7"
-      },
-      {
         "timestamp": "2026-10-24T21:11:05Z",
         "description": "[app-security] auth.signin.success (success), account u-2001, from 203.0.113.7, POST /api/auth/signin, client web",
         "event_id": "evt-d921c9a6c26404450a3b9d46",
@@ -405,14 +348,6 @@
         "description": "Alert PRH-AUTH-003 (critical): Successful sign-in after many failures from one IP",
         "event_id": null,
         "alert_id": "alr-2700f3f4c20ba179ef87851e",
-        "account": null,
-        "source_ip": null
-      },
-      {
-        "timestamp": "2026-10-24T21:11:05Z",
-        "description": "Alert PRH-AUTH-010 (critical): Successful sign-in after many failures on one account",
-        "event_id": null,
-        "alert_id": "alr-6812a8e6adc17b34d82895cc",
         "account": null,
         "source_ip": null
       },
@@ -515,9 +450,7 @@
       "Possible benign cause for PRH-AUTH-001: Many users behind one shared NAT or proxy address",
       "Possible benign cause for PRH-AUTH-001: A script or password manager retrying a stale password",
       "Possible benign cause for PRH-AUTH-003: A legitimate user who forgot their password and finally entered it correctly",
-      "Possible benign cause for PRH-AUTH-003: Several users behind one shared NAT, some failing and one succeeding",
-      "Possible benign cause for PRH-AUTH-010: A user who tried many old passwords before remembering the right one",
-      "Possible benign cause for PRH-AUTH-010: A device or integration retrying a stale password until the user updated it"
+      "Possible benign cause for PRH-AUTH-003: Several users behind one shared NAT, some failing and one succeeding"
     ],
     "provenance": {
       "tool": "prohori",
@@ -546,11 +479,6 @@
           "id": "PRH-AUTH-003",
           "title": "Successful sign-in after many failures from one IP",
           "sha256": "7601eec72c7d9babc38be001629e90a86b4ad5be0cad2d923f131a96884d7ca0"
-        },
-        {
-          "id": "PRH-AUTH-010",
-          "title": "Successful sign-in after many failures on one account",
-          "sha256": "c08191364e242e61b29ab1acfabe01f42a9ec16eb2b15a023ff487033271367f"
         }
       ],
       "enrichment": "offline"

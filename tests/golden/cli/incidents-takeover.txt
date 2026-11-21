@@ -1,9 +1,9 @@
-INC-14756953ade54922  critical  score 100
+INC-ee7c8818fbb34989  critical  score 100
 +-------------+-----------------------------------------------------------------------------------+
-| title       | Successful sign-in after many failures from one IP and 4 related alerts           |
+| title       | Successful sign-in after many failures from one IP and 3 related alerts           |
 | time (UTC)  | 2026-10-24 21:10:00 - 2026-10-24 21:13:10                                         |
 | confidence  | high                                                                              |
-| rules       | PRH-ACCT-001, PRH-AUTH-001, PRH-AUTH-003, PRH-AUTH-010                            |
+| rules       | PRH-ACCT-001, PRH-AUTH-001, PRH-AUTH-003                                          |
 | entities    | source.ip: 203.0.113.7                                                            |
 |             | user.email_hash: 0cc175b9c0f1b6a831c399e269772661                                 |
 |             | user.id: u-2001                                                                   |
@@ -11,7 +11,7 @@ INC-14756953ade54922  critical  score 100
 |             | attack.defense_impairment, attack.credential_access, attack.t1078, attack.t1098,  |
 |             | attack.t1110, attack.t1110.001, attack.t1556.006                                  |
 | score       | +50  Most severe alert: PRH-AUTH-003 (critical)                                   |
-|             | +30  3 more rules fired: PRH-ACCT-001, PRH-AUTH-001, PRH-AUTH-010                 |
+|             | +20  2 more rules fired: PRH-ACCT-001, PRH-AUTH-001                               |
 |             | +20  A sign-in succeeded after failed attempts                                    |
 |             | +15  Sensitive account or admin change: account.2fa.disabled,                     |
 |             | account.bkash.changed                                                             |
@@ -20,7 +20,7 @@ INC-14756953ade54922  critical  score 100
 |             | +10  Sign-in to u-2001 from 203.0.113.7, an IP not seen for this account before   |
 |             | (1 earlier IP)                                                                    |
 |             | +5  Sign-in to u-2001 with client web, not seen for this account before           |
-|             | -50  Capped at 100                                                                |
+|             | -40  Capped at 100                                                                |
 | actions     | - End all sessions of the account and force a password reset.                     |
 |             | - Block the source IP.                                                            |
 |             | - Revert unauthorised changes, such as a changed payout number or disabled        |
@@ -51,9 +51,5 @@ INC-14756953ade54922  critical  score 100
 |             | password and finally entered it correctly                                         |
 |             | - Possible benign cause for PRH-AUTH-003: Several users behind one shared NAT,    |
 |             | some failing and one succeeding                                                   |
-|             | - Possible benign cause for PRH-AUTH-010: A user who tried many old passwords     |
-|             | before remembering the right one                                                  |
-|             | - Possible benign cause for PRH-AUTH-010: A device or integration retrying a      |
-|             | stale password until the user updated it                                          |
 +-------------+-----------------------------------------------------------------------------------+
-1 incident(s) from 5 alert(s) in account-takeover.jsonl.
+1 incident(s) from 4 alert(s) in account-takeover.jsonl.

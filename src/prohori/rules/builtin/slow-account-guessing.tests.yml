@@ -7,20 +7,20 @@ defaults:
   event.category: authentication
   event.outcome: failure
 cases:
-  - name: twenty-two failures for one account over a day alert
+  - name: twenty failures for one account over a day alert
     expect: {alerts: 1, entities: [{user.name: deploy}]}
     events:
-      - {event.action: ssh.login.failure, event.reason: bad_password, user.name: deploy, source.ip: 203.0.113.9, repeat: 22, every: 1h}
+      - {event.action: ssh.login.failure, event.reason: bad_password, user.name: deploy, source.ip: 203.0.113.9, repeat: 20, every: 1h}
 
-  - name: twenty-one failures do not alert
+  - name: nineteen failures do not alert
     expect: {alerts: 0}
     events:
-      - {event.action: ssh.login.failure, event.reason: bad_password, user.name: deploy, source.ip: 203.0.113.9, repeat: 21, every: 1h}
+      - {event.action: ssh.login.failure, event.reason: bad_password, user.name: deploy, source.ip: 203.0.113.9, repeat: 19, every: 1h}
 
-  - name: twenty-two failures over more than a day do not alert
+  - name: twenty failures over more than a day do not alert
     expect: {alerts: 0}
     events:
-      - {event.action: ssh.login.failure, event.reason: bad_password, user.name: deploy, source.ip: 203.0.113.9, repeat: 22, every: 70m}
+      - {event.action: ssh.login.failure, event.reason: bad_password, user.name: deploy, source.ip: 203.0.113.9, repeat: 20, every: 80m}
 
   - name: unknown user names never count
     expect: {alerts: 0}

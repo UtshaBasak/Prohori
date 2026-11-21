@@ -7,9 +7,11 @@ defaults:
   event.category: authentication
   event.outcome: failure
 cases:
-  - name: twelve failures from several addresses then a success alert
+  - name: fourteen failures from several addresses then a success alert
     expect: {alerts: 1, entities: [{user.id: u-1001}]}
     events:
+      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-1001, source.ip: 203.0.113.111, after: 2m}
+      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-1001, source.ip: 203.0.113.141, after: 2m}
       - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-1001, source.ip: 198.51.100.1, after: 2m}
       - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-1001, source.ip: 198.51.100.31, after: 2m}
       - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-1001, source.ip: 198.51.100.61, after: 2m}
@@ -24,9 +26,11 @@ cases:
       - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-1001, source.ip: 203.0.113.81, after: 2m}
       - {event.action: auth.signin.success, event.outcome: success, user.id: u-1001, source.ip: 203.0.113.151, after: 2m}
 
-  - name: eleven failures then a success do not alert
+  - name: thirteen failures then a success do not alert
     expect: {alerts: 0}
     events:
+      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-1001, source.ip: 203.0.113.111, after: 2m}
+      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-1001, source.ip: 203.0.113.141, after: 2m}
       - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-1001, source.ip: 198.51.100.1, after: 2m}
       - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-1001, source.ip: 198.51.100.31, after: 2m}
       - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-1001, source.ip: 198.51.100.61, after: 2m}
@@ -43,7 +47,7 @@ cases:
   - name: a success more than an hour after the failures does not alert
     expect: {alerts: 0}
     events:
-      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-1001, source.ip: 203.0.113.9, repeat: 12, every: 1m}
+      - {event.action: auth.signin.failure, event.reason: bad_password, user.id: u-1001, source.ip: 203.0.113.9, repeat: 14, every: 1m}
       - {event.action: auth.signin.success, event.outcome: success, user.id: u-1001, source.ip: 203.0.113.151, after: 61m}
 
   - name: app failures from several addresses then a success through the app_json parser
@@ -51,6 +55,8 @@ cases:
     log:
       parser: app_json
       lines:
+        - "{\"time\": \"2026-10-24T12:56:00Z\", \"event\": {\"action\": \"auth.signin.failure\", \"reason\": \"bad_password\"}, \"source\": {\"ip\": \"203.0.113.111\"}, \"user\": {\"id\": \"u-1001\"}}"
+        - "{\"time\": \"2026-10-24T12:58:00Z\", \"event\": {\"action\": \"auth.signin.failure\", \"reason\": \"bad_password\"}, \"source\": {\"ip\": \"203.0.113.141\"}, \"user\": {\"id\": \"u-1001\"}}"
         - "{\"time\": \"2026-10-24T13:00:00Z\", \"event\": {\"action\": \"auth.signin.failure\", \"reason\": \"bad_password\"}, \"source\": {\"ip\": \"198.51.100.1\"}, \"user\": {\"id\": \"u-1001\"}}"
         - "{\"time\": \"2026-10-24T13:02:00Z\", \"event\": {\"action\": \"auth.signin.failure\", \"reason\": \"bad_password\"}, \"source\": {\"ip\": \"198.51.100.31\"}, \"user\": {\"id\": \"u-1001\"}}"
         - "{\"time\": \"2026-10-24T13:04:00Z\", \"event\": {\"action\": \"auth.signin.failure\", \"reason\": \"bad_password\"}, \"source\": {\"ip\": \"198.51.100.61\"}, \"user\": {\"id\": \"u-1001\"}}"

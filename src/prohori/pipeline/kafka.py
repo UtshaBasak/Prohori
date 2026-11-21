@@ -18,9 +18,9 @@ The client is ``confluent-kafka`` (librdkafka), part of the ``pipeline`` extra.
 
 import json
 import time
-from collections.abc import Iterator, Mapping
+from collections.abc import Callable, Iterator, Mapping
 from types import SimpleNamespace
-from typing import Any, Protocol
+from typing import Any, Protocol, TypeVar
 
 from prohori.pipeline import MissingExtraError
 from prohori.pipeline.messages import MAX_DEAD_LETTER_PAYLOAD, Topic
@@ -30,6 +30,20 @@ from prohori.pipeline.transport import Record
 TOPIC_CONFIG = {"retention.ms": "-1", "retention.bytes": "-1", "cleanup.policy": "delete"}
 #: Seconds to wait for the broker when creating topics, flushing or reading offsets.
 BROKER_TIMEOUT = 30.0
+#: Broker errors that only mean a topic or a consumer group is still settling, as it does just
+#: after the broker starts or another stage creates a topic: the topic is not known yet, its
+#: partition has no leader yet, or the group has no coordinator yet. They are retried until
+#: :data:`BROKER_TIMEOUT` and only then reported.
+SETTLING_ERRORS = (
+    "UNKNOWN_TOPIC_OR_PART",
+    "LEADER_NOT_AVAILABLE",
+    "NOT_LEADER_FOR_PARTITION",
+    "COORDINATOR_LOAD_IN_PROGRESS",
+    "COORDINATOR_NOT_AVAILABLE",
+    "NOT_COORDINATOR",
+)
+
+_T = TypeVar("_T")
 
 
 class _Partition(Protocol):
@@ -133,6 +147,12 @@ class KafkaTransport:
         self.timeout = timeout
         self._errors: list[str] = []
         self._consumers: dict[tuple[str, Topic], _Consumer] = {}
+        self._settling = frozenset(
+            getattr(self.kafka.KafkaError, name)
+            for name in SETTLING_ERRORS
+            if hasattr(self.kafka.KafkaError, name)
+        )
+        self._settling_since: dict[tuple[str, Topic], float] = {}
         self.producer = self.kafka.Producer(
             {
                 "bootstrap.servers": bootstrap,
@@ -244,47 +264,67 @@ class KafkaTransport:
     def poll(self, topic: Topic, group: str, max_records: int) -> list[Record]:
         consumer = self._consumer(group, topic)
         records: list[Record] = []
+        settling = False
         for message in consumer.consume(num_messages=max_records, timeout=self.timeout):
             error = message.error()
             if error is not None:
-                if error.code() == self.kafka.KafkaError.UNKNOWN_TOPIC_OR_PART:
-                    continue
+                if error.code() in self._settling and not self._settling_too_long(group, topic):
+                    settling = True
+                    continue  # read as empty until the topic or the group has settled
                 msg = f"cannot read {topic.value}: {error}"
                 raise TransportError(msg)
             records.append(
                 decode_message(topic, message.offset() + 1, message.key(), message.value())
             )
+        if not settling:  # settled, even if nothing was there to read
+            self._settling_since.pop((group, topic), None)
         return records
+
+    def _settling_too_long(self, group: str, topic: Topic) -> bool:
+        """Whether reads of ``topic`` for ``group`` have met only settling errors for longer than
+        the broker timeout."""
+        since = self._settling_since.setdefault((group, topic), time.monotonic())
+        return time.monotonic() - since > BROKER_TIMEOUT
+
+    def _retry(self, call: Callable[[], _T], what: str) -> _T:
+        """``call()``, retried while the broker answers with a settling error, until the broker
+        timeout. Any other error is raised at once."""
+        deadline = time.monotonic() + BROKER_TIMEOUT
+        while True:
+            try:
+                return call()
+            except self.kafka.KafkaException as exc:
+                error = exc.args[0] if exc.args else None
+                code = error.code() if error is not None and hasattr(error, "code") else None
+                if code not in self._settling:
+                    raise
+                if time.monotonic() >= deadline:
+                    msg = f"{what} did not settle on the broker at {self.bootstrap}: {error}"
+                    raise TransportError(msg) from exc
+                time.sleep(0.5)
 
     def _end(self, consumer: _Consumer, topic: Topic) -> tuple[int, int]:
         """The topic's first and next offsets.
 
-        A consumer that has just been created can still find the topic unknown for a moment
-        after another stage created it, so that answer is retried until the broker timeout.
+        A consumer that has just been created can find the topic unknown, or its partition
+        without a leader, for a moment after the broker started or another stage created it.
         """
-        deadline = time.monotonic() + BROKER_TIMEOUT
-        while True:
-            try:
-                low, high = consumer.get_watermark_offsets(
-                    self._partition(topic), timeout=BROKER_TIMEOUT, cached=False
-                )
-            except self.kafka.KafkaException as exc:
-                error = exc.args[0] if exc.args else None
-                code = error.code() if error is not None and hasattr(error, "code") else None
-                if code != self.kafka.KafkaError.UNKNOWN_TOPIC_OR_PART:
-                    raise
-                if time.monotonic() >= deadline:
-                    msg = f"topic {topic.value} is unknown to the broker at {self.bootstrap}"
-                    raise TransportError(msg) from exc
-                time.sleep(0.5)
-                continue
-            return int(low), int(high)
+        low, high = self._retry(
+            lambda: consumer.get_watermark_offsets(
+                self._partition(topic), timeout=BROKER_TIMEOUT, cached=False
+            ),
+            f"topic {topic.value}",
+        )
+        return int(low), int(high)
 
     def _position(self, consumer: _Consumer, topic: Topic, low: int) -> int:
         (current,) = consumer.position([self._partition(topic)])
         if current.offset >= 0:
             return int(current.offset)
-        (committed,) = consumer.committed([self._partition(topic)], timeout=BROKER_TIMEOUT)
+        (committed,) = self._retry(
+            lambda: consumer.committed([self._partition(topic)], timeout=BROKER_TIMEOUT),
+            f"the committed offset of {topic.value}",
+        )
         return int(committed.offset) if committed.offset >= 0 else low
 
     def batches_to_end(self, topic: Topic, group: str, max_records: int) -> Iterator[list[Record]]:
@@ -305,13 +345,20 @@ class KafkaTransport:
     def commit(self, record: Record, group: str) -> None:
         consumer = self._consumer(group, record.topic)
         offset = self._partition(record.topic, record.position)
-        consumer.commit(offsets=[offset], asynchronous=False)
+        self._retry(
+            lambda: consumer.commit(offsets=[offset], asynchronous=False),
+            f"a commit to {record.topic.value}",
+        )
 
     def rewind(self, topic: Topic, group: str) -> None:
         consumer = self._consumer(group, topic)
         low, _ = self._end(consumer, topic)
         consumer.assign([self._partition(topic, low)])
-        consumer.commit(offsets=[self._partition(topic, low)], asynchronous=False)
+        start = self._partition(topic, low)
+        self._retry(
+            lambda: consumer.commit(offsets=[start], asynchronous=False),
+            f"rewinding {topic.value}",
+        )
 
     def close(self) -> None:
         try:

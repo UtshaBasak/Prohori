@@ -12,6 +12,7 @@ from scripts import benign_maxima
 def maxima() -> dict[str, int]:
     measured = benign_maxima.measure()
     assert measured["variant"] == "default"
+    assert measured["addresses"] == 2  # the thresholds were derived on address model 2
     return {name: found["max"] for name, found in measured["measures"].items()}
 
 

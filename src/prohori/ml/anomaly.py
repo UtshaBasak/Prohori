@@ -53,7 +53,7 @@ SCALE_FLOORS = {
     "new_client_ratio": 0.1,
     "night_ratio": 0.1,
 }
-Z_THRESHOLD = 12.0
+Z_THRESHOLD = 10.0
 IFOREST_THRESHOLD = 0.8
 #: Fixed limits of the threshold baseline.
 THRESHOLDS = {

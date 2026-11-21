@@ -9,11 +9,11 @@
     "seed": 1
   },
   "incident": {
-    "id": "INC-03933da8174cf166",
+    "id": "INC-418986f7cc7dbc66",
     "title": "Sensitive account change shortly after sign-in",
     "status": "open",
     "severity": "high",
-    "score": 60.0,
+    "score": 50.0,
     "score_breakdown": [
       {
         "reason": "Most severe alert: PRH-ACCT-001 (high)",
@@ -22,42 +22,38 @@
       {
         "reason": "Sensitive account or admin change: account.password.changed",
         "points": 15.0
-      },
-      {
-        "reason": "Sign-in to u-1005 from 192.0.2.253, an IP not seen for this account before (1 earlier IP)",
-        "points": 10.0
       }
     ],
-    "first_seen": "2026-10-23T19:44:36.388000Z",
-    "last_seen": "2026-10-23T19:49:14.225000Z",
+    "first_seen": "2026-10-23T21:55:05.562000Z",
+    "last_seen": "2026-10-23T22:13:17.299000Z",
     "entities": {
       "source.ip": [
-        "192.0.2.253"
+        "192.0.2.81"
       ],
       "user.email_hash": [
-        "e657eb26315e2a308f3d0936dc72d168"
+        "5459e60c60eaf85a15f0cb102024e075"
       ],
       "user.id": [
-        "u-1005"
+        "u-1001"
       ]
     },
     "alerts": [
       {
-        "id": "alr-7a86a29b9f4062880acd7a59",
+        "id": "alr-1c91faf21062dbd0525e3ed5",
         "detector_id": "PRH-ACCT-001",
         "detector_kind": "rule",
         "title": "Sensitive account change shortly after sign-in",
         "severity": "high",
         "score": 75.0,
         "event_ids": [
-          "evt-0ad4876646eebdc5c0270f11",
-          "evt-45f838bc16b22d06a6135110"
+          "evt-41ffa24739a862d2384ff6f6",
+          "evt-f282879a7c3943d0328e615c"
         ],
         "entities": {
-          "user.id": "u-1005"
+          "user.id": "u-1001"
         },
-        "first_seen": "2026-10-23T19:44:36.388000Z",
-        "last_seen": "2026-10-23T19:49:14.225000Z",
+        "first_seen": "2026-10-23T21:55:05.562000Z",
+        "last_seen": "2026-10-23T22:13:17.299000Z",
         "attack": [
           "attack.persistence",
           "attack.privilege_escalation",
@@ -66,39 +62,39 @@
           "attack.t1098",
           "attack.t1556.006"
         ],
-        "explanation": "1 x signin then 1 x change for user.id=u-1005 within 30m"
+        "explanation": "1 x signin then 1 x change for user.id=u-1001 within 30m"
       }
     ],
     "timeline": [
       {
-        "timestamp": "2026-10-23T19:44:36.388000Z",
-        "description": "[app-security] auth.signin.success (success), account u-1005, from 192.0.2.253, POST /api/auth/signin, client web",
-        "event_id": "evt-0ad4876646eebdc5c0270f11",
-        "account": "u-1005",
-        "source_ip": "192.0.2.253"
+        "timestamp": "2026-10-23T21:55:05.562000Z",
+        "description": "[app-security] auth.signin.success (success), account u-1001, from 192.0.2.81, POST /api/auth/signin, client android/10203",
+        "event_id": "evt-41ffa24739a862d2384ff6f6",
+        "account": "u-1001",
+        "source_ip": "192.0.2.81"
       },
       {
-        "timestamp": "2026-10-23T19:49:14.225000Z",
-        "description": "[app-security] account.password.changed (success), account u-1005, from 192.0.2.253, PATCH /api/account, client web",
-        "event_id": "evt-45f838bc16b22d06a6135110",
-        "account": "u-1005",
-        "source_ip": "192.0.2.253"
+        "timestamp": "2026-10-23T22:13:17.299000Z",
+        "description": "[app-security] account.password.changed (success), account u-1001, from 192.0.2.81, PATCH /api/account, client android/10203",
+        "event_id": "evt-f282879a7c3943d0328e615c",
+        "account": "u-1001",
+        "source_ip": "192.0.2.81"
       },
       {
-        "timestamp": "2026-10-23T19:49:14.225000Z",
+        "timestamp": "2026-10-23T22:13:17.299000Z",
         "description": "Alert PRH-ACCT-001 (high): Sensitive account change shortly after sign-in",
-        "alert_id": "alr-7a86a29b9f4062880acd7a59"
+        "alert_id": "alr-1c91faf21062dbd0525e3ed5"
       }
     ],
     "indicators": [
       {
         "type": "ip",
-        "value": "192.0.2.253",
+        "value": "192.0.2.81",
         "enrichment": []
       },
       {
         "type": "user_agent",
-        "value": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0 Safari/537.36",
+        "value": "okhttp/4.12.0",
         "enrichment": []
       }
     ],

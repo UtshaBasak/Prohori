@@ -1,6 +1,6 @@
 {
   "format": "prohori.performance/1",
-  "date": "2026-11-02",
+  "date": "2026-11-21",
   "target_lines": 1000000,
   "machine": {
     "system": "Windows 11",
@@ -8,69 +8,69 @@
     "processor": "Intel64 Family 6 Model 141 Stepping 1, GenuineIntel",
     "cpus": 12,
     "python": "3.13.14",
-    "prohori": "1.0.0"
+    "prohori": "1.0.1"
   },
   "runs": [
     {
       "name": "incidents-access_log",
       "command": "prohori incidents WORK/access_log.log -p access_log -f json --exit-zero",
-      "seconds": 150.38,
-      "peak_memory_mib": 142.3,
+      "seconds": 149.27,
+      "peak_memory_mib": 148.7,
       "exit_code": 0,
       "output_lines": 6,
       "parser": "access_log",
-      "lines": 1068043,
-      "bytes": 212308045,
-      "lines_per_second": 7102,
+      "lines": 1068041,
+      "bytes": 216228514,
+      "lines_per_second": 7155,
       "enrichment": "offline"
     },
     {
       "name": "pipeline-replay",
       "command": "prohori pipeline replay WORK/access_log.log -p access_log --state WORK/pipeline-state",
-      "seconds": 478.06,
-      "peak_memory_mib": 1078.1,
+      "seconds": 563.87,
+      "peak_memory_mib": 1096.3,
       "exit_code": 0,
       "output_lines": 11,
       "parser": "access_log",
-      "lines": 1068043,
-      "bytes": 212308045,
-      "lines_per_second": 2234,
+      "lines": 1068041,
+      "bytes": 216228514,
+      "lines_per_second": 1894,
       "enrichment": "offline",
-      "state_bytes": 1794010556
+      "state_bytes": 1837724006
     },
     {
       "name": "incidents-auth_log",
       "command": "prohori incidents WORK/auth_log.log -p auth_log -f json --exit-zero --year 2026",
-      "seconds": 77.78,
-      "peak_memory_mib": 181.0,
+      "seconds": 99.97,
+      "peak_memory_mib": 179.5,
       "exit_code": 0,
-      "output_lines": 1089,
+      "output_lines": 1256,
       "parser": "auth_log",
-      "lines": 1000198,
-      "bytes": 104362532,
-      "lines_per_second": 12859,
+      "lines": 1000591,
+      "bytes": 105736586,
+      "lines_per_second": 10009,
       "enrichment": "offline"
     },
     {
       "name": "incidents-app_json",
       "command": "prohori incidents WORK/app_json.log -p app_json -f json --exit-zero",
-      "seconds": 119.86,
-      "peak_memory_mib": 524.1,
+      "seconds": 166.11,
+      "peak_memory_mib": 245.3,
       "exit_code": 0,
-      "output_lines": 13980,
+      "output_lines": 1873,
       "parser": "app_json",
-      "lines": 1035764,
-      "bytes": 484864043,
-      "lines_per_second": 8641,
+      "lines": 1036150,
+      "bytes": 486056189,
+      "lines_per_second": 6238,
       "enrichment": "offline"
     },
     {
       "name": "demo",
       "command": "prohori demo --out WORK/demo",
-      "seconds": 1.5,
-      "peak_memory_mib": 60.8,
+      "seconds": 1.47,
+      "peak_memory_mib": 61.8,
       "exit_code": 0,
-      "output_lines": 20
+      "output_lines": 23
     }
   ],
   "alert_storm": {
@@ -80,13 +80,13 @@
       {
         "name": "storm-detect-json",
         "command": "prohori detect WORK/alert-storm.jsonl -p app_json --exit-zero -f json",
-        "seconds": 152.13,
-        "peak_memory_mib": 68.1,
+        "seconds": 134.05,
+        "peak_memory_mib": 67.9,
         "exit_code": 0,
         "output_lines": 1360000,
         "lines": 1000000,
         "bytes": 151541046,
-        "lines_per_second": 6573,
+        "lines_per_second": 7460,
         "alerts": 1360000,
         "alerts_not_kept": 0,
         "within_bound": true
@@ -94,13 +94,13 @@
       {
         "name": "storm-detect-table",
         "command": "prohori detect WORK/alert-storm.jsonl -p app_json --exit-zero",
-        "seconds": 128.62,
+        "seconds": 118.55,
         "peak_memory_mib": 68.3,
         "exit_code": 0,
         "output_lines": 568,
         "lines": 1000000,
         "bytes": 151541046,
-        "lines_per_second": 7775,
+        "lines_per_second": 8435,
         "alerts": null,
         "alerts_not_kept": 0,
         "within_bound": true
@@ -108,18 +108,18 @@
       {
         "name": "storm-incidents",
         "command": "prohori incidents WORK/alert-storm.jsonl -p app_json --exit-zero -f json",
-        "seconds": 146.43,
-        "peak_memory_mib": 201.9,
+        "seconds": 131.79,
+        "peak_memory_mib": 201.4,
         "exit_code": 0,
         "output_lines": 2,
         "lines": 1000000,
         "bytes": 151541046,
-        "lines_per_second": 6829,
+        "lines_per_second": 7588,
         "alerts": 1360000,
         "alerts_not_kept": 1340000,
         "within_bound": true
       }
     ],
-    "date": "2026-11-20"
+    "date": "2026-11-21"
   }
 }

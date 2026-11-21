@@ -28,8 +28,11 @@ It then runs each command once, in its own process, and records:
   (Windows), read from the operating system for that process alone;
 - **exit code** and the machine it ran on.
 
-The throughput runs below were measured with 1.0's 15 rules; 1.1 has 21 (step 28b), which costs
-some throughput and has not been measured yet. The commands are `prohori incidents` on every log
+The runs below (2026-11-21, step 28c) use 1.1's 21 rules and logs from simulator address model
+2. Compared with the 2026-11-02 runs (1.0's 15 rules, address model 1), the auth.log and app log
+read about 22 % and 28 % fewer lines a second and lite mode 15 % fewer, the cost of the six
+per-account, per-network and per-log rules; the app log's peak memory fell from 524 to 245 MiB.
+One run each on one machine, so differences of a few percent are noise. The commands are `prohori incidents` on every log
 (parsing, the rules, offline enrichment,
 incident building and JSON output), `prohori pipeline replay` in lite mode on the access log, and
 `prohori demo`. Output goes to files, not a terminal.
@@ -37,25 +40,25 @@ incident building and JSON output), `prohori pipeline replay` in lite mode on th
 ## Results
 
 <!-- performance:start -->
-Generated from `results/performance.json` by `scripts/benchmark.py`, run on 2026-11-02 with Prohori 1.0.0 and Python 3.13.14 on Windows 11 (AMD64, 12 logical CPUs, Intel64 Family 6 Model 141 Stepping 1, GenuineIntel). Do not edit by hand.
+Generated from `results/performance.json` by `scripts/benchmark.py`, run on 2026-11-21 with Prohori 1.0.1 and Python 3.13.14 on Windows 11 (AMD64, 12 logical CPUs, Intel64 Family 6 Model 141 Stepping 1, GenuineIntel). Do not edit by hand.
 
 | Run | Lines | Size | Time | Lines a second | Peak memory | Exit code |
 | ----- | ------: | -----: | -----: | ------: | ------: | ------: |
-| `incidents`, nginx/Apache access log | 1,068,043 | 202 MiB | 150.4 s | 7,102 | 142 MiB | 0 |
-| `pipeline replay` (lite mode), access log | 1,068,043 | 202 MiB | 478.1 s | 2,234 | 1,078 MiB | 0 |
-| `incidents`, auth.log (sshd) | 1,000,198 | 100 MiB | 77.8 s | 12,859 | 181 MiB | 0 |
-| `incidents`, JSON Lines app log | 1,035,764 | 462 MiB | 119.9 s | 8,641 | 524 MiB | 0 |
-| `demo` | - | - | 1.5 s | - | 61 MiB | 0 |
+| `incidents`, nginx/Apache access log | 1,068,041 | 206 MiB | 149.3 s | 7,155 | 149 MiB | 0 |
+| `pipeline replay` (lite mode), access log | 1,068,041 | 206 MiB | 563.9 s | 1,894 | 1,096 MiB | 0 |
+| `incidents`, auth.log (sshd) | 1,000,591 | 101 MiB | 100.0 s | 10,009 | 180 MiB | 0 |
+| `incidents`, JSON Lines app log | 1,036,150 | 464 MiB | 166.1 s | 6,238 | 245 MiB | 0 |
+| `demo` | - | - | 1.5 s | - | 62 MiB | 0 |
 
-Lite mode's state directory (topics, positions and the DuckDB warehouse) grew to 1,711 MiB for the 202 MiB log; its topics are not trimmed.
+Lite mode's state directory (topics, positions and the DuckDB warehouse) grew to 1,753 MiB for the 206 MiB log; its topics are not trimmed.
 
-**Alert storm** (2026-11-20): an application log of 1,000,000 lines in which every line raises at least one alert (1,360,000 in all). Every run must stay under 512 MiB of peak memory.
+**Alert storm** (2026-11-21): an application log of 1,000,000 lines in which every line raises at least one alert (1,360,000 in all). Every run must stay under 512 MiB of peak memory.
 
 | Run | Time | Peak memory | Alerts not kept | Within the bound |
 | ----- | -----: | ------: | ------: | ----- |
-| `detect -f json` (writes each alert as it is raised) | 152.1 s | 68 MiB | 0 | yes |
-| `detect` table (shows the first 100, counts the rest) | 128.6 s | 68 MiB | 0 | yes |
-| `incidents` (keeps a bounded number of alerts) | 146.4 s | 202 MiB | 1,340,000 | yes |
+| `detect -f json` (writes each alert as it is raised) | 134.1 s | 68 MiB | 0 | yes |
+| `detect` table (shows the first 100, counts the rest) | 118.5 s | 68 MiB | 0 | yes |
+| `incidents` (keeps a bounded number of alerts) | 131.8 s | 201 MiB | 1,340,000 | yes |
 <!-- performance:end -->
 
 ## What the numbers mean

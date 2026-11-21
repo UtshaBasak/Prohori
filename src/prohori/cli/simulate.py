@@ -68,7 +68,8 @@ def simulate_command(
     typer.echo(
         f"wrote {out / simulation.scenario.filename} ({len(simulation.lines)} lines, "
         f"{sum(1 for _, a in simulation.lines if a)} attack), "
-        f"{files['labels']['name']} and manifest.json; parse with --parser "
+        f"{files['labels']['name']} and manifest.json (address model {manifest['addresses']}); "
+        f"parse with --parser "
         f"{simulation.scenario.parser}"
         + (f" --year {simulation.year}" if simulation.scenario.parser == "auth_log" else "")
     )

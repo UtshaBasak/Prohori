@@ -50,12 +50,12 @@ def test_replay_twice_writes_each_row_once(web_log: Path, tmp_path: Path) -> Non
     result = runner.invoke(app, args)
     assert result.exit_code == 0, result.output
     assert "Pipeline stages" in result.stdout
-    assert "events 1,690" in result.stdout
+    assert "events 1,689" in result.stdout
     again = runner.invoke(app, [*args[:3], "--state", str(state), "-f", "json", "--no-enrich"])
     assert again.exit_code == 0, again.output
     metrics = _json(again.stdout)
-    assert metrics["tables"] == {"events": 1690, "alerts": 22, "incidents": 1, "dead_letters": 0}
-    assert metrics["lines_replayed"] == 1690
+    assert metrics["tables"] == {"events": 1689, "alerts": 22, "incidents": 1, "dead_letters": 0}
+    assert metrics["lines_replayed"] == 1689
     assert (state / "prohori.duckdb").is_file()
 
 
@@ -114,8 +114,8 @@ def test_tail_follows_a_file_until_stopped(web_log: Path, tmp_path: Path) -> Non
     result = runner.invoke(app, [*args, "--max-rounds", "2"])
     assert result.exit_code == 0, result.output
     metrics = _json(result.stdout)
-    assert metrics["lines_tailed"] == 1690
-    assert metrics["tables"]["events"] == 1690  # type: ignore[index]
+    assert metrics["lines_tailed"] == 1689
+    assert metrics["tables"]["events"] == 1689  # type: ignore[index]
     assert list((state / "tail").glob("*.json"))
     # Run again: the checkpoint says everything was read, so nothing is tailed twice.
     again = runner.invoke(app, [*args, "--max-rounds", "1"])
@@ -174,14 +174,14 @@ def test_replay_and_tail_publish_to_kafka(broker: Broker, web_log: Path, tmp_pat
         app, ["pipeline", "replay", str(web_log), "--bootstrap", "b:9092", "--times", "2"]
     )
     assert result.exit_code == 0, result.output
-    assert "Published 3,380 line(s)" in result.stdout
-    assert len(broker.topics["raw-logs"]) == 3380
+    assert "Published 3,378 line(s)" in result.stdout
+    assert len(broker.topics["raw-logs"]) == 3378
     live = tmp_path / "live.log"
     live.write_bytes(web_log.read_bytes())
     args = ["pipeline", "tail", str(live), "--bootstrap", "b:9092", "--state", str(tmp_path)]
     tail = runner.invoke(app, [*args, "--poll", "0", "--max-rounds", "2"])
     assert tail.exit_code == 0, tail.output
-    assert "Published 1,690 line(s)" in tail.stdout
+    assert "Published 1,689 line(s)" in tail.stdout
 
 
 def test_replay_to_an_unreachable_broker_exits_1(broker: Broker, web_log: Path) -> None:
@@ -200,8 +200,8 @@ def test_run_every_stage_over_kafka(broker: Broker, web_log: Path, tmp_path: Pat
     assert result.exit_code == 0, result.output
     stopped = json.loads(result.stderr.strip().splitlines()[-1])
     assert stopped["stopped"] == ["normalise", "detect", "incidents", "sink"]
-    assert stopped["stages"]["sink"]["produced"] > 1690
-    assert broker.committed[("prohori-sink", "events")] == 1690
+    assert stopped["stages"]["sink"]["produced"] > 1689
+    assert broker.committed[("prohori-sink", "events")] == 1689
 
 
 def test_run_without_a_reachable_database_exits_1(

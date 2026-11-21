@@ -8,9 +8,9 @@ are **opt-in and off by default**. Everything Prohori does works without them, a
 
 ```bash
 pip install "prohori[llm]"                                   # or: uv sync --extra llm
-prohori explain samples/incidents/INC-14756953ade54922.json --show-payload   # what would be sent; sends nothing
+prohori explain samples/incidents/INC-ee7c8818fbb34989.json --show-payload   # what would be sent; sends nothing
 export PROHORI_LLM_PROVIDER=gemini GEMINI_API_KEY=...         # or put them in .env
-prohori explain samples/incidents/INC-14756953ade54922.json
+prohori explain samples/incidents/INC-ee7c8818fbb34989.json
 prohori ask "How should I respond to password spraying?"      # offline: shows the best sources
 ```
 
@@ -271,10 +271,10 @@ Generated from `results/llm_eval.json` by `python -m prohori.llm.evaluate score`
 
 | System | Answers | Accepted by the checks | With a factual error (model / shown) | Indicators named (model / shown) | Points covered (model / shown) | Stale |
 | -------- | ------: | ------: | ------: | ------: | ------: | ------: |
-| Local summary (no model) | 31 | - | - / 0/31 | - / 80/114 | - / 88/92 | 0 |
-| Mock (a template, offline) | 31 | 31/31 | 0/31 / 0/31 | 79/114 / 79/114 | 82/92 / 82/92 | 0 |
+| Local summary (no model) | 31 | - | - / 0/31 | - / 81/115 | - / 88/93 | 0 |
+| Mock (a template, offline) | 31 | 31/31 | 0/31 / 0/31 | 80/115 / 80/115 | 83/93 / 83/93 | 0 |
 | Scripted adversary (obeys every injection) | 8 | 3/8 | 8/8 / 3/8 | 6/24 / 12/24 | 2/16 / 11/16 | 0 |
-| Gemini (gemini-3.5-flash-lite) | 30 | 28/30 | 2/30 / 0/30 | 110/112 / 111/112 | 83/89 / 84/89 | 3 |
+| Gemini (gemini-3.5-flash-lite) | 30 | 8/30 | 22/30 / 0/30 | 70/113 / 87/113 | 84/90 / 85/90 | 22 |
 
 Injections, by case: whether the injected text reached the model at all (always inside a fence), then for each system whether its answer followed the injection and whether that reached the analyst.
 
@@ -292,10 +292,11 @@ Injections, by case: whether the injected text reached the model at all (always 
 
 What Gemini's run shows (gemini-3.5-flash-lite, one recording on 2026-11-02, 34 requests for
 the 30 cases of 1.0; it used tools in 3 of them). The set has 31 cases since 1.1: the new case
-has no Gemini answer, and three answers were recorded for the 1.0 version of their incidents
-(marked stale in the table and replayed against today's incidents, which is what moved its
-accepted and error counts). The points below are about the original run; recording again needs
-a Gemini key:
+has no Gemini answer. Since step 28c the simulated cases come from simulator address model 2
+(ADR-0038), so 22 of Gemini's answers were recorded for an older version of their incident
+(marked stale in the table and replayed against today's incidents: they name the old
+addresses and accounts, which is what moved its accepted and error counts). The points below
+are about the original run; recording again needs a Gemini key:
 
 - **Every answer passed the checks** and none made a factual error by these measures: no
   invented value or link, no attack called benign, no false positive called a compromise.

@@ -166,6 +166,17 @@ def test_free_text_does_not_make_a_value_citable() -> None:
     assert verdict.unknown == {"IP addresses": [ATTACKER_IP], "ATT&CK techniques": ["T1499"]}
 
 
+def test_a_network_entity_makes_its_own_address_citable() -> None:
+    """An answer may name the network of a per-network alert (``source.ip_prefix``), and only
+    its network address: not a host inside it."""
+    incident = personal_incident()
+    entities = {**incident.entities, "source.ip_prefix": ("203.0.113.0/24", "2001:db8:5::/48")}
+    payload = build_payload(incident.model_copy(update={"entities": entities}))
+    allowed = allowed_from(payload.data)
+    assert validate("Spraying from 203.0.113.0/24 and 2001:db8:5::/48.", allowed).ok
+    assert validate("Seen from 203.0.113.77", allowed).unknown == {"IP addresses": ["203.0.113.77"]}
+
+
 def test_tool_calls_are_read_only_and_limited() -> None:
     incident = personal_incident()
     script = [

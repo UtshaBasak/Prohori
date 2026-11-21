@@ -6,9 +6,12 @@ Runs every scenario in both variants (default and held-out) for each seed, compa
 with the line labels and writes per-rule precision and recall to ``results/rules_eval.json``.
 Then run ``scripts/generate_results_table.py`` to update the table in ``docs/SIMULATOR.md``.
 
-The results file keeps a frozen **baseline**: the 1.0 rules' results, recorded once with
-``--freeze-baseline`` before the rules were changed, so the before-and-after comparison cannot
-drift. Later runs copy it over unchanged.
+The results file keeps frozen **baselines** under their labels: earlier rule sets' results,
+each recorded once with ``--freeze-baseline LABEL`` (usually with ``--rules`` pointing at that
+rule set, checked out from git) and never replaced, so the before-and-after comparison cannot
+drift. Each records the simulator's address model; a baseline cannot be extended on another
+model, so a new simulator gets new labels and the old baselines stay for reference. Later runs
+copy every baseline over unchanged.
 
     uv run python scripts/evaluate_rules.py [--seeds 5] [--out results/rules_eval.json]
 """
@@ -20,7 +23,7 @@ from pathlib import Path
 from typing import Any
 
 from prohori.rules import CompiledRule, builtin_rules_dir, load_rules
-from prohori.simulate import SCENARIOS, VARIANTS
+from prohori.simulate import ADDRESS_MODEL, SCENARIOS, VARIANTS
 from prohori.simulate.evaluate import evaluate
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -40,8 +43,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--freeze-baseline",
         metavar="LABEL",
-        help="record this run as the baseline: once before changing the rules, and later only "
-        "to add a variant the baseline does not have yet (never to replace one)",
+        help="record this run as the baseline LABEL: once before changing the rules, and later "
+        "only to add a variant that baseline does not have yet (never to replace one)",
     )
     parser.add_argument(
         "--rules",
@@ -67,8 +70,8 @@ def main(argv: list[str] | None = None) -> int:
     if args.rules:
         parser.error("--rules is only for --freeze-baseline or --variants")
     results = evaluate(rules, seeds=range(1, args.seeds + 1))
-    if "baseline" in previous:
-        results["baseline"] = previous["baseline"]
+    if "baselines" in previous:
+        results["baselines"] = previous["baselines"]
     args.out.parent.mkdir(parents=True, exist_ok=True)
     args.out.write_text(json.dumps(results, indent=2) + "\n", encoding="utf-8", newline="\n")
     print(
@@ -86,28 +89,37 @@ def main(argv: list[str] | None = None) -> int:
 def _freeze(
     label: str, rules: list[CompiledRule], seeds: int, out: Path, previous: dict[str, Any]
 ) -> int:
-    """Record the baseline's missing variants; never change one that is already there."""
+    """Record the missing variants of baseline ``label``; never change one that is there."""
     ids = sorted(r.id for r in rules)
-    baseline = previous.get("baseline")
-    if baseline is not None and (baseline["label"] != label or baseline["rules"] != ids):
-        print("the frozen baseline has another label or rule set", file=sys.stderr)
+    baselines: dict[str, Any] = previous.get("baselines", {})
+    baseline = baselines.get(label)
+    if baseline is not None and baseline["rules"] != ids:
+        print(f"the frozen baseline {label!r} has another rule set", file=sys.stderr)
+        return 1
+    if baseline is not None and baseline["addresses"] != ADDRESS_MODEL:
+        print(
+            f"the frozen baseline {label!r} was scored on address model {baseline['addresses']}, "
+            f"not {ADDRESS_MODEL}; freeze a new label instead",
+            file=sys.stderr,
+        )
         return 1
     have = set(baseline["variants"]) if baseline is not None else set()
     missing = [v for v in VARIANTS if v not in have]
     if not missing:
         print(
-            "every variant of the baseline is frozen already; it is never replaced", file=sys.stderr
+            f"every variant of the baseline {label!r} is frozen already; it is never replaced",
+            file=sys.stderr,
         )
         return 1
     results = evaluate(rules, seeds=range(1, seeds + 1), variants_to_run=missing)
     if baseline is None:
-        baseline = {"label": label, "rules": ids, "variants": {}}
+        baseline = {"label": label, "rules": ids, "addresses": ADDRESS_MODEL, "variants": {}}
     baseline["variants"].update(results["variants"])
     document = previous or results
-    document["baseline"] = baseline
+    document["baselines"] = {**baselines, label: baseline}
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps(document, indent=2) + "\n", encoding="utf-8", newline="\n")
-    print(f"froze the baseline's {', '.join(missing)} results in {out}")
+    print(f"froze the {', '.join(missing)} results of the baseline {label!r} in {out}")
     return 0
 
 
