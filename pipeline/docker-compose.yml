@@ -8,7 +8,14 @@
 #   open http://127.0.0.1:13000 (dashboards) and http://127.0.0.1:18080 (Airflow)
 #   prohori pipeline down      # --volumes also deletes the data
 #
-# Ports are published on 127.0.0.1 only. Passwords default to local-only values; set
+# Logins (since 1.1): Grafana asks for a login (user admin), Airflow too (user prohori), and
+# Redpanda accepts only SASL/SCRAM clients. Their passwords are generated on the first
+# 'prohori pipeline up' into pipeline/.env, which git ignores and Compose reads by itself; with
+# plain 'docker compose', run 'prohori pipeline up' once first or write the file yourself
+# (docs/PIPELINE.md). PROHORI_GRAFANA_ANONYMOUS=true opens the dashboards to anonymous viewers
+# again, as in 1.0.
+#
+# Ports are published on 127.0.0.1 only. Database passwords default to local-only values; set
 # PROHORI_POSTGRES_PASSWORD (the database superuser, used only by warehouse-init and fixed when
 # the volume is created), PROHORI_APP_DB_PASSWORD (prohori_app, the role the stages, dbt and
 # Airflow's jobs use), PROHORI_GRAFANA_PASSWORD (Grafana's admin), PROHORI_GRAFANA_DB_PASSWORD
@@ -37,6 +44,8 @@ x-stage: &stage
       condition: service_completed_successfully
   environment:
     PROHORI_KAFKA_BOOTSTRAP: redpanda:9092
+    PROHORI_KAFKA_USER: prohori-stage
+    PROHORI_KAFKA_PASSWORD: ${PROHORI_KAFKA_STAGE_PASSWORD:?}
     # The password comes from PGPASSWORD (read by libpq), never from inside a URL.
     PROHORI_POSTGRES_DSN: host=postgres port=5432 dbname=prohori user=prohori_app
     PGPASSWORD: ${PROHORI_APP_DB_PASSWORD:-prohori}
@@ -91,13 +100,20 @@ services:
     mem_limit: 1536m
 
   redpanda-init:
-    # Runs once per 'up' and exits. --set above only seeds a new cluster; a cluster created by an
-    # earlier version of the stack (in dev-container mode) still has write caching on.
+    # Runs once per 'up' and exits (pipeline/redpanda/init.sh): turns write caching off on a
+    # cluster an earlier version created, creates or updates the three SASL/SCRAM users with
+    # their least-privilege ACLs, and turns SASL on. Safe to run again with new passwords.
     image: redpandadata/redpanda:v26.2.6@sha256:8b1076e0d61bfceb66594dc01536427ce0b529f8ead35fdab9763ab6085891ce
     depends_on:
       redpanda:
         condition: service_healthy
-    command: [cluster, config, set, write_caching_default, "false", -X, "admin.hosts=redpanda:9644"]
+    entrypoint: ["/bin/bash", "/init/init.sh"]
+    environment:
+      KAFKA_ADMIN_PASSWORD: ${PROHORI_KAFKA_ADMIN_PASSWORD:?}
+      KAFKA_STAGE_PASSWORD: ${PROHORI_KAFKA_STAGE_PASSWORD:?}
+      KAFKA_PRODUCER_PASSWORD: ${PROHORI_KAFKA_PRODUCER_PASSWORD:?}
+    volumes:
+      - ./redpanda:/init:ro
     mem_limit: 128m
 
   postgres:
@@ -153,9 +169,11 @@ services:
         condition: service_completed_successfully
     environment:
       GF_SECURITY_ADMIN_USER: admin
-      GF_SECURITY_ADMIN_PASSWORD: ${PROHORI_GRAFANA_PASSWORD:-prohori}
+      GF_SECURITY_ADMIN_PASSWORD: ${PROHORI_GRAFANA_PASSWORD:?}
       # The dashboards open without a login, read-only.
-      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      # Off since 1.1: the dashboards need a login. PROHORI_GRAFANA_ANONYMOUS=true opens them to
+      # anonymous viewers again (read-only, as in 1.0).
+      GF_AUTH_ANONYMOUS_ENABLED: ${PROHORI_GRAFANA_ANONYMOUS:-false}
       GF_AUTH_ANONYMOUS_ORG_ROLE: Viewer
       GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH: /etc/grafana/dashboards/overview.json
       # No calls home: usage reporting, update checks, news and plugin downloads are off.
@@ -220,12 +238,19 @@ services:
       sink:
         condition: service_healthy
     # One container runs the scheduler, the DAG processor, the triggerer and the API server. The
-    # secret that signs their internal tokens is new on every start and never written down.
+    # secret that signs their internal tokens is new on every start and never written down. The
+    # one user's password comes from pipeline/.env and is written to the simple auth manager's
+    # password file (inside the container only) before Airflow starts.
     command:
       - bash
       - -c
       - >-
         export AIRFLOW__API_AUTH__JWT_SECRET="$$(python -c 'import secrets; print(secrets.token_urlsafe(32))')"
+        && python -c "import json, os, pathlib;
+        path = pathlib.Path(os.environ['AIRFLOW__CORE__SIMPLE_AUTH_MANAGER_PASSWORDS_FILE']);
+        path.write_text(json.dumps({'prohori': os.environ['PROHORI_AIRFLOW_PASSWORD']}));
+        path.chmod(0o600)"
+        && unset PROHORI_AIRFLOW_PASSWORD
         && exec airflow standalone
     environment:
       AIRFLOW__CORE__EXECUTOR: LocalExecutor
@@ -242,13 +267,19 @@ services:
       AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: "False"
       AIRFLOW__CORE__PARALLELISM: "4"
       AIRFLOW__API__WORKERS: "1"
-      # Local use: everyone who can reach 127.0.0.1:18080 is an admin, without a login.
-      AIRFLOW__CORE__SIMPLE_AUTH_MANAGER_ALL_ADMINS: "True"
+      # One user, prohori, with a login (1.0 made everyone who could reach the port an admin).
+      AIRFLOW__CORE__SIMPLE_AUTH_MANAGER_ALL_ADMINS: "False"
+      AIRFLOW__CORE__SIMPLE_AUTH_MANAGER_USERS: prohori:admin
+      AIRFLOW__CORE__SIMPLE_AUTH_MANAGER_PASSWORDS_FILE: /opt/airflow/simple_auth_manager_passwords.json
+      PROHORI_AIRFLOW_PASSWORD: ${PROHORI_AIRFLOW_PASSWORD:?}
       # No usage data is sent.
       AIRFLOW__USAGE_DATA_COLLECTION__ENABLED: "False"
       SCARF_ANALYTICS: "false"
-      # What the jobs use (pipeline/airflow/dags/prohori_common.py).
+      # What the jobs use (pipeline/airflow/dags/prohori_common.py). They only publish, so they
+      # use the producer's Kafka login.
       PROHORI_KAFKA_BOOTSTRAP: redpanda:9092
+      PROHORI_KAFKA_USER: prohori-producer
+      PROHORI_KAFKA_PASSWORD: ${PROHORI_KAFKA_PRODUCER_PASSWORD:?}
       PROHORI_POSTGRES_DSN: host=postgres port=5432 dbname=prohori user=prohori_app
       PGPASSWORD: ${PROHORI_APP_DB_PASSWORD:-prohori}
       PROHORI_POSTGRES_HOST: postgres

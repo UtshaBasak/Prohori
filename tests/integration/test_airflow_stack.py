@@ -15,6 +15,8 @@ import os
 import shutil
 import subprocess
 import time
+import urllib.error
+import urllib.request
 from pathlib import Path
 from typing import Any
 
@@ -80,6 +82,36 @@ def _run(dag_id: str, conf: str = "{}", timeout: float = 1200) -> dict[str, str]
     return states
 
 
+def _api(path: str, *, body: object | None = None, token: str | None = None) -> tuple[int, Any]:
+    """An HTTP call to Airflow's API: the status code and the JSON answer."""
+    headers = {"Content-Type": "application/json"}
+    if token:
+        headers["Authorization"] = f"Bearer {token}"
+    data = json.dumps(body).encode() if body is not None else None
+    request = urllib.request.Request(  # noqa: S310 - fixed http://127.0.0.1 URL
+        stack.airflow_url() + path, data, headers
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=30) as response:  # noqa: S310
+            return response.status, json.load(response)
+    except urllib.error.HTTPError as exc:
+        return exc.code, None
+
+
+def _check_login() -> None:
+    """Airflow refuses anonymous API calls; the generated user's password gets a token."""
+    password = stack.read_env(stack.env_path(COMPOSE))["PROHORI_AIRFLOW_PASSWORD"]
+    assert _api("/api/v2/monitor/health")[0] == 200  # the container's health check
+    assert _api("/api/v2/dags")[0] == 401
+    wrong = {"username": "prohori", "password": "not" + "-it"}
+    assert _api("/auth/token", body=wrong)[0] in {401, 403}
+    status, answer = _api("/auth/token", body={"username": "prohori", "password": password})
+    assert status in {200, 201}, status
+    code, dags = _api("/api/v2/dags", token=answer["access_token"])
+    assert code == 200
+    assert dags["total_entries"] >= 1
+
+
 def _rows(dsn: str, table: str) -> int:
     import psycopg
 
@@ -101,6 +133,7 @@ def test_every_dag_runs_in_the_stack(monkeypatch: pytest.MonkeyPatch) -> None:
         up = runner.invoke(app, ["pipeline", "up", "--orchestration", "--timeout", "900"])
         assert up.exit_code == 0, up.output
         assert "Airflow: http://127.0.0.1:18080" in up.stdout
+        _check_login()
         assert _json(_airflow("dags", "list-import-errors", "-o", "json")) == []
 
         # Backfill all eight scenarios into the empty stack, then build the marts.

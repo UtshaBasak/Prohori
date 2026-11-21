@@ -9,6 +9,7 @@ starts about 3 GB of containers and **deletes the stack's data volumes** before 
     PROHORI_DOCKER_TESTS=1 uv run pytest tests/integration/test_docker_stack.py -v
 """
 
+import base64
 import json
 import os
 import re
@@ -93,17 +94,62 @@ def _precision(dsn: str) -> dict[str, float | None]:
         return dict(rows.fetchall())
 
 
-def _grafana(path: str, body: object | None = None) -> Any:
-    """A Grafana API call without credentials (the dashboards are open to anonymous viewers)."""
+def _grafana(path: str, body: object | None = None, *, login: bool = True) -> Any:
+    """A Grafana API call as the generated admin (or anonymously, with ``login=False``).
+
+    Anonymous calls return ``{"status": CODE}`` when Grafana refuses them.
+    """
     data = json.dumps(body).encode() if body is not None else None
+    headers = {"Content-Type": "application/json"}
+    credentials = stack.grafana_credentials(COMPOSE)
+    if login and credentials:
+        token = base64.b64encode(":".join(credentials).encode()).decode()
+        headers["Authorization"] = f"Basic {token}"
     request = urllib.request.Request(  # noqa: S310 - fixed http://127.0.0.1 URL
-        stack.dashboard_url() + path, data, {"Content-Type": "application/json"}
+        stack.dashboard_url() + path, data, headers
     )
     try:
         with urllib.request.urlopen(request, timeout=30) as response:  # noqa: S310
             return json.load(response)
     except urllib.error.HTTPError as exc:
-        return json.loads(exc.read() or b"{}")
+        found = json.loads(exc.read() or b"{}")
+        return {"status": exc.code, **(found if isinstance(found, dict) else {})}
+
+
+def _kafka_check(credentials: tuple[str, str] | None, *, read: bool = False) -> str:
+    """What the broker says to a client with ``credentials``: "ok" or the error.
+
+    Short timeouts, so a refusal is not mistaken for a hang. ``read`` joins a consumer group on
+    the events topic instead of listing the topics.
+    """
+    from confluent_kafka import Consumer, KafkaError
+    from confluent_kafka.admin import AdminClient
+
+    from prohori.pipeline.kafka import security_config
+
+    config: dict[str, str | int | float | bool] = {
+        **security_config(credentials),
+        "bootstrap.servers": stack.default_bootstrap(),
+        "socket.timeout.ms": 5000,
+    }
+    if not read:
+        try:
+            topics = AdminClient(config).list_topics(timeout=8).topics
+        except Exception as exc:
+            return f"refused: {exc}"
+        return "ok" if "events" in topics else f"no events topic: {sorted(topics)}"
+    consumer = Consumer({**config, "group.id": "prohori-check", "auto.offset.reset": "earliest"})
+    try:
+        consumer.subscribe(["events"])
+        message = consumer.poll(10)
+        if message is None:
+            return "nothing read"
+        error = message.error()
+        if error is not None and error.code() != KafkaError._PARTITION_EOF:
+            return f"refused: {error}"
+        return "ok"
+    finally:
+        consumer.close()
 
 
 def _panel_results(board: str) -> dict[str, tuple[int, str]]:
@@ -265,6 +311,20 @@ def test_replay_reaches_postgres_once_and_matches_batch(
         for title, plan in _explain_dashboard_queries(dsn).items():
             assert "Index" in plan, (title, plan)
             assert "Seq Scan" not in plan, (title, plan)
+
+        # Logins: anonymous Grafana API calls are refused, and so is a Kafka client without a
+        # login or with a wrong one; the stage and producer logins work, and the producer
+        # cannot read what the stages write.
+        assert _grafana("/api/search?tag=prohori", login=False).get("status") == 401
+        assert _grafana("/api/dashboards/uid/prohori-overview", login=False).get("status") == 401
+        assert _kafka_check(stack.kafka_credentials(stack.default_bootstrap(), COMPOSE)) == "ok"
+        assert _kafka_check(None).startswith("refused")
+        wrong = ("prohori-producer", "not" + "-the-" + "password")
+        assert _kafka_check(wrong).startswith("refused")
+        producer = stack.kafka_credentials(stack.default_bootstrap(), COMPOSE)
+        assert producer is not None
+        assert producer[0] == "prohori-producer"
+        assert _kafka_check(producer, read=True).startswith("refused")
 
         # The provisioned dashboards fill without any setup: every panel on the raw tables
         # returns rows (dead letters excepted: there are none).

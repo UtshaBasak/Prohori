@@ -6,7 +6,9 @@ name: Release
 # Uploads use trusted publishing (OIDC); no API tokens are stored, and no job can write to the
 # repository. After PyPI, the Docker image (pipeline/Dockerfile) is published to GitHub Packages
 # as ghcr.io/utshabasak/prohori, for linux/amd64 and linux/arm64, with a provenance attestation.
-# The maintainer creates the GitHub release afterwards (docs/RELEASING.md).
+# Every run also writes two CycloneDX SBOMs: the Python package's dependencies (from uv.lock) and
+# the image's contents (syft); on a tag they are attested (Sigstore) and kept as artifacts.
+# The maintainer creates the GitHub release afterwards and attaches them (docs/RELEASING.md).
 # Run by hand (workflow_dispatch) or on a packaging pull request it only builds and tests.
 
 on:
@@ -35,6 +37,8 @@ env:
   PYTHONUTF8: "1"
   # Image names must be lower case; the account name is not.
   IMAGE: ghcr.io/utshabasak/prohori
+  # syft, which writes the image SBOM; pinned like everything else.
+  SYFT_VERSION: v1.56.0
 
 jobs:
   build:
@@ -77,6 +81,21 @@ jobs:
         with:
           name: dist
           path: dist/
+          if-no-files-found: error
+      # Every package the release can install, with exact versions and hashes from uv.lock:
+      # the base install and every extra, not the development tools.
+      - name: SBOM of the Python package (CycloneDX)
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          mkdir sbom
+          uv export --frozen --no-dev --all-extras --format cyclonedx1.5 \
+            --output-file "sbom/prohori-$VERSION.cdx.json"
+          python3 -c "import json, sys; d = json.load(open(sys.argv[1])); assert d['bomFormat'] == 'CycloneDX' and d['components'], 'empty SBOM'; print(len(d['components']), 'components')" "sbom/prohori-$VERSION.cdx.json"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: sbom-package
+          path: sbom/
           if-no-files-found: error
 
   smoke:
@@ -145,6 +164,17 @@ jobs:
           name: provenance
           path: provenance/
           if-no-files-found: error
+      # The package SBOM, signed and bound to the wheel and sdist: gh attestation verify
+      # --predicate-type https://cyclonedx.org/bom.
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: sbom-package
+          path: sbom
+      - name: Attest the package SBOM
+        uses: actions/attest-sbom@c604332985a26aa8cf1bdc465b92731239ec6b9e # v4.1.0
+        with:
+          subject-path: "dist/*"
+          sbom-path: sbom/prohori-${{ needs.build.outputs.version }}.cdx.json
 
   testpypi:
     name: Publish to TestPyPI
@@ -249,6 +279,23 @@ jobs:
             echo "::error::a build step mentions a secret"
             exit 1
           fi
+      # What the image holds (OS packages and Python packages), as a release would ship it.
+      - run: mkdir -p sbom
+      - name: SBOM of the image (CycloneDX, linux/amd64)
+        uses: anchore/sbom-action@66cbf4bc1f1c0d2edc94016e65bc221b6bb0ad6c # v0.24.3
+        with:
+          image: prohori:check
+          format: cyclonedx-json
+          output-file: sbom/prohori-image-${{ needs.build.outputs.version }}-amd64.cdx.json
+          syft-version: ${{ env.SYFT_VERSION }}
+          upload-artifact: false
+          upload-release-assets: false
+          dependency-snapshot: false
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: sbom-image
+          path: sbom/
+          if-no-files-found: error
       - name: Build for linux/arm64 too (not published here)
         uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         with:
@@ -310,3 +357,27 @@ jobs:
           subject-name: ${{ env.IMAGE }}
           subject-digest: ${{ steps.push.outputs.digest }}
           push-to-registry: true
+      # The published image's contents (linux/amd64), signed and stored next to it.
+      - run: mkdir -p sbom
+      - name: SBOM of the published image (CycloneDX, linux/amd64)
+        uses: anchore/sbom-action@66cbf4bc1f1c0d2edc94016e65bc221b6bb0ad6c # v0.24.3
+        with:
+          image: ${{ env.IMAGE }}@${{ steps.push.outputs.digest }}
+          format: cyclonedx-json
+          output-file: sbom/prohori-image-${{ needs.build.outputs.version }}-amd64.cdx.json
+          syft-version: ${{ env.SYFT_VERSION }}
+          upload-artifact: false
+          upload-release-assets: false
+          dependency-snapshot: false
+      - name: Attest the image SBOM
+        uses: actions/attest-sbom@c604332985a26aa8cf1bdc465b92731239ec6b9e # v4.1.0
+        with:
+          subject-name: ${{ env.IMAGE }}
+          subject-digest: ${{ steps.push.outputs.digest }}
+          sbom-path: sbom/prohori-image-${{ needs.build.outputs.version }}-amd64.cdx.json
+          push-to-registry: true
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: sbom-image-published
+          path: sbom/
+          if-no-files-found: error

@@ -2040,3 +2040,65 @@ few-shot arm helps in both directions; 10 labelled flows match the quantile map.
 classifier separated the datasets perfectly (ROC-AUC 1.000), leaving 98 to 99.5 % of importance
 weights at a clip. A second full run gave a byte-identical results file. Tables: the model card's
 "Cross-dataset study".
+
+---
+
+## ADR-0042: Logins for the Docker stack, Kafka authentication and release SBOMs
+
+- **Date:** 2026-11-22
+- **Status:** Accepted
+
+**Context.** Until 1.1 the Docker stack assumed a single-user machine: Grafana showed every
+dashboard to anonymous visitors, Airflow made everyone who reached its port an admin, and
+Redpanda accepted any client. Ports are bound to 127.0.0.1, but on a shared or networked machine
+(other local users, containers on the same Docker host, a forwarded port) that is not enough.
+Releases also did not say what they contain.
+
+**Decision.**
+
+- **Generated secrets in `pipeline/.env`.** The first real compose command (`prohori pipeline
+  up`, `down`, `status`) writes five random passwords (32 URL-safe characters, never `$`, which
+  Compose would interpolate) into `pipeline/.env`: Grafana's admin, Airflow's user and three Kafka
+  users. The file is git-ignored, created with owner-only permissions on POSIX systems, read by
+  Docker Compose by itself, and never rewritten: a value is generated only when its line is
+  missing. Environment variables of the same name win. The compose file requires every one
+  (`${VAR:?}`), so no weak default ships, and plain `docker compose` without the file fails with
+  "required variable ... is missing a value"; the compose file's header says to run
+  `prohori pipeline up` once. Unit tests never write the file (only a real run does). The
+  variable names are built from a short list in `stack.py`, so no source line pairs a password
+  variable with a literal, which secret scanners report as a hard-coded password. SonarQube's
+  path-traversal rule is ignored for `stack.py` (reviewed like ADR-0037's list): the file is
+  written next to the compose file the person running the command names with `--file`.
+- **Grafana:** anonymous access off; the admin password from the file.
+  `PROHORI_GRAFANA_ANONYMOUS=true` restores 1.0's read-only anonymous access.
+- **Airflow:** the simple auth manager with one user, `prohori` (admin role), whose password is
+  written to the manager's password file inside the container before Airflow starts, so Airflow
+  neither generates nor prints one. The health endpoint stays open for the container check.
+- **Redpanda:** SASL/SCRAM-SHA-256 on the Kafka API, set up by `pipeline/redpanda/init.sh` on
+  every `up`: users are created or given their current password, `prohori-admin` becomes the only
+  superuser, SASL is turned on, and ACLs are created. `prohori-stage` (the stage containers) may
+  do anything on the five Prohori topics and the `prohori-*` consumer groups;
+  `prohori-producer` (`replay` and `tail --bootstrap`, Airflow's jobs) may create and describe the
+  topics and write only `raw-logs` and `dead-letter`, and cannot join a consumer group. A stack
+  created by an earlier version is converted on its first `up`. Clients read
+  `PROHORI_KAFKA_USER` and `PROHORI_KAFKA_PASSWORD`; for the stack's own address the CLI falls
+  back to the producer login in `pipeline/.env`.
+- **Not done, accepted:** TLS on the Kafka listeners (documented as optional: the external
+  listener is bound to 127.0.0.1), and a login on Redpanda's admin API (port 9644). That API is
+  not published; only containers on the stack's private network can reach it, and it is what the
+  health check and `redpanda-init` use. Turning on admin-API authentication would mean passing the
+  administrator's password to the health check, for little gain on one host.
+- **Printing passwords:** `pipeline up` prints the Grafana and Airflow passwords once when it
+  generates them, and only when standard output is a terminal, so CI logs (the repository is
+  public) show the file's path instead.
+- **SBOMs.** Every release run (and its dry run on a pull request) writes two CycloneDX files: the
+  Python package's dependency set from `uv.lock` (`uv export --format cyclonedx1.5`, the base
+  install and every extra, not development tools) and the image's contents (syft through
+  `anchore/sbom-action`, linux/amd64; syft pinned). On a tag both are attested with
+  `actions/attest-sbom` (the package SBOM bound to the wheel and sdist, the image SBOM pushed to
+  the registry next to the image) and kept as artifacts the maintainer attaches to the GitHub
+  release. The action's own uploads are turned off, so no job gains `contents: write`.
+
+**Consequences.** The dashboards and Airflow need a login (the password is in `pipeline/.env`);
+outside Kafka clients need credentials. The README, PIPELINE, DASHBOARD, ORCHESTRATION, CLI and
+THREAT_MODEL documents and the wiki say so. `prohori pipeline up` stays a one-command start.

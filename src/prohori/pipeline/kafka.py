@@ -130,6 +130,19 @@ def decode_message(topic: Topic, position: int, key: bytes | None, value: bytes 
     return Record(topic, position, key_text, payload)
 
 
+def security_config(credentials: tuple[str, str] | None) -> dict[str, str]:
+    """librdkafka settings for a SASL/SCRAM-SHA-256 login; empty without credentials."""
+    if credentials is None:
+        return {}
+    user, password = credentials
+    return {
+        "security.protocol": "SASL_PLAINTEXT",
+        "sasl.mechanisms": "SCRAM-SHA-256",
+        "sasl.username": user,
+        "sasl.password": password,
+    }
+
+
 class KafkaTransport:
     """Topics on a Kafka-compatible broker.
 
@@ -138,6 +151,8 @@ class KafkaTransport:
         timeout: Seconds a poll waits for messages when none are ready.
         create_topics: Create missing topics (with unlimited retention) on start.
         kafka: The client library (see :func:`client`); tests pass a fake.
+        credentials: SASL/SCRAM-SHA-256 user and password, for a broker that requires a login
+            (the Docker stack since 1.1); ``None`` connects without SASL.
     """
 
     def __init__(
@@ -147,9 +162,11 @@ class KafkaTransport:
         timeout: float = 0.2,
         create_topics: bool = True,
         kafka: SimpleNamespace | None = None,
+        credentials: tuple[str, str] | None = None,
     ) -> None:
         self.kafka = kafka if kafka is not None else client()
         self.bootstrap = bootstrap
+        self._security = security_config(credentials)
         self.timeout = timeout
         self._errors: list[str] = []
         self._consumers: dict[tuple[str, Topic], _Consumer] = {}
@@ -167,6 +184,7 @@ class KafkaTransport:
         self._rejected: list[tuple[str, bytes | None, bytes | None, str]] = []
         self.producer = self.kafka.Producer(
             {
+                **self._security,
                 "bootstrap.servers": bootstrap,
                 "client.id": "prohori",
                 "enable.idempotence": True,
@@ -185,7 +203,7 @@ class KafkaTransport:
         Returns once every topic has a leader: a topic another stage has only just created can
         still be unknown to the broker that answers the next request.
         """
-        admin = self.kafka.AdminClient({"bootstrap.servers": self.bootstrap})
+        admin = self.kafka.AdminClient({**self._security, "bootstrap.servers": self.bootstrap})
         topics = [
             self.kafka.NewTopic(
                 t.value, num_partitions=1, replication_factor=1, config=TOPIC_CONFIG
@@ -204,7 +222,12 @@ class KafkaTransport:
                 msg = f"cannot create topic {name} on {self.bootstrap}: {exc}"
                 raise TransportError(msg) from exc
             except Exception as exc:  # a timeout: the broker is not reachable
-                msg = f"cannot reach the Kafka broker at {self.bootstrap}: {exc}"
+                hint = (
+                    " (if it requires a login, set PROHORI_KAFKA_USER and PROHORI_KAFKA_PASSWORD)"
+                    if not self._security
+                    else " (or it refused the login)"
+                )
+                msg = f"cannot reach the Kafka broker at {self.bootstrap}{hint}: {exc}"
                 raise TransportError(msg) from exc
         self._await_topics(admin, [t.value for t in Topic])
 
@@ -294,6 +317,7 @@ class KafkaTransport:
         if consumer is None:
             consumer = self.kafka.Consumer(
                 {
+                    **self._security,
                     "bootstrap.servers": self.bootstrap,
                     "group.id": f"prohori-{group}",
                     "client.id": f"prohori-{group}",

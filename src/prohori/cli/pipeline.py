@@ -180,13 +180,17 @@ def _pipeline(state: Path, settings: LiteSettings) -> LitePipeline:
 
 
 def _kafka(bootstrap: str) -> Transport:
-    """Connect to the broker, creating the topics; exit 1 with a message if that fails."""
+    """Connect to the broker, creating the topics; exit 1 with a message if that fails.
+
+    The login comes from ``PROHORI_KAFKA_USER``/``PROHORI_KAFKA_PASSWORD``, or for the stack's
+    own broker from ``pipeline/.env`` (:func:`prohori.pipeline.stack.kafka_credentials`).
+    """
     try:
         from prohori.pipeline.kafka import KafkaTransport, TransportError
     except ImportError as exc:  # pragma: no cover - the module itself imports nothing optional
         raise _fail(str(exc)) from None
     try:
-        return KafkaTransport(bootstrap)
+        return KafkaTransport(bootstrap, credentials=stack.kafka_credentials(bootstrap))
     except (ImportError, TransportError) as exc:
         raise _fail(str(exc)) from None
 
@@ -520,6 +524,14 @@ def up_command(
     did not become healthy.
     """
     compose_path = _compose(file)
+    added = stack.ensure_env(compose_path)
+    secrets_file = stack.env_path(compose_path)
+    if added:
+        typer.echo(f"Generated the stack's passwords into {secrets_file} (git-ignored; keep it).")
+        for key, name in stack.LOGINS.items():
+            if key in added and sys.stdout.isatty():
+                # Shown once, on a terminal only: never in a CI log.
+                typer.echo(f"  {name} password: {added[key]}")
     code = stack.up(compose_path, build=build, timeout=timeout, orchestration=orchestration)
     healthy = _print_status(compose_path, counts=False)
     if code != 0 or not healthy:
@@ -527,9 +539,15 @@ def up_command(
     typer.echo(
         f"Publish logs with: prohori pipeline replay FILE --bootstrap {stack.default_bootstrap()}"
     )
-    typer.echo(f"Dashboards: {stack.dashboard_url()}")
+    typer.echo(
+        f"Dashboards: {stack.dashboard_url()} (user admin, password PROHORI_GRAFANA_PASSWORD "
+        f"in {secrets_file})"
+    )
     if orchestration:
-        typer.echo(f"Airflow: {stack.airflow_url()}")
+        typer.echo(
+            f"Airflow: {stack.airflow_url()} (user prohori, password PROHORI_AIRFLOW_PASSWORD "
+            f"in {secrets_file})"
+        )
 
 
 @pipeline_app.command("down")

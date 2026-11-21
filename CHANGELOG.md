@@ -80,6 +80,23 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Security
 
+- **Logins for the Docker stack** (ADR-0042). Grafana no longer shows the dashboards to
+  anonymous visitors, Airflow no longer makes everyone an admin, and Redpanda accepts only
+  SASL/SCRAM-SHA-256 clients, with least-privilege ACLs per user (`prohori-stage` for the stages,
+  `prohori-producer` for `replay`, `tail` and Airflow's jobs, which may write only `raw-logs` and
+  `dead-letter`). The passwords are generated on the first `prohori pipeline up` into
+  `pipeline/.env` (git-ignored, owner-only) and never changed afterwards; Grafana's and Airflow's
+  are printed once on a terminal. **Upgrade note:** sign in to Grafana as `admin` and to Airflow
+  as `prohori` with the passwords in `pipeline/.env`; `PROHORI_GRAFANA_ANONYMOUS=true` restores
+  anonymous dashboards. Kafka clients outside the stack set `PROHORI_KAFKA_USER` and
+  `PROHORI_KAFKA_PASSWORD` (the CLI finds the producer login for the stack's own address by
+  itself). With plain `docker compose`, run `prohori pipeline up` once first. An existing stack
+  is converted on its next `up`.
+- **SBOMs for every release.** CycloneDX SBOMs of the Python package's dependencies (from
+  `uv.lock`) and of the container image (syft), attested with Sigstore and attached to the GitHub
+  release (`gh attestation verify --predicate-type https://cyclonedx.org/bom`). A release dry run
+  produces both.
+- The GitGuardian workflow no longer keeps the checkout's credentials (zizmor).
 - **Least privilege in the Docker stack's warehouse** (ADR-0039). The stages, dbt and Airflow's
   jobs connect as a new role, `prohori_app`, which owns the warehouse schemas and cannot create
   roles or databases, run server programs or read Airflow's database; the superuser only runs

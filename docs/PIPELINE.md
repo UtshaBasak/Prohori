@@ -294,12 +294,30 @@ The limits add up to about 3.9 GB, or 6.9 GB with `--orchestration`. Measured wi
   the `warehouse-init` service, which creates the roles and schemas on every `up`; on a stack
   created by 1.0 it also hands the existing tables and views to `prohori_app`. Grafana reads with
   its own read-only role.
-- **Passwords** default to local-only values. To change them, set them in the environment of
+- **Logins (since 1.1, ADR-0042).** The first `prohori pipeline up` (or `down`, `status`)
+  writes five random passwords to `pipeline/.env`, which git ignores and Docker Compose reads by
+  itself; it never changes a value that is already there (delete a line to get a new one), and
+  the environment wins over the file. They are Grafana's `admin` (`PROHORI_GRAFANA_PASSWORD`),
+  Airflow's `prohori` (`PROHORI_AIRFLOW_PASSWORD`) and three Kafka users:
+  `prohori-stage` (the stage containers), `prohori-producer` (`replay` and `tail --bootstrap`,
+  Airflow's jobs; it may create the topics and write `raw-logs` and `dead-letter`, nothing else)
+  and `prohori-admin` (only `redpanda-init` uses it). Redpanda accepts SASL/SCRAM-SHA-256 clients
+  only; `redpanda-init` creates the users, their ACLs and turns SASL on, on a new stack or one
+  made by 1.0. A Kafka client outside the stack reads `PROHORI_KAFKA_USER` and
+  `PROHORI_KAFKA_PASSWORD`; for the stack's own address (`127.0.0.1:19092`) the CLI uses the
+  producer login from `pipeline/.env` by itself. With plain `docker compose`, run
+  `prohori pipeline up` once first or write the file yourself: the compose file requires every
+  value and has no default for them. Grafana's `PROHORI_GRAFANA_ANONYMOUS=true` restores 1.0's
+  anonymous dashboards.
+- **TLS (optional, not set up).** The Kafka listeners speak SASL over plain TCP on the stack's
+  private network and on 127.0.0.1. To reach the broker from another machine, add a TLS listener
+  (Redpanda's `kafka_api_tls`) and set `security.protocol=SASL_SSL` in the clients; Prohori does
+  not do this for you. Redpanda's admin API (port 9644) is not published and has no login.
+- **Database passwords** default to local-only values. To change them, set them in the environment of
   `prohori pipeline up` (Compose also reads `pipeline/.env`, git-ignored):
   `PROHORI_APP_DB_PASSWORD` (`prohori_app`; `prohori pipeline status` and the dbt profile read it
   too), `PROHORI_POSTGRES_PASSWORD` (the superuser; fixed when the database volume is first
-  created), `PROHORI_GRAFANA_DB_PASSWORD`, `PROHORI_AIRFLOW_DB_PASSWORD` and
-  `PROHORI_GRAFANA_PASSWORD` (Grafana's admin). Any characters work, including `@/:#%`: no
+  created), `PROHORI_GRAFANA_DB_PASSWORD` and `PROHORI_AIRFLOW_DB_PASSWORD`. Any characters work, including `@/:#%`: no
   password is ever written into a URL (the stages read theirs from `PGPASSWORD`, and Airflow's
   database URL is built with the password URL-quoted). `PROHORI_POSTGRES_PORT` moves the port.
   An explicit `PROHORI_POSTGRES_DSN` still wins everywhere; pointing it at the superuser works

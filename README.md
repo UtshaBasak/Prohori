@@ -131,7 +131,8 @@ on macOS (Python 3.13), and every release is installed and its demo run on all t
   commands as `uv run prohori ...`. The sample files used below are in the repository.
 
 Official builds come only from this repository's releases, PyPI (`prohori`) and
-`ghcr.io/utshabasak/prohori`, each with a signed provenance attestation;
+`ghcr.io/utshabasak/prohori`, each with a signed provenance attestation and, from 1.1, a signed
+CycloneDX SBOM (software bill of materials) of what it contains;
 [docs/RELEASING.md](docs/RELEASING.md#verifying-a-release) shows how to check a download.
 
 ## Quick start
@@ -494,6 +495,10 @@ volumes, replays a simulated attack twice and checks that the warehouse holds ea
 and exactly the incidents of the batch command. Images are pinned by digest, the containers run
 unprivileged, and the ports are bound to 127.0.0.1 only. Since 1.1:
 
+- **Logins:** Grafana (user `admin`) and Airflow (user `prohori`) ask for a login, and Redpanda
+  accepts only SASL/SCRAM clients with per-user permissions. `pipeline up` generates every
+  password into `pipeline/.env` (git-ignored) on the first start; `replay --bootstrap` finds its
+  login there by itself.
 - **Least privilege:** the stages, dbt and Airflow connect as `prohori_app`, which owns the
   warehouse schemas and cannot create roles, run server programs or read other databases; the
   superuser only initialises the database (and moves a 1.0 stack's tables to the new role on
@@ -528,7 +533,9 @@ evaluation alert for alert, which CI checks. Every attack was detected; the dete
 scenario is in [docs/WAREHOUSE.md](docs/WAREHOUSE.md#results-on-the-simulator).
 
 **Dashboards.** `prohori pipeline up` also starts Grafana on <http://127.0.0.1:13000>, with three
-dashboards provisioned from `pipeline/grafana/`. They open without a login or any setup:
+dashboards provisioned from `pipeline/grafana/`. Sign in as `admin` with the password
+`pipeline up` generated into `pipeline/.env` (since 1.1; `PROHORI_GRAFANA_ANONYMOUS=true` opens
+them without a login, as in 1.0):
 
 - **Overview**: events, alerts and incidents over time, rule hits and top sources. It reads the
   raw tables, so it fills as soon as a replay is stored.
@@ -662,9 +669,9 @@ Third-party data terms (MITRE ATT&CK, GeoLite2, AbuseIPDB, VirusTotal, the Gemin
 
 Prohori is honest about what it does not do:
 
-- **The streaming stack runs on one machine.** It is a single-node broker with no
-  authentication, built from a clone, and its dashboards and Airflow open without a login on
-  127.0.0.1 only. Prohori never blocks, disables or changes anything.
+- **The streaming stack runs on one machine.** It is a single-node broker built from a clone,
+  with logins (Grafana, Airflow, SASL/SCRAM on Kafka) but no TLS, on 127.0.0.1 only. Prohori never
+  blocks, disables or changes anything.
 - **Rules see only what the logs say.** Request bodies, headers and encrypted traffic are not
   inspected; the web rules use the request line only.
 - **Thresholds can be evaded.** Since 1.1 slow and distributed credential stuffing and SSH
@@ -695,7 +702,7 @@ Prohori is honest about what it does not do:
 | v0.3.0 | Pipeline: streaming core and lite mode, Redpanda and PostgreSQL in Docker, dbt models and data-quality checks, Grafana dashboards, Airflow jobs; Docker image on GitHub Packages | Released |
 | v1.0.0 | Optional LLM analyst: providers, redaction, `explain` and `ask`, retrieval, prompt-injection defences, answer validation and an evaluation; threat model, performance notes, completed licence notes, macOS in CI | Released |
 | v1.0.1 | Fixes from a full review: stricter redaction and answer checks, parser and output-path robustness, safer stack shutdown and Airflow parameters, signed provenance for release files | Released |
-| v1.1.0 | Done so far: new licence (PolyForm Strict), deterministic stream rebuilds. Still to come: evasion-resistant per-account sign-in rules with a before-and-after score, warehouse and broker hardening, safer model files, a cross-dataset generalisation study, logins for the stack, SBOMs, suppressions | In progress |
+| v1.1.0 | Done so far: new licence (PolyForm Strict), deterministic stream rebuilds, evasion-resistant per-account sign-in rules with a before-and-after score, warehouse and broker hardening, safer model files, a cross-dataset generalisation study, logins for the stack, SBOMs. Still to come: suppressions | In progress |
 | v1.2.0 | More log sources: Suricata, Zeek, Windows Security events, Sysmon, the systemd journal, AWS CloudTrail; a Sigma rule importer | Planned |
 | v1.3.0 to v1.7.0 | A real-time defender for your own PC: a Windows security checkup, behaviour-based detection with reversible containment, ransomware, network, spyware, boot and device defenses, a guard for AI coding agents and MCP tools, supply-chain and phishing checks, attack drills, Linux | Planned |
 | v1.8.0, v2.0.0 | A desktop security assistant, web UI, package-manager installs, VS Code and browser extensions, a documentation website and a GitHub Action | Planned |
