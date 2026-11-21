@@ -226,15 +226,18 @@ services:
       - -c
       - >-
         export AIRFLOW__API_AUTH__JWT_SECRET="$$(python -c 'import secrets; print(secrets.token_urlsafe(32))')"
-        && export AIRFLOW__DATABASE__SQL_ALCHEMY_CONN="$$(python -c 'import os, urllib.parse;
-        print("postgresql+psycopg2://airflow:"
-        + urllib.parse.quote(os.environ["PROHORI_AIRFLOW_DB_PASSWORD"], safe="")
-        + "@postgres:5432/airflow")')"
         && exec airflow standalone
     environment:
       AIRFLOW__CORE__EXECUTOR: LocalExecutor
-      # Airflow's own database URL is built at start-up, with the password URL-quoted.
+      # Airflow's own database URL, built by every Airflow process (the server and any
+      # 'docker compose exec airflow airflow ...') with the password URL-quoted, so any
+      # characters work. No newline at the end: Airflow would keep it in the database name.
       PROHORI_AIRFLOW_DB_PASSWORD: ${PROHORI_AIRFLOW_DB_PASSWORD:-airflow}
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN_CMD: >-
+        python -c "import os, sys, urllib.parse;
+        sys.stdout.write('postgresql+psycopg2://airflow:'
+        + urllib.parse.quote(os.environ['PROHORI_AIRFLOW_DB_PASSWORD'], safe='')
+        + '@postgres:5432/airflow')"
       AIRFLOW__CORE__LOAD_EXAMPLES: "False"
       AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: "False"
       AIRFLOW__CORE__PARALLELISM: "4"

@@ -109,8 +109,13 @@ The marts the jobs build show up in the Detection quality dashboard ([DASHBOARD.
   (`airflow standalone`), with the LocalExecutor. Its memory limit is 3 GB. It used about
   1.2 GB idle and peaked at 1.84 GB while retraining.
 - **Airflow's own state** is in a separate `airflow` database on the stack's PostgreSQL, owned
-  by an `airflow` role. The `warehouse-init` service creates both on every start. The password
-  comes from `PROHORI_AIRFLOW_DB_PASSWORD` (local-only default `airflow`).
+  by an `airflow` role. The `warehouse-init` service creates both on every start; only that role
+  may connect to it. The password comes from `PROHORI_AIRFLOW_DB_PASSWORD` (local-only default
+  `airflow`); any characters work, because every Airflow process builds the database URL (`SQL_ALCHEMY_CONN_CMD`) with the
+  password URL-quoted.
+- **The jobs** (backfills, dbt, the digest, enrichment refresh) reach the warehouse as
+  `prohori_app`, the role that owns its schemas, never as the superuser (since 1.1;
+  `PROHORI_APP_DB_PASSWORD`).
 - **Access:** 127.0.0.1:18080 only (`PROHORI_AIRFLOW_PORT` moves it). Anyone who can reach that
   address is an admin without a login, as with the broker. Do not expose the port.
 - **No secrets in files:** the key that signs Airflow's internal tokens is generated when the
