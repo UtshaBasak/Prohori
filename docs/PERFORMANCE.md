@@ -28,7 +28,9 @@ It then runs each command once, in its own process, and records:
   (Windows), read from the operating system for that process alone;
 - **exit code** and the machine it ran on.
 
-The commands are `prohori incidents` on every log (parsing, the 15 rules, offline enrichment,
+The throughput runs below were measured with 1.0's 15 rules; 1.1 has 21 (step 28b), which costs
+some throughput and has not been measured yet. The commands are `prohori incidents` on every log
+(parsing, the rules, offline enrichment,
 incident building and JSON output), `prohori pipeline replay` in lite mode on the access log, and
 `prohori demo`. Output goes to files, not a terminal.
 

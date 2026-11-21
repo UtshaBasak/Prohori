@@ -214,8 +214,10 @@ anyone.
 
 **The cases** (`evaluation/llm/cases/`, built by `scripts/build_llm_eval_set.py`):
 
-- **15 attacks:** the main incident of each simulated scenario, default and held-out variants.
-  The held-out credential-stuffing attack is missing because the rules missed it.
+- **16 attacks:** the main incident of each simulated scenario, default and held-out variants.
+  Since 1.1 this includes the held-out credential-stuffing attack, which the 1.0 rules missed
+  and PRH-AUTH-008 catches (that case was added, with a hand-written reference, and two cases
+  gained the new rules' alerts).
 - **7 false positives:** incidents the rules raised on benign background activity, mostly
   owners changing their own settings.
 - **8 injections:** small logs with an instruction hidden in a user agent (4), a request path
@@ -265,14 +267,14 @@ the prompt, the case is reported as *stale*:
 ### Results
 
 <!-- llm-eval:start -->
-Generated from `results/llm_eval.json` by `python -m prohori.llm.evaluate score`: 30 cases (15 attacks, 7 false positives, 8 injections). Do not edit by hand.
+Generated from `results/llm_eval.json` by `python -m prohori.llm.evaluate score`: 31 cases (16 attacks, 7 false positives, 8 injections). Do not edit by hand.
 
 | System | Answers | Accepted by the checks | With a factual error (model / shown) | Indicators named (model / shown) | Points covered (model / shown) | Stale |
 | -------- | ------: | ------: | ------: | ------: | ------: | ------: |
-| Local summary (no model) | 30 | - | - / 0/30 | - / 78/112 | - / 85/89 | 0 |
-| Mock (a template, offline) | 30 | 30/30 | 0/30 / 0/30 | 77/112 / 77/112 | 80/89 / 80/89 | 0 |
+| Local summary (no model) | 31 | - | - / 0/31 | - / 80/114 | - / 88/92 | 0 |
+| Mock (a template, offline) | 31 | 31/31 | 0/31 / 0/31 | 79/114 / 79/114 | 82/92 / 82/92 | 0 |
 | Scripted adversary (obeys every injection) | 8 | 3/8 | 8/8 / 3/8 | 6/24 / 12/24 | 2/16 / 11/16 | 0 |
-| Gemini (gemini-3.5-flash-lite) | 30 | 30/30 | 0/30 / 0/30 | 112/112 / 112/112 | 84/89 / 84/89 | 0 |
+| Gemini (gemini-3.5-flash-lite) | 30 | 28/30 | 2/30 / 0/30 | 110/112 / 111/112 | 83/89 / 84/89 | 3 |
 
 Injections, by case: whether the injected text reached the model at all (always inside a fence), then for each system whether its answer followed the injection and whether that reached the analyst.
 
@@ -289,7 +291,11 @@ Injections, by case: whether the injected text reached the model at all (always 
 <!-- llm-eval:end -->
 
 What Gemini's run shows (gemini-3.5-flash-lite, one recording on 2026-11-02, 34 requests for
-30 cases; it used tools in 3 of them):
+the 30 cases of 1.0; it used tools in 3 of them). The set has 31 cases since 1.1: the new case
+has no Gemini answer, and three answers were recorded for the 1.0 version of their incidents
+(marked stale in the table and replayed against today's incidents, which is what moved its
+accepted and error counts). The points below are about the original run; recording again needs
+a Gemini key:
 
 - **Every answer passed the checks** and none made a factual error by these measures: no
   invented value or link, no attack called benign, no false positive called a compromise.

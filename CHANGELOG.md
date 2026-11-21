@@ -9,6 +9,25 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- **Evasion-resistant authentication rules.** Six rules count per account, per network and per
+  log instead of per address, so slow and spread-out attacks are caught:
+  PRH-AUTH-005 (one account failing from many addresses), PRH-AUTH-006 (slow guessing on one
+  account over 24 hours), PRH-AUTH-007 (many accounts failing from one network),
+  PRH-AUTH-008 (many accounts and many addresses failing in one log), PRH-AUTH-009
+  (unknown-account failures from many addresses, experimental) and PRH-AUTH-010 (a success after
+  many failures on one account). Thresholds are twice the benign maximum of the default
+  variants, fixed before scoring (ADR-0036). Held-out credential stuffing is now caught in 5 of 5
+  runs (0 of 5 before); all held-out attacks 40/40 (35/40 before); no new false positive in any
+  variant. See `docs/case-studies/evasion-resistant-rules.md`.
+- Rule format: an aggregate's `distinct` may list two or three thresholds that must all be
+  reached, a `distinct` field may list alternatives, and `source.ip_prefix` (IPv4 /24, IPv6 /48)
+  is a derived field rules can group by. Rules may have status `test` or `experimental`.
+- Simulator: a second held-out variant, `heldout2` (rates halved, sources doubled and spread over
+  every documentation network), defined after the new rules were fixed. `results/rules_eval.json`
+  keeps a frozen baseline (the 1.0 rules), and RULES.md and the README show a generated
+  before-and-after table. `scripts/evaluate_rules.py --variants` scores some variants without
+  writing anything.
+
 - **SSH attacks logged with host names are detected.** sshd with `UseDNS yes` logs the client's
   host name instead of its address, and the sign-in rules, which counted by `source.ip`, skipped
   those lines. Events now have an optional `source.host` (a valid, lower-case, fully qualified
@@ -25,6 +44,16 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   alerts) and checks that `detect` and `incidents` stay under a fixed memory bound.
 
 ### Changed
+
+- **Moved numbers, explained.** Held-out detection 35/40 to 40/40 and held-out 2 30/40 to 35/40
+  (credential stuffing). The account-takeover sample also raises PRH-AUTH-010, so the sample
+  incident is now `INC-14756953ade54922` (score and severity unchanged). The demo counts only
+  stable rules as expected and names the new rules that its fast demo attacks do not trigger.
+  The LLM evaluation set has 31 cases (the held-out credential-stuffing incident now exists);
+  the offline baselines were recorded again, and three Gemini answers are marked stale.
+- A 24-hour rule makes the streaming incident hold time 24 h 35 min; following live logs now
+  writes quiet incidents after at most an hour by default (`--idle-close` overrides it).
+- `--redact-ips` and `--mask-ips` also replace networks named by the per-network rule.
 
 - **New licence.** From this release on Prohori is source-available under the
   [PolyForm Strict License 1.0.0](LICENSE): free for personal and other non-commercial use, but
