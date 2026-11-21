@@ -263,9 +263,9 @@ The method and its limits are in the
 after:
 
 <!-- results:start -->
-Generated from `results/rules_eval.json`, simulator address model 1: the frozen baselines (1.0 rules (addresses 1): 15 rules; 1.1 rules, step 28b (addresses 1): 21 rules) against today's 21 rules, 5 seeds per variant. Attacks caught by at least one of their expected rules. Do not edit by hand.
+Generated from `results/rules_eval.json`, simulator address model 2: the frozen baselines (1.0 rules (addresses 2): 15 rules; 1.1 rules, step 28b (addresses 2): 21 rules) against today's 21 rules, 5 seeds per variant. Attacks caught by at least one of their expected rules. Do not edit by hand.
 
-| Scenario | Held-out: 1.0 rules (addresses 1) | Held-out: 1.1 rules, step 28b (addresses 1) | Held-out: now | Held-out 2: 1.0 rules (addresses 1) | Held-out 2: 1.1 rules, step 28b (addresses 1) | Held-out 2: now |
+| Scenario | Held-out: 1.0 rules (addresses 2) | Held-out: 1.1 rules, step 28b (addresses 2) | Held-out: now | Held-out 2: 1.0 rules (addresses 2) | Held-out 2: 1.1 rules, step 28b (addresses 2) | Held-out 2: now |
 | ---------- | -----: | -----: | -----: | -----: | -----: | -----: |
 | account-takeover | 5/5 | 5/5 | 5/5 | 5/5 | 5/5 | 5/5 |
 | admin-misuse | 5/5 | 5/5 | 5/5 | 5/5 | 5/5 | 5/5 |
@@ -276,19 +276,36 @@ Generated from `results/rules_eval.json`, simulator address model 1: the frozen 
 | token-reuse | 5/5 | 5/5 | 5/5 | 5/5 | 5/5 | 5/5 |
 | web-scanning | 5/5 | 5/5 | 5/5 | 5/5 | 5/5 | 5/5 |
 | **All attacks** | **35/40** | **40/40** | **40/40** | **30/40** | **35/40** | **35/40** |
-| False-positive alerts on benign lines | 259 | 259 | 259 | 287 | 287 | 287 |
+| False-positive alerts on benign lines | 277 | 277 | 277 | 274 | 274 | 274 |
 
-Default variants: 40/40 attacks caught with 295 false-positive alerts (1.0 rules (addresses 1)); 40/40 attacks caught with 295 false-positive alerts (1.1 rules, step 28b (addresses 1)); 40/40 attacks caught with 295 false-positive alerts (now).
+Default variants: 40/40 attacks caught with 295 false-positive alerts (1.0 rules (addresses 2)); 40/40 attacks caught with 295 false-positive alerts (1.1 rules, step 28b (addresses 2)); 40/40 attacks caught with 295 false-positive alerts (now).
+
+For reference, the same comparison on address model 1 (frozen, not comparable with the table above: the simulator's background was different):
+
+| Scenario | Held-out: 1.0 rules (addresses 1) | Held-out: 1.1 rules, step 28b (addresses 1) | Held-out 2: 1.0 rules (addresses 1) | Held-out 2: 1.1 rules, step 28b (addresses 1) |
+| ---------- | -----: | -----: | -----: | -----: |
+| account-takeover | 5/5 | 5/5 | 5/5 | 5/5 |
+| admin-misuse | 5/5 | 5/5 | 5/5 | 5/5 |
+| credential-stuffing | 0/5 | 5/5 | 0/5 | 5/5 |
+| injection | 5/5 | 5/5 | 5/5 | 5/5 |
+| password-spraying | 5/5 | 5/5 | 0/5 | 0/5 |
+| ssh-bruteforce | 5/5 | 5/5 | 5/5 | 5/5 |
+| token-reuse | 5/5 | 5/5 | 5/5 | 5/5 |
+| web-scanning | 5/5 | 5/5 | 5/5 | 5/5 |
+| **All attacks** | **35/40** | **40/40** | **30/40** | **35/40** |
+| False-positive alerts on benign lines | 259 | 259 | 287 | 287 |
+
+Default variants: 40/40 attacks caught with 295 false-positive alerts (1.0 rules (addresses 1)); 40/40 attacks caught with 295 false-positive alerts (1.1 rules, step 28b (addresses 1)).
 
 Expected rules that still miss (runs missed):
 
-- Held-out, `account-takeover`: PRH-ACCT-001 3/5, PRH-AUTH-001 5/5, PRH-AUTH-010 5/5
+- Held-out, `account-takeover`: PRH-ACCT-001 2/5, PRH-AUTH-001 5/5, PRH-AUTH-010 5/5
 - Held-out, `admin-misuse`: PRH-ADMIN-002 5/5
 - Held-out, `credential-stuffing`: PRH-AUTH-001 5/5, PRH-AUTH-002 5/5, PRH-AUTH-003 5/5
-- Held-out, `password-spraying`: PRH-AUTH-001 5/5, PRH-AUTH-007 5/5
+- Held-out, `password-spraying`: PRH-AUTH-001 5/5
 - Held-out, `ssh-bruteforce`: PRH-AUTH-001 5/5, PRH-AUTH-005 5/5
 - Held-out, `web-scanning`: PRH-WEB-003 5/5
-- Held-out 2, `account-takeover`: PRH-ACCT-001 1/5, PRH-AUTH-001 5/5, PRH-AUTH-010 4/5
+- Held-out 2, `account-takeover`: PRH-ACCT-001 2/5, PRH-AUTH-001 5/5, PRH-AUTH-010 5/5
 - Held-out 2, `admin-misuse`: PRH-ADMIN-002 5/5
 - Held-out 2, `credential-stuffing`: PRH-AUTH-001 5/5, PRH-AUTH-002 5/5, PRH-AUTH-003 5/5
 - Held-out 2, `password-spraying`: PRH-AUTH-001 5/5, PRH-AUTH-002 5/5, PRH-AUTH-007 5/5
