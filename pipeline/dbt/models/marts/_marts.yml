@@ -2,7 +2,9 @@ version: 2
 
 models:
   - name: daily_attack_counts
-    description: Per UTC day, events, failed events, source addresses, alerts and incidents.
+    description: >
+      Per UTC day, events, failed events, source addresses, alerts and incidents. alerts counts
+      the alerts an analyst sees; suppressed_alerts the ones a suppression entry silenced.
     columns:
       - name: day
         data_tests: [unique, not_null]
@@ -12,7 +14,7 @@ models:
               arguments:
                 min_value: 0
   - name: daily_alerts_by_rule
-    description: Per UTC day and rule, the alerts raised.
+    description: Per UTC day and rule, the alerts raised (suppressed ones counted apart).
     data_tests:
       - unique_combination:
           arguments:
@@ -37,7 +39,8 @@ models:
   - name: rule_precision
     description: >
       Per rule, alerts and true positives against the simulator's labels (alerts on unlabelled
-      events are not judged; precision is null when none were).
+      events are not judged; precision is null when none were). Suppressed alerts are left out
+      and counted in suppressed_alerts.
     columns:
       - name: detector_id
         data_tests: [unique, not_null]

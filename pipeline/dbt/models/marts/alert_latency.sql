@@ -6,6 +6,7 @@
 --   pipeline_seconds: from the moment its last event was stored to the moment the alert was
 --     stored, in wall-clock time (how long the pipeline took). Batch-granular: 0 when both were
 --     written in the same batch.
+-- Suppressed alerts are left out: nobody waits for them.
 with stored as (
     select
         ae.alert_id,
@@ -26,3 +27,4 @@ select
         as pipeline_seconds
 from {{ ref('stg_alerts') }} as a
 left join stored as s on s.alert_id = a.alert_id
+where a.suppression_id is null

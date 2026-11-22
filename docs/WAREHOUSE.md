@@ -93,24 +93,28 @@ Every table has a `stored_at` column, set by the database when the row is first 
 - Incidents also get their duration in seconds.
 - `stg_alert_events` and `stg_incident_alerts` unnest the event ids of each alert and the alert
   ids of each incident from the JSON records.
+- `stg_alerts.suppression_id` names the suppression entry that silenced an alert (null for the
+  alerts an analyst sees; see [RULES.md](RULES.md#suppressions-and-allow-lists)).
 
 **Intermediate:** `int_alert_judgements` judges each alert against the labels, exactly as the
 rule evaluation in [SIMULATOR.md](SIMULATOR.md) does. An alert is a true positive when at least
 half of its labelled events are attack events, and it is credited to the attack most of them
-belong to. Alerts on unlabelled events are not judged.
+belong to. Alerts on unlabelled events are not judged. Suppressed alerts are judged too
+(`is_suppressed`); the marts count only the alerts an analyst sees, and count suppressed ones
+apart.
 
 **Marts** (tables):
 
 | Model | One row per | Columns |
 | ------- | ------------- | --------- |
-| `daily_attack_counts` | UTC day | events, failed events, source addresses, alerts, high and critical alerts, rules that fired, incidents, high and critical incidents |
-| `daily_alerts_by_rule` | day, rule and severity | alerts |
+| `daily_attack_counts` | UTC day | events, failed events, source addresses, alerts, high and critical alerts, rules that fired, suppressed alerts, incidents, high and critical incidents |
+| `daily_alerts_by_rule` | day, rule and severity | alerts, suppressed alerts |
 | `top_source_ips` | source address | rank (by alerts, then events), events, failed events, accounts, alerts, incidents, first and last seen |
 | `incident_durations` | incident | severity, confidence, score, first and last seen, duration in seconds, alerts, distinct rules |
-| `rule_precision` | rule | alerts, judged alerts, true and false positives, precision (null when nothing could be judged) |
+| `rule_precision` | rule | alerts, judged alerts, true and false positives, precision (null when nothing could be judged), suppressed alerts (not in the other columns) |
 | `alert_latency` | alert | `activity_seconds`: from the first event the alert counts to the event that raised it, in log time; `pipeline_seconds`: from its last event being stored to the alert being stored, in wall-clock time |
 | `detection_latency` | rule | median and maximum of both latencies |
-| `attack_detection` | simulated attack | start and end, attack events, detected or not, first detection, time to detect in seconds, alerts and rules credited |
+| `attack_detection` | simulated attack | start and end, attack events, detected or not (by an alert that was not suppressed), first detection, time to detect in seconds, alerts and rules credited |
 | `model_performance` | evaluation, dataset, variant, model and operating point | recall, precision, false-positive rate, false alerts per 10,000 flows, PR-AUC and ROC-AUC averaged over seeds, and the change in recall and PR-AUC since the previous evaluation |
 
 `pipeline_seconds` is only as precise as one batch. It is 0 in lite mode, where events and
@@ -137,23 +141,24 @@ when the labels of a log are loaded but the log was never replayed.
 ## Results on the simulator
 
 `scripts/build_lite_warehouse.py` builds a warehouse from every scenario's default variant
-(seed 1): 7,498 events, 150 alerts and 60 incidents. CI builds the models on that warehouse
-and checks that `rule_precision` equals the simulator's own rule evaluation for the same runs,
-alert for alert. The models gave:
+(seed 1), with the example suppressions (`samples/suppressions.yml`): 7,492 events, 157 alerts
+(one of them suppressed: the planned admin grant) and 70 incidents. CI builds the models on that
+warehouse and checks that `rule_precision` equals the simulator's own rule evaluation for the
+same runs with the same suppressions, alert for alert. The models gave (1.1 rules):
 
-| Rule | Alerts | True positives | Precision |
-| ------ | -------: | ---------------: | ----------: |
-| PRH-ACCT-001 | 57 | 2 | 0.04 |
-| PRH-ADMIN-001 | 2 | 1 | 0.50 |
-| PRH-ADMIN-002, AUTH-001, AUTH-002, AUTH-003, SESS-001, SSH-001, WEB-001 to WEB-004 | 91 | 91 | 1.00 |
+| Rule | Alerts | True positives | Precision | Suppressed |
+| ------ | -------: | ---------------: | ----------: | ---------: |
+| PRH-ACCT-001 | 60 | 2 | 0.03 | 0 |
+| PRH-ADMIN-001 | 1 | 1 | 1.00 | 1 |
+| PRH-ADMIN-002, AUTH-001, AUTH-002, AUTH-003, AUTH-007, SESS-001, SSH-001, WEB-001 to WEB-004 | 95 | 95 | 1.00 | 0 |
 
 | Scenario | Detected | Time to detect |
 | ---------- | ---------- | ---------------: |
 | account-takeover | yes | 27 s |
-| admin-misuse | yes | 252 s |
-| credential-stuffing | yes | 22 s |
+| admin-misuse | yes | 229 s |
+| credential-stuffing | yes | 20 s |
 | injection | yes | 19 s |
-| password-spraying | yes | 60 s |
+| password-spraying | yes | 61 s |
 | ssh-bruteforce | yes | 15 s |
 | token-reuse | yes | 0 s |
 | web-scanning | yes | 2 s |

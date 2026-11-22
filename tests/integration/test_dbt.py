@@ -4,7 +4,8 @@
 
 Needs the dbt dependency group (``uv sync --group dbt``); skipped otherwise. CI runs it in the
 ``dbt (DuckDB)`` job. The rule precision the models compute must equal the simulator's own rule
-evaluation for the same runs.
+evaluation for the same runs, with the example suppressions applied (the warehouse is built with
+them).
 """
 
 import os
@@ -18,7 +19,8 @@ import pytest
 
 from prohori.rules import builtin_rules_dir, load_rules
 from prohori.simulate.evaluate import evaluate
-from scripts.build_lite_warehouse import build
+from prohori.suppress import load_suppressions
+from scripts.build_lite_warehouse import SUPPRESSIONS, build
 
 ROOT = Path(__file__).resolve().parents[2]
 PROJECT = ROOT / "pipeline" / "dbt"
@@ -77,7 +79,12 @@ def test_rule_precision_matches_the_simulator_evaluation(warehouse: tuple[Path, 
     if not (work / "target").exists():
         assert _run("build", database=database, tmp_path=work).returncode == 0
     rules = [r.rule for r in load_rules([builtin_rules_dir()]) if r.rule is not None]
-    expected = evaluate(rules, seeds=[1])["variants"]["default"]["rules"]  # type: ignore[index]
+    results = evaluate(rules, seeds=[1], suppressions=load_suppressions(SUPPRESSIONS))
+    expected = {
+        **results["variants"]["default"]["rules"],  # type: ignore[index]
+        # Rules the suppressions changed: scored without the suppressed alerts.
+        **results["suppressions"]["variants"]["default"]["rules"],  # type: ignore[index]
+    }
     connection = duckdb.connect(str(database), read_only=True)
     try:
         rows = connection.execute(
@@ -87,6 +94,10 @@ def test_rule_precision_matches_the_simulator_evaluation(warehouse: tuple[Path, 
             "SELECT count(*), count(*) FILTER (WHERE detected) FROM marts.attack_detection"
         ).fetchone()
         days = connection.execute("SELECT sum(events) FROM marts.daily_attack_counts").fetchone()
+        suppressed = connection.execute(
+            "SELECT detector_id, suppression_id FROM staging.stg_alerts"
+            " WHERE suppression_id IS NOT NULL"
+        ).fetchall()
         events = connection.execute("SELECT count(*) FROM main.events").fetchone()
     finally:
         connection.close()
@@ -101,3 +112,4 @@ def test_rule_precision_matches_the_simulator_evaluation(warehouse: tuple[Path, 
     assert attacks[0] == 8  # one attack per scenario
     assert attacks[1] == 8  # all caught in the default variants
     assert days == events
+    assert suppressed == [("PRH-ADMIN-001", "planned-admin-onboarding")]

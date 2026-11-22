@@ -1,6 +1,6 @@
 -- SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
 -- Copyright (c) 2026 Utsha Basak
--- Per UTC day: events, failures, alerts, incidents.
+-- Per UTC day: events, failures, alerts (suppressed ones apart), incidents.
 with events as (
     select
         event_date as day,
@@ -14,9 +14,12 @@ with events as (
 alerts as (
     select
         alert_date as day,
-        count(*) as alerts,
-        sum(case when severity in ('high', 'critical') then 1 else 0 end) as high_alerts,
-        count(distinct detector_id) as rules_fired
+        sum(case when suppression_id is null then 1 else 0 end) as alerts,
+        sum(
+            case when suppression_id is null and severity in ('high', 'critical') then 1 else 0 end
+        ) as high_alerts,
+        count(distinct case when suppression_id is null then detector_id end) as rules_fired,
+        sum(case when suppression_id is null then 0 else 1 end) as suppressed_alerts
     from {{ ref('stg_alerts') }}
     group by alert_date
 ),
@@ -46,6 +49,7 @@ select
     coalesce(a.alerts, 0) as alerts,
     coalesce(a.high_alerts, 0) as high_alerts,
     coalesce(a.rules_fired, 0) as rules_fired,
+    coalesce(a.suppressed_alerts, 0) as suppressed_alerts,
     coalesce(i.incidents, 0) as incidents,
     coalesce(i.high_incidents, 0) as high_incidents
 from days as d
