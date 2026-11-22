@@ -3,8 +3,8 @@
 """``prohori incidents``: parse a log file, run the rules and group the alerts into incidents."""
 
 import json
-from collections.abc import Sequence
-from dataclasses import dataclass
+from collections.abc import Iterable, Iterator, Sequence
+from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Annotated
@@ -28,13 +28,15 @@ from prohori.cli.parse import (
     YearOption,
     parsed_events,
 )
+from prohori.cli.suppressions import SuppressionsOption, load_option, print_suppressed
 from prohori.enrich import ConfigError, Enricher, EnrichSettings, build_enricher
 from prohori.incidents import EventContext, IncidentBuilder, IncidentSettings, cap
 from prohori.incidents.cap import AlertCap
 from prohori.incidents.provenance import with_provenance
 from prohori.rules import CompiledRule, RuleEngine
 from prohori.rules.model import parse_duration
-from prohori.schema import Incident, InputFile
+from prohori.schema import Alert, Incident, InputFile
+from prohori.suppress import NO_SUPPRESSIONS, Suppressions, Suppressor
 
 
 def incidents_command(
@@ -92,12 +94,15 @@ def incidents_command(
     pattern: PatternOption = None,
     keep_query: KeepQueryOption = False,
     models: ModelsOption = False,
+    suppressions_path: SuppressionsOption = None,
 ) -> None:
     """Parse a log file, run the detection rules and group the alerts into scored incidents.
 
     Enrichment is offline by default: bundled demo data, local GeoLite2 data and cached answers,
-    never the network. Exit codes: 0 no incidents, 3 incidents found (0 with --exit-zero), 1 every
-    non-blank line failed to parse or a rule file is invalid, 2 invalid usage or input.
+    never the network. With --suppressions, suppressed alerts are counted per entry and never join
+    an incident. Exit codes: 0 no incidents, 3 incidents found (0 with --exit-zero), 1 every
+    non-blank line failed to parse or a rule file is invalid, 2 invalid usage or input (including
+    an invalid suppressions file).
     """
     allowed_lateness = parse_lateness(lateness)
     try:
@@ -105,6 +110,7 @@ def incidents_command(
     except ValueError as exc:
         raise typer.BadParameter(str(exc), param_hint="--gap") from exc
     rules = load_detection_rules(rules_paths or [], builtin=not no_builtin)
+    suppressions = load_option(suppressions_path, rules)
     enricher = None if no_enrich else make_enricher(env_file, online=online)
     mode = "none" if no_enrich else ("online" if online else "offline")
     run = run_incidents(
@@ -116,6 +122,7 @@ def incidents_command(
         lateness=allowed_lateness,
         parse=ParseOptions(parser_name, year, timezone, mapping, pattern, keep_query),
         models=models,
+        suppressions=suppressions,
     )
     incidents = run.incidents
     if output is OutputFormat.JSON:
@@ -130,9 +137,13 @@ def incidents_command(
         }
         if run.alerts_not_kept:
             summary["alerts_not_kept"] = run.alerts_not_kept
+        if run.suppressor:
+            summary.update(run.suppressor.summary())
         typer.echo(json.dumps(summary), err=True)
     else:
         _print_tables(incidents, run.name, run.alerts)
+        if run.suppressor:
+            print_suppressed(Console(highlight=False), run.suppressor)
         if run.alerts_not_kept:
             typer.echo(_not_kept_note(run.alerts_not_kept), err=True)
     if run.events == 0 and run.parse_errors > 0:
@@ -164,6 +175,9 @@ class IncidentRun:
     alerts: int
     #: Alerts raised but not kept (see :mod:`prohori.incidents.cap`).
     alerts_not_kept: int = 0
+    #: What the suppressions silenced (empty without a suppressions file). ``alerts`` does not
+    #: count those alerts.
+    suppressor: Suppressor = field(default_factory=Suppressor)
 
 
 def run_incidents(
@@ -176,14 +190,17 @@ def run_incidents(
     lateness: timedelta,
     parse: ParseOptions,
     models: bool = False,
+    suppressions: Suppressions = NO_SUPPRESSIONS,
 ) -> IncidentRun:
     """Parse ``file`` ('-' for stdin), run ``rules`` and build incidents with provenance.
 
     With ``models`` the anomaly detectors run over the same events and their alerts join the
-    rule alerts. Closes ``enricher`` when done.
+    rule alerts. Suppressed alerts are counted by the run's suppressor and kept out of the alert
+    cap and the incidents. Closes ``enricher`` when done.
     """
     context = EventContext()
     alert_cap = AlertCap()
+    suppressor = Suppressor(suppressions)
     engine = RuleEngine(rules, lateness=lateness, reference_time=datetime.now(UTC))
     try:
         with parsed_events(
@@ -196,10 +213,17 @@ def run_incidents(
             keep_query=parse.keep_query,
         ) as parsed:
             model_run = ModelRun(models)
-            alert_cap.extend(engine.run(context.observe(model_run.observe(parsed.events))))
-            alert_cap.extend(model_run.alerts())
+            events = context.observe(model_run.observe(suppressor.observe(parsed.events)))
+            alert_cap.extend(_active(suppressor.apply_all(engine.run(events))))
+            alert_cap.extend(_active(suppressor.apply_all(model_run.alerts())))
             source = _input_file(parsed)  # the whole input has been read (and hashed) by now
-        builder = IncidentBuilder(rules, context=context, enricher=enricher, settings=settings)
+        builder = IncidentBuilder(
+            rules,
+            context=context,
+            enricher=enricher,
+            settings=settings,
+            suppressions=suppressions,
+        )
         incidents = with_provenance(
             alert_cap.apply(builder.build(alert_cap.alerts)),
             inputs=[source] if source is not None else [],
@@ -216,7 +240,13 @@ def run_incidents(
         parsed.stats.errors,
         alert_cap.seen,
         alert_cap.dropped_total,
+        suppressor,
     )
+
+
+def _active(alerts: Iterable[Alert]) -> Iterator[Alert]:
+    """The alerts no suppression silenced."""
+    return (alert for alert in alerts if alert.suppression is None)
 
 
 def _not_kept_note(count: int) -> str:

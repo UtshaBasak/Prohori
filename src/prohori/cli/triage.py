@@ -28,6 +28,7 @@ from prohori.cli.parse import (
     TimezoneOption,
     YearOption,
 )
+from prohori.cli.suppressions import SuppressionsOption, load_option
 from prohori.enrich import Enricher
 from prohori.incidents import IncidentSettings
 from prohori.reports import (
@@ -43,6 +44,7 @@ from prohori.reports import (
 from prohori.rules import CompiledRule
 from prohori.rules.model import parse_duration
 from prohori.schema import Incident
+from prohori.suppress import NO_SUPPRESSIONS, Suppressions
 
 INCIDENTS_FILE = "incidents.jsonl"
 SUMMARY_FILE = "summary.md"
@@ -73,6 +75,7 @@ def triage_file(
     redact: bool = False,
     redact_ips: bool = False,
     models: bool = False,
+    suppressions: Suppressions = NO_SUPPRESSIONS,
 ) -> TriageResult:
     """Build incidents from ``file`` and write ``incidents.jsonl``, one report each and a summary.
 
@@ -91,6 +94,7 @@ def triage_file(
         lateness=lateness,
         parse=parse,
         models=models,
+        suppressions=suppressions,
     )
     key = os.urandom(32)
     written = [_redacted(i, key, redact_ips) if redact or redact_ips else i for i in run.incidents]
@@ -158,6 +162,23 @@ def _summary(
             "the incidents concerned say so in their limitations.",
             "",
         ]
+    if run.suppressor.total:
+        # Entries, rules and counts, never the alerts' entities. A reason may name an account,
+        # so a redacted run leaves reasons and owners out (they are in the suppressions file).
+        lines += [
+            f"{run.suppressor.total:,} alert(s) were suppressed and kept out of the incidents"
+            + (" (reasons and owners are in the suppressions file):" if redacted else ":"),
+            "",
+            "| Entry | Rule | Alerts | Expires |" + ("" if redacted else " Reason | Owner |"),
+            "|-------|------|-------:|---------|" + ("" if redacted else "--------|-------|"),
+        ]
+        for entry, rule, count in run.suppressor.rows():
+            # Entry ids and rule ids are restricted to [A-Za-z0-9_.-*]: safe in a code span.
+            row = f"| `{entry.id}` | `{rule}` | {count:,} | {entry.expires.isoformat()} |"
+            if not redacted:
+                row += f" {md_escape(entry.reason)} | {md_escape(entry.owner)} |"
+            lines.append(row)
+        lines.append("")
     if incidents:
         lines += [
             "| Incident | Severity | Score | Confidence | Title | Report |",
@@ -238,13 +259,15 @@ def triage_command(
     pattern: PatternOption = None,
     keep_query: KeepQueryOption = False,
     models: ModelsOption = False,
+    suppressions_path: SuppressionsOption = None,
 ) -> None:
     """Triage a log file: parse, detect, enrich, build incidents and write a report for each.
 
     Writes incidents.jsonl, one report per incident and summary.md to --out. Enrichment is
     offline unless --online is given. Exit codes: 0 no incidents, 3 incidents found (0 with
     --exit-zero), 1 nothing could be parsed, a rule file is invalid or redaction failed (nothing
-    is written), 2 invalid usage.
+    is written), 2 invalid usage (including an invalid suppressions file). Suppressed alerts are
+    listed per entry in summary.md.
     """
     if out.exists() and not out.is_dir():
         raise typer.BadParameter(f"{out} exists and is not a directory", param_hint="--out")
@@ -254,6 +277,7 @@ def triage_command(
     except ValueError as exc:
         raise typer.BadParameter(str(exc), param_hint="--gap") from exc
     rules = load_detection_rules(rules_paths or [], builtin=not no_builtin)
+    suppressions = load_option(suppressions_path, rules)
     enricher = None if no_enrich else make_enricher(env_file, online=online)
     try:
         result = triage_file(
@@ -269,6 +293,7 @@ def triage_command(
             redact=redact,
             redact_ips=redact_ips,
             models=models,
+            suppressions=suppressions,
         )
     except RedactionError as exc:
         typer.echo(f"error: {exc}; nothing was written", err=True)
@@ -291,6 +316,7 @@ def print_result(result: TriageResult, console: Console | None = None) -> None:
             f"{run.name}: {run.events} events, {run.alerts} alerts, "
             f"{len(result.incidents)} incident(s)"
             + (f", {run.alerts_not_kept:,} alerts not kept" if run.alerts_not_kept else "")
+            + (f", {run.suppressor.total:,} suppressed" if run.suppressor.total else "")
         )
     )
     if result.incidents:

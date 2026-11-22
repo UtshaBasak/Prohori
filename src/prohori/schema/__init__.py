@@ -2,7 +2,13 @@
 # Copyright (c) 2026 Utsha Basak
 """Pydantic models for the common event schema: Event, Alert and Incident."""
 
-from prohori.schema.alert import ATTACK_TAG_PATTERN, Alert, AttackTag, DetectorKind
+from prohori.schema.alert import (
+    ATTACK_TAG_PATTERN,
+    Alert,
+    AttackTag,
+    DetectorKind,
+    SuppressionMark,
+)
 from prohori.schema.event import ACTION_PATTERN, Event, EventInfo, HttpInfo, SourceInfo, UserInfo
 from prohori.schema.fields import DERIVED_PATHS, FIELD_PATHS, get_field, is_valid_path
 from prohori.schema.ids import alert_id, event_id, incident_id
@@ -59,6 +65,7 @@ __all__ = [
     "ScoreComponent",
     "Severity",
     "SourceInfo",
+    "SuppressionMark",
     "TimelineEntry",
     "UserInfo",
     "alert_id",

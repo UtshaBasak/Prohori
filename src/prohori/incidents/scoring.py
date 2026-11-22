@@ -147,8 +147,13 @@ def score_incident(
     keys: Iterable[tuple[str, str]],
     enrichment: Mapping[str, Sequence[EnrichmentResult]],
     novelty: Sequence[Novelty],
+    withheld: Mapping[str, tuple[str, Sequence[EnrichmentResult]]] | None = None,
 ) -> Score:
-    """Score one incident. ``enrichment`` maps the incident's IP addresses to provider results."""
+    """Score one incident. ``enrichment`` maps the incident's IP addresses to provider results.
+
+    ``withheld`` maps allow-listed addresses to the entry that lists them and their results: they
+    get no reputation points, and a 0-point line says what was not counted.
+    """
     components: list[tuple[str, int]] = []
     top = max(alerts, key=lambda a: a.severity.rank)
     components.append(
@@ -184,6 +189,12 @@ def score_incident(
     )
     if best[0]:
         components.append((best[1], best[0]))
+    for ip, (entry, results) in sorted((withheld or {}).items()):
+        points, reason = reputation(ip, results)
+        if points:
+            components.append(
+                (f"Not counted ({points} points): {reason}; allow-listed by {entry!r}", 0)
+            )
     key_set = set(keys)
     ips = {v for f, v in key_set if f == "source.ip"}
     # One account can appear as an id, a name and an email hash; count the field with most values.

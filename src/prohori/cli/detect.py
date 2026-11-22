@@ -29,10 +29,12 @@ from prohori.cli.parse import (
     YearOption,
     parsed_events,
 )
+from prohori.cli.suppressions import SuppressionsOption, load_option, print_suppressed
 from prohori.parsers import sanitize
 from prohori.rules import CompiledRule, EngineStats, RuleEngine, builtin_rules_dir, load_rules
 from prohori.rules.model import parse_duration
 from prohori.schema import Alert
+from prohori.suppress import Suppressor
 
 _SEVERITY_ORDER = {"critical": 0, "high": 1, "medium": 2, "low": 3}
 #: Alerts the table shows by default; the rest are counted.
@@ -123,14 +125,19 @@ def detect_command(
     pattern: PatternOption = None,
     keep_query: KeepQueryOption = False,
     models: ModelsOption = False,
+    suppressions_path: SuppressionsOption = None,
 ) -> None:
     """Parse a log file and run detection rules over it; print the alerts and a summary.
 
-    Exit codes: 0 no alerts, 3 alerts found (0 with --exit-zero), 1 every non-blank line failed to
-    parse or a rule file is invalid, 2 invalid usage or input.
+    With --suppressions, alerts an entry covers are marked and counted, not dropped: the table
+    lists them per entry, and JSON output writes them with their "suppression". Exit codes: 0 no
+    alerts (suppressed ones do not count), 3 alerts found (0 with --exit-zero), 1 every non-blank
+    line failed to parse or a rule file is invalid, 2 invalid usage or input (including an invalid
+    suppressions file).
     """
     allowed_lateness = parse_lateness(lateness)
     rules = load_detection_rules(rules_paths or [], builtin=not no_builtin)
+    suppressor = Suppressor(load_option(suppressions_path, rules))
     engine = RuleEngine(rules, lateness=allowed_lateness, reference_time=datetime.now(UTC))
     with parsed_events(
         file,
@@ -142,12 +149,15 @@ def detect_command(
         keep_query=keep_query,
     ) as parsed:
         model_run = ModelRun(models)
-        alerts = model_run.chain(engine.run(model_run.observe(parsed.events)))
+        events = model_run.observe(suppressor.observe(parsed.events))
+        alerts = suppressor.apply_all(model_run.chain(engine.run(events)))
         if output is OutputFormat.JSON:
             count = _write_json(alerts)
-            _summary_json(parsed, len(rules), count, engine.stats)
+            _summary_json(parsed, len(rules), count, engine.stats, suppressor)
         else:
-            count = _write_table(alerts, parsed, len(rules), engine.stats, limit=limit)
+            count = _write_table(
+                alerts, parsed, len(rules), engine.stats, limit=limit, suppressor=suppressor
+            )
     if parsed.stats.events == 0 and parsed.stats.errors > 0:
         raise typer.Exit(ExitCode.NO_EVENTS)
     if count and not exit_zero:
@@ -165,13 +175,16 @@ def parse_lateness(text: str) -> timedelta:
 
 
 def _write_json(alerts: Iterable[Alert]) -> int:
-    """Write each alert as soon as it is raised, so memory does not grow with the alerts."""
+    """Write each alert as soon as it is raised, so memory does not grow with the alerts.
+
+    Suppressed alerts are written too (with their "suppression"); the count is the others.
+    """
     count = 0
     out = sys.stdout
     for alert in alerts:
         out.write(alert.model_dump_json())
         out.write("\n")
-        count += 1
+        count += alert.suppression is None
     out.flush()
     return count
 
@@ -191,8 +204,13 @@ def _engine_counters(stats: EngineStats) -> dict[str, int]:
     return {key: value for key, value in stats.as_dict().items() if key != "alerts"}
 
 
-def _summary_json(parsed: ParsedInput, rules: int, alerts: int, stats: EngineStats) -> None:
-    summary = {**_summary(parsed, rules, alerts), "engine": _engine_counters(stats)}
+def _summary_json(
+    parsed: ParsedInput, rules: int, alerts: int, stats: EngineStats, suppressor: Suppressor
+) -> None:
+    summary: dict[str, object] = {**_summary(parsed, rules, alerts)}
+    if suppressor:
+        summary.update(suppressor.summary())
+    summary["engine"] = _engine_counters(stats)
     typer.echo(json.dumps(summary), err=True)
 
 
@@ -240,9 +258,11 @@ def _write_table(
     stats: EngineStats,
     *,
     limit: int = DEFAULT_LIMIT,
+    suppressor: Suppressor | None = None,
 ) -> int:
     console = Console(highlight=False)
-    collected, severities = _first(alerts, limit)
+    active = (a for a in alerts if a.suppression is None)  # suppressed ones are counted apart
+    collected, severities = _first(active, limit)
     total = severities.total()
     if collected:
         table = Table(title=f"Alerts in {parsed.name}")
@@ -272,6 +292,8 @@ def _write_table(
             )
     else:
         console.print("No alerts.")
+    if suppressor is not None:
+        print_suppressed(console, suppressor)
     summary = Table(title="Detection summary", show_header=False)
     summary.add_column("metric")
     summary.add_column("value", justify="right")
@@ -280,6 +302,8 @@ def _write_table(
         summary.add_row(key.replace("_", " "), Text(str(value)))
     if total > len(collected):
         summary.add_row("alerts shown", Text(str(len(collected))))
+    if suppressor:
+        summary.add_row("alerts suppressed", Text(str(suppressor.total)))
     for key in _DROP_COUNTERS:
         if engine[key]:  # events that were not fully evaluated; silent when zero
             summary.add_row(key.replace("_", " "), Text(str(engine[key])))
