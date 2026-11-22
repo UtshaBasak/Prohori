@@ -64,7 +64,7 @@ x-stage: &stage
 
 services:
   redpanda:
-    image: redpandadata/redpanda:v26.2.6@sha256:8b1076e0d61bfceb66594dc01536427ce0b529f8ead35fdab9763ab6085891ce
+    image: redpandadata/redpanda:v26.2.7@sha256:43545ee03966431f5451e0b3c1e651b39fbe3eb383360220311021f50133b649
     # Not --mode=dev-container, which skips fsync and acknowledges writes before they reach the
     # disk: a host crash could lose messages the stages had already committed past. The image's
     # own redpanda.yaml is a developer configuration too, so fsync and write caching are set
@@ -103,7 +103,7 @@ services:
     # Runs once per 'up' and exits (pipeline/redpanda/init.sh): turns write caching off on a
     # cluster an earlier version created, creates or updates the three SASL/SCRAM users with
     # their least-privilege ACLs, and turns SASL on. Safe to run again with new passwords.
-    image: redpandadata/redpanda:v26.2.6@sha256:8b1076e0d61bfceb66594dc01536427ce0b529f8ead35fdab9763ab6085891ce
+    image: redpandadata/redpanda:v26.2.7@sha256:43545ee03966431f5451e0b3c1e651b39fbe3eb383360220311021f50133b649
     depends_on:
       redpanda:
         condition: service_healthy
