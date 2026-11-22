@@ -40,6 +40,7 @@ from prohori.cli.parse import (
     TimezoneOption,
     YearOption,
 )
+from prohori.cli.suppressions import SuppressionsOption, load_option
 from prohori.incidents import IncidentSettings
 from prohori.parsers import sanitize
 from prohori.pipeline import stack
@@ -143,6 +144,7 @@ def _settings(
     parsers: ParserSettings,
     follow: bool,
     idle_close: float | None = None,
+    suppressions_path: Path | None = None,
 ) -> LiteSettings:
     allowed_lateness = parse_lateness(lateness)
     try:
@@ -150,6 +152,7 @@ def _settings(
     except ValueError as exc:
         raise typer.BadParameter(str(exc), param_hint="--gap") from exc
     rules = load_detection_rules(rules_paths or [], builtin=not no_builtin)
+    suppressions = load_option(suppressions_path, rules)
     return LiteSettings(
         rules=rules,
         database=database or state / "prohori.duckdb",
@@ -160,6 +163,7 @@ def _settings(
         enrichment="none" if no_enrich else ("online" if online else "offline"),
         follow=follow,
         idle_close=idle_close,
+        suppressions=suppressions,
     )
 
 
@@ -221,6 +225,7 @@ def replay_command(
     mapping: MappingOption = None,
     pattern: PatternOption = None,
     keep_query: KeepQueryOption = False,
+    suppressions_path: SuppressionsOption = None,
 ) -> None:
     """Replay log files through the pipeline.
 
@@ -248,6 +253,7 @@ def replay_command(
         no_enrich=no_enrich,
         env_file=env_file,
         parsers=parsers,
+        suppressions_path=suppressions_path,
         follow=False,
     )
     pipeline = _pipeline(state, settings)
@@ -314,6 +320,7 @@ def tail_command(
     mapping: MappingOption = None,
     pattern: PatternOption = None,
     keep_query: KeepQueryOption = False,
+    suppressions_path: SuppressionsOption = None,
     max_rounds: MaxRoundsOption = None,
 ) -> None:
     """Follow growing log files (like tail -F) until Ctrl+C.
@@ -347,6 +354,7 @@ def tail_command(
         no_enrich=no_enrich,
         env_file=env_file,
         parsers=parsers,
+        suppressions_path=suppressions_path,
         follow=True,
     )
     pipeline = _pipeline(state, settings)
@@ -439,6 +447,7 @@ def run_command(
     mapping: MappingOption = None,
     pattern: PatternOption = None,
     keep_query: KeepQueryOption = False,
+    suppressions_path: SuppressionsOption = None,
     max_rounds: MaxRoundsOption = None,
 ) -> None:
     """Run one pipeline stage (or all) over Kafka until stopped: what each container runs.
@@ -461,6 +470,7 @@ def run_command(
         no_enrich=no_enrich,
         env_file=env_file,
         parsers=parsers,
+        suppressions_path=suppressions_path,
         follow=True,
         idle_close=idle_close,
     )

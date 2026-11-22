@@ -225,7 +225,12 @@ it.
 ## Counters
 
 The table printed at the end has, for each stage, messages consumed and produced, dead letters
-and duplicates dropped. The sink's "produced" column counts rows sent to the database;
+and duplicates dropped. With `--suppressions FILE` the detector and the incident stage also
+report `suppressed`: the detector marks the alerts an entry covers and publishes them like any
+other, the sink stores them, and the incident stage keeps them out of incidents
+([RULES.md](RULES.md#suppressions-and-allow-lists)). The detector rebuilds its suppression state
+with the rule engine's, so a restart marks the same alerts. The Docker stack's containers run
+without a suppressions file, as they run the built-in rules without `--rules`. The sink's "produced" column counts rows sent to the database;
 duplicates are then ignored there. `-f json` adds the parser counters (lines, events, skipped,
 blank, errors), the rule engine counters (late events, expired groups) and the row count of each
 table.

@@ -206,3 +206,26 @@ def test_breakdown_always_sums_to_the_total(
     assert sum(c.points for c in score.components) == score.total
     assert 0 <= score.total <= scoring.MAX_SCORE
     assert score.severity.rank >= max(s.rank for s in severities)
+
+
+def test_allow_listed_addresses_get_no_reputation_points_and_say_so() -> None:
+    bad = [_result(abuse_score=90, malicious=5)]
+    counted = score_incident(
+        [alert("R-A", severity=Severity.LOW)], [], [], {"203.0.113.9": bad}, []
+    )
+    withheld = score_incident(
+        [alert("R-A", severity=Severity.LOW)],
+        [],
+        [],
+        {},
+        [],
+        {"203.0.113.9": ("vuln-scanner", bad)},
+    )
+    assert counted.reputation_points == scoring.REPUTATION_CAP
+    assert withheld.reputation_points == 0
+    assert withheld.total == scoring.SEVERITY_POINTS[Severity.LOW]
+    notes = [c for c in withheld.components if c.reason.startswith("Not counted")]
+    assert len(notes) == 1
+    assert notes[0].points == 0
+    assert "allow-listed by 'vuln-scanner'" in notes[0].reason
+    assert "Reputation of 203.0.113.9" in notes[0].reason

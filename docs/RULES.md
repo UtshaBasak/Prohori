@@ -464,6 +464,95 @@ counted); each stateful rule tracks at most 50,000 groups (the least recently se
 counted); expired groups are removed as time advances; ratio thresholds keep at most 10,000 events
 per group.
 
+## Suppressions and allow-lists
+
+Some activity is known to be benign: a planned admin role grant, your own vulnerability scanner.
+Changing a rule for it would change the rule for everyone. A **suppressions file** instead
+records each exception with a reason, an owner and an expiry date, and every command that
+detects applies it the same way (`--suppressions FILE` on `detect`, `incidents`, `triage` and
+`pipeline replay` / `tail` / `run`; decided in ADR-0043).
+
+```yaml
+suppressions:
+  - id: planned-admin-onboarding       # lower case, digits, . _ - (at most 64)
+    rule: PRH-ADMIN-001                # one rule id, a list of them, or "*" (every rule and model)
+    match:                             # a selection: field|modifier: value(s), as in rules
+      user.id: u-0001
+      event.action: admin.role.granted
+      time.hour|gte: 10                # time.* fields use the entry's timezone
+      time.hour|lt: 18
+    timezone: Asia/Dhaka               # optional, default UTC
+    reason: Planned onboarding by u-0001 during office hours (change tickets)
+    owner: security-team
+    expires: 2027-06-30                # required: in force up to and including this day (UTC)
+allow_ips:
+  - id: vuln-scanner
+    addresses: [192.0.2.50, 2001:db8:1::/48]   # addresses or networks
+    reason: Weekly authorised scan
+    owner: it-ops
+    expires: 2026-12-31
+```
+
+`samples/suppressions.yml` is a working example for the simulated shop. Check a file with
+`prohori rules validate --suppressions FILE`.
+
+**What a suppression does.** An alert is suppressed by the first entry, in file order, that:
+
+1. covers the alert's detector: its rule id is listed, or the entry says `*`;
+2. is in force on the day of the alert's last event (UTC), so a replay of last month's log is
+   judged by the entries as they were then, and the same input always gives the same result;
+3. matches **every** event the alert lists, with the same matching rules as a rule's selection
+   (list of mappings = any, keys in a mapping = all, the same modifiers). An alert lists at most
+   100 events, so for a longer one, or one whose events are no longer remembered, the alert's
+   entities decide instead: the group of a threshold or sequence rule, the fields of a
+   single-event alert, the address of a model alert. Those values are shared by every event of
+   the alert, so the entities decide only when every field of a group is among them, and
+   otherwise the alert is not suppressed.
+
+A suppressed alert is **never dropped**. It is marked with the entry (`"suppression": {"id",
+"reason", "owner", "expires"}` in its JSON) and counted per entry and rule:
+
+| Command | What happens to suppressed alerts |
+| ------- | ----------- |
+| `detect` | The table lists them per entry and rule ("Suppressed alerts") and counts them in the summary; `-f json` writes each one with its `suppression`, and the summary on standard error has `suppressed` and `suppressed_by_entry` (entry -> rule -> count). They do not count toward exit code 3 |
+| `incidents`, `triage` | Kept out of the incidents and out of the alert cap; counted in the JSON summary and the table, and listed per entry and rule in `summary.md` (entries, rules and counts only; a redacted run leaves out the reasons and owners, which may name accounts) |
+| `pipeline` | The detector marks them and publishes them like any alert, so the sink stores them (`alerts.record`); the incident stage counts them and keeps them out of incidents. Both stages report a `suppressed` counter. The warehouse's `stg_alerts.suppression_id` names the entry; the marts count them apart (`suppressed_alerts`) |
+
+**What it never does.** A suppression only touches the alerts it matches. Another rule's alert
+about the same account or address, or the same rule's alert with one event that does not match,
+still joins its incident as before, so a suppression cannot hide an incident's other alerts. An
+alert's id does not depend on suppressions.
+
+**Allow-listed addresses.** An `allow_ips` entry is a `rule: "*"` suppression for alerts whose
+events all come from the listed addresses (`source.ip`), and also withholds those addresses'
+reputation points from incident scores: the breakdown shows a 0-point line, "Not counted (N
+points): Reputation of ... allow-listed by 'vuln-scanner'", so the exception stays visible.
+
+**Warnings.** An entry past its `expires` day is reported on every run ("expired on ...; it no
+longer applies to new alerts: review it, then renew or delete it"); so is an entry naming a rule
+that is not loaded, since a typo would silence nothing.
+
+**Invalid files.** The file is loaded with the rule-file limits (128 KiB, safe YAML, no aliases)
+and every problem is reported with its line. A file with any problem is not used and the command
+exits 2: half a file would silence some alerts and not others. Every entry needs `reason`,
+`owner` and `expires`; a `*` entry needs field matchers; ids must be unique.
+
+**Memory.** The suppressor remembers which entries matched, for at most 200,000 events (the
+oldest first are forgotten); alerts about forgotten events fall back to their entities. Counts
+are exact; a batch run keeps at most 1,000 suppressed alerts themselves in memory, and
+`detect -f json` writes every one as it is raised.
+
+**Measured effect.** `scripts/evaluate_rules.py` applies `samples/suppressions.yml` to the same
+simulated detections and records precision and recall with and without it
+(`results/rules_eval.json`, `suppressions`). Over 5 seeds the planned admin grant is the only
+false positive it removes: PRH-ADMIN-001 goes from 5 false positives to 0 (precision 0.5 to 1.0)
+in every variant, no true positive is lost and every attack is still detected (40/40 default
+and held-out, 35/40 heldout2, as without it). Overall precision moves from 0.618 to 0.622
+(default), 0.448 to 0.453 (held-out) and 0.498 to 0.503 (heldout2): PRH-ACCT-001 (owners
+changing their own settings) is the main source of false positives, and nothing in those events
+tells an owner from an attacker, so the example does not suppress it. A suppression that relies
+on the simulator's attacker network would look better and mean nothing.
+
 ## Rule tests
 
 Every rule `<name>.yml` needs a fixture file `<name>.tests.yml` next to it, with at least one
@@ -528,7 +617,9 @@ INVALID  rules/web.yml
 1. Give the rule a unique `id`, a clear `title`, `status` and `severity`.
 2. Tag ATT&CK techniques and tactics (`attack.t1110`, `attack.credential_access`).
 3. Prefer exact values, lists and `contains` / `startswith` / `endswith` over `re`.
-4. Add a `filter` selection for known benign sources and use `and not filter`.
+4. Add a `filter` selection for activity that is benign everywhere and use `and not filter`;
+   exceptions for one site (a planned change, your own scanner) belong in a suppressions file,
+   with a reason, an owner and an expiry date.
 5. List `falsepositives` and link a `response` runbook.
 6. Run `prohori rules validate` until it reports no errors.
 7. Write `<name>.tests.yml` with positive and negative cases and run `prohori rules test`.

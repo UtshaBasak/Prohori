@@ -35,8 +35,8 @@ Tables never interpret text from logs as markup, and every report format escapes
 | ------ | --------- |
 | `0` | Success, nothing found (or `--exit-zero`) |
 | `1` | Nothing could be processed: every line failed to parse, a rule file is invalid, redaction could not hide every value (nothing is written), `score` lacks the `ml` extra, a loadable model or a scorable file, or `pipeline` lacks the `pipeline` extra, cannot reach the broker, Docker or the database, found an unhealthy stack, or every replayed line was rejected |
-| `2` | Invalid usage, input or setting |
-| `3` | Findings: `detect`, `incidents` and `triage` found alerts or incidents; `score` flagged flows |
+| `2` | Invalid usage, input or setting (including an invalid `--suppressions` file) |
+| `3` | Findings: `detect`, `incidents` and `triage` found alerts or incidents (suppressed alerts do not count); `score` flagged flows |
 
 Code `3` lets scripts and CI pipelines react to findings; add `--exit-zero` to get `0` instead.
 
@@ -56,6 +56,12 @@ Code `3` lets scripts and CI pipelines react to findings; add `--exit-zero` to g
 `detect`, `incidents` and `triage` also accept `--rules PATH` (repeatable; your rules run with
 the built-in ones), `--no-builtin`, `--lateness 5m` (how far out of order events may arrive),
 `--models` (anomaly detectors, see [ANOMALY.md](ANOMALY.md)) and `--exit-zero`. See [PARSERS.md](PARSERS.md) and [RULES.md](RULES.md).
+
+`--suppressions FILE` (on `detect`, `incidents`, `triage` and `pipeline replay` / `tail` / `run`)
+applies a suppressions file: alerts an entry covers are marked, counted per entry and kept out
+of incidents, never dropped, and allow-listed addresses get no reputation points. Expired
+entries and entries naming a rule that is not loaded print a warning; an invalid file stops the
+command with exit code 2. See [RULES.md](RULES.md#suppressions-and-allow-lists).
 
 ## `prohori demo`
 
@@ -83,7 +89,9 @@ and writes to `--out` (default `triage`):
 
 - `incidents.jsonl`: every incident as JSON (input for `prohori report`);
 - `INC-<id>.<format>`: one report per incident (`--format`, default `html`);
-- `summary.md`: every incident with severity, score, confidence, title and a link to its report.
+- `summary.md`: every incident with severity, score, confidence, title and a link to its report,
+  and with `--suppressions`, what was suppressed per entry and rule (no entity values; a redacted
+  run also leaves out the entries' reasons and owners).
 
 Before writing, a run deletes what an earlier triage left in `--out` (`incidents.jsonl`,
 `summary.md` and `INC-*` reports) and nothing else, so an old unredacted report never sits next to
@@ -103,6 +111,16 @@ Runs the 21 built-in rules (plus `--rules`) and prints the alerts and a summary.
 The table shows the earliest 100 alerts and counts the rest by severity (`--limit N`, `0` for
 all), so a late critical alert is never hidden silently; `-f json`
 writes every alert as soon as it is raised. See [RULES.md](RULES.md).
+
+With `--suppressions FILE` the table lists suppressed alerts per entry and rule and the summary
+counts them (`alerts suppressed`); `-f json` writes each suppressed alert with its
+`suppression` (entry id, reason, owner, expiry) and adds `suppressed` and `suppressed_by_entry`
+to the summary on standard error.
+
+```bash
+prohori rules validate --suppressions samples/suppressions.yml
+prohori detect app.jsonl --suppressions samples/suppressions.yml
+```
 
 `--models` (also on `incidents` and `triage`) adds the anomaly detectors: source IPs whose
 five-minute windows are unusual for the log get `low` alerts with `detector_kind: model`. The

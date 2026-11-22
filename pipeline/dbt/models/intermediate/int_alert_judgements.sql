@@ -3,7 +3,8 @@
 -- Each alert judged against the simulator's labels, as the rule evaluation does
 -- (docs/SIMULATOR.md): a true positive when at least half of its labelled events are attack
 -- events, credited to the attack most of them belong to. Alerts without labelled events are
--- not judged.
+-- not judged. Suppressed alerts are judged too (is_suppressed), so what a suppression hid can be
+-- measured; the marts count only the alerts an analyst sees.
 with alert_labels as (
     select
         ae.alert_id,
@@ -38,6 +39,7 @@ select
     a.alert_id,
     a.detector_id,
     a.last_seen,
+    a.suppression_id is not null as is_suppressed,
     coalesce(c.labelled_events, 0) as labelled_events,
     coalesce(c.attack_events, 0) as attack_events,
     coalesce(c.labelled_events, 0) > 0 as is_judged,

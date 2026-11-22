@@ -72,6 +72,10 @@ class FieldMatcher:
             if self.field in TIME_FIELDS
             else get_field(event, self.field)
         )
+        return self.matches_value(value)
+
+    def matches_value(self, value: JsonScalar) -> bool:
+        """Whether one field value (already looked up) matches, with the same modifiers."""
         if self.urldecode and isinstance(value, str):
             value = url_decode(value)
         if self.require_all:

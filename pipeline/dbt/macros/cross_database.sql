@@ -28,6 +28,19 @@
     {%- endif -%}
 {%- endmacro %}
 
+{#- The text at key.field of a JSON object column (null when either is missing). -#}
+{% macro json_text(column, key, field) -%}
+    {{ return(adapter.dispatch('json_text')(column, key, field)) }}
+{%- endmacro %}
+
+{% macro duckdb__json_text(column, key, field) -%}
+    json_extract_string({{ column }}, '$.{{ key }}.{{ field }}')
+{%- endmacro %}
+
+{% macro postgres__json_text(column, key, field) -%}
+    ({{ column }} -> '{{ key }}' ->> '{{ field }}')
+{%- endmacro %}
+
 {#- Seconds between two timestamps, as a whole number. -#}
 {% macro seconds_between(start, finish) -%}
     {{ dbt.datediff(start, finish, 'second') }}

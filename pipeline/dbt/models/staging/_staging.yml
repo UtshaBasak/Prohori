@@ -7,7 +7,9 @@ models:
       - name: event_id
         data_tests: [unique, not_null]
   - name: stg_alerts
-    description: Alerts with a UTC date (of the event that raised them).
+    description: >
+      Alerts with a UTC date (of the event that raised them) and, for a suppressed alert, the
+      id of the suppression entry that silenced it (suppression_id).
     columns:
       - name: alert_id
         data_tests: [unique, not_null]
