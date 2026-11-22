@@ -4,7 +4,9 @@
 
 Every scenario is simulated, replayed through its own lite pipeline (its own topics, so the
 scenarios' different clocks do not make each other's events late) into one DuckDB file, and its
-labels are loaded; flow-model results are loaded too. CI builds the dbt models on the result.
+labels are loaded; flow-model results are loaded too. The example suppressions
+(``samples/suppressions.yml``) are applied, so the warehouse holds suppressed alerts as a real
+one would. CI builds the dbt models on the result.
 
     uv run python scripts/build_lite_warehouse.py --db .prohori/pipeline/prohori.duckdb
 """
@@ -23,9 +25,11 @@ from prohori.pipeline.transport import MemoryTransport
 from prohori.pipeline.warehouse import evaluation_rows, label_rows, load, open_warehouse
 from prohori.rules import builtin_rules_dir, load_rules
 from prohori.simulate import SCENARIOS, simulate, write
+from prohori.suppress import NO_SUPPRESSIONS, Suppressions, load_suppressions
 
 ROOT = Path(__file__).resolve().parents[1]
 RESULTS = tuple(ROOT / "results" / name for name in ("ml_unsw-nb15.json", "ml_cicids2017.json"))
+SUPPRESSIONS = ROOT / "samples" / "suppressions.yml"
 
 
 def build(
@@ -36,9 +40,16 @@ def build(
     variant: str = "default",
     scenarios: Sequence[str] | None = None,
     results: Sequence[Path] = RESULTS,
+    suppressions: Suppressions | None = None,
 ) -> dict[str, object]:
-    """Simulate, replay and load every scenario into ``database``; return a summary."""
+    """Simulate, replay and load every scenario into ``database``; return a summary.
+
+    ``suppressions`` defaults to the example file; pass ``NO_SUPPRESSIONS`` for none.
+    """
     rules = [r.rule for r in load_rules([builtin_rules_dir()]) if r.rule is not None]
+    if suppressions is None:
+        found = SUPPRESSIONS.is_file()
+        suppressions = load_suppressions(SUPPRESSIONS) if found else NO_SUPPRESSIONS
     summary: dict[str, object] = {}
     for name in sorted(scenarios or SCENARIOS):
         simulation = simulate(name, seed=seed, variant=variant)
@@ -48,7 +59,11 @@ def build(
         year = simulation.year if simulation.scenario.parser == "auth_log" else None
         parsers = ParserSettings(year=year)
         settings = LiteSettings(
-            rules=rules, database=database, parsers=parsers, lateness=timedelta(minutes=5)
+            rules=rules,
+            database=database,
+            parsers=parsers,
+            lateness=timedelta(minutes=5),
+            suppressions=suppressions,
         )
         pipeline = LitePipeline(MemoryTransport(), settings)
         try:

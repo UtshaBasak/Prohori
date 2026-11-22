@@ -1,7 +1,8 @@
 -- SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
 -- Copyright (c) 2026 Utsha Basak
 -- Per simulated attack: when it started, whether a true-positive alert was credited to it,
--- and how long that took (time to detect, in log time).
+-- and how long that took (time to detect, in log time). Suppressed alerts do not count: an
+-- attack only a suppressed alert caught was hidden from the analyst.
 with attacks as (
     select
         l.scenario,
@@ -22,7 +23,7 @@ detections as (
         count(*) as alerts,
         count(distinct detector_id) as rules
     from {{ ref('int_alert_judgements') }}
-    where is_true_positive and credited_attack is not null
+    where is_true_positive and credited_attack is not null and not is_suppressed
     group by credited_attack
 )
 

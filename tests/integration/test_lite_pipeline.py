@@ -22,12 +22,14 @@ from prohori.pipeline.runner import LitePipeline, LiteSettings
 from prohori.pipeline.stages import ParserSettings
 from prohori.pipeline.transport import FileTransport
 from prohori.rules import builtin_rules_dir, load_rules
-from prohori.schema import Incident
+from prohori.schema import Alert, Incident
 from prohori.simulate import SCENARIOS, simulate, write
+from prohori.suppress import NO_SUPPRESSIONS, Suppressions, load_suppressions
 
 pytestmark = pytest.mark.integration
 
 RULES = [r.rule for r in load_rules([builtin_rules_dir()]) if r.rule is not None]
+EXAMPLE_SUPPRESSIONS = Path(__file__).resolve().parents[2] / "samples" / "suppressions.yml"
 LATENESS = timedelta(minutes=5)
 
 
@@ -52,9 +54,15 @@ def _batch(log: Path, parser: str, year: int | None) -> list[Incident]:
     return run.incidents
 
 
-def _lite(state: Path, database: Path, year: int | None) -> LitePipeline:
+def _lite(
+    state: Path, database: Path, year: int | None, suppressions: Suppressions = NO_SUPPRESSIONS
+) -> LitePipeline:
     settings = LiteSettings(
-        rules=RULES, database=database, parsers=ParserSettings(year=year), lateness=LATENESS
+        rules=RULES,
+        database=database,
+        parsers=ParserSettings(year=year),
+        lateness=LATENESS,
+        suppressions=suppressions,
     )
     return LitePipeline(FileTransport(state, fsync=False), settings, batch_size=200)
 
@@ -100,6 +108,43 @@ def test_replayed_twice_matches_the_batch_command_without_duplicate_rows(
     assert metrics["tables"]["alerts"] == len({a.id for i in expected for a in i.alerts})
     assert _comparable(_stored(database)) == _comparable(expected)
     assert all(i.provenance is not None for i in _stored(database))
+
+
+def test_suppressions_mark_the_same_alerts_in_stream_and_batch(
+    tmp_path: Path, lite_paths: tuple[Path, Path]
+) -> None:
+    log, parser, year = _scenario("admin-misuse", tmp_path / "logs")
+    suppressions = load_suppressions(EXAMPLE_SUPPRESSIONS)
+    batch = run_incidents(
+        str(log),
+        rules=RULES,
+        enricher=None,
+        enrichment="none",
+        settings=IncidentSettings(),
+        lateness=LATENESS,
+        parse=ParseOptions(parser, year),
+        suppressions=suppressions,
+    )
+    assert batch.suppressor.total == 1
+    state, database = lite_paths
+    pipeline = _lite(state, database, year, suppressions)
+    replay(log, pipeline.transport, parser=parser)
+    metrics = pipeline.run()
+    pipeline.close()
+
+    assert metrics["stages"]["detect"]["suppressed"] == 1
+    assert metrics["stages"]["incidents"]["suppressed"] == 1
+    assert _comparable(_stored(database)) == _comparable(batch.incidents)
+    connection = duckdb.connect(str(database), read_only=True)
+    try:
+        rows = connection.execute("SELECT record FROM alerts").fetchall()
+    finally:
+        connection.close()
+    records = [Alert.model_validate_json(row[0]) for row in rows]
+    marked = {a.id: a.suppression for a in records if a.suppression is not None}
+    assert marked == {a.id: a.suppression for a in batch.suppressor.listed}
+    in_incidents = {a.id for i in batch.incidents for a in i.alerts}
+    assert len(records) == len(in_incidents) + len(marked)
 
 
 def test_crash_mid_run_then_restart_stores_everything_once(

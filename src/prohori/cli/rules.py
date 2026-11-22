@@ -13,9 +13,12 @@ from rich.text import Text
 
 from prohori.cli.exit_codes import ExitCode
 from prohori.cli.parse import OutputFormat
+from prohori.cli.suppressions import detector_ids
 from prohori.parsers import sanitize
 from prohori.rules import RuleReport, builtin_rules_dir, load_rules
+from prohori.rules.loader import LocatedError
 from prohori.rules.testing import run_rule_tests
+from prohori.suppress import SuppressionFileError, load_suppressions
 
 rules_app = typer.Typer(
     name="rules",
@@ -99,16 +102,39 @@ def list_command(paths: PathsArgument = None, output: FormatOption = OutputForma
 
 @rules_app.command("validate")
 def validate_command(
-    paths: PathsArgument = None, output: FormatOption = OutputFormat.TABLE
+    paths: PathsArgument = None,
+    output: FormatOption = OutputFormat.TABLE,
+    suppressions: Annotated[
+        Path | None,
+        typer.Option(
+            "--suppressions",
+            help="Also validate this suppressions file, and warn about expired entries and rules "
+            "it names that are not among the rules validated.",
+            show_default=False,
+        ),
+    ] = None,
 ) -> None:
     """Validate rule files and report every problem with its file and line.
 
-    Exit codes: 0 all rules valid, 1 at least one invalid rule, 2 invalid usage.
+    Exit codes: 0 all valid, 1 at least one invalid rule, 2 invalid usage or an invalid
+    suppressions file.
     """
+    if suppressions is not None and not suppressions.is_file():
+        raise typer.BadParameter(f"not found: {suppressions}", param_hint="--suppressions")
     reports = _load(paths)
     invalid = [r for r in reports if not r.ok]
+    problems: list[LocatedError] = []
+    warnings: list[str] = []
+    if suppressions is not None:
+        try:
+            loaded = load_suppressions(suppressions)
+        except SuppressionFileError as exc:
+            problems = exc.errors
+        else:
+            rules = [r.rule for r in reports if r.rule is not None]
+            warnings = loaded.warnings(detector_ids(rules))
     if output is OutputFormat.JSON:
-        rows = [
+        rows: list[dict[str, object]] = [
             {
                 "file": str(r.file),
                 "id": r.rule.id if r.rule is not None else None,
@@ -119,6 +145,18 @@ def validate_command(
             }
             for r in reports
         ]
+        if suppressions is not None:
+            rows.append(
+                {
+                    "file": str(suppressions),
+                    "kind": "suppressions",
+                    "valid": not problems,
+                    "errors": [
+                        {"line": e.line, "path": e.path, "message": e.message} for e in problems
+                    ],
+                    "warnings": warnings,
+                }
+            )
         typer.echo(json.dumps(rows, indent=2))
     else:
         # Plain lines (no Rich): one error per line, never wrapped, safe to grep.
@@ -130,6 +168,15 @@ def validate_command(
                 typer.echo(f"  {sanitize(error.format(file))}")
         summary = f"{len(reports) - len(invalid)} valid, {len(invalid)} invalid"
         typer.echo(summary if reports else "No rule files found.")
+        if suppressions is not None:
+            file = sanitize(str(suppressions))
+            typer.echo(f"{'INVALID' if problems else 'OK':<8} {file} (suppressions)")
+            for error in problems:
+                typer.echo(f"  {sanitize(error.format(file))}")
+            for warning in warnings:
+                typer.echo(f"  warning: {sanitize(warning)}")
+    if problems:
+        raise typer.Exit(ExitCode.USAGE)
     if invalid:
         raise typer.Exit(ExitCode.INVALID_RULES)
 

@@ -38,6 +38,7 @@ from prohori.schema import (
     TimelineEntry,
     incident_id,
 )
+from prohori.suppress import NO_SUPPRESSIONS, Suppressions
 
 OFFLINE_PROVIDER = "offline"
 
@@ -66,6 +67,8 @@ class IncidentBuilder:
         context: Events seen in the run (see :class:`EventContext`); without it there is no
             timeline, novelty or log-source check.
         enricher: Looks up the incidents' IP addresses; each address is looked up once per run.
+        suppressions: Its ``allow_ips`` entries withhold reputation points from the addresses
+            they list (the breakdown says so with a 0-point line).
     """
 
     def __init__(
@@ -75,11 +78,13 @@ class IncidentBuilder:
         context: EventContext | None = None,
         enricher: Enricher | None = None,
         settings: IncidentSettings | None = None,
+        suppressions: Suppressions = NO_SUPPRESSIONS,
     ) -> None:
         self.guidance = load_guidance(rules)
         self.context = context
         self.enricher = enricher
         self.settings = settings or IncidentSettings()
+        self.suppressions = suppressions
 
     def build(self, alerts: Iterable[Alert]) -> list[Incident]:
         groups = group_alerts(
@@ -119,9 +124,24 @@ class IncidentBuilder:
         alerts = group.alerts
         events, missing = self._events(alerts)
         ips = [v for f, v in group.keys if f == "source.ip"]
-        enrichment = {ip: reports[ip].indicator.enrichment for ip in ips if ip in reports}
+        last_seen = max(a.last_seen for a in alerts)
+        allowed = {
+            ip: entry.id
+            for ip in ips
+            if (entry := self.suppressions.allowed_ip(ip, last_seen)) is not None
+        }
+        enrichment = {
+            ip: reports[ip].indicator.enrichment
+            for ip in ips
+            if ip in reports and ip not in allowed
+        }
+        withheld = {
+            ip: (entry, reports[ip].indicator.enrichment)
+            for ip, entry in allowed.items()
+            if ip in reports
+        }
         novelty = self._novelty(events)
-        score = score_incident(alerts, events, group.keys, enrichment, novelty)
+        score = score_incident(alerts, events, group.keys, enrichment, novelty, withheld)
         mapping = map_attack(tag for a in alerts for tag in a.attack)
         limitations = [
             *self._enrichment_limitations(ips, reports, skipped),

@@ -857,6 +857,101 @@
       }
     }
   },
+  "suppressions": {
+    "file": "samples/suppressions.yml",
+    "entries": [
+      "planned-admin-onboarding"
+    ],
+    "variants": {
+      "default": {
+        "without_suppressions": {
+          "alerts": 772,
+          "true_positives": 477,
+          "false_positives": 295,
+          "precision": 0.618,
+          "attacks": 40,
+          "attacks_detected": 40
+        },
+        "with_suppressions": {
+          "alerts": 767,
+          "true_positives": 477,
+          "false_positives": 290,
+          "precision": 0.622,
+          "attacks": 40,
+          "attacks_detected": 40
+        },
+        "rules": {
+          "PRH-ADMIN-001": {
+            "alerts": 5,
+            "true_positives": 5,
+            "false_positives": 0,
+            "attacks_expected": 5,
+            "attacks_detected": 5,
+            "precision": 1.0,
+            "recall": 1.0
+          }
+        }
+      },
+      "heldout": {
+        "without_suppressions": {
+          "alerts": 502,
+          "true_positives": 225,
+          "false_positives": 277,
+          "precision": 0.448,
+          "attacks": 40,
+          "attacks_detected": 40
+        },
+        "with_suppressions": {
+          "alerts": 497,
+          "true_positives": 225,
+          "false_positives": 272,
+          "precision": 0.453,
+          "attacks": 40,
+          "attacks_detected": 40
+        },
+        "rules": {
+          "PRH-ADMIN-001": {
+            "alerts": 5,
+            "true_positives": 5,
+            "false_positives": 0,
+            "attacks_expected": 5,
+            "attacks_detected": 5,
+            "precision": 1.0,
+            "recall": 1.0
+          }
+        }
+      },
+      "heldout2": {
+        "without_suppressions": {
+          "alerts": 546,
+          "true_positives": 272,
+          "false_positives": 274,
+          "precision": 0.498,
+          "attacks": 40,
+          "attacks_detected": 35
+        },
+        "with_suppressions": {
+          "alerts": 541,
+          "true_positives": 272,
+          "false_positives": 269,
+          "precision": 0.503,
+          "attacks": 40,
+          "attacks_detected": 35
+        },
+        "rules": {
+          "PRH-ADMIN-001": {
+            "alerts": 5,
+            "true_positives": 5,
+            "false_positives": 0,
+            "attacks_expected": 5,
+            "attacks_detected": 5,
+            "precision": 1.0,
+            "recall": 1.0
+          }
+        }
+      }
+    }
+  },
   "caveat": "Synthetic results. The same author wrote the rules and the scenarios, and the default variants were written knowing the rules' thresholds, so they mostly show that the rules do what they say. The held-out variants change the attacker's behaviour (slower, spread over more addresses, obfuscated, outside a time window) and are the more honest number. Real logs are noisier; rules without a scenario are not evaluated.",
   "baselines": {
     "1.0 rules (addresses 1)": {

@@ -6,6 +6,10 @@ Runs every scenario in both variants (default and held-out) for each seed, compa
 with the line labels and writes per-rule precision and recall to ``results/rules_eval.json``.
 Then run ``scripts/generate_results_table.py`` to update the table in ``docs/SIMULATOR.md``.
 
+The example suppressions (``samples/suppressions.yml``) are applied to the same detections and
+scored apart: the ``suppressions`` section has precision and recall with and without them. The
+main results always count every alert.
+
 The results file keeps frozen **baselines** under their labels: earlier rule sets' results,
 each recorded once with ``--freeze-baseline LABEL`` (usually with ``--rules`` pointing at that
 rule set, checked out from git) and never replaced, so the before-and-after comparison cannot
@@ -25,9 +29,11 @@ from typing import Any
 from prohori.rules import CompiledRule, builtin_rules_dir, load_rules
 from prohori.simulate import ADDRESS_MODEL, SCENARIOS, VARIANTS
 from prohori.simulate.evaluate import evaluate
+from prohori.suppress import SuppressionFileError, load_suppressions
 
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_OUT = ROOT / "results" / "rules_eval.json"
+SUPPRESSIONS = ROOT / "samples" / "suppressions.yml"
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -69,7 +75,17 @@ def main(argv: list[str] | None = None) -> int:
         return _freeze(args.freeze_baseline, rules, args.seeds, args.out, previous)
     if args.rules:
         parser.error("--rules is only for --freeze-baseline or --variants")
-    results = evaluate(rules, seeds=range(1, args.seeds + 1))
+    try:
+        suppressions = load_suppressions(SUPPRESSIONS)
+    except SuppressionFileError as exc:
+        print(f"{exc}: run 'prohori rules validate --suppressions {SUPPRESSIONS}'", file=sys.stderr)
+        return 1
+    results = evaluate(
+        rules,
+        seeds=range(1, args.seeds + 1),
+        suppressions=suppressions,
+        suppressions_name=SUPPRESSIONS.relative_to(ROOT).as_posix(),
+    )
     if "baselines" in previous:
         results["baselines"] = previous["baselines"]
     args.out.parent.mkdir(parents=True, exist_ok=True)

@@ -10,5 +10,7 @@ select
     {{ utc_date('last_seen') }} as alert_date,
     title,
     event_count,
+    -- The suppression entry that silenced the alert (null for an alert an analyst sees).
+    {{ json_text('record', 'suppression', 'id') }} as suppression_id,
     stored_at
 from {{ source('prohori', 'alerts') }}

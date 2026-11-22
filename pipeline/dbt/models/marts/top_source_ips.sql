@@ -14,13 +14,15 @@ with activity as (
     group by source_ip
 ),
 
+-- Alerts an analyst sees: suppressed ones are left out.
 alert_sources as (
     select distinct
         e.source_ip,
         ae.alert_id
     from {{ ref('stg_alert_events') }} as ae
     inner join {{ ref('stg_events') }} as e on e.event_id = ae.event_id
-    where e.source_ip is not null
+    inner join {{ ref('stg_alerts') }} as al on al.alert_id = ae.alert_id
+    where e.source_ip is not null and al.suppression_id is null
 ),
 
 alerts as (

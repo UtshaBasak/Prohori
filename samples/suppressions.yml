@@ -1,0 +1,29 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+# Copyright (c) 2026 Utsha Basak
+#
+# Example suppressions for the simulated shop (docs/RULES.md has the format).
+#
+#   prohori rules validate --suppressions samples/suppressions.yml
+#   prohori simulate admin-misuse --out sim
+#   prohori incidents sim/admin-misuse.jsonl --suppressions samples/suppressions.yml
+#
+# The shop's first admin (u-0001) onboards new administrators during office hours; each grant is
+# planned and has a change ticket. The entry silences PRH-ADMIN-001 for those grants only: a role
+# granted by another admin, or by u-0001 outside 10:00-17:59 Dhaka time, still raises an alert,
+# and so does every other rule. The suppressed alerts are counted and listed, never dropped.
+# scripts/evaluate_rules.py measures what this file changes (precision and recall, with and
+# without it) and writes it to results/rules_eval.json.
+suppressions:
+  - id: planned-admin-onboarding
+    rule: PRH-ADMIN-001
+    match:
+      user.id: u-0001
+      event.action: admin.role.granted
+      time.hour|gte: 10
+      time.hour|lt: 18
+    timezone: Asia/Dhaka
+    reason: >-
+      Planned onboarding of administrators by u-0001 during office hours (change tickets in
+      the admin onboarding queue)
+    owner: security-team
+    expires: 2027-06-30

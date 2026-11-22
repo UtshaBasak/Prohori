@@ -2102,3 +2102,54 @@ Releases also did not say what they contain.
 **Consequences.** The dashboards and Airflow need a login (the password is in `pipeline/.env`);
 outside Kafka clients need credentials. The README, PIPELINE, DASHBOARD, ORCHESTRATION, CLI and
 THREAT_MODEL documents and the wiki say so. `prohori pipeline up` stays a one-command start.
+
+## ADR-0043: Suppressions and allow-lists
+
+- **Date:** 2026-11-22
+- **Status:** Accepted
+
+**Context.** Known-benign activity (a planned admin role grant, an authorised scanner) raises the
+same alerts every time. Editing a rule's `filter` changes it for everyone and leaves no record of
+who decided, why, or until when. Silencing has to be reviewed, expiring and visible, and must
+never become a way to hide an attack.
+
+**Decision.**
+
+- **One file, reviewed entries.** A YAML file with `suppressions` (rule id, a list, or `*`; field
+  matchers in the rule selection syntax and modifiers, compiled by the same code; optional
+  `timezone` for `time.*`) and `allow_ips` (addresses or networks). Every entry needs `reason`,
+  `owner` and `expires`; ids are unique; `*` needs field matchers. It is loaded with the rule-file
+  limits, errors carry lines, and a file with any problem is refused (exit 2), never half
+  applied. The matcher (`prohori.suppress.entries.Entry`: detectors, matchers, reason, owner,
+  expiry) knows nothing about alerts, so the endpoint policy's allow entries (step 41) reuse it.
+- **Per alert, all events.** An entry suppresses an alert only when every event the alert lists
+  matches it. Alerts list at most 100 events, and a stream forgets old events, so an incomplete
+  list falls back to the alert's entities (values every event of the alert shares), and only
+  when every field of a matcher group is an entity; otherwise the alert stays (fail open).
+- **Expiry by event time.** An entry applies while the alert's last event is on or before its
+  `expires` day (UTC), not while the clock is. The rule engine never reads the clock either, and
+  the stream's detector rebuilds by replaying its topic: deciding by the clock would mark an alert
+  in one run and not in its rebuild, with the same alert id. The clock only drives the "expired"
+  warning printed on every run. Consequence, accepted: an expired entry still applies to old logs
+  from while it was in force.
+- **Marked, never dropped.** A suppressed alert keeps its id and gains a `suppression` field
+  (omitted from the JSON when unset, so every existing output is byte-identical). `detect`
+  lists and counts them and does not count them for exit code 3; the incident commands and the
+  incident stage keep them out of incidents and the alert cap; the stream publishes them, the
+  sink stores them, the warehouse exposes `suppression_id` and the marts count them apart.
+- **Allow-listed addresses** also get no reputation points; the score breakdown keeps a 0-point
+  line naming the entry, so the exception is visible in every report.
+- **Measured honestly.** The rule evaluation scores the same detections with and without the
+  example file and records precision, true positives and attacks detected for both. The example
+  suppresses only the simulator's planned admin grant (PRH-ADMIN-001 precision 0.5 to 1.0, no
+  true positive lost). The owners' own setting changes (PRH-ACCT-001) are not suppressed: only
+  the simulator's attacker network tells them from the account-takeover attack, and a suppression
+  built on that would encode the answer key.
+- **Not done, accepted:** the Docker stack's containers run the built-in rules without a
+  suppressions file, as they already run without `--rules`; `pipeline run --suppressions` is
+  there for a custom deployment that mounts one.
+
+**Consequences.** Exceptions are written down with an owner and an end date, show up in every
+output and in the warehouse, and cannot remove other alerts from an incident. RULES.md describes
+the format and the semantics; CLI.md, PIPELINE.md, WAREHOUSE.md, INCIDENTS.md and THREAT_MODEL.md
+the rest.

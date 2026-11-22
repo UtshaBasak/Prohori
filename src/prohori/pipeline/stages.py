@@ -8,6 +8,11 @@ stage cannot use (a line no parser accepts, a message that is not valid JSON or 
 schema) goes to the ``dead-letter`` topic with the reason and is counted; it is never retried, so
 one bad message cannot stall the pipeline.
 
+With a suppressions file the detector marks the alerts an entry covers (``alert.suppression``)
+and publishes them like any other, so they are stored and counted; the incident stage counts
+them and keeps them out of incidents. The detector rebuilds its suppression state with the rule
+engine's, so a rebuild marks the same alerts.
+
 The detector and the incident stage keep state in memory (the rule engine's windows, the events
 behind open incidents) and do not checkpoint it. They are marked ``stateful`` and read their
 inputs from the start when the pipeline starts, so a restart rebuilds the same state and produces
@@ -51,6 +56,7 @@ from prohori.pipeline.messages import (
 from prohori.pipeline.transport import Record, Transport
 from prohori.rules import CompiledRule, RuleEngine
 from prohori.schema import Alert, Event
+from prohori.suppress import NO_SUPPRESSIONS, Suppressions, Suppressor
 
 logger = logging.getLogger(__name__)
 
@@ -337,14 +343,17 @@ class Detector(Stage):
         lateness: timedelta,
         live: bool = False,
         now: Callable[[], datetime] = lambda: datetime.now(UTC),
+        suppressions: Suppressions = NO_SUPPRESSIONS,
     ) -> None:
         super().__init__(transport)
         self.rules = list(rules)
         self.lateness = lateness
         self.live = live
         self.now = now
+        self.suppressions = suppressions
         self.engine = self._engine()
         self.seen = _Seen(MAX_SEEN_EVENTS)
+        self.suppressor = Suppressor(suppressions)
 
     def _engine(self) -> RuleEngine:
         reference = self.now() if self.live else None
@@ -354,6 +363,7 @@ class Detector(Stage):
         super().start()
         self.engine = self._engine()
         self.seen = _Seen(MAX_SEEN_EVENTS)
+        self.suppressor = Suppressor(self.suppressions)
 
     def step(self, max_records: int) -> int:
         if self.live:
@@ -373,6 +383,7 @@ class Detector(Stage):
         if not self.seen.add(event.id):
             self.metrics.duplicates += 1
             return
+        self.suppressor.observe_one(event)
         self._emit(self.engine.process(event))
 
     def held(self) -> int:
@@ -398,7 +409,9 @@ class Detector(Stage):
         super().finish()
 
     def _emit(self, alerts: Iterable[Alert]) -> None:
-        for alert in alerts:
+        for alert in self.suppressor.apply_all(alerts):
+            if alert.suppression is not None:
+                self.metrics.extra["suppressed"] = self.metrics.extra.get("suppressed", 0) + 1
             self.publish(Topic.ALERTS, alert.id, alert)
 
     @property
@@ -450,10 +463,12 @@ class IncidentStage(Stage):
         enrichment: str = "none",
         clock: Callable[[], float] = time.monotonic,
         idle_close: float | None = None,
+        suppressions: Suppressions = NO_SUPPRESSIONS,
     ) -> None:
         super().__init__(transport)
         self.rules = list(rules)
         self.settings = settings or IncidentSettings()
+        self.suppressions = suppressions
         self.hold = hold_time(self.rules, self.settings.gap, lateness)
         self.enricher = enricher
         self.enrichment = enrichment
@@ -488,6 +503,10 @@ class IncidentStage(Stage):
         alert = Alert.model_validate(value)
         if alert.id in self.done or alert.id in self.pending:
             self.metrics.duplicates += 1
+            return
+        if alert.suppression is not None:  # counted and stored by the sink, never in an incident
+            self.done.add(alert.id)
+            self.metrics.extra["suppressed"] = self.metrics.extra.get("suppressed", 0) + 1
             return
         self.pending[alert.id] = alert
         self.last_alert_at = self.clock()
@@ -527,7 +546,11 @@ class IncidentStage(Stage):
     def _close(self, alerts: Iterable[Alert]) -> None:
         closing = list(alerts)
         builder = IncidentBuilder(
-            self.rules, context=self.context, enricher=self.enricher, settings=self.settings
+            self.rules,
+            context=self.context,
+            enricher=self.enricher,
+            settings=self.settings,
+            suppressions=self.suppressions,
         )
         incidents = with_provenance(
             builder.build(closing), inputs=[], rules=self.rules, enrichment=self.enrichment
