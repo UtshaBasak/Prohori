@@ -66,6 +66,11 @@ breakdown always adds up to the score.
 | Novelty: a sign-in with a client not seen before for the account | +5 |
 | Cap | the total is capped at 100, shown as a negative component |
 
+**Allow-listed addresses** (`allow_ips` in a `--suppressions` file, see
+[RULES.md](RULES.md#suppressions-and-allow-lists)) get no reputation points. The breakdown keeps
+a 0-point line saying what was not counted and which entry allowed it. Alerts a suppression
+silenced never join an incident; the other alerts about the same account or address still do.
+
 **Severity** comes from the score: low below 25, medium from 25, high from 50, critical from 75.
 An incident is never less severe than its most severe alert.
 

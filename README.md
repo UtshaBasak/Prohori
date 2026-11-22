@@ -101,7 +101,7 @@ flowchart LR
 | Stage | Today |
 | ------- | ------- |
 | **Parse** | Linux `auth.log` (sshd, sudo, PAM), nginx/Apache access logs, application security events (JSON Lines) and any JSON Lines layout through a YAML field mapping, into one typed event schema. Format detection, streaming with bounded memory, hostile input handled (oversized lines, bad encodings, control characters). Daylight-saving changes handled: the hour repeated when the clocks go back keeps moving forward instead of being dropped as late. |
-| **Detect** | 21 readable YAML rules (Sigma-inspired) with field modifiers, thresholds, distinct counts, ratios, sliding and tumbling windows and ordered sequences. Every rule ships with test fixtures and a runbook; regular expressions run on RE2, so no pattern can hang a run. With `--models`, anomaly detectors (robust z-score, Isolation Forest) also flag source IPs that behave unlike the rest of the log. SSH attacks are counted even when sshd logs host names instead of addresses (`UseDNS`), and a log with millions of alerts stays bounded in memory: the table shows the first 100, JSON streams every alert, and incidents keep a capped number. |
+| **Detect** | 21 readable YAML rules (Sigma-inspired) with field modifiers, thresholds, distinct counts, ratios, sliding and tumbling windows and ordered sequences. Every rule ships with test fixtures and a runbook; regular expressions run on RE2, so no pattern can hang a run. With `--models`, anomaly detectors (robust z-score, Isolation Forest) also flag source IPs that behave unlike the rest of the log. SSH attacks are counted even when sshd logs host names instead of addresses (`UseDNS`), and a log with millions of alerts stays bounded in memory: the table shows the first 100, JSON streams every alert, and incidents keep a capped number. Known-benign activity is silenced with a reviewed **suppressions file** (reason, owner and expiry date per entry; allow-listed addresses): suppressed alerts are counted and listed, never dropped, and never hide another alert of an incident. |
 | **Enrich** | IP geolocation, network owner and reputation from local GeoLite2 files, AbuseIPDB and VirusTotal, all optional. SQLite cache, daily budgets, rate limiting and bounded retries. Private and documentation addresses never leave the machine. |
 | **Incidents** | Related alerts (same IP, account, request or session within a time gap) become one incident with a points-based score you can read line by line, severity, confidence, MITRE ATT&CK v20.0 mapping, a timeline, recommended actions and stated limitations. Detects sign-ins from an IP or app new to the account. |
 | **Simulate** | Eight labelled attack scenarios (SSH brute force, password spraying, credential stuffing, token reuse, account takeover, web scanning, injection, admin misuse) hidden in realistic background activity, byte-identical for a seed, documentation IP addresses only. Used to measure every rule's precision and recall. |
@@ -197,8 +197,8 @@ To see it yourself: `uv run prohori incidents samples/logs/account-takeover.json
 | `prohori demo` | Simulate attacks, triage them and show the results; no configuration, offline | [CLI.md](docs/CLI.md#prohori-demo) |
 | `prohori triage FILE` | Log in, incidents and a report per incident out (`--format`, `--redact`, `--online`) | [CLI.md](docs/CLI.md#prohori-triage) |
 | `prohori parse FILE` | Parse and normalise a log; table or JSON Lines | [PARSERS.md](docs/PARSERS.md) |
-| `prohori detect FILE` | Run the 21 built-in rules (and `--rules DIR`, `--models` for the anomaly detectors); exit code 3 when alerts are found | [RULES.md](docs/RULES.md) |
-| `prohori rules list` / `validate` / `test` | Show, check and test detection rules | [RULES.md](docs/RULES.md) |
+| `prohori detect FILE` | Run the 21 built-in rules (and `--rules DIR`, `--models` for the anomaly detectors, `--suppressions FILE` for reviewed exceptions); exit code 3 when alerts are found | [RULES.md](docs/RULES.md) |
+| `prohori rules list` / `validate` / `test` | Show, check and test detection rules; `validate --suppressions FILE` checks a suppressions file | [RULES.md](docs/RULES.md#suppressions-and-allow-lists) |
 | `prohori enrich IP...` | Geolocation and reputation; `--offline` never uses the network | [ENRICHMENT.md](docs/ENRICHMENT.md) |
 | `prohori incidents FILE` | Parse, detect and group alerts into scored incidents; offline enrichment unless `--online` | [INCIDENTS.md](docs/INCIDENTS.md) |
 | `prohori report INCIDENT` | Render an incident as `md`, `html`, `json` or `csv`; `--redact`, `--redact-ips` | [REPORTS.md](docs/REPORTS.md) |
@@ -321,6 +321,23 @@ Expected rules that still miss (runs missed):
 PRH-ACCT-001 has low precision on purpose: it flags every sensitive change soon after a sign-in,
 including the owners' own. These are synthetic results written by the rules' author; the full
 per-rule table and caveats are in [docs/SIMULATOR.md](docs/SIMULATOR.md#results).
+
+**Suppressions (1.1).** Exceptions for one site go in a suppressions file rather than in the
+rules. Every entry has a reason, an owner and an expiry date, and silences an alert only when
+all of the alert's events match it; suppressed alerts are still written, counted per entry and
+kept out of incidents. The example file, [`samples/suppressions.yml`](samples/suppressions.yml),
+silences the simulated shop's planned admin role grant:
+
+```bash
+prohori rules validate --suppressions samples/suppressions.yml
+prohori incidents app.jsonl --suppressions samples/suppressions.yml
+```
+
+Scored on the same detections with and without it (`results/rules_eval.json`), PRH-ADMIN-001's
+precision goes from 0.5 to 1.0 in every variant, no true positive is lost and every attack is
+still detected. The owners' own setting changes are not suppressed: in the simulator only the
+attacker's network tells them apart, and an exception built on that would encode the answer.
+See [docs/RULES.md](docs/RULES.md#suppressions-and-allow-lists).
 
 ## Machine learning
 
@@ -685,7 +702,11 @@ Prohori is honest about what it does not do:
   severity are kept, later alerts of that severity form no new incident (the summary counts
   them); the `detect` table likewise lists the hidden alerts by severity.
 - **Some rules are noisy by design.** PRH-ACCT-001 flags every sensitive change shortly after a
-  sign-in, including the owner's own; incidents list such benign causes as limitations.
+  sign-in, including the owner's own; incidents list such benign causes as limitations. A
+  suppressions file can silence known cases, but only you know which changes were yours.
+- **Suppressions are only as good as their review.** An entry silences what it matches until it
+  expires; Prohori warns about expired entries and shows every suppressed alert, but cannot tell
+  a careless `*` entry from a careful one.
 - **The evaluation is synthetic** and written by the rules' author. Test the rules on your own
   logs before relying on them.
 - **Enrichment free tiers** are small and non-commercial, and reputation data is evidence, not
@@ -702,7 +723,7 @@ Prohori is honest about what it does not do:
 | v0.3.0 | Pipeline: streaming core and lite mode, Redpanda and PostgreSQL in Docker, dbt models and data-quality checks, Grafana dashboards, Airflow jobs; Docker image on GitHub Packages | Released |
 | v1.0.0 | Optional LLM analyst: providers, redaction, `explain` and `ask`, retrieval, prompt-injection defences, answer validation and an evaluation; threat model, performance notes, completed licence notes, macOS in CI | Released |
 | v1.0.1 | Fixes from a full review: stricter redaction and answer checks, parser and output-path robustness, safer stack shutdown and Airflow parameters, signed provenance for release files | Released |
-| v1.1.0 | Done so far: new licence (PolyForm Strict), deterministic stream rebuilds, evasion-resistant per-account sign-in rules with a before-and-after score, warehouse and broker hardening, safer model files, a cross-dataset generalisation study, logins for the stack, SBOMs. Still to come: suppressions | In progress |
+| v1.1.0 | Done so far: new licence (PolyForm Strict), deterministic stream rebuilds, evasion-resistant per-account sign-in rules with a before-and-after score, warehouse and broker hardening, safer model files, a cross-dataset generalisation study, logins for the stack, SBOMs, suppressions and allow-lists. Next: the release | In progress |
 | v1.2.0 | More log sources: Suricata, Zeek, Windows Security events, Sysmon, the systemd journal, AWS CloudTrail; a Sigma rule importer | Planned |
 | v1.3.0 to v1.7.0 | A real-time defender for your own PC: a Windows security checkup, behaviour-based detection with reversible containment, ransomware, network, spyware, boot and device defenses, a guard for AI coding agents and MCP tools, supply-chain and phishing checks, attack drills, Linux | Planned |
 | v1.8.0, v2.0.0 | A desktop security assistant, web UI, package-manager installs, VS Code and browser extensions, a documentation website and a GitHub Action | Planned |

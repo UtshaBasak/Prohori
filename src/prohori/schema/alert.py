@@ -2,10 +2,17 @@
 # Copyright (c) 2026 Utsha Basak
 """Alerts raised by detection rules and machine-learning models."""
 
+from datetime import date
 from enum import StrEnum
-from typing import Annotated, Self
+from typing import Annotated, Any, Self
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import (
+    BaseModel,
+    Field,
+    SerializerFunctionWrapHandler,
+    model_serializer,
+    model_validator,
+)
 
 from prohori.schema.ids import alert_id
 from prohori.schema.types import MODEL_CONFIG, Severity, ShortText, Text, UtcDatetime
@@ -21,6 +28,17 @@ class DetectorKind(StrEnum):
 
     RULE = "rule"
     MODEL = "model"
+
+
+class SuppressionMark(BaseModel):
+    """The suppression entry that silenced an alert (see ``docs/RULES.md``)."""
+
+    model_config = MODEL_CONFIG
+
+    id: Annotated[str, Field(min_length=1, max_length=64)]
+    reason: Text
+    owner: ShortText
+    expires: date
 
 
 class Alert(BaseModel):
@@ -45,6 +63,21 @@ class Alert(BaseModel):
     last_seen: UtcDatetime
     attack: tuple[AttackTag, ...] = ()
     explanation: Text = ""
+    #: Set when a suppression entry silenced the alert: it is still written and counted, but
+    #: never joins an incident. Left out of the JSON when unset, so unsuppressed alerts look
+    #: exactly as they did before suppressions existed.
+    suppression: SuppressionMark | None = None
+
+    @model_serializer(mode="wrap")
+    def _omit_unset_suppression(self, handler: SerializerFunctionWrapHandler) -> Any:  # noqa: ANN401 - whatever the handler returns
+        data = handler(self)
+        if self.suppression is None and isinstance(data, dict):
+            data.pop("suppression", None)
+        return data
+
+    @property
+    def suppressed(self) -> bool:
+        return self.suppression is not None
 
     @model_validator(mode="after")
     def _check(self) -> Self:
