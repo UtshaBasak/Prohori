@@ -1,0 +1,63 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+# Copyright (c) 2026 Utsha Basak
+rule: PRH-NET-002
+start: 2026-10-24T14:50:00Z
+defaults:
+  log_source: zeek
+  event.category: network
+  event.action: network.flow
+  event.outcome: success
+  source.ip: 192.0.2.30
+  extra.destination_ip: 203.0.113.200
+  extra.transport: tcp
+cases:
+  - name: an outbound connection alerts
+    expect: {alerts: 1, entities: [{source.ip: 192.0.2.30}]}
+    events:
+      - {extra.bytes_out: 500000000, extra.direction: outbound}
+
+  - name: just under the threshold does not alert
+    expect: {alerts: 0}
+    events:
+      - {extra.bytes_out: 499999999, extra.direction: outbound}
+
+  - name: inbound, internal and external connections do not alert
+    expect: {alerts: 0}
+    events:
+      - {extra.bytes_out: 500000000, extra.direction: inbound}
+      - {extra.bytes_out: 500000000, extra.direction: internal}
+      - {extra.bytes_out: 500000000, extra.direction: external}
+
+  - name: without a direction, a private source to a public destination alerts
+    expect: {alerts: 1, entities: [{source.ip: 10.20.0.5}]}
+    events:
+      - {extra.bytes_out: 500000000, source.ip: 10.20.0.5, extra.destination_ip: 203.0.113.200}
+
+  - name: without a direction, private to private does not alert
+    expect: {alerts: 0}
+    events:
+      - {extra.bytes_out: 500000000, source.ip: 10.20.0.5, extra.destination_ip: 192.168.1.20}
+      - {extra.bytes_out: 500000000, source.ip: 'fd00::5', extra.destination_ip: 'fd00::9'}
+
+  - name: without a direction, a public source does not alert
+    expect: {alerts: 0}
+    events:
+      - {extra.bytes_out: 500000000}
+
+  - name: a direction from the sensor wins over private addresses
+    expect: {alerts: 0}
+    events:
+      - {extra.bytes_out: 500000000, source.ip: 10.20.0.5, extra.destination_ip: 203.0.113.200, extra.direction: internal}
+
+  - name: other events with the same field do not alert (bytes)
+    expect: {alerts: 0}
+    events:
+      - {extra.bytes_out: 500000000, extra.direction: outbound, event.action: network.tls}
+
+  - name: a 750 MB upload in a Zeek JSON conn.log
+    expect: {alerts: 1, entities: [{source.ip: 192.0.2.30}]}
+    log:
+      parser: zeek_conn
+      lines:
+        - '{"ts":1792851000.0,"uid":"CprhFixtureLarge01","id.orig_h":"192.0.2.30","id.orig_p":50550,"id.resp_h":"203.0.113.200","id.resp_p":443,"proto":"tcp","service":"ssl","duration":2400.5,"orig_bytes":750123456,"resp_bytes":120400,"conn_state":"SF","missed_bytes":0,"history":"ShADadFf","orig_pkts":500000,"orig_ip_bytes":770123456,"resp_pkts":250000,"resp_ip_bytes":10120400,"local_orig":true,"local_resp":false}'
+        - '{"ts":1792851060.0,"uid":"CprhFixtureLarge01","id.orig_h":"192.0.2.31","id.orig_p":50550,"id.resp_h":"203.0.113.200","id.resp_p":443,"proto":"tcp","service":"ssl","duration":60.0,"orig_bytes":1200,"resp_bytes":120400,"conn_state":"SF","missed_bytes":0,"history":"ShADadFf","orig_pkts":500000,"orig_ip_bytes":20001200,"resp_pkts":250000,"resp_ip_bytes":10120400,"local_orig":true,"local_resp":false}'

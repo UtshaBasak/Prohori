@@ -1,0 +1,41 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+# Copyright (c) 2026 Utsha Basak
+rule: PRH-IDS-001
+start: 2026-10-24T14:20:00Z
+defaults:
+  log_source: suricata
+  event.category: network
+  event.action: ids.alert
+  source.ip: 198.51.100.23
+  extra.destination_ip: 192.0.2.10
+  extra.signature: PRH TEST Sample signature
+cases:
+  - name: a high alert passes through
+    expect: {alerts: 1, entities: [{source.ip: 198.51.100.23}]}
+    events:
+      - {event.severity: high}
+
+  - name: every alert passes through on its own
+    expect: {alerts: 3}
+    events:
+      - {event.severity: high, repeat: 3}
+
+  - name: alerts of other severities do not match
+    expect: {alerts: 0}
+    events:
+      - {event.severity: medium}
+      - {event.severity: low}
+
+  - name: other network events do not match
+    expect: {alerts: 0}
+    events:
+      - {event.action: network.flow, event.severity: high}
+
+  - name: Suricata eve.json alerts with severity 1, 2 and 3
+    expect: {alerts: 1, entities: [{source.ip: 198.51.100.23}]}
+    log:
+      parser: suricata_eve
+      lines:
+        - '{"timestamp":"2026-10-24T14:20:00.123456+0000","flow_id":9009101,"in_iface":"eth0","event_type":"alert","src_ip":"198.51.100.23","src_port":41020,"dest_ip":"192.0.2.10","dest_port":80,"proto":"TCP","app_proto":"http","alert":{"action":"allowed","gid":1,"signature_id":9000001,"rev":2,"signature":"PRH TEST Sample signature","category":"Web Application Attack","severity":1}}'
+        - '{"timestamp":"2026-10-24T14:20:01.123456+0000","flow_id":9009112,"in_iface":"eth0","event_type":"alert","src_ip":"198.51.100.23","src_port":41020,"dest_ip":"192.0.2.10","dest_port":80,"proto":"TCP","app_proto":"http","alert":{"action":"allowed","gid":1,"signature_id":9000012,"rev":2,"signature":"PRH TEST Other","category":"Web Application Attack","severity":2}}'
+        - '{"timestamp":"2026-10-24T14:20:02.123456+0000","flow_id":9009113,"in_iface":"eth0","event_type":"alert","src_ip":"198.51.100.23","src_port":41020,"dest_ip":"192.0.2.10","dest_port":80,"proto":"TCP","app_proto":"http","alert":{"action":"allowed","gid":1,"signature_id":9000013,"rev":2,"signature":"PRH TEST Other","category":"Web Application Attack","severity":3}}'

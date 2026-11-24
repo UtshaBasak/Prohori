@@ -91,15 +91,16 @@ class ParseStats:
         }
 
 
-def sanitize(text: str) -> str:
+def sanitize(text: str, *, keep_tabs: bool = False) -> str:
     """Remove line endings, ANSI escapes, control and invisible formatting characters.
 
-    Tabs become spaces.
+    Tabs become spaces unless ``keep_tabs`` is set (for tab-separated formats such as Zeek logs,
+    whose parsers split on tabs).
     """
     text = text.rstrip("\r\n")
     text = _ANSI_RE.sub("", text)
     text = _CONTROL_RE.sub("", text)
-    return text.replace("\t", " ")
+    return text if keep_tabs else text.replace("\t", " ")
 
 
 class LineSource(Protocol):
@@ -162,6 +163,8 @@ class LineParser(ABC):
 
     #: Registry name, for example ``"auth_log"``.
     name: str = ""
+    #: Pass tabs through to :meth:`parse_line` instead of turning them into spaces.
+    keep_tabs: bool = False
 
     def reset(self) -> None:  # noqa: B027 - optional hook, intentionally empty
         """Clear per-input state before a new input is parsed."""
@@ -206,7 +209,7 @@ class LineParser(ABC):
             reason = f"line longer than {MAX_LINE_LENGTH} characters"
             stats.record_error(raw.number, reason)
             raise ParseError(reason)
-        text = sanitize(raw.text)
+        text = sanitize(raw.text, keep_tabs=self.keep_tabs)
         if not text.strip():
             stats.blank += 1
             return None

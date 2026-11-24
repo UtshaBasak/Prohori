@@ -36,7 +36,17 @@ EXPECTED_IDS = {
     "PRH-WEB-003",
     "PRH-WEB-004",
     "PRH-SSH-001",
+    "PRH-IDS-001",
+    "PRH-IDS-002",
+    "PRH-IDS-003",
+    "PRH-NET-001",
+    "PRH-NET-002",
+    "PRH-NET-003",
 }
+
+#: Rules that pass another detector's alerts through. Their technique depends on the signature
+#: that matched, so they carry no ATT&CK tags rather than an invented one (ADR-0044).
+PASSTHROUGH_IDS = {"PRH-IDS-001", "PRH-IDS-002", "PRH-IDS-003"}
 
 REPORTS = load_rules([builtin_rules_dir()])
 
@@ -88,6 +98,9 @@ def test_rule_has_runbook_with_standard_sections(report: RuleReport) -> None:
 def test_rule_attack_tags_are_verified_and_consistent(report: RuleReport) -> None:
     assert report.rule is not None
     tags = report.rule.meta.attack_tags
+    if report.rule.meta.id in PASSTHROUGH_IDS:
+        assert tags == ()
+        return
     techniques = [t for t in tags if t in TECHNIQUES]
     tactics = [t for t in tags if t in TACTICS]
     assert techniques, "every built-in rule needs at least one technique id"

@@ -5,10 +5,14 @@
 Rules, applied to up to :data:`SAMPLE_LINES` non-blank lines; the format matching most lines wins
 and ties go to the earlier entry in this list:
 
-1. ``app_json``: a JSON object with a ``time`` string and an ``event`` object with an ``action``.
-2. ``generic_json``: any other JSON object (needs a mapping file, so it is reported, not used).
-3. ``auth_log``: a syslog line (RFC 3164 or RFC 3339 timestamp, host, program).
-4. ``access_log``: a combined or common log format line.
+1. ``suricata_eve``: a JSON object with an ``event_type`` and a ``timestamp`` string.
+2. ``zeek_conn``: a JSON object with ``uid``, the originator address (``id.orig_h`` or a nested
+   ``id``) and a ``conn_state``; a Zeek header line (``#separator``, ``#path conn``, ``#fields``
+   starting with ``ts``); or a tab-separated line starting with epoch seconds and a ``C`` uid.
+3. ``app_json``: a JSON object with a ``time`` string and an ``event`` object with an ``action``.
+4. ``generic_json``: any other JSON object (needs a mapping file, so it is reported, not used).
+5. ``auth_log``: a syslog line (RFC 3164 or RFC 3339 timestamp, host, program).
+6. ``access_log``: a combined or common log format line.
 
 Detection is a convenience; pass ``--parser`` when it matters.
 """
@@ -27,11 +31,19 @@ _SYSLOG_RE = re.compile(
     r" \S+ [^\s\[:]+(?:\[\d+\])?:"
 )
 _ACCESS_RE = re.compile(COMBINED_PATTERN)
-_ORDER = ("app_json", "generic_json", "auth_log", "access_log")
+_ZEEK_HEADER_RE = re.compile(r"^#(?:separator |path[ \t]+conn$|fields[ \t]+ts[ \t])")
+_ZEEK_LINE_RE = re.compile(r"^\d{9,10}(?:\.\d+)?\tC[A-Za-z0-9]{5,}\t")
+_ORDER = ("suricata_eve", "zeek_conn", "app_json", "generic_json", "auth_log", "access_log")
 
 
 def classify_line(line: str) -> str | None:
-    """Return the format a single line looks like, or ``None``."""
+    """Return the format a single line looks like, or ``None``.
+
+    ``line`` is sanitised but may still contain tabs (Zeek's separator).
+    """
+    if _ZEEK_HEADER_RE.match(line) or _ZEEK_LINE_RE.match(line):
+        return "zeek_conn"
+    line = line.replace("\t", " ")
     stripped = line.strip()
     if stripped.startswith("{"):
         try:
@@ -40,6 +52,10 @@ def classify_line(line: str) -> str | None:
             return None
         if not isinstance(record, dict):
             return None
+        if isinstance(record.get("event_type"), str) and isinstance(record.get("timestamp"), str):
+            return "suricata_eve"
+        if "uid" in record and "conn_state" in record and _has_originator(record):
+            return "zeek_conn"
         event = record.get("event")
         if isinstance(record.get("time"), str) and isinstance(event, dict) and "action" in event:
             return "app_json"
@@ -58,7 +74,7 @@ def detect_format(lines: Iterable[RawLine]) -> str | None:
     for raw in lines:
         if raw.too_long:
             continue
-        text = sanitize(raw.text)
+        text = sanitize(raw.text, keep_tabs=True)
         if not text.strip():
             continue
         kind = classify_line(text)
@@ -69,3 +85,8 @@ def detect_format(lines: Iterable[RawLine]) -> str | None:
             break
     best = max(_ORDER, key=lambda name: (votes[name], -_ORDER.index(name)))
     return best if votes[best] > 0 else None
+
+
+def _has_originator(record: dict[str, object]) -> bool:
+    nested = record.get("id")
+    return "id.orig_h" in record or (isinstance(nested, dict) and "orig_h" in nested)

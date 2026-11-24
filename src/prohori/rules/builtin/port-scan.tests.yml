@@ -1,0 +1,255 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+# Copyright (c) 2026 Utsha Basak
+rule: PRH-NET-001
+start: 2026-10-24T14:05:00Z
+defaults:
+  log_source: zeek
+  event.category: network
+  event.action: network.flow
+  event.outcome: failure
+  source.ip: 203.0.113.66
+  extra.destination_ip: 192.0.2.10
+  extra.transport: tcp
+cases:
+  - name: unanswered connections to 25 distinct ports alert
+    expect: {alerts: 1, entities: [{source.ip: 203.0.113.66}]}
+    events:
+      - {extra.destination_port: 21, after: 1s}
+      - {extra.destination_port: 22, after: 1s}
+      - {extra.destination_port: 23, after: 1s}
+      - {extra.destination_port: 25, after: 1s}
+      - {extra.destination_port: 53, after: 1s}
+      - {extra.destination_port: 80, after: 1s}
+      - {extra.destination_port: 110, after: 1s}
+      - {extra.destination_port: 111, after: 1s}
+      - {extra.destination_port: 135, after: 1s}
+      - {extra.destination_port: 139, after: 1s}
+      - {extra.destination_port: 143, after: 1s}
+      - {extra.destination_port: 389, after: 1s}
+      - {extra.destination_port: 443, after: 1s}
+      - {extra.destination_port: 445, after: 1s}
+      - {extra.destination_port: 465, after: 1s}
+      - {extra.destination_port: 587, after: 1s}
+      - {extra.destination_port: 993, after: 1s}
+      - {extra.destination_port: 995, after: 1s}
+      - {extra.destination_port: 1433, after: 1s}
+      - {extra.destination_port: 1521, after: 1s}
+      - {extra.destination_port: 2049, after: 1s}
+      - {extra.destination_port: 3306, after: 1s}
+      - {extra.destination_port: 3389, after: 1s}
+      - {extra.destination_port: 5432, after: 1s}
+      - {extra.destination_port: 5900, after: 1s}
+
+  - name: 24 distinct ports do not alert
+    expect: {alerts: 0}
+    events:
+      - {extra.destination_port: 21, after: 1s}
+      - {extra.destination_port: 22, after: 1s}
+      - {extra.destination_port: 23, after: 1s}
+      - {extra.destination_port: 25, after: 1s}
+      - {extra.destination_port: 53, after: 1s}
+      - {extra.destination_port: 80, after: 1s}
+      - {extra.destination_port: 110, after: 1s}
+      - {extra.destination_port: 111, after: 1s}
+      - {extra.destination_port: 135, after: 1s}
+      - {extra.destination_port: 139, after: 1s}
+      - {extra.destination_port: 143, after: 1s}
+      - {extra.destination_port: 389, after: 1s}
+      - {extra.destination_port: 443, after: 1s}
+      - {extra.destination_port: 445, after: 1s}
+      - {extra.destination_port: 465, after: 1s}
+      - {extra.destination_port: 587, after: 1s}
+      - {extra.destination_port: 993, after: 1s}
+      - {extra.destination_port: 995, after: 1s}
+      - {extra.destination_port: 1433, after: 1s}
+      - {extra.destination_port: 1521, after: 1s}
+      - {extra.destination_port: 2049, after: 1s}
+      - {extra.destination_port: 3306, after: 1s}
+      - {extra.destination_port: 3389, after: 1s}
+      - {extra.destination_port: 5432, after: 1s}
+
+  - name: repeated connections to one port do not alert
+    expect: {alerts: 0}
+    events:
+      - {extra.destination_port: 22, repeat: 60}
+
+  - name: established connections are not counted
+    expect: {alerts: 0}
+    events:
+      - {extra.destination_port: 21, after: 1s, event.outcome: success}
+      - {extra.destination_port: 22, after: 1s, event.outcome: success}
+      - {extra.destination_port: 23, after: 1s, event.outcome: success}
+      - {extra.destination_port: 25, after: 1s, event.outcome: success}
+      - {extra.destination_port: 53, after: 1s, event.outcome: success}
+      - {extra.destination_port: 80, after: 1s, event.outcome: success}
+      - {extra.destination_port: 110, after: 1s, event.outcome: success}
+      - {extra.destination_port: 111, after: 1s, event.outcome: success}
+      - {extra.destination_port: 135, after: 1s, event.outcome: success}
+      - {extra.destination_port: 139, after: 1s, event.outcome: success}
+      - {extra.destination_port: 143, after: 1s, event.outcome: success}
+      - {extra.destination_port: 389, after: 1s, event.outcome: success}
+      - {extra.destination_port: 443, after: 1s, event.outcome: success}
+      - {extra.destination_port: 445, after: 1s, event.outcome: success}
+      - {extra.destination_port: 465, after: 1s, event.outcome: success}
+      - {extra.destination_port: 587, after: 1s, event.outcome: success}
+      - {extra.destination_port: 993, after: 1s, event.outcome: success}
+      - {extra.destination_port: 995, after: 1s, event.outcome: success}
+      - {extra.destination_port: 1433, after: 1s, event.outcome: success}
+      - {extra.destination_port: 1521, after: 1s, event.outcome: success}
+      - {extra.destination_port: 2049, after: 1s, event.outcome: success}
+      - {extra.destination_port: 3306, after: 1s, event.outcome: success}
+      - {extra.destination_port: 3389, after: 1s, event.outcome: success}
+      - {extra.destination_port: 5432, after: 1s, event.outcome: success}
+      - {extra.destination_port: 5900, after: 1s, event.outcome: success}
+
+  - name: connections with an unknown state are counted
+    expect: {alerts: 1}
+    events:
+      - {extra.destination_port: 21, after: 1s, event.outcome: unknown}
+      - {extra.destination_port: 22, after: 1s, event.outcome: unknown}
+      - {extra.destination_port: 23, after: 1s, event.outcome: unknown}
+      - {extra.destination_port: 25, after: 1s, event.outcome: unknown}
+      - {extra.destination_port: 53, after: 1s, event.outcome: unknown}
+      - {extra.destination_port: 80, after: 1s, event.outcome: unknown}
+      - {extra.destination_port: 110, after: 1s, event.outcome: unknown}
+      - {extra.destination_port: 111, after: 1s, event.outcome: unknown}
+      - {extra.destination_port: 135, after: 1s, event.outcome: unknown}
+      - {extra.destination_port: 139, after: 1s, event.outcome: unknown}
+      - {extra.destination_port: 143, after: 1s, event.outcome: unknown}
+      - {extra.destination_port: 389, after: 1s, event.outcome: unknown}
+      - {extra.destination_port: 443, after: 1s, event.outcome: unknown}
+      - {extra.destination_port: 445, after: 1s, event.outcome: unknown}
+      - {extra.destination_port: 465, after: 1s, event.outcome: unknown}
+      - {extra.destination_port: 587, after: 1s, event.outcome: unknown}
+      - {extra.destination_port: 993, after: 1s, event.outcome: unknown}
+      - {extra.destination_port: 995, after: 1s, event.outcome: unknown}
+      - {extra.destination_port: 1433, after: 1s, event.outcome: unknown}
+      - {extra.destination_port: 1521, after: 1s, event.outcome: unknown}
+      - {extra.destination_port: 2049, after: 1s, event.outcome: unknown}
+      - {extra.destination_port: 3306, after: 1s, event.outcome: unknown}
+      - {extra.destination_port: 3389, after: 1s, event.outcome: unknown}
+      - {extra.destination_port: 5432, after: 1s, event.outcome: unknown}
+      - {extra.destination_port: 5900, after: 1s, event.outcome: unknown}
+
+  - name: UDP is not counted
+    expect: {alerts: 0}
+    events:
+      - {extra.destination_port: 21, after: 1s, extra.transport: udp}
+      - {extra.destination_port: 22, after: 1s, extra.transport: udp}
+      - {extra.destination_port: 23, after: 1s, extra.transport: udp}
+      - {extra.destination_port: 25, after: 1s, extra.transport: udp}
+      - {extra.destination_port: 53, after: 1s, extra.transport: udp}
+      - {extra.destination_port: 80, after: 1s, extra.transport: udp}
+      - {extra.destination_port: 110, after: 1s, extra.transport: udp}
+      - {extra.destination_port: 111, after: 1s, extra.transport: udp}
+      - {extra.destination_port: 135, after: 1s, extra.transport: udp}
+      - {extra.destination_port: 139, after: 1s, extra.transport: udp}
+      - {extra.destination_port: 143, after: 1s, extra.transport: udp}
+      - {extra.destination_port: 389, after: 1s, extra.transport: udp}
+      - {extra.destination_port: 443, after: 1s, extra.transport: udp}
+      - {extra.destination_port: 445, after: 1s, extra.transport: udp}
+      - {extra.destination_port: 465, after: 1s, extra.transport: udp}
+      - {extra.destination_port: 587, after: 1s, extra.transport: udp}
+      - {extra.destination_port: 993, after: 1s, extra.transport: udp}
+      - {extra.destination_port: 995, after: 1s, extra.transport: udp}
+      - {extra.destination_port: 1433, after: 1s, extra.transport: udp}
+      - {extra.destination_port: 1521, after: 1s, extra.transport: udp}
+      - {extra.destination_port: 2049, after: 1s, extra.transport: udp}
+      - {extra.destination_port: 3306, after: 1s, extra.transport: udp}
+      - {extra.destination_port: 3389, after: 1s, extra.transport: udp}
+      - {extra.destination_port: 5432, after: 1s, extra.transport: udp}
+      - {extra.destination_port: 5900, after: 1s, extra.transport: udp}
+
+  - name: ports spread over more than five minutes do not alert
+    expect: {alerts: 0}
+    events:
+      - {extra.destination_port: 21, after: 13s}
+      - {extra.destination_port: 22, after: 13s}
+      - {extra.destination_port: 23, after: 13s}
+      - {extra.destination_port: 25, after: 13s}
+      - {extra.destination_port: 53, after: 13s}
+      - {extra.destination_port: 80, after: 13s}
+      - {extra.destination_port: 110, after: 13s}
+      - {extra.destination_port: 111, after: 13s}
+      - {extra.destination_port: 135, after: 13s}
+      - {extra.destination_port: 139, after: 13s}
+      - {extra.destination_port: 143, after: 13s}
+      - {extra.destination_port: 389, after: 13s}
+      - {extra.destination_port: 443, after: 13s}
+      - {extra.destination_port: 445, after: 13s}
+      - {extra.destination_port: 465, after: 13s}
+      - {extra.destination_port: 587, after: 13s}
+      - {extra.destination_port: 993, after: 13s}
+      - {extra.destination_port: 995, after: 13s}
+      - {extra.destination_port: 1433, after: 13s}
+      - {extra.destination_port: 1521, after: 13s}
+      - {extra.destination_port: 2049, after: 13s}
+      - {extra.destination_port: 3306, after: 13s}
+      - {extra.destination_port: 3389, after: 13s}
+      - {extra.destination_port: 5432, after: 13s}
+      - {extra.destination_port: 5900, after: 13s}
+
+  - name: a port scan in a Zeek conn.log
+    expect: {alerts: 1, entities: [{source.ip: 203.0.113.66}]}
+    log:
+      parser: zeek_conn
+      lines:
+        - "#separator \\x09"
+        - "#path\tconn"
+        - "#fields\tts\tuid\tid.orig_h\tid.orig_p\tid.resp_h\tid.resp_p\tproto\tservice\tduration\torig_bytes\tresp_bytes\tconn_state\tlocal_orig\tlocal_resp\tmissed_bytes\thistory\torig_pkts\torig_ip_bytes\tresp_pkts\tresp_ip_bytes\ttunnel_parents\tip_proto"
+        - "1792850700.000000\tCprhFixture0000000\t203.0.113.66\t40000\t192.0.2.10\t21\ttcp\t-\t-\t-\t-\tS0\tF\tT\t0\tS\t2\t80\t0\t0\t-\t6"
+        - "1792850701.000000\tCprhFixture0000001\t203.0.113.66\t40001\t192.0.2.10\t22\ttcp\t-\t-\t-\t-\tREJ\tF\tT\t0\tS\t2\t80\t0\t0\t-\t6"
+        - "1792850702.000000\tCprhFixture0000002\t203.0.113.66\t40002\t192.0.2.10\t23\ttcp\t-\t-\t-\t-\tS0\tF\tT\t0\tS\t2\t80\t0\t0\t-\t6"
+        - "1792850703.000000\tCprhFixture0000003\t203.0.113.66\t40003\t192.0.2.10\t25\ttcp\t-\t-\t-\t-\tREJ\tF\tT\t0\tS\t2\t80\t0\t0\t-\t6"
+        - "1792850704.000000\tCprhFixture0000004\t203.0.113.66\t40004\t192.0.2.10\t53\ttcp\t-\t-\t-\t-\tS0\tF\tT\t0\tS\t2\t80\t0\t0\t-\t6"
+        - "1792850705.000000\tCprhFixture0000005\t203.0.113.66\t40005\t192.0.2.10\t80\ttcp\t-\t-\t-\t-\tREJ\tF\tT\t0\tS\t2\t80\t0\t0\t-\t6"
+        - "1792850706.000000\tCprhFixture0000006\t203.0.113.66\t40006\t192.0.2.10\t110\ttcp\t-\t-\t-\t-\tS0\tF\tT\t0\tS\t2\t80\t0\t0\t-\t6"
+        - "1792850707.000000\tCprhFixture0000007\t203.0.113.66\t40007\t192.0.2.10\t111\ttcp\t-\t-\t-\t-\tREJ\tF\tT\t0\tS\t2\t80\t0\t0\t-\t6"
+        - "1792850708.000000\tCprhFixture0000008\t203.0.113.66\t40008\t192.0.2.10\t135\ttcp\t-\t-\t-\t-\tS0\tF\tT\t0\tS\t2\t80\t0\t0\t-\t6"
+        - "1792850709.000000\tCprhFixture0000009\t203.0.113.66\t40009\t192.0.2.10\t139\ttcp\t-\t-\t-\t-\tREJ\tF\tT\t0\tS\t2\t80\t0\t0\t-\t6"
+        - "1792850710.000000\tCprhFixture0000010\t203.0.113.66\t40010\t192.0.2.10\t143\ttcp\t-\t-\t-\t-\tS0\tF\tT\t0\tS\t2\t80\t0\t0\t-\t6"
+        - "1792850711.000000\tCprhFixture0000011\t203.0.113.66\t40011\t192.0.2.10\t389\ttcp\t-\t-\t-\t-\tREJ\tF\tT\t0\tS\t2\t80\t0\t0\t-\t6"
+        - "1792850712.000000\tCprhFixture0000012\t203.0.113.66\t40012\t192.0.2.10\t443\ttcp\t-\t-\t-\t-\tS0\tF\tT\t0\tS\t2\t80\t0\t0\t-\t6"
+        - "1792850713.000000\tCprhFixture0000013\t203.0.113.66\t40013\t192.0.2.10\t445\ttcp\t-\t-\t-\t-\tREJ\tF\tT\t0\tS\t2\t80\t0\t0\t-\t6"
+        - "1792850714.000000\tCprhFixture0000014\t203.0.113.66\t40014\t192.0.2.10\t465\ttcp\t-\t-\t-\t-\tS0\tF\tT\t0\tS\t2\t80\t0\t0\t-\t6"
+        - "1792850715.000000\tCprhFixture0000015\t203.0.113.66\t40015\t192.0.2.10\t587\ttcp\t-\t-\t-\t-\tREJ\tF\tT\t0\tS\t2\t80\t0\t0\t-\t6"
+        - "1792850716.000000\tCprhFixture0000016\t203.0.113.66\t40016\t192.0.2.10\t993\ttcp\t-\t-\t-\t-\tS0\tF\tT\t0\tS\t2\t80\t0\t0\t-\t6"
+        - "1792850717.000000\tCprhFixture0000017\t203.0.113.66\t40017\t192.0.2.10\t995\ttcp\t-\t-\t-\t-\tREJ\tF\tT\t0\tS\t2\t80\t0\t0\t-\t6"
+        - "1792850718.000000\tCprhFixture0000018\t203.0.113.66\t40018\t192.0.2.10\t1433\ttcp\t-\t-\t-\t-\tS0\tF\tT\t0\tS\t2\t80\t0\t0\t-\t6"
+        - "1792850719.000000\tCprhFixture0000019\t203.0.113.66\t40019\t192.0.2.10\t1521\ttcp\t-\t-\t-\t-\tREJ\tF\tT\t0\tS\t2\t80\t0\t0\t-\t6"
+        - "1792850720.000000\tCprhFixture0000020\t203.0.113.66\t40020\t192.0.2.10\t2049\ttcp\t-\t-\t-\t-\tS0\tF\tT\t0\tS\t2\t80\t0\t0\t-\t6"
+        - "1792850721.000000\tCprhFixture0000021\t203.0.113.66\t40021\t192.0.2.10\t3306\ttcp\t-\t-\t-\t-\tREJ\tF\tT\t0\tS\t2\t80\t0\t0\t-\t6"
+        - "1792850722.000000\tCprhFixture0000022\t203.0.113.66\t40022\t192.0.2.10\t3389\ttcp\t-\t-\t-\t-\tS0\tF\tT\t0\tS\t2\t80\t0\t0\t-\t6"
+        - "1792850723.000000\tCprhFixture0000023\t203.0.113.66\t40023\t192.0.2.10\t5432\ttcp\t-\t-\t-\t-\tREJ\tF\tT\t0\tS\t2\t80\t0\t0\t-\t6"
+        - "1792850724.000000\tCprhFixture0000024\t203.0.113.66\t40024\t192.0.2.10\t5900\ttcp\t-\t-\t-\t-\tS0\tF\tT\t0\tS\t2\t80\t0\t0\t-\t6"
+
+  - name: a port scan in Suricata flow records
+    expect: {alerts: 1, entities: [{source.ip: 198.51.100.77}]}
+    log:
+      parser: suricata_eve
+      lines:
+        - '{"timestamp":"2026-10-24T14:05:00.000000+0000","flow_id":7000,"event_type":"flow","src_ip":"198.51.100.77","src_port":41000,"dest_ip":"192.0.2.10","dest_port":21,"proto":"TCP","flow":{"pkts_toserver":1,"pkts_toclient":1,"bytes_toserver":60,"bytes_toclient":54,"start":"2026-10-24T14:05:00.000000+0000","end":"2026-10-24T14:05:00.000500+0000","age":0,"state":"closed","reason":"timeout","alerted":false}}'
+        - '{"timestamp":"2026-10-24T14:05:01.000000+0000","flow_id":7001,"event_type":"flow","src_ip":"198.51.100.77","src_port":41001,"dest_ip":"192.0.2.10","dest_port":22,"proto":"TCP","flow":{"pkts_toserver":1,"pkts_toclient":1,"bytes_toserver":60,"bytes_toclient":54,"start":"2026-10-24T14:05:01.000000+0000","end":"2026-10-24T14:05:01.000500+0000","age":0,"state":"closed","reason":"timeout","alerted":false}}'
+        - '{"timestamp":"2026-10-24T14:05:02.000000+0000","flow_id":7002,"event_type":"flow","src_ip":"198.51.100.77","src_port":41002,"dest_ip":"192.0.2.10","dest_port":23,"proto":"TCP","flow":{"pkts_toserver":1,"pkts_toclient":1,"bytes_toserver":60,"bytes_toclient":54,"start":"2026-10-24T14:05:02.000000+0000","end":"2026-10-24T14:05:02.000500+0000","age":0,"state":"closed","reason":"timeout","alerted":false}}'
+        - '{"timestamp":"2026-10-24T14:05:03.000000+0000","flow_id":7003,"event_type":"flow","src_ip":"198.51.100.77","src_port":41003,"dest_ip":"192.0.2.10","dest_port":25,"proto":"TCP","flow":{"pkts_toserver":1,"pkts_toclient":1,"bytes_toserver":60,"bytes_toclient":54,"start":"2026-10-24T14:05:03.000000+0000","end":"2026-10-24T14:05:03.000500+0000","age":0,"state":"closed","reason":"timeout","alerted":false}}'
+        - '{"timestamp":"2026-10-24T14:05:04.000000+0000","flow_id":7004,"event_type":"flow","src_ip":"198.51.100.77","src_port":41004,"dest_ip":"192.0.2.10","dest_port":53,"proto":"TCP","flow":{"pkts_toserver":1,"pkts_toclient":1,"bytes_toserver":60,"bytes_toclient":54,"start":"2026-10-24T14:05:04.000000+0000","end":"2026-10-24T14:05:04.000500+0000","age":0,"state":"closed","reason":"timeout","alerted":false}}'
+        - '{"timestamp":"2026-10-24T14:05:05.000000+0000","flow_id":7005,"event_type":"flow","src_ip":"198.51.100.77","src_port":41005,"dest_ip":"192.0.2.10","dest_port":80,"proto":"TCP","flow":{"pkts_toserver":1,"pkts_toclient":1,"bytes_toserver":60,"bytes_toclient":54,"start":"2026-10-24T14:05:05.000000+0000","end":"2026-10-24T14:05:05.000500+0000","age":0,"state":"closed","reason":"timeout","alerted":false}}'
+        - '{"timestamp":"2026-10-24T14:05:06.000000+0000","flow_id":7006,"event_type":"flow","src_ip":"198.51.100.77","src_port":41006,"dest_ip":"192.0.2.10","dest_port":110,"proto":"TCP","flow":{"pkts_toserver":1,"pkts_toclient":1,"bytes_toserver":60,"bytes_toclient":54,"start":"2026-10-24T14:05:06.000000+0000","end":"2026-10-24T14:05:06.000500+0000","age":0,"state":"closed","reason":"timeout","alerted":false}}'
+        - '{"timestamp":"2026-10-24T14:05:07.000000+0000","flow_id":7007,"event_type":"flow","src_ip":"198.51.100.77","src_port":41007,"dest_ip":"192.0.2.10","dest_port":111,"proto":"TCP","flow":{"pkts_toserver":1,"pkts_toclient":1,"bytes_toserver":60,"bytes_toclient":54,"start":"2026-10-24T14:05:07.000000+0000","end":"2026-10-24T14:05:07.000500+0000","age":0,"state":"closed","reason":"timeout","alerted":false}}'
+        - '{"timestamp":"2026-10-24T14:05:08.000000+0000","flow_id":7008,"event_type":"flow","src_ip":"198.51.100.77","src_port":41008,"dest_ip":"192.0.2.10","dest_port":135,"proto":"TCP","flow":{"pkts_toserver":1,"pkts_toclient":1,"bytes_toserver":60,"bytes_toclient":54,"start":"2026-10-24T14:05:08.000000+0000","end":"2026-10-24T14:05:08.000500+0000","age":0,"state":"closed","reason":"timeout","alerted":false}}'
+        - '{"timestamp":"2026-10-24T14:05:09.000000+0000","flow_id":7009,"event_type":"flow","src_ip":"198.51.100.77","src_port":41009,"dest_ip":"192.0.2.10","dest_port":139,"proto":"TCP","flow":{"pkts_toserver":1,"pkts_toclient":1,"bytes_toserver":60,"bytes_toclient":54,"start":"2026-10-24T14:05:09.000000+0000","end":"2026-10-24T14:05:09.000500+0000","age":0,"state":"closed","reason":"timeout","alerted":false}}'
+        - '{"timestamp":"2026-10-24T14:05:10.000000+0000","flow_id":7010,"event_type":"flow","src_ip":"198.51.100.77","src_port":41010,"dest_ip":"192.0.2.10","dest_port":143,"proto":"TCP","flow":{"pkts_toserver":1,"pkts_toclient":1,"bytes_toserver":60,"bytes_toclient":54,"start":"2026-10-24T14:05:10.000000+0000","end":"2026-10-24T14:05:10.000500+0000","age":0,"state":"closed","reason":"timeout","alerted":false}}'
+        - '{"timestamp":"2026-10-24T14:05:11.000000+0000","flow_id":7011,"event_type":"flow","src_ip":"198.51.100.77","src_port":41011,"dest_ip":"192.0.2.10","dest_port":389,"proto":"TCP","flow":{"pkts_toserver":1,"pkts_toclient":1,"bytes_toserver":60,"bytes_toclient":54,"start":"2026-10-24T14:05:11.000000+0000","end":"2026-10-24T14:05:11.000500+0000","age":0,"state":"closed","reason":"timeout","alerted":false}}'
+        - '{"timestamp":"2026-10-24T14:05:12.000000+0000","flow_id":7012,"event_type":"flow","src_ip":"198.51.100.77","src_port":41012,"dest_ip":"192.0.2.10","dest_port":443,"proto":"TCP","flow":{"pkts_toserver":1,"pkts_toclient":1,"bytes_toserver":60,"bytes_toclient":54,"start":"2026-10-24T14:05:12.000000+0000","end":"2026-10-24T14:05:12.000500+0000","age":0,"state":"closed","reason":"timeout","alerted":false}}'
+        - '{"timestamp":"2026-10-24T14:05:13.000000+0000","flow_id":7013,"event_type":"flow","src_ip":"198.51.100.77","src_port":41013,"dest_ip":"192.0.2.10","dest_port":445,"proto":"TCP","flow":{"pkts_toserver":1,"pkts_toclient":1,"bytes_toserver":60,"bytes_toclient":54,"start":"2026-10-24T14:05:13.000000+0000","end":"2026-10-24T14:05:13.000500+0000","age":0,"state":"closed","reason":"timeout","alerted":false}}'
+        - '{"timestamp":"2026-10-24T14:05:14.000000+0000","flow_id":7014,"event_type":"flow","src_ip":"198.51.100.77","src_port":41014,"dest_ip":"192.0.2.10","dest_port":465,"proto":"TCP","flow":{"pkts_toserver":1,"pkts_toclient":1,"bytes_toserver":60,"bytes_toclient":54,"start":"2026-10-24T14:05:14.000000+0000","end":"2026-10-24T14:05:14.000500+0000","age":0,"state":"closed","reason":"timeout","alerted":false}}'
+        - '{"timestamp":"2026-10-24T14:05:15.000000+0000","flow_id":7015,"event_type":"flow","src_ip":"198.51.100.77","src_port":41015,"dest_ip":"192.0.2.10","dest_port":587,"proto":"TCP","flow":{"pkts_toserver":1,"pkts_toclient":1,"bytes_toserver":60,"bytes_toclient":54,"start":"2026-10-24T14:05:15.000000+0000","end":"2026-10-24T14:05:15.000500+0000","age":0,"state":"closed","reason":"timeout","alerted":false}}'
+        - '{"timestamp":"2026-10-24T14:05:16.000000+0000","flow_id":7016,"event_type":"flow","src_ip":"198.51.100.77","src_port":41016,"dest_ip":"192.0.2.10","dest_port":993,"proto":"TCP","flow":{"pkts_toserver":1,"pkts_toclient":1,"bytes_toserver":60,"bytes_toclient":54,"start":"2026-10-24T14:05:16.000000+0000","end":"2026-10-24T14:05:16.000500+0000","age":0,"state":"closed","reason":"timeout","alerted":false}}'
+        - '{"timestamp":"2026-10-24T14:05:17.000000+0000","flow_id":7017,"event_type":"flow","src_ip":"198.51.100.77","src_port":41017,"dest_ip":"192.0.2.10","dest_port":995,"proto":"TCP","flow":{"pkts_toserver":1,"pkts_toclient":1,"bytes_toserver":60,"bytes_toclient":54,"start":"2026-10-24T14:05:17.000000+0000","end":"2026-10-24T14:05:17.000500+0000","age":0,"state":"closed","reason":"timeout","alerted":false}}'
+        - '{"timestamp":"2026-10-24T14:05:18.000000+0000","flow_id":7018,"event_type":"flow","src_ip":"198.51.100.77","src_port":41018,"dest_ip":"192.0.2.10","dest_port":1433,"proto":"TCP","flow":{"pkts_toserver":1,"pkts_toclient":1,"bytes_toserver":60,"bytes_toclient":54,"start":"2026-10-24T14:05:18.000000+0000","end":"2026-10-24T14:05:18.000500+0000","age":0,"state":"closed","reason":"timeout","alerted":false}}'
+        - '{"timestamp":"2026-10-24T14:05:19.000000+0000","flow_id":7019,"event_type":"flow","src_ip":"198.51.100.77","src_port":41019,"dest_ip":"192.0.2.10","dest_port":1521,"proto":"TCP","flow":{"pkts_toserver":1,"pkts_toclient":1,"bytes_toserver":60,"bytes_toclient":54,"start":"2026-10-24T14:05:19.000000+0000","end":"2026-10-24T14:05:19.000500+0000","age":0,"state":"closed","reason":"timeout","alerted":false}}'
+        - '{"timestamp":"2026-10-24T14:05:20.000000+0000","flow_id":7020,"event_type":"flow","src_ip":"198.51.100.77","src_port":41020,"dest_ip":"192.0.2.10","dest_port":2049,"proto":"TCP","flow":{"pkts_toserver":1,"pkts_toclient":1,"bytes_toserver":60,"bytes_toclient":54,"start":"2026-10-24T14:05:20.000000+0000","end":"2026-10-24T14:05:20.000500+0000","age":0,"state":"closed","reason":"timeout","alerted":false}}'
+        - '{"timestamp":"2026-10-24T14:05:21.000000+0000","flow_id":7021,"event_type":"flow","src_ip":"198.51.100.77","src_port":41021,"dest_ip":"192.0.2.10","dest_port":3306,"proto":"TCP","flow":{"pkts_toserver":1,"pkts_toclient":1,"bytes_toserver":60,"bytes_toclient":54,"start":"2026-10-24T14:05:21.000000+0000","end":"2026-10-24T14:05:21.000500+0000","age":0,"state":"closed","reason":"timeout","alerted":false}}'
+        - '{"timestamp":"2026-10-24T14:05:22.000000+0000","flow_id":7022,"event_type":"flow","src_ip":"198.51.100.77","src_port":41022,"dest_ip":"192.0.2.10","dest_port":3389,"proto":"TCP","flow":{"pkts_toserver":1,"pkts_toclient":1,"bytes_toserver":60,"bytes_toclient":54,"start":"2026-10-24T14:05:22.000000+0000","end":"2026-10-24T14:05:22.000500+0000","age":0,"state":"closed","reason":"timeout","alerted":false}}'
+        - '{"timestamp":"2026-10-24T14:05:23.000000+0000","flow_id":7023,"event_type":"flow","src_ip":"198.51.100.77","src_port":41023,"dest_ip":"192.0.2.10","dest_port":5432,"proto":"TCP","flow":{"pkts_toserver":1,"pkts_toclient":1,"bytes_toserver":60,"bytes_toclient":54,"start":"2026-10-24T14:05:23.000000+0000","end":"2026-10-24T14:05:23.000500+0000","age":0,"state":"closed","reason":"timeout","alerted":false}}'
+        - '{"timestamp":"2026-10-24T14:05:24.000000+0000","flow_id":7024,"event_type":"flow","src_ip":"198.51.100.77","src_port":41024,"dest_ip":"192.0.2.10","dest_port":5900,"proto":"TCP","flow":{"pkts_toserver":1,"pkts_toclient":1,"bytes_toserver":60,"bytes_toclient":54,"start":"2026-10-24T14:05:24.000000+0000","end":"2026-10-24T14:05:24.000500+0000","age":0,"state":"closed","reason":"timeout","alerted":false}}'

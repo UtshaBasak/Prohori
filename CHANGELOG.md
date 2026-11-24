@@ -7,6 +7,28 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- **Network sensor logs.** Two parsers: `suricata_eve` for Suricata's `eve.json` (alert, http,
+  dns, tls, ssh and flow records; Suricata 7 layout and 8's DNS version 3) and `zeek_conn` for
+  Zeek's `conn.log` (tab-separated with a `#fields` header, or Zeek JSON; Zeek 6 and 7). Both
+  are detected automatically, describe a connection with the same `extra` keys, date a
+  connection at its last packet so long connections are not dropped as late, and are covered by
+  the fuzz harness. Suricata `http` records become `web.request` events, so the web rules run on
+  them too (ADR-0044).
+- **Six network rules** (experimental): PRH-IDS-001 to PRH-IDS-003 pass Suricata alerts through
+  by severity (1 high, 2 medium, 3 or above low); PRH-NET-001 port scan (25 distinct ports from
+  one source in 5 minutes), PRH-NET-002 large outbound transfer (500 MB in one connection) and
+  PRH-NET-003 long outbound connection (8 hours). Fixtures, runbooks and verified ATT&CK tags
+  (T1046, T1595, T1048, T1071); the passthrough rules carry no technique of their own.
+- Hand-written samples: `samples/logs/suricata-eve.json`, `zeek-conn.log` and `zeek-conn.json`.
+
+### Changed
+
+- The pinned ATT&CK v20.0 bundle URL names the commit its SHA-256 was taken from: MITRE changed
+  the collection's creation time in the file on `master` on 2026-11-05 (no tactic or technique
+  changed), so the `master` URL no longer matched the hash.
+
 ## [1.1.0] - 2026-11-24
 
 The first release under the PolyForm Strict License 1.0.0 (free for personal and other

@@ -23,6 +23,8 @@ with atheris.instrument_imports():
         GenericJsonParser,
         LineParser,
         ParseStats,
+        SuricataEveParser,
+        ZeekConnParser,
         read_lines,
     )
 
@@ -40,6 +42,8 @@ _PARSERS: list[LineParser] = [
     AccessLogParser(),
     AppJsonParser(),
     GenericJsonParser(mapping=_MAPPING),
+    SuricataEveParser(),
+    ZeekConnParser(),
 ]
 
 

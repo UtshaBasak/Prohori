@@ -2153,3 +2153,53 @@ never become a way to hide an attack.
 output and in the warehouse, and cannot remove other alerts from an incident. RULES.md describes
 the format and the semantics; CLI.md, PIPELINE.md, WAREHOUSE.md, INCIDENTS.md and THREAT_MODEL.md
 the rest.
+
+## ADR-0044: Network sensor parsers and their rules
+
+- **Date:** 2026-11-24
+- **Status:** Accepted
+
+**Context.** Step 33 adds Suricata `eve.json` and Zeek `conn.log`, so network sensor output feeds
+the same rules and incidents. Connections need fields the schema does not have yet (destination
+address and port, bytes, duration); step 34b plans the `destination.*` schema fields. Suricata
+alerts each have their own technique, and both sensors write a connection's record when it ends.
+
+**Decision.**
+
+- **`extra` keys now, schema fields in step 34b.** Both parsers put the connection in `extra`
+  with the same keys (`destination_ip`, `destination_port`, `source_port`, `transport`,
+  `app_protocol`, `bytes_out`, `bytes_in`, `packets_out`, `packets_in`, `duration`,
+  `start_time`, `direction`), so one rule works on either sensor. Adding nested models to
+  `Event` here would change every event's JSON (all goldens) and the field list, for a schema
+  change that step 34b makes anyway, with a serialiser that leaves unset fields out. Step 34b
+  adds `destination.*` and moves the parsers and the built-in network rules to it before 1.2.0
+  is released, so the `extra` names never ship in a release as the only way to reach them.
+- **Events are dated at the last packet.** A Zeek line's `ts` is the first packet, but the line
+  is written when the connection closes: a nine-hour connection arrives after nine hours of later
+  lines and the engine would drop it as late, so the long-connection rule could never fire. Zeek
+  events use `ts + duration`; Suricata flow events use `flow.end`; the start stays in
+  `extra.start_time`.
+- **Suricata `http` is a web request.** It becomes `web.request` in category `web` with the
+  access-log fields (query in `extra.query`), so the existing web rules apply without copies.
+- **Passthrough by severity, no invented technique.** Rule severity is fixed in YAML, so three
+  stateless rules pass alerts through, one per mapped severity (1 high, 2 medium, 3 or above
+  low). They carry no ATT&CK tags: a generic passthrough has no honest single technique. The
+  built-in-rule test exempts exactly these three ids; the signature's own MITRE metadata is kept
+  in `extra.mitre_technique_id` for the analyst.
+- **Outbound without home networks.** Rules have no variables, and samples use documentation
+  addresses only. The large and long connection rules use Zeek's direction (`local_orig`,
+  `local_resp`) when present, otherwise a private source and a non-private destination.
+- **Thresholds are fixed and the rules experimental.** Port scan: 25 distinct ports from one
+  source in 5 minutes over TCP connections that were not established (UDP and peer-to-peer
+  traffic to many ports are common false positives). Large: 500 MB. Long: 8 hours. The simulator
+  writes no network traffic, so their false-positive rates are unmeasured; per-host baselines are
+  step 38's subject.
+- **Formats.** Suricata 7.0's EVE layout plus 8.0's DNS version 3; Zeek 6 and 7 `Conn::Info`
+  (TSV by its `#fields` header, Zeek 7.1's column order for lines before any header, or Zeek
+  JSON). Tabs survive sanitising for the Zeek parser only (`LineParser.keep_tabs`), which splits
+  on them and sanitises each column. Samples are hand-written from the documentation.
+
+**Consequences.** The network rules can be tested with fixtures and samples but not scored for
+false positives; the passthrough rules inherit Suricata's own noise (one Prohori alert per
+Suricata alert). Until step 34b, rules written against the `extra` keys must be updated when the
+schema fields arrive.

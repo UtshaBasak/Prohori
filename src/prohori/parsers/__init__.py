@@ -18,6 +18,8 @@ from prohori.parsers.base import (
 from prohori.parsers.detect import detect_format
 from prohori.parsers.generic_json import FieldMapping, GenericJsonParser, load_mapping
 from prohori.parsers.registry import available, get_parser, register
+from prohori.parsers.suricata_eve import SuricataEveParser
+from prohori.parsers.zeek_conn import ZeekConnParser
 
 __all__ = [
     "MAX_LINE_LENGTH",
@@ -30,6 +32,8 @@ __all__ = [
     "ParseError",
     "ParseStats",
     "RawLine",
+    "SuricataEveParser",
+    "ZeekConnParser",
     "available",
     "detect_format",
     "get_parser",

@@ -17,7 +17,7 @@ Both commands accept files and directories (searched recursively for `*.yml` and
 
 > **Status.** Rules are loaded, validated, compiled and evaluated (stateless, `aggregate` and
 > `sequence`), tested against fixtures with `prohori rules test`, and run over log files with
-> `prohori detect`. Fourteen built-in rules ship today.
+> `prohori detect`. Twenty-seven built-in rules ship today.
 
 ## Running rules: `prohori detect`
 
@@ -74,6 +74,12 @@ verified ATT&CK tags.
 | PRH-WEB-003 | medium | Scanner or empty user agent at a high rate | >= 30 requests per `source.ip` in 1 min with a scanning-tool or empty user agent |
 | PRH-WEB-004 | medium | Probes for sensitive files and admin tools | >= 3 distinct sensitive paths (`/.env`, `/.git/`, `/wp-login.php`, ...) per `source.ip` in 10 min |
 | PRH-SSH-001 | high | SSH invalid-user storm | >= 5 invalid-user attempts or MaxAuthTries disconnects per `source.ip` (or `source.host`) in 10 min |
+| PRH-IDS-001 | high | Suricata alert, severity 1 | every `ids.alert` event with `event.severity: high` (experimental) |
+| PRH-IDS-002 | medium | Suricata alert, severity 2 | every `ids.alert` event with `event.severity: medium` (experimental) |
+| PRH-IDS-003 | low | Suricata alert, severity 3 or above | every `ids.alert` event with `event.severity: low` (experimental) |
+| PRH-NET-001 | medium | Port scan from one address | TCP connections that were not established to >= 25 distinct `extra.destination_port` per `source.ip` in 5 min (experimental) |
+| PRH-NET-002 | medium | Large outbound transfer | one outbound connection with `extra.bytes_out` >= 500 MB (experimental) |
+| PRH-NET-003 | low | Long outbound connection | one outbound connection with `extra.duration` >= 8 h (experimental) |
 
 An "existing account" leaves out failures with `event.reason: unknown_user` (an SSH invalid user,
 an email the app does not know): there is nothing to take over, and scanners produce them all
@@ -97,7 +103,7 @@ derived again with the same rule, and the rules were scored once. The table comp
 rule sets on address model 2; the address-model-1 results stay below it for reference.
 
 <!-- rules-compare:start -->
-Generated from `results/rules_eval.json`, simulator address model 2: the frozen baselines (1.0 rules (addresses 2): 15 rules; 1.1 rules, step 28b (addresses 2): 21 rules) against today's 21 rules, 5 seeds per variant. Attacks caught by at least one of their expected rules. Do not edit by hand.
+Generated from `results/rules_eval.json`, simulator address model 2: the frozen baselines (1.0 rules (addresses 2): 15 rules; 1.1 rules, step 28b (addresses 2): 21 rules) against today's 27 rules, 5 seeds per variant. Attacks caught by at least one of their expected rules. Do not edit by hand.
 
 | Scenario | Held-out: 1.0 rules (addresses 2) | Held-out: 1.1 rules, step 28b (addresses 2) | Held-out: now | Held-out 2: 1.0 rules (addresses 2) | Held-out 2: 1.1 rules, step 28b (addresses 2) | Held-out 2: now |
 | ---------- | -----: | -----: | -----: | -----: | -----: | -----: |
@@ -157,11 +163,38 @@ Known limits, also stated in each rule's description:
 - **PRH-ADMIN-002** uses the shop's local time (`timezone: Asia/Dhaka`) and fixed night hours.
   Other sites should copy the rule and set their own `timezone` and hours.
 
+### Network sensor rules (since 1.2)
+
+The `suricata_eve` and `zeek_conn` parsers ([PARSERS.md](PARSERS.md#suricata_eve)) feed the
+same engine, and Suricata's `http` records become `web.request` events, so the web rules
+(PRH-WEB-001 to PRH-WEB-004) also run on what the sensor saw on the wire. Six rules are new;
+all are `experimental`, because the simulator writes no network traffic to measure their false
+positives on.
+
+- **PRH-IDS-001 to PRH-IDS-003** pass Suricata alerts through, one rule per severity, so they
+  join incidents with the rest. Their severity follows the signature's (1 high, 2 medium, 3 or
+  above low). Every alert event raises one Prohori alert: tune noisy signatures in Suricata
+  (`threshold.config`) or with a suppression. They carry **no ATT&CK tags**: the technique
+  depends on the signature, and the rule set's own MITRE metadata is kept in
+  `extra.mitre_technique_id` instead (ADR-0044).
+- **PRH-NET-001** counts distinct destination ports per source over TCP connections that were
+  not established (Zeek `conn_state` other than `SF`, `S1`-`S3`, `RSTO`, `RSTR`). Suricata flow
+  records carry no state, so all of theirs count. It catches one source scanning many ports;
+  a scan of one port across many hosts, or one slower than 25 ports in 5 minutes, is missed.
+- **PRH-NET-002 and PRH-NET-003** use fixed thresholds (500 MB, 8 hours), not a per-host
+  baseline. "Outbound" is Zeek's own direction (`local_orig` true, `local_resp` false, from
+  `Site::local_nets`); when the sensor gives none (Suricata, or Zeek without local networks), a
+  private source (RFC 1918 or IPv6 ULA) and a non-private destination. Copy a rule to change its
+  thresholds or networks. Both alert only when the connection ends, because that is when the
+  sensor writes it.
+
 ### ATT&CK mapping
 
 Tags are verified against **MITRE ATT&CK Enterprise v20.0**, using the official STIX bundle:
 
-- URL: `https://raw.githubusercontent.com/mitre-attack/attack-stix-data/master/enterprise-attack/enterprise-attack-20.0.json`
+- URL: `https://raw.githubusercontent.com/mitre-attack/attack-stix-data/20664a889568dce884a1dac0ec7b12ae3a199f51/enterprise-attack/enterprise-attack-20.0.json`
+  (pinned to the commit the hash was taken from: on 2026-11-05 MITRE changed the collection's
+  creation time in the file on `master`, which changes its hash but no tactic or technique)
 - SHA-256: `81113ba98afa2928f3dcff62022539f7ce30c315c32e14422f11ff95ce534352`
 
 The verified tactics and techniques, with names and tactics, are listed in
@@ -190,6 +223,13 @@ uv run python scripts/verify_attack.py
 | T1595.002 | Active Scanning: Vulnerability Scanning | WEB-003 |
 | T1190 | Exploit Public-Facing Application | WEB-002 |
 | T1499.002 | Endpoint Denial of Service: Service Exhaustion Flood | ABUSE-001 |
+| T1046 | Network Service Discovery | NET-001 |
+| T1595 | Active Scanning | NET-001 |
+| T1048 | Exfiltration Over Alternative Protocol | NET-002 |
+| T1071 | Application Layer Protocol | NET-003 |
+
+PRH-IDS-001 to PRH-IDS-003 are the only built-in rules without ATT&CK tags (see above); the test
+of the tags lists them by id.
 
 ### Runbooks
 

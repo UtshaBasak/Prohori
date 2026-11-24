@@ -1,0 +1,34 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+# Copyright (c) 2026 Utsha Basak
+id: PRH-NET-003
+title: Long outbound connection
+status: experimental
+severity: low
+description: >-
+  One connection from inside the network to an outside address stayed open for at least 8 hours:
+  remote-access tools and command-and-control channels often hold a connection open. Outbound is
+  decided as for PRH-NET-002. The sensor writes the record when the connection ends, so the alert
+  comes at the end, not after 8 hours.
+author: Prohori
+tags: [attack.command_and_control, attack.t1071]
+logsource: {category: network}
+detection:
+  flow:
+    event.action: network.flow
+  long:
+    extra.duration|gte: 28800
+  outbound:
+    extra.direction: outbound
+  direction_known:
+    extra.direction|exists: true
+  private_source:
+    source.ip|cidr: [10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16, fc00::/7]
+  private_destination:
+    extra.destination_ip|cidr: [10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16, fc00::/7]
+  condition: >-
+    flow and long and (outbound or
+    (private_source and not private_destination and not direction_known))
+falsepositives:
+  - VPN tunnels, remote-desktop and SSH sessions left open
+  - Long-polling, streaming and messaging applications
+response: runbooks/long-outbound-connection.md

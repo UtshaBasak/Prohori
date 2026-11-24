@@ -1,0 +1,23 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+# Copyright (c) 2026 Utsha Basak
+id: PRH-IDS-002
+title: Suricata alert, severity 2
+status: experimental
+severity: medium
+description: >-
+  Passes through every Suricata IDS alert whose signature has severity 2 (medium in Prohori),
+  so network alerts join incidents with the rest. The technique depends on the signature: its
+  name, sid and any MITRE metadata are kept in the event's extra fields, and this rule carries
+  no ATT&CK tags of its own.
+author: Prohori
+tags: []
+logsource: {category: network}
+detection:
+  selection:
+    event.action: ids.alert
+    event.severity: medium
+  condition: selection
+falsepositives:
+  - Signatures that match ordinary traffic on this network (tune or disable them in Suricata)
+  - Alerts for traffic the sensor's IPS mode already blocked (extra.alert_action is blocked)
+response: runbooks/suricata-alert.md

@@ -1,4 +1,4 @@
-                                            Rules (21)
+                                            Rules (27)
 +---------------+----------+--------------+---------------------------+---------------------------+
 | id            | severity | status       | title                     | ATT&CK                    |
 +---------------+----------+--------------+---------------------------+---------------------------+
@@ -51,6 +51,20 @@
 |               |          |              |                           | attack.t1078              |
 | PRH-AUTHZ-001 | medium   | stable       | Authorisation denials     | attack.reconnaissance,    |
 |               |          |              | across many resources     | attack.t1595.003          |
+| PRH-IDS-001   | high     | experimental | Suricata alert, severity  |                           |
+|               |          |              | 1                         |                           |
+| PRH-IDS-002   | medium   | experimental | Suricata alert, severity  |                           |
+|               |          |              | 2                         |                           |
+| PRH-IDS-003   | low      | experimental | Suricata alert, severity  |                           |
+|               |          |              | 3 or above                |                           |
+| PRH-NET-001   | medium   | experimental | Port scan from one        | attack.discovery,         |
+|               |          |              | address                   | attack.t1046,             |
+|               |          |              |                           | attack.reconnaissance,    |
+|               |          |              |                           | attack.t1595              |
+| PRH-NET-002   | medium   | experimental | Large outbound transfer   | attack.exfiltration,      |
+|               |          |              |                           | attack.t1048              |
+| PRH-NET-003   | low      | experimental | Long outbound connection  | attack.command_and_contro |
+|               |          |              |                           | l, attack.t1071           |
 | PRH-SESS-001  | high     | stable       | Refresh-token reuse       | attack.credential_access, |
 |               |          |              | detected                  | attack.lateral_movement,  |
 |               |          |              |                           | attack.t1528,             |
