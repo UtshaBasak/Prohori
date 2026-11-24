@@ -36,6 +36,9 @@ def run(*args: str, stdin: bytes | None = None) -> tuple[int, str, str]:
         ("suricata-eve.json", "suricata_eve", 21),
         ("zeek-conn.log", "zeek_conn", 42),
         ("zeek-conn.json", "zeek_conn", 9),
+        ("windows-security.jsonl", "windows_security", 33),
+        ("windows-security.xml", "windows_security", 20),
+        ("journald.json", "journald", 32),
     ],
 )
 def test_auto_detect_table(file: str, parser: str, events: int) -> None:
@@ -191,5 +194,57 @@ def test_keep_query_option_for_suricata(keep: list[str], path: str) -> None:
 def test_help_lists_parsers() -> None:
     result = runner.invoke(app, ["parse", "--help"])
     assert result.exit_code == 0
-    for name in ("access_log", "app_json", "auth_log", "generic_json", "suricata_eve", "zeek_conn"):
+    for name in (
+        "access_log",
+        "app_json",
+        "auth_log",
+        "generic_json",
+        "suricata_eve",
+        "zeek_conn",
+        "windows_security",
+        "journald",
+    ):
         assert name in result.stdout
+
+
+def test_evtx_needs_the_extra(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr("prohori.cli.parse.evtx_available", lambda: False)
+    log = tmp_path / "Security.evtx"
+    log.write_bytes(b"ElfFile\x00")
+    code, _, err = run(str(log))
+    assert code == ExitCode.USAGE
+    assert "evtx extra" in err
+
+
+def test_evtx_file_is_read_and_hashed(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    import sys
+    import types
+
+    record = {
+        "Event": {
+            "System": {
+                "Provider": {"#attributes": {"Name": "Microsoft-Windows-Security-Auditing"}},
+                "EventID": 4625,
+                "TimeCreated": {"#attributes": {"SystemTime": "2026-10-24T14:00:00Z"}},
+                "Computer": "DC01.corp.example",
+            },
+            "EventData": {"TargetUserName": "administrator", "IpAddress": "203.0.113.50"},
+        }
+    }
+
+    class Fake:
+        def __init__(self, path: str) -> None:
+            pass
+
+        def records_json(self) -> object:
+            yield {"data": json.dumps(record)}
+
+    module = types.ModuleType("evtx")
+    module.PyEvtxParser = Fake  # type: ignore[attr-defined]
+    monkeypatch.setitem(sys.modules, "evtx", module)
+    log = tmp_path / "Security.evtx"
+    log.write_bytes(b"ElfFile\x00")
+    code, out, _ = run(str(log), "--format", "json")
+    assert code == ExitCode.OK
+    (event,) = [json.loads(line) for line in out.splitlines()]
+    assert event["event"]["action"] == "windows.logon.failure"

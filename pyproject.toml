@@ -68,7 +68,8 @@ pipeline = [
 llm = [
     "google-genai>=2.31",
 ]
-all = ["prohori[geoip,ml,pipeline,llm]"]
+evtx = ["evtx>=0.15,<0.16"]  # native Windows .evtx files (step 34)
+all = ["prohori[geoip,ml,pipeline,llm,evtx]"]
 
 [project.urls]
 Homepage = "https://github.com/UtshaBasak/Prohori"
@@ -231,6 +232,11 @@ ignore_missing_imports = true
 [[tool.mypy.overrides]]
 # Apache Airflow is not a dependency: only tests/dags imports it, in a Linux CI job.
 module = ["airflow", "airflow.*"]
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+# evtx (the evtx extra) ships no type hints; it is imported only in prohori.parsers.evtx_file.
+module = ["evtx"]
 ignore_missing_imports = true
 
 [[tool.mypy.overrides]]

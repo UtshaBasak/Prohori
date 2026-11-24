@@ -15,6 +15,6 @@
 | parser       | auth_log |
 | events       |       32 |
 | parse errors |        0 |
-| rules        |       27 |
+| rules        |       33 |
 | alerts       |        1 |
 +--------------+----------+

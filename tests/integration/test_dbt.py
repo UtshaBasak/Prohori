@@ -18,6 +18,7 @@ import duckdb
 import pytest
 
 from prohori.rules import builtin_rules_dir, load_rules
+from prohori.simulate import SCENARIOS
 from prohori.simulate.evaluate import evaluate
 from prohori.suppress import load_suppressions
 from scripts.build_lite_warehouse import SUPPRESSIONS, build
@@ -109,7 +110,7 @@ def test_rule_precision_matches_the_simulator_evaluation(warehouse: tuple[Path, 
     }
     assert stored == wanted
     assert attacks is not None
-    assert attacks[0] == 8  # one attack per scenario
-    assert attacks[1] == 8  # all caught in the default variants
+    assert attacks[0] == len(SCENARIOS)  # one attack per scenario
+    assert attacks[1] == len(SCENARIOS)  # all caught in the default variants
     assert days == events
     assert suppressed == [("PRH-ADMIN-001", "planned-admin-onboarding")]

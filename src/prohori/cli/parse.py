@@ -12,7 +12,7 @@ from datetime import UTC, datetime
 from enum import StrEnum
 from itertools import chain, islice
 from pathlib import Path
-from typing import IO, Annotated
+from typing import Annotated
 
 import typer
 from rich.console import Console
@@ -29,6 +29,8 @@ from prohori.parsers import (
     get_parser,
     read_lines,
 )
+from prohori.parsers.base import LineSource
+from prohori.parsers.evtx_file import EXTRA_HINT, EvtxLines, evtx_available
 from prohori.schema import Event
 
 #: Raw lines buffered for format detection before parsing starts.
@@ -43,10 +45,11 @@ class OutputFormat(StrEnum):
 
 
 @contextlib.contextmanager
-def open_input(path: str) -> Iterator[tuple[IO[bytes], str, datetime | None]]:
+def open_input(path: str) -> Iterator[tuple[LineSource, str, datetime | None]]:
     """Open ``path`` (or standard input for ``-``) as a binary stream.
 
-    Yields the stream, a display name and the file's modification time (``None`` for stdin).
+    Yields the stream, a display name and the file's modification time (``None`` for stdin). A
+    Windows ``.evtx`` file is read record by record as JSON lines (needs the ``evtx`` extra).
     """
     if path == "-":
         yield sys.stdin.buffer, "<stdin>", None
@@ -55,6 +58,11 @@ def open_input(path: str) -> Iterator[tuple[IO[bytes], str, datetime | None]]:
     if not file.is_file():
         raise typer.BadParameter(f"file not found: {path}", param_hint="FILE")
     mtime = datetime.fromtimestamp(file.stat().st_mtime, tz=UTC)
+    if file.suffix.lower() == ".evtx":
+        if not evtx_available():
+            raise typer.BadParameter(EXTRA_HINT, param_hint="FILE")
+        yield EvtxLines(file), file.name, mtime
+        return
     with file.open("rb") as stream:
         yield stream, file.name, mtime
 
@@ -77,6 +85,8 @@ def build_parser(
             return get_parser(name, pattern=pattern, keep_query=keep_query)
         if name == "suricata_eve":
             return get_parser(name, keep_query=keep_query)
+        if name == "windows_security":
+            return get_parser(name, timezone=timezone)
         if name == "generic_json":
             if mapping is None:
                 raise typer.BadParameter("the generic_json parser needs --mapping FILE")
@@ -89,7 +99,7 @@ def build_parser(
 class HashingReader:
     """A binary stream wrapper that hashes every byte read through ``readline``."""
 
-    def __init__(self, stream: IO[bytes]) -> None:
+    def __init__(self, stream: LineSource) -> None:
         self._stream = stream
         self._hash = hashlib.sha256()
         self.bytes = 0
@@ -101,7 +111,12 @@ class HashingReader:
         return chunk
 
     def hexdigest(self) -> str:
-        """SHA-256 of what has been read so far (the whole input once parsing has finished)."""
+        """SHA-256 of what has been read so far (the whole input once parsing has finished).
+
+        For an ``.evtx`` file, the SHA-256 of the file itself.
+        """
+        if isinstance(self._stream, EvtxLines):
+            return self._stream.hexdigest()
         return self._hash.hexdigest()
 
 
@@ -130,7 +145,10 @@ YearOption = Annotated[
     typer.Option(help="auth_log: year of the first line (default: from the file date)."),
 ]
 TimezoneOption = Annotated[
-    str, typer.Option(help="auth_log: IANA timezone for timestamps without an offset.")
+    str,
+    typer.Option(
+        help="auth_log, windows_security: IANA timezone for timestamps without an offset."
+    ),
 ]
 MappingOption = Annotated[Path | None, typer.Option(help="generic_json: YAML field-mapping file.")]
 PatternOption = Annotated[

@@ -1,0 +1,45 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+# Copyright (c) 2026 Utsha Basak
+rule: PRH-WIN-006
+start: 2026-10-24T14:00:00Z
+defaults:
+  log_source: windows-security
+  event.category: authentication
+  event.action: windows.account.locked_out
+  event.outcome: failure
+  event.reason: locked
+  host: dc01.corp.example
+cases:
+  - name: three accounts locked out alert
+    expect: {alerts: 1, entities: [{log_source: windows-security}]}
+    events:
+      - {user.name: amina}
+      - {user.name: rafiq, after: 1m}
+      - {user.name: nusrat, after: 1m}
+
+  - name: two accounts do not alert
+    expect: {alerts: 0}
+    events:
+      - {user.name: amina}
+      - {user.name: rafiq, after: 1m}
+
+  - name: one account locked out again and again does not alert
+    expect: {alerts: 0}
+    events:
+      - {user.name: amina, repeat: 5, every: 1m}
+
+  - name: lockouts spread over more than fifteen minutes do not alert
+    expect: {alerts: 0}
+    events:
+      - {user.name: amina}
+      - {user.name: rafiq, after: 8m}
+      - {user.name: nusrat, after: 8m}
+
+  - name: Winlogbeat records
+    expect: {alerts: 1, entities: [{log_source: windows-security}]}
+    log:
+      parser: windows_security
+      lines:
+        - '{"@timestamp":"2026-10-24T14:00:00.000Z","winlog":{"channel":"Security","computer_name":"DC01.corp.example","event_id":"4740","provider_name":"Microsoft-Windows-Security-Auditing","record_id":"1","event_data":{"TargetUserName":"amina","TargetDomainName":"KALI","TargetSid":"S-1-5-21-1-2-3-1106","SubjectUserSid":"S-1-5-18","SubjectUserName":"DC01$","SubjectDomainName":"CORP","SubjectLogonId":"0x3e7"}}}'
+        - '{"@timestamp":"2026-10-24T14:00:01.000Z","winlog":{"channel":"Security","computer_name":"DC01.corp.example","event_id":"4740","provider_name":"Microsoft-Windows-Security-Auditing","record_id":"1","event_data":{"TargetUserName":"rafiq","TargetDomainName":"KALI","TargetSid":"S-1-5-21-1-2-3-1107","SubjectUserSid":"S-1-5-18","SubjectUserName":"DC01$","SubjectDomainName":"CORP","SubjectLogonId":"0x3e7"}}}'
+        - '{"@timestamp":"2026-10-24T14:00:02.000Z","winlog":{"channel":"Security","computer_name":"DC01.corp.example","event_id":"4740","provider_name":"Microsoft-Windows-Security-Auditing","record_id":"1","event_data":{"TargetUserName":"nusrat","TargetDomainName":"KALI","TargetSid":"S-1-5-21-1-2-3-1108","SubjectUserSid":"S-1-5-18","SubjectUserName":"DC01$","SubjectDomainName":"CORP","SubjectLogonId":"0x3e7"}}}'

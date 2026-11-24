@@ -1,0 +1,49 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+# Copyright (c) 2026 Utsha Basak
+rule: PRH-WIN-003
+start: 2026-10-24T14:00:00Z
+defaults:
+  log_source: windows-security
+  event.category: authentication
+  event.action: windows.logon.failure
+  event.outcome: failure
+  event.reason: bad_password
+  source.ip: 203.0.113.50
+  user.name: administrator
+  extra.workstation: KALI
+cases:
+  - name: five failures then a success alert
+    expect: {alerts: 1, entities: [{source.ip: 203.0.113.50}]}
+    events:
+      - {repeat: 5, every: 5s}
+      - {event.action: windows.logon.success, event.outcome: success, after: 1m}
+
+  - name: four failures then a success do not alert
+    expect: {alerts: 0}
+    events:
+      - {repeat: 4, every: 5s}
+      - {event.action: windows.logon.success, event.outcome: success, after: 1m}
+
+  - name: a success more than fifteen minutes later does not alert
+    expect: {alerts: 0}
+    events:
+      - {repeat: 5, every: 5s}
+      - {event.action: windows.logon.success, event.outcome: success, after: 16m}
+
+  - name: a success from another address does not alert
+    expect: {alerts: 0}
+    events:
+      - {repeat: 5, every: 5s}
+      - {event.action: windows.logon.success, event.outcome: success, source.ip: 192.0.2.41}
+
+  - name: Winlogbeat records
+    expect: {alerts: 1, entities: [{source.ip: 203.0.113.50}]}
+    log:
+      parser: windows_security
+      lines:
+        - '{"@timestamp":"2026-10-24T14:00:00.000Z","winlog":{"channel":"Security","computer_name":"DC01.corp.example","event_id":"4625","provider_name":"Microsoft-Windows-Security-Auditing","record_id":"1","event_data":{"SubjectUserSid":"S-1-0-0","TargetUserSid":"S-1-0-0","TargetUserName":"administrator","TargetDomainName":"CORP","Status":"0xc000006d","SubStatus":"0xc000006a","LogonType":"10","WorkstationName":"KALI","IpAddress":"203.0.113.50","IpPort":"49152"}}}'
+        - '{"@timestamp":"2026-10-24T14:00:05.000Z","winlog":{"channel":"Security","computer_name":"DC01.corp.example","event_id":"4625","provider_name":"Microsoft-Windows-Security-Auditing","record_id":"1","event_data":{"SubjectUserSid":"S-1-0-0","TargetUserSid":"S-1-0-0","TargetUserName":"administrator","TargetDomainName":"CORP","Status":"0xc000006d","SubStatus":"0xc000006a","LogonType":"10","WorkstationName":"KALI","IpAddress":"203.0.113.50","IpPort":"49152"}}}'
+        - '{"@timestamp":"2026-10-24T14:00:10.000Z","winlog":{"channel":"Security","computer_name":"DC01.corp.example","event_id":"4625","provider_name":"Microsoft-Windows-Security-Auditing","record_id":"1","event_data":{"SubjectUserSid":"S-1-0-0","TargetUserSid":"S-1-0-0","TargetUserName":"administrator","TargetDomainName":"CORP","Status":"0xc000006d","SubStatus":"0xc000006a","LogonType":"10","WorkstationName":"KALI","IpAddress":"203.0.113.50","IpPort":"49152"}}}'
+        - '{"@timestamp":"2026-10-24T14:00:15.000Z","winlog":{"channel":"Security","computer_name":"DC01.corp.example","event_id":"4625","provider_name":"Microsoft-Windows-Security-Auditing","record_id":"1","event_data":{"SubjectUserSid":"S-1-0-0","TargetUserSid":"S-1-0-0","TargetUserName":"administrator","TargetDomainName":"CORP","Status":"0xc000006d","SubStatus":"0xc000006a","LogonType":"10","WorkstationName":"KALI","IpAddress":"203.0.113.50","IpPort":"49152"}}}'
+        - '{"@timestamp":"2026-10-24T14:00:20.000Z","winlog":{"channel":"Security","computer_name":"DC01.corp.example","event_id":"4625","provider_name":"Microsoft-Windows-Security-Auditing","record_id":"1","event_data":{"SubjectUserSid":"S-1-0-0","TargetUserSid":"S-1-0-0","TargetUserName":"administrator","TargetDomainName":"CORP","Status":"0xc000006d","SubStatus":"0xc000006a","LogonType":"10","WorkstationName":"KALI","IpAddress":"203.0.113.50","IpPort":"49152"}}}'
+        - '{"@timestamp":"2026-10-24T14:02:00.000Z","winlog":{"channel":"Security","computer_name":"DC01.corp.example","event_id":"4624","provider_name":"Microsoft-Windows-Security-Auditing","record_id":"1","event_data":{"SubjectUserSid":"S-1-5-18","TargetUserSid":"S-1-5-21-1-2-3-500","TargetUserName":"administrator","TargetDomainName":"CORP","LogonType":"10","WorkstationName":"KALI","IpAddress":"203.0.113.50","IpPort":"49200"}}}'

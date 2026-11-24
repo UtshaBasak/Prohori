@@ -199,6 +199,14 @@ def _compare(
     return lines
 
 
+def _only(variants: dict[str, Any], scenarios: list[str]) -> dict[str, Any]:
+    """``variants`` with only ``scenarios`` (for comparing with a baseline that lacks the rest)."""
+    return {
+        name: {**body, "scenarios": {n: body["scenarios"][n] for n in scenarios}}
+        for name, body in variants.items()
+    }
+
+
 def render_comparison(results: dict[str, Any]) -> str:
     """Before and after: the frozen baselines on today's simulator against today's rules, then
     the baselines of earlier address models for reference."""
@@ -209,6 +217,12 @@ def render_comparison(results: dict[str, Any]) -> str:
     same = [b for b in baselines if b["addresses"] == model]
     earlier = [b for b in baselines if b["addresses"] != model]
     frozen = "; ".join(f"{b['label']}: {len(b['rules'])} rules" for b in same)
+    common = [
+        n
+        for n in results["scenarios"]
+        if all(n in b["variants"]["default"]["scenarios"] for b in same)
+    ]
+    added = [n for n in results["scenarios"] if n not in common]
     lines = [
         f"Generated from `results/rules_eval.json`, simulator address model {model}: the frozen "
         f"baselines ({frozen}) against today's {len(results['variants']['default']['rules'])} "
@@ -216,10 +230,18 @@ def render_comparison(results: dict[str, Any]) -> str:
         "their expected rules. Do not edit by hand.",
         "",
         *_compare(
-            [(b["label"], b["variants"]) for b in same] + [("now", results["variants"])],
-            results["scenarios"],
+            [(b["label"], b["variants"]) for b in same]
+            + [("now", _only(results["variants"], common))],
+            common,
         ),
     ]
+    if added:
+        lines += [
+            "",
+            "Scenarios added after the baselines were frozen are left out of this comparison, so "
+            f"its totals stay comparable: {', '.join(f'`{n}`' for n in added)} (see the "
+            "per-scenario results in docs/SIMULATOR.md).",
+        ]
     for old in sorted({b["addresses"] for b in earlier}):
         group = [b for b in earlier if b["addresses"] == old]
         lines += [
@@ -227,7 +249,14 @@ def render_comparison(results: dict[str, Any]) -> str:
             f"For reference, the same comparison on address model {old} (frozen, not comparable "
             "with the table above: the simulator's background was different):",
             "",
-            *_compare([(b["label"], b["variants"]) for b in group], results["scenarios"]),
+            *_compare(
+                [(b["label"], b["variants"]) for b in group],
+                [
+                    n
+                    for n in common
+                    if all(n in b["variants"]["default"]["scenarios"] for b in group)
+                ],
+            ),
         ]
     return "\n".join(lines)
 

@@ -38,6 +38,18 @@ from prohori.simulate.run import simulate
 ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / "evaluation" / "llm" / "cases"
 FORMAT = "prohori.llm-eval-case/1"
+#: The scenarios the cases were built from. Later scenarios (``windows-signin``, step 34) are
+#: left out, so the recorded answers of a real model stay valid.
+CASE_SCENARIOS = (  # in the order the cases were built, which numbers the benign cases
+    "ssh-bruteforce",
+    "password-spraying",
+    "credential-stuffing",
+    "token-reuse",
+    "account-takeover",
+    "web-scanning",
+    "injection",
+    "admin-misuse",
+)
 SEED = 1
 #: Benign incidents taken, at most per scenario and variant, in the order they are built.
 BENIGN = {
@@ -98,7 +110,8 @@ def simulated_cases() -> list[dict[str, Any]]:
     cases: list[dict[str, Any]] = []
     benign: list[dict[str, Any]] = []
     seen: set[frozenset[str]] = set()
-    for name, scenario in SCENARIOS.items():
+    for name in CASE_SCENARIOS:
+        scenario = SCENARIOS[name]
         for variant in ("default", "heldout"):
             simulation = simulate(name, seed=SEED, variant=variant)
             labels = [attack for _, attack in simulation.lines]

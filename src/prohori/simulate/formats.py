@@ -79,3 +79,34 @@ def app(
 def email_hash(account: str) -> str:
     """A stand-in for the app's email hash: 32 hex digits derived from a synthetic address."""
     return hashlib.sha256(f"{account}@example.com".encode()).hexdigest()[:32]
+
+
+WINDOWS_COMPUTER = "SRV01.corp.example"
+SECURITY_PROVIDER = "Microsoft-Windows-Security-Auditing"
+
+
+def winlogbeat(
+    timestamp: datetime,
+    event_id: int,
+    data: dict[str, str],
+    *,
+    record_id: int,
+    computer: str = WINDOWS_COMPUTER,
+    provider: str = SECURITY_PROVIDER,
+) -> str:
+    """A Windows Security event as Winlogbeat writes it (one JSON line, ``windows_security``)."""
+    record = {
+        "@timestamp": timestamp.strftime("%Y-%m-%dT%H:%M:%S.")
+        + f"{timestamp.microsecond // 1000:03d}Z",
+        "event": {"code": str(event_id), "provider": provider, "kind": "event"},
+        "host": {"name": computer.lower()},
+        "winlog": {
+            "channel": "Security",
+            "computer_name": computer,
+            "event_id": str(event_id),
+            "provider_name": provider,
+            "record_id": str(record_id),
+            "event_data": data,
+        },
+    }
+    return json.dumps(record, ensure_ascii=False)

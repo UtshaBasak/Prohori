@@ -134,6 +134,8 @@ class TestNormaliser:
         assert isinstance(suricata, SuricataEveParser)
         assert suricata.keep_query
         assert settings.create("zeek_conn", T0).name == "zeek_conn"
+        assert settings.create("windows_security", T0).name == "windows_security"
+        assert settings.create("journald", T0).name == "journald"
         with pytest.raises(ValueError, match="mapping"):
             settings.create("generic_json", T0)
         mapping = Path(__file__).resolve().parents[3] / "samples" / "mappings" / "payments.yaml"

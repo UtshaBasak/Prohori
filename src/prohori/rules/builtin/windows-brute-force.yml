@@ -1,0 +1,25 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+# Copyright (c) 2026 Utsha Basak
+id: PRH-WIN-001
+title: Windows sign-in failures from one source
+status: test
+severity: high
+description: >-
+  At least 10 failed Windows sign-ins (event 4625) from one source within 5 minutes: password
+  guessing over RDP, SMB or another network logon. The source is the client address, or the
+  client's workstation name when Windows logged no address (counted separately).
+author: Prohori
+tags: [attack.credential_access, attack.t1110, attack.t1110.001]
+logsource: {category: authentication}
+detection:
+  failure:
+    event.action: windows.logon.failure
+  aggregate:
+    group_by: [[source.ip, source.host, extra.workstation]]
+    window: 5m
+    count_gte: 10
+  condition: failure and aggregate
+falsepositives:
+  - A service or scheduled task still using an old password
+  - A user's device retrying a changed password (phone mail clients, mapped drives)
+response: runbooks/windows-brute-force.md

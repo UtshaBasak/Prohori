@@ -39,8 +39,8 @@ def test_readme_facts_match_the_code() -> None:
     assert f"Run the {len(rules)} built-in rules" in text
     for rule in rules:
         assert f"| {rule.meta.id} |" in text, rule.meta.id
-    assert len(SCENARIOS) == 8
-    assert "Eight labelled attack scenarios" in text
+    assert len(SCENARIOS) == 9
+    assert "Nine labelled attack scenarios" in text
     assert f"MITRE ATT&CK v{ATTACK_VERSION}" in text
 
 

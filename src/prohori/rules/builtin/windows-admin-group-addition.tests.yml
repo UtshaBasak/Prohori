@@ -1,0 +1,49 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+# Copyright (c) 2026 Utsha Basak
+rule: PRH-WIN-004
+start: 2026-10-24T14:00:00Z
+defaults:
+  log_source: windows-security
+  event.category: admin
+  event.action: windows.group.member_added
+  event.outcome: success
+  user.name: administrator
+  host: dc01.corp.example
+cases:
+  - name: an addition to the built-in Administrators group alerts
+    expect: {alerts: 1, entities: [{user.name: administrator, host: dc01.corp.example}]}
+    events:
+      - {extra.group_sid: S-1-5-32-544, extra.group_name: Administrators}
+
+  - name: additions to Domain, Schema and Enterprise Admins alert, by SID
+    expect: {alerts: 3}
+    events:
+      - {extra.group_sid: S-1-5-21-1-2-3-512, extra.group_name: Domänen-Admins}
+      - {extra.group_sid: S-1-5-21-1-2-3-518}
+      - {extra.group_sid: S-1-5-21-1-2-3-519}
+
+  - name: a renamed or translated Administrators group alerts by SID
+    expect: {alerts: 1}
+    events:
+      - {extra.group_sid: S-1-5-32-544, extra.group_name: Administratoren}
+
+  - name: an export without SIDs alerts by name
+    expect: {alerts: 1}
+    events:
+      - {extra.group_name: Enterprise Admins}
+
+  - name: other groups do not alert
+    expect: {alerts: 0}
+    events:
+      - {extra.group_sid: S-1-5-32-555, extra.group_name: Remote Desktop Users}
+      - {extra.group_sid: S-1-5-21-1-2-3-513, extra.group_name: Domain Users}
+      - {extra.group_sid: S-1-5-21-1-2-3-1512, extra.group_name: Web Admins Group}
+
+  - name: Winlogbeat records
+    expect: {alerts: 2, entities: [{user.name: administrator}]}
+    log:
+      parser: windows_security
+      lines:
+        - '{"@timestamp":"2026-10-24T14:00:00.000Z","winlog":{"channel":"Security","computer_name":"DC01.corp.example","event_id":"4732","provider_name":"Microsoft-Windows-Security-Auditing","record_id":"1","event_data":{"MemberName":"-","MemberSid":"S-1-5-21-1-2-3-1190","TargetUserName":"Administrators","TargetDomainName":"Builtin","TargetSid":"S-1-5-32-544","SubjectUserSid":"S-1-5-21-1-2-3-500","SubjectUserName":"administrator","SubjectDomainName":"CORP","SubjectLogonId":"0x9b3c10","PrivilegeList":"-"}}}'
+        - '{"@timestamp":"2026-10-24T14:00:10.000Z","winlog":{"channel":"Security","computer_name":"DC01.corp.example","event_id":"4732","provider_name":"Microsoft-Windows-Security-Auditing","record_id":"1","event_data":{"MemberName":"-","MemberSid":"S-1-5-21-1-2-3-1190","TargetUserName":"Remote Desktop Users","TargetDomainName":"Builtin","TargetSid":"S-1-5-32-555","SubjectUserSid":"S-1-5-21-1-2-3-500","SubjectUserName":"administrator","SubjectDomainName":"CORP","SubjectLogonId":"0x9b3c10","PrivilegeList":"-"}}}'
+        - '{"@timestamp":"2026-10-24T14:00:20.000Z","winlog":{"channel":"Security","computer_name":"DC01.corp.example","event_id":"4728","provider_name":"Microsoft-Windows-Security-Auditing","record_id":"1","event_data":{"MemberName":"CN=svc-update,CN=Users,DC=corp,DC=example","MemberSid":"S-1-5-21-1-2-3-1190","TargetUserName":"Domain Admins","TargetDomainName":"CORP","TargetSid":"S-1-5-21-1-2-3-512","SubjectUserSid":"S-1-5-21-1-2-3-500","SubjectUserName":"administrator","SubjectDomainName":"CORP","SubjectLogonId":"0x9b3c10","PrivilegeList":"-"}}}'

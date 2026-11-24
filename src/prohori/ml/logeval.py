@@ -32,13 +32,26 @@ from prohori.ml import anomaly
 from prohori.ml.features import Window, extract
 from prohori.rules import CompiledRule, builtin_rules_dir, load_rules
 from prohori.schema import Alert, Event
-from prohori.simulate import SCENARIOS, simulate
+from prohori.simulate import simulate
 from prohori.simulate.evaluate import DEFAULT_SEEDS, Detection, detect
 from prohori.simulate.run import Simulation
 
 #: The variants the anomaly detectors are evaluated on (``heldout2`` was added for the
 #: rule study of ADR-0036, after these results were recorded).
 LOG_VARIANTS = ("default", "heldout")
+#: The scenarios the anomaly study was run on. Later scenarios (``windows-signin``, step 34) are
+#: left out: adding one would change the cut-offs chosen on the default variants after the
+#: results were recorded.
+STUDY_SCENARIOS = (
+    "account-takeover",
+    "admin-misuse",
+    "credential-stuffing",
+    "injection",
+    "password-spraying",
+    "ssh-bruteforce",
+    "token-reuse",
+    "web-scanning",
+)
 
 RESULTS_FORMAT = "prohori.log-anomaly-eval/1"
 RULES = "rules"
@@ -189,7 +202,7 @@ def evaluate(
     models: Sequence[str] = MODELS,
 ) -> dict[str, Any]:
     """Every scenario, variant and seed; the results document."""
-    names = sorted(scenarios or SCENARIOS)
+    names = sorted(scenarios or STUDY_SCENARIOS)
     runs = {
         variant: [
             prepare(simulate(n, seed=s, variant=variant), rules) for n in names for s in seeds

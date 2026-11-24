@@ -1,0 +1,25 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+# Copyright (c) 2026 Utsha Basak
+id: PRH-WIN-006
+title: Windows account lockouts across many accounts
+status: experimental
+severity: high
+description: >-
+  At least 3 different accounts locked out (event 4740) within 15 minutes in one log: password
+  guessing or spraying that reached the lockout threshold. The event names the computer the
+  failed sign-ins came from (extra.caller_computer).
+author: Prohori
+tags: [attack.credential_access, attack.t1110]
+logsource: {category: authentication}
+detection:
+  lockout:
+    event.action: windows.account.locked_out
+  aggregate:
+    group_by: [log_source]
+    window: 15m
+    distinct: {field: user.name, gte: 3}
+  condition: lockout and aggregate
+falsepositives:
+  - A password change that many devices have not picked up yet
+  - A misconfigured service locking out several accounts
+response: runbooks/windows-brute-force.md

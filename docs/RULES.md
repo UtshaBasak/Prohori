@@ -17,7 +17,7 @@ Both commands accept files and directories (searched recursively for `*.yml` and
 
 > **Status.** Rules are loaded, validated, compiled and evaluated (stateless, `aggregate` and
 > `sequence`), tested against fixtures with `prohori rules test`, and run over log files with
-> `prohori detect`. Twenty-seven built-in rules ship today.
+> `prohori detect`. Thirty-three built-in rules ship today.
 
 ## Running rules: `prohori detect`
 
@@ -80,6 +80,12 @@ verified ATT&CK tags.
 | PRH-NET-001 | medium | Port scan from one address | TCP connections that were not established to >= 25 distinct `extra.destination_port` per `source.ip` in 5 min (experimental) |
 | PRH-NET-002 | medium | Large outbound transfer | one outbound connection with `extra.bytes_out` >= 500 MB (experimental) |
 | PRH-NET-003 | low | Long outbound connection | one outbound connection with `extra.duration` >= 8 h (experimental) |
+| PRH-WIN-001 | high | Windows sign-in failures from one source | >= 10 `windows.logon.failure` (4625) per `source.ip` (or `source.host`, or `extra.workstation`) in 5 min |
+| PRH-WIN-002 | high | Windows sign-in failures for many accounts from one source | 4625 for >= 5 distinct `user.name` per source in 10 min |
+| PRH-WIN-003 | critical | Windows sign-in after many failures from one source | >= 5 failures then a success (4624), same source, within 15 min |
+| PRH-WIN-004 | high | Account added to a Windows administrators group | every 4728/4732/4756 for Administrators (S-1-5-32-544), Domain, Schema or Enterprise Admins (-512, -518, -519) |
+| PRH-WIN-005 | high | Windows Security log cleared | every 1102 (experimental) |
+| PRH-WIN-006 | high | Windows account lockouts across many accounts | 4740 for >= 3 distinct `user.name` per `log_source` in 15 min (experimental) |
 
 An "existing account" leaves out failures with `event.reason: unknown_user` (an SSH invalid user,
 an email the app does not know): there is nothing to take over, and scanners produce them all
@@ -103,7 +109,7 @@ derived again with the same rule, and the rules were scored once. The table comp
 rule sets on address model 2; the address-model-1 results stay below it for reference.
 
 <!-- rules-compare:start -->
-Generated from `results/rules_eval.json`, simulator address model 2: the frozen baselines (1.0 rules (addresses 2): 15 rules; 1.1 rules, step 28b (addresses 2): 21 rules) against today's 27 rules, 5 seeds per variant. Attacks caught by at least one of their expected rules. Do not edit by hand.
+Generated from `results/rules_eval.json`, simulator address model 2: the frozen baselines (1.0 rules (addresses 2): 15 rules; 1.1 rules, step 28b (addresses 2): 21 rules) against today's 33 rules, 5 seeds per variant. Attacks caught by at least one of their expected rules. Do not edit by hand.
 
 | Scenario | Held-out: 1.0 rules (addresses 2) | Held-out: 1.1 rules, step 28b (addresses 2) | Held-out: now | Held-out 2: 1.0 rules (addresses 2) | Held-out 2: 1.1 rules, step 28b (addresses 2) | Held-out 2: now |
 | ---------- | -----: | -----: | -----: | -----: | -----: | -----: |
@@ -119,6 +125,8 @@ Generated from `results/rules_eval.json`, simulator address model 2: the frozen 
 | False-positive alerts on benign lines | 277 | 277 | 277 | 274 | 274 | 274 |
 
 Default variants: 40/40 attacks caught with 295 false-positive alerts (1.0 rules (addresses 2)); 40/40 attacks caught with 295 false-positive alerts (1.1 rules, step 28b (addresses 2)); 40/40 attacks caught with 295 false-positive alerts (now).
+
+Scenarios added after the baselines were frozen are left out of this comparison, so its totals stay comparable: `windows-signin` (see the per-scenario results in docs/SIMULATOR.md).
 
 For reference, the same comparison on address model 1 (frozen, not comparable with the table above: the simulator's background was different):
 
@@ -162,6 +170,29 @@ Known limits, also stated in each rule's description:
 - **PRH-ADMIN-001** fires for every grant, planned or not.
 - **PRH-ADMIN-002** uses the shop's local time (`timezone: Asia/Dhaka`) and fixed night hours.
   Other sites should copy the rule and set their own `timezone` and hours.
+
+### Windows rules (since 1.2)
+
+The `windows_security` parser ([PARSERS.md](PARSERS.md#windows_security)) turns Windows Security
+events into `windows.*` actions, and six rules use them. PRH-WIN-001 to PRH-WIN-004 are scored
+on the simulator's `windows-signin` scenario (default and held-out); PRH-WIN-005 and PRH-WIN-006
+are `experimental`, because the scenario does not exercise them.
+
+- **Thresholds** follow the sign-in rules of the web app and SSH (10 failures in 5 minutes,
+  5 accounts in 10 minutes, 5 failures then a success in 15 minutes). The source is the client
+  address, or the client's workstation name when Windows logged no address (local and some
+  network sign-ins); the two are counted apart.
+- **PRH-WIN-002 counts account names as logged**, unknown ones too; Windows compares names
+  without regard to case, the rule does not.
+- **PRH-WIN-004 matches groups by SID**, so renamed and translated groups (Administratoren,
+  Administrateurs) are caught; the English names are matched as well, for exports without SIDs.
+  Other privileged groups (Backup Operators, Account Operators, DnsAdmins, ...) are not in the
+  list; copy the rule to add them.
+- **PRH-ADMIN-002** (admin action at night) also matches Windows group additions and a cleared
+  log, which are in category `admin`, as it already matched sudo commands.
+- **The held-out variant** (slow guessing from four addresses) is missed by PRH-WIN-001 and
+  PRH-WIN-002, by design of their per-source windows; PRH-WIN-003 and PRH-WIN-004 still catch
+  it. The results are in [SIMULATOR.md](SIMULATOR.md#results).
 
 ### Network sensor rules (since 1.2)
 
@@ -231,6 +262,12 @@ uv run python scripts/verify_attack.py
 | T1595 | Active Scanning | NET-001 |
 | T1048 | Exfiltration Over Alternative Protocol | NET-002 |
 | T1071 | Application Layer Protocol | NET-003 |
+| T1098.007 | Account Manipulation: Additional Local or Domain Groups | WIN-004 |
+| T1685.005 | Disable or Modify Tools: Clear Windows Event Logs | WIN-005 |
+
+The Windows rules also use T1110 (WIN-001, WIN-003, WIN-006), T1110.001 (WIN-001), T1110.003
+(WIN-002), T1078 (WIN-003) and T1098 (WIN-004). ATT&CK v20 moved *Clear Windows Event Logs*
+from T1070.001 (Indicator Removal, now revoked) to T1685.005 under Defense Impairment.
 
 PRH-IDS-001 to PRH-IDS-003 are the only built-in rules without ATT&CK tags (see above); the test
 of the tags lists them by id.

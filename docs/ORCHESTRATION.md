@@ -23,7 +23,7 @@ uv run prohori pipeline down                  # stops Airflow too
 
 | DAG | When | What it does |
 | ----- | ------ | -------------- |
-| `prohori_backfill` | By hand | Simulates the eight scenarios one day apart, replays them through the broker, loads their labels, waits until the pipeline has stored everything and builds the dbt marts |
+| `prohori_backfill` | By hand | Simulates the nine scenarios one day apart, replays them through the broker, loads their labels, waits until the pipeline has stored everything and builds the dbt marts |
 | `prohori_data_quality` | Hourly | `dbt build` (the marts behind the Detection quality dashboard, with the 68 checks), then `dbt source freshness` on the events |
 | `prohori_nightly_evaluation` | 02:00 UTC | Retrains the cleaned UNSW-NB15 flow models with one seed, loads the results into the warehouse and **fails if recall dropped** below `min_recall` |
 | `prohori_incident_digest` | 06:00 UTC | Writes a digest of the last 24 hours (incidents by severity, the top incidents, alerts per rule, dead letters) as Markdown and JSON |
@@ -67,7 +67,7 @@ looked up, which covers every simulated address.
 
 Open <http://127.0.0.1:18080>, pick a DAG and choose *Trigger*. For the backfill you can set the
 first scenario's start, as a UTC time in exactly this form: `2026-10-26T06:00:00Z` (leave it empty
-for eight days ago), and the seed. From a terminal:
+for nine days ago), and the seed. From a terminal:
 
 ```bash
 docker compose -p prohori -f pipeline/docker-compose.yml --profile orchestration exec airflow \
@@ -150,7 +150,7 @@ The marts the jobs build show up in the Detection quality dashboard ([DASHBOARD.
 - **In the stack** (`tests/integration/test_airflow_stack.py`, the `Airflow in the Docker stack`
   job): it starts the stack with the orchestration profile from empty volumes and runs every DAG
   through the scheduler. It checks the data each job leaves behind: labels for every event,
-  eight attacks in `marts.attack_detection`, and a digest that counts every event.
+  nine attacks in `marts.attack_detection`, and a digest that counts every event.
 
 ## Limitations
 

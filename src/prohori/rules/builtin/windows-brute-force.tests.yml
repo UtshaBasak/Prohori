@@ -1,0 +1,77 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+# Copyright (c) 2026 Utsha Basak
+rule: PRH-WIN-001
+start: 2026-10-24T14:00:00Z
+defaults:
+  log_source: windows-security
+  event.category: authentication
+  event.action: windows.logon.failure
+  event.outcome: failure
+  event.reason: bad_password
+  source.ip: 203.0.113.50
+  user.name: administrator
+  extra.workstation: KALI
+cases:
+  - name: ten failures from one address alert
+    expect: {alerts: 1, entities: [{source.ip: 203.0.113.50}]}
+    events:
+      - {repeat: 10, every: 5s}
+
+  - name: nine failures do not alert
+    expect: {alerts: 0}
+    events:
+      - {repeat: 9, every: 5s}
+
+  - name: failures spread over more than five minutes do not alert
+    expect: {alerts: 0}
+    events:
+      - {repeat: 10, every: 40s}
+
+  - name: failures from different addresses are counted apart
+    expect: {alerts: 0}
+    events:
+      - {source.ip: 203.0.113.50, repeat: 5}
+      - {source.ip: 203.0.113.51, repeat: 5}
+
+  - name: without an address the workstation name is the source
+    expect: {alerts: 1, entities: [{extra.workstation: KALI}]}
+    events:
+      - {source.ip: null, repeat: 10, every: 5s}
+
+  - name: successful sign-ins are not counted
+    expect: {alerts: 0}
+    events:
+      - {event.action: windows.logon.success, event.outcome: success, repeat: 20}
+
+  - name: Winlogbeat records
+    expect: {alerts: 1, entities: [{source.ip: 203.0.113.50}]}
+    log:
+      parser: windows_security
+      lines:
+        - '{"@timestamp":"2026-10-24T14:00:00.000Z","winlog":{"channel":"Security","computer_name":"DC01.corp.example","event_id":"4625","provider_name":"Microsoft-Windows-Security-Auditing","record_id":"1","event_data":{"SubjectUserSid":"S-1-0-0","TargetUserSid":"S-1-0-0","TargetUserName":"administrator","TargetDomainName":"CORP","Status":"0xc000006d","SubStatus":"0xc000006a","LogonType":"10","WorkstationName":"KALI","IpAddress":"203.0.113.50","IpPort":"49152"}}}'
+        - '{"@timestamp":"2026-10-24T14:00:05.000Z","winlog":{"channel":"Security","computer_name":"DC01.corp.example","event_id":"4625","provider_name":"Microsoft-Windows-Security-Auditing","record_id":"1","event_data":{"SubjectUserSid":"S-1-0-0","TargetUserSid":"S-1-0-0","TargetUserName":"administrator","TargetDomainName":"CORP","Status":"0xc000006d","SubStatus":"0xc000006a","LogonType":"10","WorkstationName":"KALI","IpAddress":"203.0.113.50","IpPort":"49152"}}}'
+        - '{"@timestamp":"2026-10-24T14:00:10.000Z","winlog":{"channel":"Security","computer_name":"DC01.corp.example","event_id":"4625","provider_name":"Microsoft-Windows-Security-Auditing","record_id":"1","event_data":{"SubjectUserSid":"S-1-0-0","TargetUserSid":"S-1-0-0","TargetUserName":"administrator","TargetDomainName":"CORP","Status":"0xc000006d","SubStatus":"0xc000006a","LogonType":"10","WorkstationName":"KALI","IpAddress":"203.0.113.50","IpPort":"49152"}}}'
+        - '{"@timestamp":"2026-10-24T14:00:15.000Z","winlog":{"channel":"Security","computer_name":"DC01.corp.example","event_id":"4625","provider_name":"Microsoft-Windows-Security-Auditing","record_id":"1","event_data":{"SubjectUserSid":"S-1-0-0","TargetUserSid":"S-1-0-0","TargetUserName":"administrator","TargetDomainName":"CORP","Status":"0xc000006d","SubStatus":"0xc000006a","LogonType":"10","WorkstationName":"KALI","IpAddress":"203.0.113.50","IpPort":"49152"}}}'
+        - '{"@timestamp":"2026-10-24T14:00:20.000Z","winlog":{"channel":"Security","computer_name":"DC01.corp.example","event_id":"4625","provider_name":"Microsoft-Windows-Security-Auditing","record_id":"1","event_data":{"SubjectUserSid":"S-1-0-0","TargetUserSid":"S-1-0-0","TargetUserName":"administrator","TargetDomainName":"CORP","Status":"0xc000006d","SubStatus":"0xc000006a","LogonType":"10","WorkstationName":"KALI","IpAddress":"203.0.113.50","IpPort":"49152"}}}'
+        - '{"@timestamp":"2026-10-24T14:00:25.000Z","winlog":{"channel":"Security","computer_name":"DC01.corp.example","event_id":"4625","provider_name":"Microsoft-Windows-Security-Auditing","record_id":"1","event_data":{"SubjectUserSid":"S-1-0-0","TargetUserSid":"S-1-0-0","TargetUserName":"administrator","TargetDomainName":"CORP","Status":"0xc000006d","SubStatus":"0xc000006a","LogonType":"10","WorkstationName":"KALI","IpAddress":"203.0.113.50","IpPort":"49152"}}}'
+        - '{"@timestamp":"2026-10-24T14:00:30.000Z","winlog":{"channel":"Security","computer_name":"DC01.corp.example","event_id":"4625","provider_name":"Microsoft-Windows-Security-Auditing","record_id":"1","event_data":{"SubjectUserSid":"S-1-0-0","TargetUserSid":"S-1-0-0","TargetUserName":"administrator","TargetDomainName":"CORP","Status":"0xc000006d","SubStatus":"0xc000006a","LogonType":"10","WorkstationName":"KALI","IpAddress":"203.0.113.50","IpPort":"49152"}}}'
+        - '{"@timestamp":"2026-10-24T14:00:35.000Z","winlog":{"channel":"Security","computer_name":"DC01.corp.example","event_id":"4625","provider_name":"Microsoft-Windows-Security-Auditing","record_id":"1","event_data":{"SubjectUserSid":"S-1-0-0","TargetUserSid":"S-1-0-0","TargetUserName":"administrator","TargetDomainName":"CORP","Status":"0xc000006d","SubStatus":"0xc000006a","LogonType":"10","WorkstationName":"KALI","IpAddress":"203.0.113.50","IpPort":"49152"}}}'
+        - '{"@timestamp":"2026-10-24T14:00:40.000Z","winlog":{"channel":"Security","computer_name":"DC01.corp.example","event_id":"4625","provider_name":"Microsoft-Windows-Security-Auditing","record_id":"1","event_data":{"SubjectUserSid":"S-1-0-0","TargetUserSid":"S-1-0-0","TargetUserName":"administrator","TargetDomainName":"CORP","Status":"0xc000006d","SubStatus":"0xc000006a","LogonType":"10","WorkstationName":"KALI","IpAddress":"203.0.113.50","IpPort":"49152"}}}'
+        - '{"@timestamp":"2026-10-24T14:00:45.000Z","winlog":{"channel":"Security","computer_name":"DC01.corp.example","event_id":"4625","provider_name":"Microsoft-Windows-Security-Auditing","record_id":"1","event_data":{"SubjectUserSid":"S-1-0-0","TargetUserSid":"S-1-0-0","TargetUserName":"administrator","TargetDomainName":"CORP","Status":"0xc000006d","SubStatus":"0xc000006a","LogonType":"10","WorkstationName":"KALI","IpAddress":"203.0.113.50","IpPort":"49152"}}}'
+
+  - name: NXLog records with local times
+    expect: {alerts: 1, entities: [{source.ip: 198.51.100.44}]}
+    log:
+      parser: windows_security
+      options: {timezone: Asia/Dhaka}
+      lines:
+        - '{"EventTime":"2026-10-24 14:00:00","Hostname":"DC01.corp.example","EventID":4625,"SourceName":"Microsoft-Windows-Security-Auditing","Channel":"Security","SubjectUserSid":"S-1-0-0","TargetUserSid":"S-1-0-0","TargetUserName":"administrator","TargetDomainName":"CORP","Status":"0xc000006d","SubStatus":"0xc000006a","LogonType":"10","WorkstationName":"KALI","IpAddress":"198.51.100.44","IpPort":"49152"}'
+        - '{"EventTime":"2026-10-24 14:00:05","Hostname":"DC01.corp.example","EventID":4625,"SourceName":"Microsoft-Windows-Security-Auditing","Channel":"Security","SubjectUserSid":"S-1-0-0","TargetUserSid":"S-1-0-0","TargetUserName":"administrator","TargetDomainName":"CORP","Status":"0xc000006d","SubStatus":"0xc000006a","LogonType":"10","WorkstationName":"KALI","IpAddress":"198.51.100.44","IpPort":"49152"}'
+        - '{"EventTime":"2026-10-24 14:00:10","Hostname":"DC01.corp.example","EventID":4625,"SourceName":"Microsoft-Windows-Security-Auditing","Channel":"Security","SubjectUserSid":"S-1-0-0","TargetUserSid":"S-1-0-0","TargetUserName":"administrator","TargetDomainName":"CORP","Status":"0xc000006d","SubStatus":"0xc000006a","LogonType":"10","WorkstationName":"KALI","IpAddress":"198.51.100.44","IpPort":"49152"}'
+        - '{"EventTime":"2026-10-24 14:00:15","Hostname":"DC01.corp.example","EventID":4625,"SourceName":"Microsoft-Windows-Security-Auditing","Channel":"Security","SubjectUserSid":"S-1-0-0","TargetUserSid":"S-1-0-0","TargetUserName":"administrator","TargetDomainName":"CORP","Status":"0xc000006d","SubStatus":"0xc000006a","LogonType":"10","WorkstationName":"KALI","IpAddress":"198.51.100.44","IpPort":"49152"}'
+        - '{"EventTime":"2026-10-24 14:00:20","Hostname":"DC01.corp.example","EventID":4625,"SourceName":"Microsoft-Windows-Security-Auditing","Channel":"Security","SubjectUserSid":"S-1-0-0","TargetUserSid":"S-1-0-0","TargetUserName":"administrator","TargetDomainName":"CORP","Status":"0xc000006d","SubStatus":"0xc000006a","LogonType":"10","WorkstationName":"KALI","IpAddress":"198.51.100.44","IpPort":"49152"}'
+        - '{"EventTime":"2026-10-24 14:00:25","Hostname":"DC01.corp.example","EventID":4625,"SourceName":"Microsoft-Windows-Security-Auditing","Channel":"Security","SubjectUserSid":"S-1-0-0","TargetUserSid":"S-1-0-0","TargetUserName":"administrator","TargetDomainName":"CORP","Status":"0xc000006d","SubStatus":"0xc000006a","LogonType":"10","WorkstationName":"KALI","IpAddress":"198.51.100.44","IpPort":"49152"}'
+        - '{"EventTime":"2026-10-24 14:00:30","Hostname":"DC01.corp.example","EventID":4625,"SourceName":"Microsoft-Windows-Security-Auditing","Channel":"Security","SubjectUserSid":"S-1-0-0","TargetUserSid":"S-1-0-0","TargetUserName":"administrator","TargetDomainName":"CORP","Status":"0xc000006d","SubStatus":"0xc000006a","LogonType":"10","WorkstationName":"KALI","IpAddress":"198.51.100.44","IpPort":"49152"}'
+        - '{"EventTime":"2026-10-24 14:00:35","Hostname":"DC01.corp.example","EventID":4625,"SourceName":"Microsoft-Windows-Security-Auditing","Channel":"Security","SubjectUserSid":"S-1-0-0","TargetUserSid":"S-1-0-0","TargetUserName":"administrator","TargetDomainName":"CORP","Status":"0xc000006d","SubStatus":"0xc000006a","LogonType":"10","WorkstationName":"KALI","IpAddress":"198.51.100.44","IpPort":"49152"}'
+        - '{"EventTime":"2026-10-24 14:00:40","Hostname":"DC01.corp.example","EventID":4625,"SourceName":"Microsoft-Windows-Security-Auditing","Channel":"Security","SubjectUserSid":"S-1-0-0","TargetUserSid":"S-1-0-0","TargetUserName":"administrator","TargetDomainName":"CORP","Status":"0xc000006d","SubStatus":"0xc000006a","LogonType":"10","WorkstationName":"KALI","IpAddress":"198.51.100.44","IpPort":"49152"}'
+        - '{"EventTime":"2026-10-24 14:00:45","Hostname":"DC01.corp.example","EventID":4625,"SourceName":"Microsoft-Windows-Security-Auditing","Channel":"Security","SubjectUserSid":"S-1-0-0","TargetUserSid":"S-1-0-0","TargetUserName":"administrator","TargetDomainName":"CORP","Status":"0xc000006d","SubStatus":"0xc000006a","LogonType":"10","WorkstationName":"KALI","IpAddress":"198.51.100.44","IpPort":"49152"}'

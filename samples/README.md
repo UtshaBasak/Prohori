@@ -8,6 +8,11 @@ everything runs offline. All IP addresses come from documentation ranges (`192.0
   network logs (`suricata-eve.json`, `zeek-conn.log`, `zeek-conn.json`) were written by hand
   from the Suricata 7/8 and Zeek 6/7 documentation; their signatures are made up (`PRH SAMPLE`)
   and contain a port scan, a 750 MB upload, a nine-hour connection and web scanning.
+  `windows-security.jsonl` (Winlogbeat) and `windows-security.xml` (event XML, one event per
+  line and over several lines) hold hand-written Windows Security events: staff sign-ins,
+  remote-desktop spraying and guessing, a sign-in that works, a new account added to
+  Administrators, a cleared log and lockouts. `journald.json` is `auth.log` as the systemd journal
+  would export it (`journalctl -o json`), so both give the same alerts.
 - `incidents/`: a sample incident (`prohori report samples/incidents/INC-*.json`).
 - `suppressions.yml`: an example suppressions file for the simulated shop (the planned admin
   role grant). Use it with `--suppressions` on `detect`, `incidents`, `triage` or the pipeline;
