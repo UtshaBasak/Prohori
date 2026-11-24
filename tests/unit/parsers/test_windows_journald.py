@@ -152,9 +152,9 @@ class TestMapping:
             (4720, "windows.account.created", "account"),
             (4722, "windows.account.enabled", "account"),
             (4726, "windows.account.deleted", "account"),
-            (4728, "windows.group.member_added", "admin"),
-            (4732, "windows.group.member_added", "admin"),
-            (4756, "windows.group.member_added", "admin"),
+            (4728, "windows.group.member_added", "account"),
+            (4732, "windows.group.member_added", "account"),
+            (4756, "windows.group.member_added", "account"),
             (4740, "windows.account.locked_out", "authentication"),
         ],
     )
@@ -604,3 +604,33 @@ def test_crlf_xml_file() -> None:
     stats = ParseStats()
     events = list(WindowsSecurityParser().parse(read_lines(io.BytesIO(data)), stats=stats))
     assert (len(events), stats.errors) == (1, 0)
+
+
+@pytest.mark.parametrize(
+    "record",
+    [
+        {"EventTime": "2026-10-24 14:00:00", "EventID": 4625, "SourceName": SEC},
+        {"Id": 4625, "ProviderName": SEC, "TimeCreated": "/Date(1792850400000)/"},
+        {"Event": {"System": {"EventID": 4625}}},
+        {"winlog": {"event_id": "4625"}, "@timestamp": "2026-10-24T14:00:00Z"},
+    ],
+)
+def test_every_json_layout_is_detected(record: dict[str, Any]) -> None:
+    assert detect_format(iter_text_lines([json.dumps(record)])) == "windows_security"
+
+
+def test_utf16_lines_are_bounded_and_describe_the_file(tmp_path: Path) -> None:
+    from prohori.parsers.base import Utf16Lines, is_utf16
+
+    path = tmp_path / "u16.json"
+    path.write_bytes(b"\xff\xfe" + ("a" * 50 + "\r\nb\r\n").encode("utf-16-le"))
+    assert is_utf16(path)
+    stream = Utf16Lines(path)
+    try:
+        lines = list(read_lines(stream, max_length=10))
+    finally:
+        stream.close()
+    assert lines[0].too_long
+    assert lines[1].text == "b"
+    assert stream.bytes == path.stat().st_size
+    assert len(stream.hexdigest()) == 64

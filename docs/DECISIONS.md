@@ -2231,7 +2231,7 @@ maintained, permissively licensed wheel exists for all three operating systems.
   and external entities. An event over several lines is buffered up to 64 KiB.
 - **`.evtx` behind the `evtx` extra.** The `evtx` package (0.15.0 of 2026-11-01, MIT, abi3 wheels
   for Windows x64, macOS x64 and arm64, Linux x64 and arm64, monthly releases in 2026) meets the
-  condition. It is read in `parse`, `detect`, `incidents` and `triage` by turning each record
+  condition; it is still classified "Alpha" by its authors, one more reason to keep it optional. It is read in `parse`, `detect`, `incidents` and `triage` by turning each record
   into an evtx_dump JSON line; a damaged record is one counted error; the reported SHA-256 is the
   file's. Checked by hand on the evtx project's public sample files (not committed), including
   one with a damaged chunk; the tests use a fake module, so the extra is not a test dependency.
@@ -2250,6 +2250,13 @@ maintained, permissively licensed wheel exists for all three operating systems.
   comparison table leaves the new scenario out (and says so), `logeval` and the case builder
   keep their scenario list, so the recorded Gemini answers stay valid.
 
+- **Group changes are account events.** 4728, 4732 and 4756 are category `account` (Windows
+  audits them under Account Management); only 1102 is `admin`. As `admin`, every new account's
+  automatic addition to `Users` raised PRH-ADMIN-002 at night: on the evtx project's
+  `security.evtx`, 8 such alerts against 3 real administrator additions.
+- **UTF-16 files.** Windows PowerShell 5.1 writes UTF-16 with a byte-order mark by default, so
+  `parse`, `detect`, `incidents` and `triage` read a file that starts with one as UTF-16.
+
 **Consequences.** Nine scenarios, 33 rules. PRH-WIN-005 and PRH-WIN-006 are experimental (the
-scenario does not exercise them). PRH-ADMIN-002 also covers Windows admin events at night. The
+scenario does not exercise them). PRH-ADMIN-002 also covers a cleared Windows log at night. The
 pipeline reads text logs only, so `.evtx` files are converted first there.

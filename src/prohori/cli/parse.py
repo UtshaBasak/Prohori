@@ -29,7 +29,7 @@ from prohori.parsers import (
     get_parser,
     read_lines,
 )
-from prohori.parsers.base import LineSource
+from prohori.parsers.base import LineSource, Utf16Lines, is_utf16
 from prohori.parsers.evtx_file import EXTRA_HINT, EvtxLines, evtx_available
 from prohori.schema import Event
 
@@ -62,6 +62,13 @@ def open_input(path: str) -> Iterator[tuple[LineSource, str, datetime | None]]:
         if not evtx_available():
             raise typer.BadParameter(EXTRA_HINT, param_hint="FILE")
         yield EvtxLines(file), file.name, mtime
+        return
+    if is_utf16(file):  # Windows PowerShell 5.1 writes UTF-16 by default
+        text = Utf16Lines(file)
+        try:
+            yield text, file.name, mtime
+        finally:
+            text.close()
         return
     with file.open("rb") as stream:
         yield stream, file.name, mtime
@@ -102,20 +109,27 @@ class HashingReader:
     def __init__(self, stream: LineSource) -> None:
         self._stream = stream
         self._hash = hashlib.sha256()
-        self.bytes = 0
+        self._read = 0
 
     def readline(self, size: int = -1) -> bytes:
         chunk = self._stream.readline(size)
         self._hash.update(chunk)
-        self.bytes += len(chunk)
+        self._read += len(chunk)
         return chunk
+
+    @property
+    def bytes(self) -> int:
+        """Bytes read so far; for a converted file (``.evtx``, UTF-16), the file's size."""
+        if isinstance(self._stream, EvtxLines | Utf16Lines):
+            return self._stream.bytes
+        return self._read
 
     def hexdigest(self) -> str:
         """SHA-256 of what has been read so far (the whole input once parsing has finished).
 
-        For an ``.evtx`` file, the SHA-256 of the file itself.
+        For a converted file (``.evtx``, UTF-16), the SHA-256 of the file as stored.
         """
-        if isinstance(self._stream, EvtxLines):
+        if isinstance(self._stream, EvtxLines | Utf16Lines):
             return self._stream.hexdigest()
         return self._hash.hexdigest()
 

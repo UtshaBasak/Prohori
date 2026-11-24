@@ -20,7 +20,7 @@ Event                  ``event.action``                      Category        Out
 4720                   ``windows.account.created``           account         success
 4722                   ``windows.account.enabled``           account         success
 4726                   ``windows.account.deleted``           account         success
-4728, 4732, 4756       ``windows.group.member_added``        admin           success
+4728, 4732, 4756       ``windows.group.member_added``        account         success
 4740                   ``windows.account.locked_out``        authentication  failure
 1102                   ``windows.log.cleared``               admin           success
 =====================  ====================================  ==============  =================
@@ -175,9 +175,12 @@ _ACTIONS: Mapping[int, tuple[str, str, str]] = {
     4720: ("windows.account.created", "account", "success"),
     4722: ("windows.account.enabled", "account", "success"),
     4726: ("windows.account.deleted", "account", "success"),
-    4728: ("windows.group.member_added", "admin", "success"),
-    4732: ("windows.group.member_added", "admin", "success"),
-    4756: ("windows.group.member_added", "admin", "success"),
+    # Windows audits group membership under Account Management, so these are account changes,
+    # not admin actions (PRH-ADMIN-002 would otherwise flag every new account's automatic
+    # addition to "Users" at night).
+    4728: ("windows.group.member_added", "account", "success"),
+    4732: ("windows.group.member_added", "account", "success"),
+    4756: ("windows.group.member_added", "account", "success"),
     4740: ("windows.account.locked_out", "authentication", "failure"),
     1102: ("windows.log.cleared", "admin", "success"),
 }

@@ -188,8 +188,10 @@ are `experimental`, because the scenario does not exercise them.
   Administrateurs) are caught; the English names are matched as well, for exports without SIDs.
   Other privileged groups (Backup Operators, Account Operators, DnsAdmins, ...) are not in the
   list; copy the rule to add them.
-- **PRH-ADMIN-002** (admin action at night) also matches Windows group additions and a cleared
-  log, which are in category `admin`, as it already matched sudo commands.
+- **PRH-ADMIN-002** (admin action at night) also matches a cleared Windows log (category
+  `admin`), as it already matched sudo commands. Group membership changes are `account` events,
+  as Windows audits them under Account Management, so new accounts' automatic additions to
+  `Users` do not raise it.
 - **The held-out variant** (slow guessing from four addresses) is missed by PRH-WIN-001 and
   PRH-WIN-002, by design of their per-source windows; PRH-WIN-003 and PRH-WIN-004 still catch
   it. The results are in [SIMULATOR.md](SIMULATOR.md#results).

@@ -12,7 +12,7 @@ description: >-
   translated groups are caught; the English names are matched too, for exports without SIDs.
 author: Prohori
 tags: [attack.persistence, attack.privilege_escalation, attack.t1098, attack.t1098.007]
-logsource: {category: admin}
+logsource: {category: account}
 detection:
   addition:
     event.action: windows.group.member_added

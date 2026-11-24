@@ -6,6 +6,7 @@ Parsers are streaming generators. A malformed line is counted and reported, neve
 hostile or corrupt line must not stop the analysis of the rest of a file.
 """
 
+import hashlib
 import re
 from abc import ABC, abstractmethod
 from collections.abc import Iterable, Iterator
@@ -240,3 +241,40 @@ def _short_reason(exc: ValueError | OverflowError) -> str:
         return f"invalid {location}: {first['msg']}"[:200]
     message = str(exc).splitlines()[0] if str(exc) else type(exc).__name__
     return message[:200]
+
+
+#: Byte-order marks of UTF-16 text, which Windows PowerShell 5.1 writes by default (``>``,
+#: ``Out-File``).
+UTF16_BOMS = (b"\xff\xfe", b"\xfe\xff")
+
+
+class Utf16Lines:
+    """A binary line source that reads a UTF-16 file (with a byte-order mark) as UTF-8 lines.
+
+    ``readline(size)`` reads at most ``size`` characters, so :func:`read_lines` still bounds
+    every line; ``hexdigest()`` and ``bytes`` describe the file as stored.
+    """
+
+    def __init__(self, path: Path) -> None:
+        digest = hashlib.sha256()
+        with path.open("rb") as stream:
+            for chunk in iter(lambda: stream.read(1 << 20), b""):
+                digest.update(chunk)
+        self._digest = digest.hexdigest()
+        self.bytes = path.stat().st_size
+        self._text = path.open("r", encoding="utf-16", errors="replace", newline="")
+
+    def hexdigest(self) -> str:
+        return self._digest
+
+    def readline(self, size: int = -1, /) -> bytes:
+        return self._text.readline(size).encode("utf-8")
+
+    def close(self) -> None:
+        self._text.close()
+
+
+def is_utf16(path: Path) -> bool:
+    """Whether ``path`` starts with a UTF-16 byte-order mark."""
+    with path.open("rb") as stream:
+        return stream.read(2) in UTF16_BOMS

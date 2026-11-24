@@ -4,7 +4,7 @@ rule: PRH-WIN-004
 start: 2026-10-24T14:00:00Z
 defaults:
   log_source: windows-security
-  event.category: admin
+  event.category: account
   event.action: windows.group.member_added
   event.outcome: success
   user.name: administrator

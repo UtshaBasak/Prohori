@@ -79,6 +79,10 @@ Detection is a convenience. Use `--parser` in scripts.
   sanitises each column instead.
 - **Any encoding damage is survivable.** Input is decoded as UTF-8; invalid bytes become `U+FFFD`
   and the line is counted in `decode_errors`.
+- **UTF-16 files** (since 1.2): a file that starts with a UTF-16 byte-order mark, as Windows
+  PowerShell 5.1 writes with `>` or `Out-File`, is read as UTF-16 by `parse`, `detect`,
+  `incidents` and `triage` (not from standard input or by the pipeline). The reported SHA-256 and
+  size are the file's as stored.
 
 ### Statistics
 
@@ -409,7 +413,7 @@ recognised on its own, so one file may mix layouts:
 | 4634, 4647 | `windows.logoff` | `session` | 4647 (the user logged off) has `extra.user_initiated` |
 | 4672 | `windows.logon.special_privileges` | `authorization` | `extra.privileges` |
 | 4720, 4722, 4726 | `windows.account.created`, `.enabled`, `.deleted` | `account` | `user.name` the account; `extra.subject_user` who did it |
-| 4728, 4732, 4756 | `windows.group.member_added` | `admin` | `user.name` who did it; `extra.group_name`, `extra.group_sid`, `extra.group_scope` (`global`, `local`, `universal`), `extra.member_name`, `extra.member_sid` |
+| 4728, 4732, 4756 | `windows.group.member_added` | `account` | `user.name` who did it; `extra.group_name`, `extra.group_sid`, `extra.group_scope` (`global`, `local`, `universal`), `extra.member_name`, `extra.member_sid` |
 | 4740 | `windows.account.locked_out` | `authentication` | `user.name` the account; `extra.caller_computer` the computer the failures came from |
 | 1102 | `windows.log.cleared` | `admin` | `user.name` who cleared it (from `UserData`) |
 

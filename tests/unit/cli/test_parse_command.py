@@ -248,3 +248,14 @@ def test_evtx_file_is_read_and_hashed(tmp_path: Path, monkeypatch: pytest.Monkey
     assert code == ExitCode.OK
     (event,) = [json.loads(line) for line in out.splitlines()]
     assert event["event"]["action"] == "windows.logon.failure"
+
+
+def test_utf16_file_from_windows_powershell(tmp_path: Path) -> None:
+    text = (SAMPLES / "windows-security.jsonl").read_text(encoding="utf-8").replace("\n", "\r\n")
+    data = b"\xff\xfe" + text.encode("utf-16-le")
+    log = tmp_path / "security.json"
+    log.write_bytes(data)
+    code, out, _ = run(str(log))
+    assert code == ExitCode.OK
+    assert "windows_security" in out
+    assert re.search(r"\bevents\W+33\b", out)
