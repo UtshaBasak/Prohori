@@ -47,7 +47,7 @@ smaller and is not ECS-compatible.
 | `host` | str, optional | |
 | `request_id` | str, optional | Correlation id when present |
 | `raw` | str | Required. The original line, truncated at 8,192 characters |
-| `extra` | map of str to scalar | Up to 64 source-specific safe fields; values are string, number, boolean or null |
+| `extra` | map of str to scalar | Up to 64 source-specific safe fields; values are string, number, boolean or null. Network events (`suricata_eve`, `zeek_conn`, since 1.2) keep the connection here (`extra.destination_ip`, `extra.destination_port`, `extra.bytes_out`, `extra.duration`, ...; see [PARSERS.md](PARSERS.md#connection-fields-both-network-parsers)) |
 
 ### Length limits
 

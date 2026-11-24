@@ -246,6 +246,8 @@ class ParserSettings:
             return get_parser(name, year=self.year, timezone=self.timezone, reference_time=read_at)
         if name == "access_log":
             return get_parser(name, pattern=self.pattern, keep_query=self.keep_query)
+        if name == "suricata_eve":
+            return get_parser(name, keep_query=self.keep_query)
         if name == "generic_json":
             if self.mapping is None:
                 msg = "the generic_json parser needs a mapping file"

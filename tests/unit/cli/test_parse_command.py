@@ -33,6 +33,9 @@ def run(*args: str, stdin: bytes | None = None) -> tuple[int, str, str]:
         ("auth.log", "auth_log", 32),
         ("access.log", "access_log", 14),
         ("app-security.jsonl", "app_json", 10),
+        ("suricata-eve.json", "suricata_eve", 21),
+        ("zeek-conn.log", "zeek_conn", 42),
+        ("zeek-conn.json", "zeek_conn", 9),
     ],
 )
 def test_auto_detect_table(file: str, parser: str, events: int) -> None:
@@ -175,8 +178,18 @@ def test_keep_query_option() -> None:
     assert any(p and "?" in p for p in paths)
 
 
+@pytest.mark.parametrize(
+    ("keep", "path"), [([], "/products"), (["--keep-query"], "/products?page=2")]
+)
+def test_keep_query_option_for_suricata(keep: list[str], path: str) -> None:
+    code, out, _ = run(str(SAMPLES / "suricata-eve.json"), *keep, "--format", "json")
+    assert code == ExitCode.OK
+    paths = [json.loads(line)["http"]["path"] for line in out.splitlines()]
+    assert path in paths
+
+
 def test_help_lists_parsers() -> None:
     result = runner.invoke(app, ["parse", "--help"])
     assert result.exit_code == 0
-    for name in ("access_log", "app_json", "auth_log", "generic_json"):
+    for name in ("access_log", "app_json", "auth_log", "generic_json", "suricata_eve", "zeek_conn"):
         assert name in result.stdout

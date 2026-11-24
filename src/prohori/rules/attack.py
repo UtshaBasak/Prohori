@@ -14,8 +14,8 @@ from typing import NamedTuple
 
 ATTACK_VERSION = "20.0"
 ATTACK_STIX_URL = (
-    "https://raw.githubusercontent.com/mitre-attack/attack-stix-data/master/"
-    "enterprise-attack/enterprise-attack-20.0.json"
+    "https://raw.githubusercontent.com/mitre-attack/attack-stix-data/"
+    "20664a889568dce884a1dac0ec7b12ae3a199f51/enterprise-attack/enterprise-attack-20.0.json"
 )
 ATTACK_STIX_SHA256 = "81113ba98afa2928f3dcff62022539f7ce30c315c32e14422f11ff95ce534352"
 
@@ -57,6 +57,9 @@ TECHNIQUES: dict[str, Technique] = {
             "attack.initial_access",
         ),
     ),
+    "attack.t1046": Technique("Network Service Discovery", ("attack.discovery",)),
+    "attack.t1048": Technique("Exfiltration Over Alternative Protocol", ("attack.exfiltration",)),
+    "attack.t1071": Technique("Application Layer Protocol", ("attack.command_and_control",)),
     "attack.t1098": Technique(
         "Account Manipulation", ("attack.persistence", "attack.privilege_escalation")
     ),
@@ -72,6 +75,7 @@ TECHNIQUES: dict[str, Technique] = {
         "Multi-Factor Authentication",
         ("attack.defense_impairment", "attack.persistence", "attack.credential_access"),
     ),
+    "attack.t1595": Technique("Active Scanning", ("attack.reconnaissance",)),
     "attack.t1595.002": Technique("Vulnerability Scanning", ("attack.reconnaissance",)),
     "attack.t1595.003": Technique("Wordlist Scanning", ("attack.reconnaissance",)),
 }

@@ -9,6 +9,8 @@ Parsers turn raw log lines into [common-schema events](SCHEMA.md). They live in
 | nginx / Apache access logs | `access_log` | Combined or common log format, or a custom pattern | Available |
 | App security events | `app_json` | JSON Lines in the documented application format | Available |
 | Generic JSON Lines | `generic_json` | Any JSON Lines, with a YAML field-mapping file | Available |
+| Suricata EVE | `suricata_eve` | `eve.json`: alert, http, dns, tls, ssh and flow records | Since 1.2 |
+| Zeek connections | `zeek_conn` | `conn.log` as tab-separated values with a `#fields` header, or Zeek JSON | Since 1.2 |
 
 ## Command line
 
@@ -18,6 +20,8 @@ prohori parse samples/logs/access.log --format json # one event per line (JSON L
 cat samples/logs/auth.log | prohori parse - --year 2026
 prohori parse samples/logs/payments.jsonl --parser generic_json \
     --mapping samples/mappings/payments.yaml
+prohori detect samples/logs/suricata-eve.json        # IDS alerts, web scanning seen on the wire
+prohori detect samples/logs/zeek-conn.log --lateness 15m  # port scan, large and long connections
 ```
 
 | Option | Applies to | Meaning |
@@ -27,7 +31,7 @@ prohori parse samples/logs/payments.jsonl --parser generic_json \
 | `--year` | `auth_log` | Year of the first line (default: from the file date) |
 | `--timezone` | `auth_log` | IANA timezone for timestamps without an offset (default `UTC`) |
 | `--pattern` | `access_log` | Custom regular expression |
-| `--keep-query` | `access_log` | Keep the query string in `http.path` |
+| `--keep-query` | `access_log`, `suricata_eve` | Keep the query string in `http.path` |
 | `--mapping` | `generic_json` | YAML field-mapping file |
 | `--limit` | `table` | Events to show (default 20; counts always cover the whole input) |
 
@@ -41,11 +45,15 @@ Table output never interprets log content as formatting: cell text is rendered l
 With `--parser auto`, up to 20 non-blank lines are classified and the most common format wins
 (ties go to the first in this order):
 
-1. `app_json`: a JSON object with a `time` string and an `event` object containing `action`.
-2. `generic_json`: any other JSON object. This needs a mapping file, so detection stops with a
+1. `suricata_eve`: a JSON object with an `event_type` and a `timestamp` string.
+2. `zeek_conn`: a JSON object with `uid`, `conn_state` and the originator address (`id.orig_h`,
+   or a nested `id` object); a Zeek header line (`#separator`, `#path conn`, `#fields ts ...`);
+   or a tab-separated line that starts with epoch seconds and a connection uid (`C...`).
+3. `app_json`: a JSON object with a `time` string and an `event` object containing `action`.
+4. `generic_json`: any other JSON object. This needs a mapping file, so detection stops with a
    message asking for `--parser generic_json --mapping FILE`.
-3. `auth_log`: a syslog line (RFC 3164 or RFC 3339 timestamp, host, program).
-4. `access_log`: a combined or common log format line.
+5. `auth_log`: a syslog line (RFC 3164 or RFC 3339 timestamp, host, program).
+6. `access_log`: a combined or common log format line.
 
 Detection is a convenience. Use `--parser` in scripts.
 
@@ -58,7 +66,8 @@ Detection is a convenience. Use `--parser` in scripts.
 - **Tolerant.** A malformed line is counted and reported; it never stops the run.
 - **Sanitised.** Line endings (`\n` and `\r\n`), ANSI escape sequences, control characters and
   invisible formatting characters (zero-width, bidirectional overrides, byte-order marks) are
-  removed before parsing. Tabs become spaces.
+  removed before parsing. Tabs become spaces, except for `zeek_conn`, which splits on them and
+  sanitises each column instead.
 - **Any encoding damage is survivable.** Input is decoded as UTF-8; invalid bytes become `U+FFFD`
   and the line is counted in `decode_errors`.
 
@@ -273,10 +282,109 @@ extra:                          # extra key: dotted path in the record (scalars 
 - The mapping file is validated when the parser is created, so mistakes fail before any input is
   read.
 
+## `suricata_eve`
+
+Parses Suricata's EVE JSON output (`eve.json`), one record per line. The layout follows the
+**Suricata 7.0** EVE documentation, plus the one change **Suricata 8.0** made to these record
+types: DNS logging version 3, which lists the question in a `queries` array (version 2's
+top-level `rrname` and `rrtype` are read too). The samples were written by hand from the
+documentation, not copied from real traffic.
+
+| `event_type` | `event.action` | `event.category` | What is kept |
+| ------------ | -------------- | ---------------- | ------------ |
+| `alert` | `ids.alert` | `network` | `event.severity` from the signature's severity (below); the signature in `event.reason` and `extra.signature`, with `extra.signature_id`, `extra.signature_rev`, `extra.alert_gid`, `extra.alert_category`, `extra.alert_action` (`allowed` or `blocked`) and `extra.alert_severity`; from the signature metadata `extra.mitre_technique_id`, `extra.mitre_tactic_id` and `extra.signature_severity`. HTTP details when the record has them |
+| `http` | `web.request` | `web` | As `access_log`: `http.method`, `http.path` (query in `extra.query`), `http.status`, `http.bytes`, `user_agent`, `extra.http_host`, `extra.protocol`, `extra.referer`, `extra.content_type`. Outcome `failure` for status 400 and above |
+| `dns` | `network.dns` | `network` | `extra.dns_question` (as logged), `extra.dns_domain` (lower case, when it is a valid name), `extra.dns_type`, `extra.dns_rcode`, `extra.dns_message` (`query`, `answer`, ...) |
+| `tls` | `network.tls` | `network` | `extra.tls_sni`, `extra.tls_domain`, `extra.tls_version`, `extra.tls_subject`, `extra.tls_issuer`, `extra.ja3_hash`, `extra.ja3s_hash` |
+| `ssh` | `network.ssh` | `network` | `extra.ssh_client_software`, `extra.ssh_server_software`, `extra.ssh_client_protocol`, `extra.ssh_server_protocol` |
+| `flow` | `network.flow` | `network` | The connection fields below, plus `extra.flow_state` and `extra.flow_reason` |
+
+Other record types (`stats`, `fileinfo`, `anomaly`, `netflow`, `smb`, ...) are counted as
+skipped.
+
+- **Severity.** Suricata's alert severity runs the other way round: 1 is the most severe.
+  1 becomes `high`, 2 `medium`, and 3 or above (or none) `low`. `critical` is never set on
+  events; it is reserved for Prohori's own alerts and incidents.
+- **Times.** `timestamp` must carry an offset (`+0000` without a colon is accepted, as Suricata
+  writes it). A `flow` record is dated at its last packet (`flow.end`), because Suricata writes
+  it when the flow ends; `extra.start_time` keeps `flow.start`, and `extra.duration` is the time
+  between them (or `flow.age` when they are missing).
+- **Run with a longer `--lateness`.** Suricata writes a flow record only when the flow times
+  out, a while after its last packet (`flow-timeouts` in `suricata.yaml`; for an idle
+  established TCP connection the shipped configuration waits minutes). Records of other types
+  are written as packets arrive, so in one `eve.json` a flow record can be dated further back
+  than the default 5-minute `--lateness` allows, and is then dropped and counted as late. Use a
+  lateness above the sensor's longest flow timeout, for example `--lateness 15m`.
+- **Web rules apply.** `http` records become `web.request` events like access-log lines, so the
+  web rules (PRH-WEB-001 to PRH-WEB-004) work on what Suricata saw on the wire, for any web
+  server behind it. `--keep-query` works as for `access_log`.
+- **Long lines.** Alerts with `payload` or `packet` logging turned on can exceed the
+  16,384-character line limit and are then counted as errors. Turn those options off for the
+  file Prohori reads; the rules use the signature and the addresses.
+- `src_ip` and `dest_ip` must be valid addresses, ports 0-65535 and counts non-negative whole
+  numbers; flows longer than a year are rejected as corrupt. Anything else is counted as an
+  error for that line only.
+
+### Connection fields (both network parsers)
+
+`suricata_eve` and `zeek_conn` describe a connection with the same keys, so one rule works on
+either sensor's output. The originator is `source.ip`.
+
+| Key | Meaning |
+| --- | ------- |
+| `extra.destination_ip`, `extra.destination_port` | The responder |
+| `extra.source_port` | The originator's port |
+| `extra.transport` | `tcp`, `udp`, `icmp`, ... (lower case) |
+| `extra.app_protocol` | The application protocol the sensor recognised (`http`, `dns`, `ssl` or `tls`, ...) |
+| `extra.bytes_out`, `extra.packets_out` | Sent by the originator (Zeek `orig_bytes`, Suricata `bytes_toserver`) |
+| `extra.bytes_in`, `extra.packets_in` | Sent by the responder |
+| `extra.duration` | Seconds from the first to the last packet |
+| `extra.start_time` | The first packet (ISO 8601, UTC); the event's `timestamp` is the last |
+| `extra.direction` | `outbound`, `inbound`, `internal` or `external` (Zeek only, from `local_orig` and `local_resp`) |
+| `extra.flow_id` (Suricata), `extra.uid` and `extra.community_id` (Zeek) | Ids that tie the records of one connection together |
+
+These are `extra` fields for now. A later 1.2 step adds `destination.*` schema fields and moves
+the built-in rules to them (ADR-0044).
+
+## `zeek_conn`
+
+Parses Zeek's connection log, `conn.log`. The layout follows the `Conn::Info` record of
+**Zeek 6 and 7** (`ip_proto` was added in 7.1); the samples were written by hand.
+
+- **Tab-separated logs** are read by their `#fields` header, so column order, extra columns
+  added by policy scripts (`community_id`, `vlan`, ...) and missing optional columns all work.
+  `#separator` (any one character, written as `\x09`), `#unset_field` (`-`), `#empty_field`
+  (`(empty)`) and `#path` are honoured; Zeek's `\xNN` escapes are decoded and the result is
+  sanitised again. Header lines are counted as skipped.
+- **Lines before any header** (following a log from the middle) are read in Zeek 7.1's default
+  column order when they have 21 or 22 columns, and are errors otherwise.
+- **Other logs** (`#path dns`, or a JSON record whose `_path` is not `conn`) are skipped line by
+  line, not parsed as connections.
+- **Zeek JSON** with flat dotted keys (`"id.orig_h"`, Zeek's default) or a nested `id` object is
+  accepted; `ts` may be epoch seconds or ISO 8601.
+- **Times.** Zeek writes a connection's line when the connection ends, but `ts` is its first
+  packet. Each event is dated at `ts + duration`, the **last** packet, so a nine-hour connection
+  written after hours of later lines is still in order for the rules (it would otherwise be
+  dropped as late). `extra.start_time` keeps `ts`. Zeek also waits for an idle connection's
+  inactivity timeout (5 minutes for TCP by default) before writing it, so use a `--lateness`
+  above that, for example `--lateness 15m`, as for Suricata.
+- **Outcome** from `conn_state`: `success` for established connections (`SF`, `S1`, `S2`, `S3`,
+  `RSTO`, `RSTR`), `failure` for unanswered, rejected or half-open attempts (`S0`, `REJ`,
+  `RSTOS0`, `RSTRH`, `SH`, `SHR`), `unknown` otherwise (`OTH`, missing).
+- **Direction** from `local_orig` and `local_resp`, which Zeek fills only when
+  `Site::local_nets` is configured: `T`/`F` is `outbound`, `F`/`T` `inbound`, `T`/`T`
+  `internal`, `F`/`F` `external`.
+- `extra` also keeps `conn_state`, `history`, `uid` and `community_id`. Invalid addresses,
+  ports, counts, flags and durations are counted as errors for their line. A `#fields` header
+  with more than 64 columns, duplicate or invalid names, or without `ts`, `id.orig_h` and
+  `id.resp_h` is an error, and data lines after it are errors until a valid header comes.
+
 ## Testing and fuzzing
 
 Parser tests cover every supported message, malformed and oversized lines, invalid UTF-8, CRLF
-files, IPv6, New Year rollover and username injection. Hypothesis property tests check that
+files, IPv6, New Year rollover and username injection; for the network parsers also every
+record type, hostile values (bad addresses, ports, counts and durations, escapes, oversized
+headers) and column orders. Hypothesis property tests check that
 arbitrary text never raises and that the statistics always add up. An
 [Atheris](https://github.com/google/atheris) harness in `fuzz/` runs coverage-guided fuzzing of
 every parser in CI (Linux only).

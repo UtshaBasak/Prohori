@@ -10,6 +10,7 @@ from typing import Any
 import pytest
 
 from prohori.incidents import IncidentSettings
+from prohori.parsers import SuricataEveParser
 from prohori.pipeline.messages import RawLog, Topic, dead_letter
 from prohori.pipeline.stages import (
     Detector,
@@ -129,6 +130,10 @@ class TestNormaliser:
         assert settings.create("auth_log", T0).name == "auth_log"
         assert settings.create("access_log", T0).name == "access_log"
         assert settings.create("app_json", T0).name == "app_json"
+        suricata = settings.create("suricata_eve", T0)
+        assert isinstance(suricata, SuricataEveParser)
+        assert suricata.keep_query
+        assert settings.create("zeek_conn", T0).name == "zeek_conn"
         with pytest.raises(ValueError, match="mapping"):
             settings.create("generic_json", T0)
         mapping = Path(__file__).resolve().parents[3] / "samples" / "mappings" / "payments.yaml"

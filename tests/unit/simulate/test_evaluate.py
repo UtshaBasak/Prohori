@@ -36,7 +36,18 @@ def test_seed_one_matches_golden_results(rules: list[CompiledRule], tmp_path: Pa
         GOLDEN.write_text(json.dumps(results, indent=2) + "\n", encoding="utf-8", newline="\n")
     assert results == json.loads(GOLDEN.read_text(encoding="utf-8"))
     assert results["parse_errors"] == 0
-    assert results["not_evaluated"] == ["PRH-ABUSE-001", "PRH-AUTH-004", "PRH-AUTHZ-001"]
+    # The simulator writes no network sensor logs, so the network rules are not evaluated.
+    assert results["not_evaluated"] == [
+        "PRH-ABUSE-001",
+        "PRH-AUTH-004",
+        "PRH-AUTHZ-001",
+        "PRH-IDS-001",
+        "PRH-IDS-002",
+        "PRH-IDS-003",
+        "PRH-NET-001",
+        "PRH-NET-002",
+        "PRH-NET-003",
+    ]
 
 
 def test_committed_results_and_table_are_consistent() -> None:

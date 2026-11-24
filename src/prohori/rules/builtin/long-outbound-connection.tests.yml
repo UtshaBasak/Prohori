@@ -1,0 +1,65 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+# Copyright (c) 2026 Utsha Basak
+rule: PRH-NET-003
+start: 2026-10-24T14:15:00Z
+defaults:
+  log_source: zeek
+  event.category: network
+  event.action: network.flow
+  event.outcome: success
+  source.ip: 192.0.2.30
+  extra.destination_ip: 203.0.113.200
+  extra.transport: tcp
+cases:
+  - name: an outbound connection alerts
+    expect: {alerts: 1, entities: [{source.ip: 192.0.2.30}]}
+    events:
+      - {extra.duration: 28800, extra.direction: outbound}
+
+  - name: just under the threshold does not alert
+    expect: {alerts: 0}
+    events:
+      - {extra.duration: 28799.5, extra.direction: outbound}
+
+  - name: inbound, internal and external connections do not alert
+    expect: {alerts: 0}
+    events:
+      - {extra.duration: 28800, extra.direction: inbound}
+      - {extra.duration: 28800, extra.direction: internal}
+      - {extra.duration: 28800, extra.direction: external}
+
+  - name: without a direction, a private source to a public destination alerts
+    expect: {alerts: 1, entities: [{source.ip: 10.20.0.5}]}
+    events:
+      - {extra.duration: 28800, source.ip: 10.20.0.5, extra.destination_ip: 203.0.113.200}
+
+  - name: without a direction, private to private does not alert
+    expect: {alerts: 0}
+    events:
+      - {extra.duration: 28800, source.ip: 10.20.0.5, extra.destination_ip: 192.168.1.20}
+      - {extra.duration: 28800, source.ip: 'fd00::5', extra.destination_ip: 'fd00::9'}
+
+  - name: without a direction, a public source does not alert
+    expect: {alerts: 0}
+    events:
+      - {extra.duration: 28800}
+
+  - name: a direction from the sensor wins over private addresses
+    expect: {alerts: 0}
+    events:
+      - {extra.duration: 28800, source.ip: 10.20.0.5, extra.destination_ip: 203.0.113.200, extra.direction: internal}
+
+  - name: other events with the same field do not alert (seconds)
+    expect: {alerts: 0}
+    events:
+      - {extra.duration: 28800, extra.direction: outbound, event.action: network.tls}
+
+  - name: a nine-hour connection in a Zeek conn.log, written after shorter later ones
+    expect: {alerts: 1, entities: [{source.ip: 192.0.2.21}]}
+    log:
+      parser: zeek_conn
+      lines:
+        - "1792851000.000000\tCprhFixtureShort00\t192.0.2.22\t52000\t198.51.100.80\t443\ttcp\tssl\t1.500000\t800\t5000\tSF\tT\tF\t0\tShADadFf\t12\t1280\t10\t5400\t-\t6"
+        - "1792851001.000000\tCprhFixtureShort01\t192.0.2.22\t52001\t198.51.100.80\t443\ttcp\tssl\t1.500000\t800\t5000\tSF\tT\tF\t0\tShADadFf\t12\t1280\t10\t5400\t-\t6"
+        - "1792851002.000000\tCprhFixtureShort02\t192.0.2.22\t52002\t198.51.100.80\t443\ttcp\tssl\t1.500000\t800\t5000\tSF\tT\tF\t0\tShADadFf\t12\t1280\t10\t5400\t-\t6"
+        - "1792818000.000000\tCprhFixtureLong001\t192.0.2.21\t50612\t198.51.100.200\t8443\ttcp\tssl\t33312.250000\t48211\t50213\tSF\tT\tF\t0\tShADadFf\t12\t48691\t10\t50613\t-\t6"

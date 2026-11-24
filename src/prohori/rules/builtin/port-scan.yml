@@ -1,0 +1,29 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+# Copyright (c) 2026 Utsha Basak
+id: PRH-NET-001
+title: Port scan from one address
+status: experimental
+severity: medium
+description: >-
+  One source address made unanswered, rejected or otherwise unestablished TCP connections to at
+  least 25 distinct destination ports within 5 minutes (Zeek conn.log or Suricata flow records):
+  a scan for open services. Established connections are not counted, so a busy client talking to
+  many services does not alert; Suricata flows carry no connection state, so all of theirs count.
+author: Prohori
+tags: [attack.discovery, attack.t1046, attack.reconnaissance, attack.t1595]
+logsource: {category: network}
+detection:
+  tcp_flow:
+    event.action: network.flow
+    extra.transport: tcp
+  established:
+    event.outcome: success
+  aggregate:
+    group_by: [source.ip]
+    window: 5m
+    distinct: {field: extra.destination_port, gte: 25}
+  condition: tcp_flow and not established and aggregate
+falsepositives:
+  - The organisation's own vulnerability scanner or asset inventory (add a suppression for it)
+  - Monitoring systems that check many service ports
+response: runbooks/port-scan.md

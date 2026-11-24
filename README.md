@@ -100,8 +100,8 @@ flowchart LR
 
 | Stage | Today |
 | ------- | ------- |
-| **Parse** | Linux `auth.log` (sshd, sudo, PAM), nginx/Apache access logs, application security events (JSON Lines) and any JSON Lines layout through a YAML field mapping, into one typed event schema. Format detection, streaming with bounded memory, hostile input handled (oversized lines, bad encodings, control characters). Daylight-saving changes handled: the hour repeated when the clocks go back keeps moving forward instead of being dropped as late. |
-| **Detect** | 21 readable YAML rules (Sigma-inspired) with field modifiers, thresholds, distinct counts, ratios, sliding and tumbling windows and ordered sequences. Every rule ships with test fixtures and a runbook; regular expressions run on RE2, so no pattern can hang a run. With `--models`, anomaly detectors (robust z-score, Isolation Forest) also flag source IPs that behave unlike the rest of the log. SSH attacks are counted even when sshd logs host names instead of addresses (`UseDNS`), and a log with millions of alerts stays bounded in memory: the table shows the first 100, JSON streams every alert, and incidents keep a capped number. Known-benign activity is silenced with a reviewed **suppressions file** (reason, owner and expiry date per entry; allow-listed addresses): suppressed alerts are counted and listed, never dropped, and never hide another alert of an incident. |
+| **Parse** | Linux `auth.log` (sshd, sudo, PAM), nginx/Apache access logs, application security events (JSON Lines), Suricata `eve.json` and Zeek `conn.log` (since 1.2), and any JSON Lines layout through a YAML field mapping, into one typed event schema. Format detection, streaming with bounded memory, hostile input handled (oversized lines, bad encodings, control characters). Daylight-saving changes handled: the hour repeated when the clocks go back keeps moving forward instead of being dropped as late. |
+| **Detect** | 27 readable YAML rules (Sigma-inspired) with field modifiers, thresholds, distinct counts, ratios, sliding and tumbling windows and ordered sequences. Every rule ships with test fixtures and a runbook; regular expressions run on RE2, so no pattern can hang a run. With `--models`, anomaly detectors (robust z-score, Isolation Forest) also flag source IPs that behave unlike the rest of the log. SSH attacks are counted even when sshd logs host names instead of addresses (`UseDNS`), and a log with millions of alerts stays bounded in memory: the table shows the first 100, JSON streams every alert, and incidents keep a capped number. Known-benign activity is silenced with a reviewed **suppressions file** (reason, owner and expiry date per entry; allow-listed addresses): suppressed alerts are counted and listed, never dropped, and never hide another alert of an incident. |
 | **Enrich** | IP geolocation, network owner and reputation from local GeoLite2 files, AbuseIPDB and VirusTotal, all optional. SQLite cache, daily budgets, rate limiting and bounded retries. Private and documentation addresses never leave the machine. |
 | **Incidents** | Related alerts (same IP, account, request or session within a time gap) become one incident with a points-based score you can read line by line, severity, confidence, MITRE ATT&CK v20.0 mapping, a timeline, recommended actions and stated limitations. Detects sign-ins from an IP or app new to the account. |
 | **Simulate** | Eight labelled attack scenarios (SSH brute force, password spraying, credential stuffing, token reuse, account takeover, web scanning, injection, admin misuse) hidden in realistic background activity, byte-identical for a seed, documentation IP addresses only. Used to measure every rule's precision and recall. |
@@ -142,7 +142,7 @@ Everything below runs offline on the synthetic samples in the repository (run fr
 ```bash
 uv run prohori triage samples/logs/account-takeover.jsonl -o triage/   # the whole pipeline
 uv run prohori parse samples/logs/auth.log                      # normalise a log
-uv run prohori detect samples/logs/auth.log                     # run the 21 rules
+uv run prohori detect samples/logs/auth.log                     # run the 27 rules
 uv run prohori enrich 203.0.113.7 --offline                     # look up an IP (demo data)
 uv run prohori incidents samples/logs/account-takeover.jsonl    # group alerts into incidents
 uv run prohori report samples/incidents/INC-ee7c8818fbb34989.json -f html -o report.html
@@ -197,7 +197,7 @@ To see it yourself: `uv run prohori incidents samples/logs/account-takeover.json
 | `prohori demo` | Simulate attacks, triage them and show the results; no configuration, offline | [CLI.md](docs/CLI.md#prohori-demo) |
 | `prohori triage FILE` | Log in, incidents and a report per incident out (`--format`, `--redact`, `--online`) | [CLI.md](docs/CLI.md#prohori-triage) |
 | `prohori parse FILE` | Parse and normalise a log; table or JSON Lines | [PARSERS.md](docs/PARSERS.md) |
-| `prohori detect FILE` | Run the 21 built-in rules (and `--rules DIR`, `--models` for the anomaly detectors, `--suppressions FILE` for reviewed exceptions); exit code 3 when alerts are found | [RULES.md](docs/RULES.md) |
+| `prohori detect FILE` | Run the 27 built-in rules (and `--rules DIR`, `--models` for the anomaly detectors, `--suppressions FILE` for reviewed exceptions); exit code 3 when alerts are found | [RULES.md](docs/RULES.md) |
 | `prohori rules list` / `validate` / `test` | Show, check and test detection rules; `validate --suppressions FILE` checks a suppressions file | [RULES.md](docs/RULES.md#suppressions-and-allow-lists) |
 | `prohori enrich IP...` | Geolocation and reputation; `--offline` never uses the network | [ENRICHMENT.md](docs/ENRICHMENT.md) |
 | `prohori incidents FILE` | Parse, detect and group alerts into scored incidents; offline enrichment unless `--online` | [INCIDENTS.md](docs/INCIDENTS.md) |
@@ -240,6 +240,16 @@ usage. The full reference is [docs/CLI.md](docs/CLI.md).
 | PRH-WEB-003 | Scanner or empty user agent at a high request rate | medium | T1595.002 |
 | PRH-WEB-004 | Probes for sensitive files and admin tools | medium | T1595.003 |
 | PRH-SSH-001 | SSH invalid-user storm or repeated authentication-limit disconnects | high | T1110, T1110.001 |
+| PRH-IDS-001 | Suricata alert, severity 1 (passed through) | high | from the signature |
+| PRH-IDS-002 | Suricata alert, severity 2 (passed through) | medium | from the signature |
+| PRH-IDS-003 | Suricata alert, severity 3 or above (passed through) | low | from the signature |
+| PRH-NET-001 | Port scan: 25 ports from one address in 5 minutes | medium | T1046, T1595 |
+| PRH-NET-002 | Large outbound transfer (500 MB in one connection) | medium | T1048 |
+| PRH-NET-003 | Long outbound connection (8 hours) | low | T1071 |
+
+The network rules (IDS and NET, since 1.2) are experimental: the simulator writes no network
+traffic, so their false positives are not measured yet. The passthrough rules keep the
+signature's own MITRE metadata in the event instead of claiming a technique.
 
 ATT&CK tags are verified against the official Enterprise ATT&CK v20.0 data. Each rule has a
 runbook in [`src/prohori/runbooks/`](src/prohori/runbooks/). Writing your own rules is covered in
@@ -268,7 +278,7 @@ every held-out run. The method and its limits are in the
 rules) and after, on address model 2:
 
 <!-- results:start -->
-Generated from `results/rules_eval.json`, simulator address model 2: the frozen baselines (1.0 rules (addresses 2): 15 rules; 1.1 rules, step 28b (addresses 2): 21 rules) against today's 21 rules, 5 seeds per variant. Attacks caught by at least one of their expected rules. Do not edit by hand.
+Generated from `results/rules_eval.json`, simulator address model 2: the frozen baselines (1.0 rules (addresses 2): 15 rules; 1.1 rules, step 28b (addresses 2): 21 rules) against today's 27 rules, 5 seeds per variant. Attacks caught by at least one of their expected rules. Do not edit by hand.
 
 | Scenario | Held-out: 1.0 rules (addresses 2) | Held-out: 1.1 rules, step 28b (addresses 2) | Held-out: now | Held-out 2: 1.0 rules (addresses 2) | Held-out 2: 1.1 rules, step 28b (addresses 2) | Held-out 2: now |
 | ---------- | -----: | -----: | -----: | -----: | -----: | -----: |
@@ -722,7 +732,7 @@ Prohori is honest about what it does not do:
 | v1.0.0 | Optional LLM analyst: providers, redaction, `explain` and `ask`, retrieval, prompt-injection defences, answer validation and an evaluation; threat model, performance notes, completed licence notes, macOS in CI | Released |
 | v1.0.1 | Fixes from a full review: stricter redaction and answer checks, parser and output-path robustness, safer stack shutdown and Airflow parameters, signed provenance for release files | Released |
 | v1.1.0 | Hardening: new licence (PolyForm Strict), deterministic stream rebuilds, evasion-resistant per-account sign-in rules with a before-and-after score, warehouse and broker hardening, safer model files, a cross-dataset generalisation study, logins for the stack, SBOMs, suppressions and allow-lists | Released |
-| v1.2.0 | More log sources: Suricata, Zeek, Windows Security events, Sysmon, the systemd journal, AWS CloudTrail; a Sigma rule importer | Planned |
+| v1.2.0 | More log sources: Suricata, Zeek, Windows Security events, Sysmon, the systemd journal, AWS CloudTrail; a Sigma rule importer. Done so far: Suricata `eve.json` and Zeek `conn.log` with six network rules | In progress |
 | v1.3.0 to v1.7.0 | A real-time defender for your own PC: a Windows security checkup, behaviour-based detection with reversible containment, ransomware, network, spyware, boot and device defenses, a guard for AI coding agents and MCP tools, supply-chain and phishing checks, attack drills, Linux | Planned |
 | v1.8.0, v2.0.0 | A desktop security assistant, web UI, package-manager installs, VS Code and browser extensions, a documentation website and a GitHub Action | Planned |
 

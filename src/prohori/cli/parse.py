@@ -75,6 +75,8 @@ def build_parser(
             return get_parser(name, year=year, timezone=timezone, reference_time=mtime)
         if name == "access_log":
             return get_parser(name, pattern=pattern, keep_query=keep_query)
+        if name == "suricata_eve":
+            return get_parser(name, keep_query=keep_query)
         if name == "generic_json":
             if mapping is None:
                 raise typer.BadParameter("the generic_json parser needs --mapping FILE")
@@ -135,7 +137,7 @@ PatternOption = Annotated[
     str | None, typer.Option(help="access_log: custom regular expression for the line.")
 ]
 KeepQueryOption = Annotated[
-    bool, typer.Option(help="access_log: keep the query string in http.path.")
+    bool, typer.Option(help="access_log, suricata_eve: keep the query string in http.path.")
 ]
 
 
