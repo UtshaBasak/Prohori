@@ -302,7 +302,7 @@ class TestSuricataEve:
 
     def test_control_characters_are_removed(self) -> None:
         record = eve()
-        record["alert"]["signature"] = "evil\u001b[31m‮ signature"
+        record["alert"]["signature"] = "evil\u001b[31m\u202e signature"
         (event,), _ = parse_eve(record)
         assert event.event.reason == "evil signature"
 
@@ -469,8 +469,9 @@ class TestZeekConn:
         assert stats.errors == 1
 
     def test_an_invalid_header_stops_later_lines(self) -> None:
-        events, stats = parse_zeek("#fields\tuid", "1792850400\tC1\t192.0.2.1")
-        assert (events, stats.errors) == ([], 2)
+        events, stats = parse_zeek("#fields\tuid", zeek_row(), *HEADER[5:6], zeek_row())
+        assert (len(events), stats.errors) == (1, 2)  # until a valid header comes
+        assert "after an invalid #fields header" in stats.error_examples[1].reason
 
     def test_custom_separator(self) -> None:
         lines = [

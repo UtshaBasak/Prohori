@@ -21,7 +21,7 @@ cat samples/logs/auth.log | prohori parse - --year 2026
 prohori parse samples/logs/payments.jsonl --parser generic_json \
     --mapping samples/mappings/payments.yaml
 prohori detect samples/logs/suricata-eve.json        # IDS alerts, web scanning seen on the wire
-prohori detect samples/logs/zeek-conn.log            # port scan, large and long connections
+prohori detect samples/logs/zeek-conn.log --lateness 15m  # port scan, large and long connections
 ```
 
 | Option | Applies to | Meaning |
@@ -309,6 +309,12 @@ skipped.
   writes it). A `flow` record is dated at its last packet (`flow.end`), because Suricata writes
   it when the flow ends; `extra.start_time` keeps `flow.start`, and `extra.duration` is the time
   between them (or `flow.age` when they are missing).
+- **Run with a longer `--lateness`.** Suricata writes a flow record only when the flow times
+  out, a while after its last packet (`flow-timeouts` in `suricata.yaml`; for an idle
+  established TCP connection the shipped configuration waits minutes). Records of other types
+  are written as packets arrive, so in one `eve.json` a flow record can be dated further back
+  than the default 5-minute `--lateness` allows, and is then dropped and counted as late. Use a
+  lateness above the sensor's longest flow timeout, for example `--lateness 15m`.
 - **Web rules apply.** `http` records become `web.request` events like access-log lines, so the
   web rules (PRH-WEB-001 to PRH-WEB-004) work on what Suricata saw on the wire, for any web
   server behind it. `--keep-query` works as for `access_log`.
@@ -359,7 +365,9 @@ Parses Zeek's connection log, `conn.log`. The layout follows the `Conn::Info` re
 - **Times.** Zeek writes a connection's line when the connection ends, but `ts` is its first
   packet. Each event is dated at `ts + duration`, the **last** packet, so a nine-hour connection
   written after hours of later lines is still in order for the rules (it would otherwise be
-  dropped as late). `extra.start_time` keeps `ts`.
+  dropped as late). `extra.start_time` keeps `ts`. Zeek also waits for an idle connection's
+  inactivity timeout (5 minutes for TCP by default) before writing it, so use a `--lateness`
+  above that, for example `--lateness 15m`, as for Suricata.
 - **Outcome** from `conn_state`: `success` for established connections (`SF`, `S1`, `S2`, `S3`,
   `RSTO`, `RSTR`), `failure` for unanswered, rejected or half-open attempts (`S0`, `REJ`,
   `RSTOS0`, `RSTRH`, `SH`, `SHR`), `unknown` otherwise (`OTH`, missing).

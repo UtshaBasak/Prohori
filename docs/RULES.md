@@ -187,6 +187,10 @@ positives on.
   private source (RFC 1918 or IPv6 ULA) and a non-private destination. Copy a rule to change its
   thresholds or networks. Both alert only when the connection ends, because that is when the
   sensor writes it.
+- **Use `--lateness 15m` (or more) on sensor logs.** Sensors write a connection's record only
+  after its idle timeout, so it can be dated more than 5 minutes behind the records around it
+  and would be dropped as late with the default `--lateness 5m`; see
+  [PARSERS.md](PARSERS.md#suricata_eve).
 
 ### ATT&CK mapping
 

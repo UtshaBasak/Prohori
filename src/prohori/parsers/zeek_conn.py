@@ -130,6 +130,7 @@ class ZeekConnParser(LineParser):
 
     def reset(self) -> None:
         self._fields: tuple[str, ...] | None = None
+        self._bad_header = False  # the last #fields header was invalid
         self._separator = "\t"
         self._unset = "-"
         self._empty = "(empty)"
@@ -165,15 +166,14 @@ class ZeekConnParser(LineParser):
         name, _, rest = line[1:].partition(self._separator)
         if name == "fields":
             fields = tuple(rest.split(self._separator))
+            self._fields, self._bad_header = None, True
             if len(fields) > MAX_FIELDS:
-                self._fields = None
                 raise ParseError(f"#fields declares more than {MAX_FIELDS} columns")
             missing = [f for f in REQUIRED_FIELDS if f not in fields]
             bad = [f for f in fields if not _FIELD_NAME_RE.fullmatch(f)]
             if missing or bad or len(set(fields)) != len(fields):
-                self._fields = None
                 raise ParseError("invalid #fields header")
-            self._fields = fields
+            self._fields, self._bad_header = fields, False
         elif name == "path":
             self._path = rest.strip()
         elif name == "unset_field":
@@ -185,6 +185,8 @@ class ZeekConnParser(LineParser):
         cells = line.split(self._separator)
         fields = self._fields
         if fields is None:
+            if self._bad_header:
+                raise ParseError("data line after an invalid #fields header")
             if len(cells) not in {len(DEFAULT_FIELDS) - 1, len(DEFAULT_FIELDS)}:
                 raise ParseError("data line before a #fields header")
             fields = DEFAULT_FIELDS
