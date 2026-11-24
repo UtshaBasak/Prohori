@@ -44,6 +44,7 @@ from prohori.simulate.sysmon import (
     EXPLORER,
     OFFICE,
     POWERSHELL,
+    USER,
     WINDOWS,
     encoded,
     workstation_background,
@@ -662,9 +663,9 @@ def windows_intrusion(rec: Recorder, pool: AddressPool, p: Params, variant: str)
             integrity="High",
             attack=attack,
         )
-        log.lsass_access(at(start + 3.01), WINDOWS + "rundll32.exe", "0x1fffff", attack)
+        log.lsass_access(at(start + 3.01), WINDOWS + "rundll32.exe", "0x1fffff", attack, user=USER)
     else:
-        log.lsass_access(at(start + 3.0), payload, "0x1010", attack)
+        log.lsass_access(at(start + 3.0), payload, "0x1010", attack, user=USER)
     # The stolen administrator account signs in to the file server.
     log.signin(at(start + 6.0), "it-admin", "192.0.2.41", attack)
 

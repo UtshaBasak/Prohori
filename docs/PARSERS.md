@@ -35,7 +35,7 @@ journalctl -o json -u ssh --since today | prohori detect -
 | `--parser`, `-p` | all | `auto` (default) or a parser name |
 | `--format`, `-f` | all | `table` (summary and the first `--limit` events) or `json` (events on standard output as JSON Lines, summary as JSON on standard error) |
 | `--year` | `auth_log` | Year of the first line (default: from the file date) |
-| `--timezone` | `auth_log`, `windows_security` | IANA timezone for timestamps without an offset (default `UTC`) |
+| `--timezone` | `auth_log`, `windows_security`, `sysmon` | IANA timezone for timestamps without an offset (default `UTC`) |
 | `--pattern` | `access_log` | Custom regular expression |
 | `--keep-query` | `access_log`, `suricata_eve` | Keep the query string in `http.path` |
 | `--mapping` | `generic_json` | YAML field-mapping file |

@@ -182,7 +182,13 @@ class SysmonLog:
         )
 
     def lsass_access(
-        self, when: datetime, image: str, access: str, attack: Attack | None = None
+        self,
+        when: datetime,
+        image: str,
+        access: str,
+        attack: Attack | None = None,
+        *,
+        user: str = SYSTEM,
     ) -> None:
         self.add(
             when,
@@ -194,7 +200,7 @@ class SysmonLog:
                 "TargetProcessId": "680",
                 "TargetImage": WINDOWS + "lsass.exe",
                 "GrantedAccess": access,
-                "SourceUser": SYSTEM if image.startswith("C:\\Windows") else USER,
+                "SourceUser": user,
                 "TargetUser": SYSTEM,
             },
             attack,

@@ -2302,6 +2302,17 @@ destination in `extra` until these fields existed and promised to move it before
   than such agents do; it was set to every two hours before the held-out variants were scored
   once. The new scenario stays out of the frozen comparison, the anomaly study and the LLM cases.
 
+- **Left out by `Field(exclude_if=...)`**, not a model serialiser: a wrap serialiser on `Event`
+  made serialising 96,000 events 51 % slower (0.84 s against 0.56 s); the field option costs
+  about 6 % (0.59 s), next to 4.1 s to parse the same lines. Pydantic 2.12 is now the minimum.
+- **Built-in Windows accounts never link incidents.** Scoring `windows-intrusion` showed alerts
+  under `SYSTEM` (the attacker's service, the agent's encoded command, the updater's service)
+  chaining the intrusion with the background false positives in three of five seeds. `SYSTEM`,
+  `LOCAL SERVICE`, `NETWORK SERVICE`, `ANONYMOUS LOGON`, computer accounts and their SIDs no
+  longer link, like a shared address; the intrusion now lands in one incident (four alerts) and
+  the service's registry write, made by `services.exe` as `SYSTEM`, in one of its own. Linking on
+  the host was rejected: it would put every false positive on the host in the same incident.
+
 **Consequences.** Ten scenarios, 37 rules. PRH-PROC-001 and PRH-PROC-003 have measured false
 positives (precision 0.33 and 0.67 on the default variant). The held-out intrusion (a script from
 a zip, a Run key, a dropped tool) is caught only by PRH-PROC-004, which the results report.

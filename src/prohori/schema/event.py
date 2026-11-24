@@ -2,17 +2,9 @@
 # Copyright (c) 2026 Utsha Basak
 """The common event schema ("ECS-lite") that every parser produces."""
 
-from typing import Annotated, Any, Self
+from typing import Annotated, Self
 
-from pydantic import (
-    BaseModel,
-    Field,
-    IPvAnyAddress,
-    SerializerFunctionWrapHandler,
-    field_validator,
-    model_serializer,
-    model_validator,
-)
+from pydantic import BaseModel, Field, IPvAnyAddress, field_validator, model_validator
 
 from prohori.schema.ids import event_id
 from prohori.schema.types import (
@@ -172,6 +164,10 @@ class DnsInfo(BaseModel):
 OPTIONAL_GROUPS = ("process", "file", "registry", "destination", "dns")
 
 
+def _unset(value: object) -> bool:
+    return value is None
+
+
 class Event(BaseModel):
     """One normalised log event. All timestamps are UTC.
 
@@ -191,22 +187,14 @@ class Event(BaseModel):
     client: ShortText | None = None
     host: ShortText | None = None
     request_id: ShortText | None = None
-    process: ProcessInfo | None = None
-    file: FileInfo | None = None
-    registry: RegistryInfo | None = None
-    destination: DestinationInfo | None = None
-    dns: DnsInfo | None = None
+    # Groups added in 1.2, left out of the JSON when unset so older events are unchanged.
+    process: Annotated[ProcessInfo | None, Field(exclude_if=_unset)] = None
+    file: Annotated[FileInfo | None, Field(exclude_if=_unset)] = None
+    registry: Annotated[RegistryInfo | None, Field(exclude_if=_unset)] = None
+    destination: Annotated[DestinationInfo | None, Field(exclude_if=_unset)] = None
+    dns: Annotated[DnsInfo | None, Field(exclude_if=_unset)] = None
     raw: RawText
     extra: Annotated[dict[ShortText, BoundedScalar], Field(max_length=MAX_EXTRA_KEYS)] = {}
-
-    @model_serializer(mode="wrap")
-    def _omit_unset_groups(self, handler: SerializerFunctionWrapHandler) -> Any:  # noqa: ANN401 - whatever the handler returns
-        data = handler(self)
-        if isinstance(data, dict):
-            for name in OPTIONAL_GROUPS:
-                if data.get(name, ...) is None:
-                    del data[name]
-        return data
 
     @model_validator(mode="after")
     def _fill_id(self) -> Self:

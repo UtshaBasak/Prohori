@@ -59,6 +59,16 @@ def test_every_expected_rule_lands_in_an_incident_about_the_attacker(
         about_attacker = [i for i in incidents if attackers & set(i.entities.get("source.ip", ()))]
         if not attackers:  # an intrusion on a host (windows-intrusion): incidents about the host
             about_attacker = [i for i in incidents if HOST in i.entities.get("host", ())]
+            # The whole chain lands in one incident, linked by the user (SYSTEM never links).
+            assert any(
+                set(attack.expected_rules) <= {a.detector_id for a in i.alerts}
+                for i in about_attacker
+            ), (name, [[a.detector_id for a in i.alerts] for i in about_attacker])
+            assert not any(
+                {a.detector_id for a in i.alerts} >= set(attack.expected_rules)
+                and len(i.alerts) > 4
+                for i in about_attacker
+            ), "the benign false positives joined the intrusion's incident"
         assert about_attacker, f"{name}: no incident involves {sorted(attackers) or HOST}"
         fired = {a.detector_id for i in about_attacker for a in i.alerts}
         assert set(attack.expected_rules) & STABLE <= fired, (name, sorted(fired))

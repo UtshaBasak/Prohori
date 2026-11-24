@@ -184,3 +184,28 @@ def test_per_account_alerts_join_the_victims_incident_and_per_log_alerts_stand_a
     groups = group_alerts([account, takeover, stuffing])
     by_rules = sorted(sorted(a.detector_id for a in g.alerts) for g in groups)
     assert by_rules == [["PRH-ACCT-001", "PRH-AUTH-006"], ["PRH-AUTH-008"]]
+
+
+@pytest.mark.parametrize(
+    ("field", "value"),
+    [
+        ("user.name", "SYSTEM"),
+        ("user.name", "Local Service"),
+        ("user.name", "NETWORK SERVICE"),
+        ("user.name", "ANONYMOUS LOGON"),
+        ("user.name", "WS01$"),
+        ("user.id", "S-1-5-18"),
+        ("user.id", "s-1-5-20"),
+    ],
+)
+def test_built_in_windows_accounts_never_link(field: str, value: str) -> None:
+    a = alert("R-A", start=at(0), entities={field: value})
+    b = alert("R-B", start=at(1), entities={field: value})
+    assert len(group_alerts([a, b])) == 2
+    assert link_keys(a, None) == set()
+
+
+def test_ordinary_accounts_still_link() -> None:
+    a = alert("R-A", start=at(0), entities={"user.name": "systemadmin"})
+    b = alert("R-B", start=at(1), entities={"user.name": "systemadmin"})
+    assert len(group_alerts([a, b])) == 1

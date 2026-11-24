@@ -142,7 +142,7 @@ when the labels of a log are loaded but the log was never replayed.
 
 `scripts/build_lite_warehouse.py` builds a warehouse from every scenario's default variant
 (seed 1), with the example suppressions (`samples/suppressions.yml`): 9,737 events, 172 alerts
-(one of them suppressed: the planned admin grant) and 75 incidents. CI builds the models on that
+(one of them suppressed: the planned admin grant) and 76 incidents. CI builds the models on that
 warehouse and checks that `rule_precision` equals the simulator's own rule evaluation for the
 same runs with the same suppressions, alert for alert. The models gave (rules of 1.2 in
 progress; the Windows scenarios were added in steps 34 and 34b):

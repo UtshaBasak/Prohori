@@ -42,17 +42,30 @@ class AlertGroup:
     shared_ips: tuple[tuple[str, int], ...] = ()  # (ip, accounts) treated as shared
 
 
+#: Windows accounts every machine has, under which unrelated services run: like a shared address,
+#: they would chain unrelated alerts on a host into one incident, so they never link alerts.
+SHARED_PRINCIPALS = frozenset({"system", "local service", "network service", "anonymous logon"})
+SHARED_SIDS = frozenset({"S-1-5-18", "S-1-5-19", "S-1-5-20", "S-1-5-7"})
+
+
+def is_shared_principal(key: Key) -> bool:
+    """Whether ``key`` names a built-in Windows account or a computer account (``NAME$``)."""
+    field, value = key
+    if field == "user.name":
+        return value.casefold() in SHARED_PRINCIPALS or value.endswith("$")
+    return field == "user.id" and value.upper() in SHARED_SIDS
+
+
 def link_keys(alert: Alert, context: EventContext | None) -> set[Key]:
     """Return the ``(field, value)`` pairs ``alert`` can link on."""
     keys = {(f, v) for f, v in alert.entities.items() if f in LINK_FIELDS and v}
-    if context is None:
-        return keys
-    summaries = [s for s in map(context.get, alert.event_ids) if s is not None]
-    for field in LINK_FIELDS:
-        values = {s.link_value(field) for s in summaries} - {None}
-        if len(values) == 1:
-            keys.add((field, str(values.pop())))
-    return keys
+    if context is not None:
+        summaries = [s for s in map(context.get, alert.event_ids) if s is not None]
+        for field in LINK_FIELDS:
+            values = {s.link_value(field) for s in summaries} - {None}
+            if len(values) == 1:
+                keys.add((field, str(values.pop())))
+    return {key for key in keys if not is_shared_principal(key)}
 
 
 class _UnionFind:
