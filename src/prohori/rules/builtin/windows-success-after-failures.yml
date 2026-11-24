@@ -1,0 +1,28 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+# Copyright (c) 2026 Utsha Basak
+id: PRH-WIN-003
+title: Windows sign-in after many failures from one source
+status: test
+severity: critical
+description: >-
+  At least 5 failed Windows sign-ins (4625) and then a successful one (4624) from the same source
+  within 15 minutes: the guessing may have worked.
+author: Prohori
+tags: [attack.credential_access, attack.t1110, attack.initial_access, attack.t1078]
+logsource: {category: authentication}
+detection:
+  failure:
+    event.action: windows.logon.failure
+  success:
+    event.action: windows.logon.success
+  sequence:
+    by: [[source.ip, source.host, extra.workstation]]
+    within: 15m
+    steps:
+      - {selection: failure, count_gte: 5}
+      - {selection: success}
+  condition: sequence
+falsepositives:
+  - A user who mistyped a password several times and then got it right
+  - A service that retried with an old password and then a new one
+response: runbooks/windows-brute-force.md

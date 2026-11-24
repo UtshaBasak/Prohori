@@ -270,22 +270,47 @@ class AuthLogParser(LineParser):
         tag = _TAG_RE.match(match["rest"])
         if tag is None:
             raise ParseError("no syslog host/program tag")
-        program, message = tag["program"], tag["msg"].lstrip()
-        builder = _EventBuilder(
+        return parse_auth_message(
             timestamp=timestamp,
             host=tag["host"],
-            program=program,
+            program=tag["program"],
             pid=tag["pid"],
+            message=tag["msg"].lstrip(),
             raw=line,
             discriminator=f"{source}:{number}",
         )
-        if message.startswith("pam_unix("):
-            return _parse_pam(message, builder)
-        if program == "sshd" or program.startswith("sshd-"):
-            return _parse_sshd(message, builder)
-        if program == "sudo":
-            return _parse_sudo(message, builder)
-        return None
+
+
+def parse_auth_message(
+    *,
+    timestamp: datetime,
+    host: str | None,
+    program: str,
+    pid: str | None,
+    message: str,
+    raw: str,
+    discriminator: str,
+) -> Event | None:
+    """Turn one sshd, sudo or PAM message into an event, whatever log it came from.
+
+    ``auth_log`` passes the syslog header's fields, ``journald`` the journal entry's; both give
+    the same event for the same message. Returns ``None`` for messages that are not mapped.
+    """
+    builder = _EventBuilder(
+        timestamp=timestamp,
+        host=host,
+        program=program,
+        pid=pid,
+        raw=raw,
+        discriminator=discriminator,
+    )
+    if message.startswith("pam_unix("):
+        return _parse_pam(message, builder)
+    if program == "sshd" or program.startswith("sshd-"):
+        return _parse_sshd(message, builder)
+    if program == "sudo":
+        return _parse_sudo(message, builder)
+    return None
 
 
 class _EventBuilder:
@@ -295,7 +320,7 @@ class _EventBuilder:
         self,
         *,
         timestamp: datetime,
-        host: str,
+        host: str | None,
         program: str,
         pid: str | None,
         raw: str,

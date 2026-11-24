@@ -1,0 +1,19 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+# Copyright (c) 2026 Utsha Basak
+id: PRH-WIN-005
+title: Windows Security log cleared
+status: experimental
+severity: high
+description: >-
+  The Security event log was cleared (event 1102). Attackers clear it to remove the record of
+  what they did; administrators rarely need to. The event names the account that cleared it.
+author: Prohori
+tags: [attack.defense_impairment, attack.t1685.005]
+logsource: {category: admin}
+detection:
+  cleared:
+    event.action: windows.log.cleared
+  condition: cleared
+falsepositives:
+  - An administrator clearing a full log by hand, or a lab machine being reset
+response: runbooks/windows-log-cleared.md

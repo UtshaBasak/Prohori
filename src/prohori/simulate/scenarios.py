@@ -39,6 +39,7 @@ from prohori.simulate.background import (
     web_background,
 )
 from prohori.simulate.model import Attack, Recorder
+from prohori.simulate.windows import COMMON_NAMES, STAFF, windows_background
 
 Params = Mapping[str, float]
 Generator = Callable[[Recorder, AddressPool, Params, str], None]
@@ -520,6 +521,48 @@ def injection(rec: Recorder, pool: AddressPool, p: Params, variant: str) -> None
 
 # --------------------------------------------------------------------------- registry
 
+# --------------------------------------------------------------------------- Windows
+
+
+def windows_signin(rec: Recorder, pool: AddressPool, p: Params, variant: str) -> None:
+    log = windows_background(rec, pool, _int(p, "duration"), p["noise"])
+    sources = _sources(pool, HOSTILE, _int(p, "sources"), variant)
+    # Common names first (a spray), then the built-in administrator over and over (guessing).
+    names = (*COMMON_NAMES[:4], *STAFF[:4])
+    attack = rec.attack(
+        Attack(
+            id="windows-signin-1",
+            kind="windows-signin",
+            description="Remote-desktop password spraying and guessing, a sign-in, then a new "
+            "administrator account",
+            expected_rules=("PRH-WIN-001", "PRH-WIN-002", "PRH-WIN-003", "PRH-WIN-004"),
+            sources=tuple(sources),
+            accounts=("administrator", "svc-update"),
+        )
+    )
+    rng = rec.rng
+    gap = 1 / (p["rate"] * len(sources))  # each source sends `rate` attempts per minute
+    attempts = _int(p, "attempts")
+    for n in range(attempts):
+        minute = p["attack_at"] + n * gap + rng.uniform(0, gap / 4)
+        name = names[n] if n < len(names) else "administrator"
+        log.failure(
+            rec.at(minute),
+            name,
+            sources[n % len(sources)],
+            unknown=name in COMMON_NAMES and name != "administrator",
+            logon_type=10,
+            workstation="-",
+            attack=attack,
+        )
+    # The guess that works comes from the source that sent the last failure.
+    winner = sources[(attempts - 1) % len(sources)]
+    signed_in = p["attack_at"] + attempts * gap + 0.4
+    log.logon(rec.at(signed_in), "administrator", winner, logon_type=10, attack=attack)
+    log.account_created(rec.at(signed_in + 2.5), "administrator", "svc-update", attack)
+    log.added_to_administrators(rec.at(signed_in + 2.8), "administrator", "svc-update", attack)
+
+
 _APP = {"duration": 180, "users": 40, "noise": 3}
 _WEB = {"duration": 120, "noise": 6}
 
@@ -636,6 +679,33 @@ SCENARIOS: Final[dict[str, Scenario]] = {
             },
             {"default": "2026-10-23T18:00:00Z", "heldout": "2026-10-23T18:00:00Z"},
             admin_misuse,
+        ),
+        Scenario(
+            "windows-signin",
+            "Remote-desktop password spraying and guessing on a Windows server, a sign-in, then "
+            "a new administrator account",
+            "windows_security",
+            ".jsonl",
+            {
+                "default": {
+                    "duration": 240,
+                    "noise": 3,
+                    "attack_at": 60,
+                    "rate": 20,
+                    "attempts": 40,
+                    "sources": 1,
+                },
+                "heldout": {
+                    "duration": 240,
+                    "noise": 3,
+                    "attack_at": 60,
+                    "rate": 1.5,
+                    "attempts": 40,
+                    "sources": 4,
+                },
+            },
+            {"default": "2026-10-24T03:00:00Z", "heldout": "2026-10-24T03:00:00Z"},
+            windows_signin,
         ),
     )
 }

@@ -63,6 +63,9 @@ TECHNIQUES: dict[str, Technique] = {
     "attack.t1098": Technique(
         "Account Manipulation", ("attack.persistence", "attack.privilege_escalation")
     ),
+    "attack.t1098.007": Technique(
+        "Additional Local or Domain Groups", ("attack.persistence", "attack.privilege_escalation")
+    ),
     "attack.t1110": Technique("Brute Force", ("attack.credential_access",)),
     "attack.t1110.001": Technique("Password Guessing", ("attack.credential_access",)),
     "attack.t1110.003": Technique("Password Spraying", ("attack.credential_access",)),
@@ -78,6 +81,7 @@ TECHNIQUES: dict[str, Technique] = {
     "attack.t1595": Technique("Active Scanning", ("attack.reconnaissance",)),
     "attack.t1595.002": Technique("Vulnerability Scanning", ("attack.reconnaissance",)),
     "attack.t1595.003": Technique("Wordlist Scanning", ("attack.reconnaissance",)),
+    "attack.t1685.005": Technique("Clear Windows Event Logs", ("attack.defense_impairment",)),
 }
 
 

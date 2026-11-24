@@ -73,3 +73,16 @@ cases:
         - "Oct 24 13:50:05 web01 sshd[302]: Invalid user test from scanner.example port 40002"
         - "Oct 24 13:50:07 web01 sshd[303]: Invalid user ubuntu from scanner.example port 40003"
         - "Oct 24 13:50:09 web01 sshd[304]: Invalid user git from scanner.example port 40004"
+
+  - name: the same messages from the systemd journal (OpenSSH 9.8+ logs as sshd-session)
+    expect: {alerts: 1, entities: [{source.ip: 192.0.2.50}]}
+    log:
+      parser: journald
+      lines:
+        - '{"__REALTIME_TIMESTAMP":"1792849801250000","_HOSTNAME":"web01","SYSLOG_IDENTIFIER":"sshd-session","SYSLOG_PID":"300","_PID":"300","_COMM":"sshd-session","MESSAGE":"Invalid user admin from 192.0.2.50 port 40000"}'
+        - '{"__REALTIME_TIMESTAMP":"1792849803250000","_HOSTNAME":"web01","SYSLOG_IDENTIFIER":"sshd-session","SYSLOG_PID":"301","_PID":"301","_COMM":"sshd-session","MESSAGE":"Invalid user oracle from 192.0.2.50 port 40001"}'
+        - '{"__REALTIME_TIMESTAMP":"1792849805250000","_HOSTNAME":"web01","SYSLOG_IDENTIFIER":"sshd-session","SYSLOG_PID":"302","_PID":"302","_COMM":"sshd-session","MESSAGE":"Invalid user test from 192.0.2.50 port 40002"}'
+        - '{"__REALTIME_TIMESTAMP":"1792849809250000","_HOSTNAME":"web01","SYSLOG_IDENTIFIER":"sshd-session","SYSLOG_PID":"303","_PID":"303","_COMM":"sshd-session","MESSAGE":"error: maximum authentication attempts exceeded for root from 192.0.2.50 port 40003 ssh2 [preauth]"}'
+        - '{"__REALTIME_TIMESTAMP":"1792849809250000","_HOSTNAME":"web01","SYSLOG_IDENTIFIER":"sshd-session","SYSLOG_PID":"303","_PID":"303","_COMM":"sshd-session","MESSAGE":"Disconnecting authenticating user root 192.0.2.50 port 40003: Too many authentication failures [preauth]"}'
+        - '{"__REALTIME_TIMESTAMP":"1792849815250000","_HOSTNAME":"web01","SYSLOG_IDENTIFIER":"sshd-session","SYSLOG_PID":"304","_PID":"304","_COMM":"sshd-session","MESSAGE":"error: maximum authentication attempts exceeded for root from 192.0.2.50 port 40004 ssh2 [preauth]"}'
+        - '{"__REALTIME_TIMESTAMP":"1792849815250000","_HOSTNAME":"web01","SYSLOG_IDENTIFIER":"sshd-session","SYSLOG_PID":"304","_PID":"304","_COMM":"sshd-session","MESSAGE":"Disconnecting authenticating user root 192.0.2.50 port 40004: Too many authentication failures [preauth]"}'

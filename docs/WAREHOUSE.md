@@ -141,16 +141,18 @@ when the labels of a log are loaded but the log was never replayed.
 ## Results on the simulator
 
 `scripts/build_lite_warehouse.py` builds a warehouse from every scenario's default variant
-(seed 1), with the example suppressions (`samples/suppressions.yml`): 7,492 events, 157 alerts
-(one of them suppressed: the planned admin grant) and 70 incidents. CI builds the models on that
+(seed 1), with the example suppressions (`samples/suppressions.yml`): 9,022 events, 164 alerts
+(one of them suppressed: the planned admin grant) and 71 incidents. CI builds the models on that
 warehouse and checks that `rule_precision` equals the simulator's own rule evaluation for the
-same runs with the same suppressions, alert for alert. The models gave (1.1 rules):
+same runs with the same suppressions, alert for alert. The models gave (rules of 1.2 in
+progress; the Windows scenario was added in step 34):
 
 | Rule | Alerts | True positives | Precision | Suppressed |
 | ------ | -------: | ---------------: | ----------: | ---------: |
 | PRH-ACCT-001 | 60 | 2 | 0.03 | 0 |
 | PRH-ADMIN-001 | 1 | 1 | 1.00 | 1 |
 | PRH-ADMIN-002, AUTH-001, AUTH-002, AUTH-003, AUTH-007, SESS-001, SSH-001, WEB-001 to WEB-004 | 95 | 95 | 1.00 | 0 |
+| PRH-WIN-001 to WIN-004 | 7 | 7 | 1.00 | 0 |
 
 | Scenario | Detected | Time to detect |
 | ---------- | ---------- | ---------------: |
@@ -162,6 +164,7 @@ same runs with the same suppressions, alert for alert. The models gave (1.1 rule
 | ssh-bruteforce | yes | 15 s |
 | token-reuse | yes | 0 s |
 | web-scanning | yes | 2 s |
+| windows-signin | yes | 12 s |
 
 These are the default variants, which the rules were written against. The held-out variants
 in [SIMULATOR.md](SIMULATOR.md) are the honest numbers. PRH-ACCT-001 flags every sensitive

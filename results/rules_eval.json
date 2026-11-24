@@ -16,7 +16,8 @@
     "password-spraying",
     "ssh-bruteforce",
     "token-reuse",
-    "web-scanning"
+    "web-scanning",
+    "windows-signin"
   ],
   "lateness_seconds": 300,
   "parse_errors": 0,
@@ -29,7 +30,9 @@
     "PRH-IDS-003",
     "PRH-NET-001",
     "PRH-NET-002",
-    "PRH-NET-003"
+    "PRH-NET-003",
+    "PRH-WIN-005",
+    "PRH-WIN-006"
   ],
   "variants": {
     "default": {
@@ -276,6 +279,60 @@
           "attacks_detected": 5,
           "precision": 1.0,
           "recall": 1.0
+        },
+        "PRH-WIN-001": {
+          "alerts": 20,
+          "true_positives": 20,
+          "false_positives": 0,
+          "attacks_expected": 5,
+          "attacks_detected": 5,
+          "precision": 1.0,
+          "recall": 1.0
+        },
+        "PRH-WIN-002": {
+          "alerts": 5,
+          "true_positives": 5,
+          "false_positives": 0,
+          "attacks_expected": 5,
+          "attacks_detected": 5,
+          "precision": 1.0,
+          "recall": 1.0
+        },
+        "PRH-WIN-003": {
+          "alerts": 5,
+          "true_positives": 5,
+          "false_positives": 0,
+          "attacks_expected": 5,
+          "attacks_detected": 5,
+          "precision": 1.0,
+          "recall": 1.0
+        },
+        "PRH-WIN-004": {
+          "alerts": 5,
+          "true_positives": 5,
+          "false_positives": 0,
+          "attacks_expected": 5,
+          "attacks_detected": 5,
+          "precision": 1.0,
+          "recall": 1.0
+        },
+        "PRH-WIN-005": {
+          "alerts": 0,
+          "true_positives": 0,
+          "false_positives": 0,
+          "attacks_expected": 0,
+          "attacks_detected": 0,
+          "precision": null,
+          "recall": null
+        },
+        "PRH-WIN-006": {
+          "alerts": 0,
+          "true_positives": 0,
+          "false_positives": 0,
+          "attacks_expected": 0,
+          "attacks_detected": 0,
+          "precision": null,
+          "recall": null
         }
       },
       "scenarios": {
@@ -349,6 +406,13 @@
           }
         },
         "web-scanning": {
+          "runs": 5,
+          "attacks": 5,
+          "attacks_detected": 5,
+          "missed_by_rule": {},
+          "false_positives_by_rule": {}
+        },
+        "windows-signin": {
           "runs": 5,
           "attacks": 5,
           "attacks_detected": 5,
@@ -601,6 +665,60 @@
           "attacks_detected": 5,
           "precision": 1.0,
           "recall": 1.0
+        },
+        "PRH-WIN-001": {
+          "alerts": 0,
+          "true_positives": 0,
+          "false_positives": 0,
+          "attacks_expected": 5,
+          "attacks_detected": 0,
+          "precision": null,
+          "recall": 0.0
+        },
+        "PRH-WIN-002": {
+          "alerts": 0,
+          "true_positives": 0,
+          "false_positives": 0,
+          "attacks_expected": 5,
+          "attacks_detected": 0,
+          "precision": null,
+          "recall": 0.0
+        },
+        "PRH-WIN-003": {
+          "alerts": 5,
+          "true_positives": 5,
+          "false_positives": 0,
+          "attacks_expected": 5,
+          "attacks_detected": 5,
+          "precision": 1.0,
+          "recall": 1.0
+        },
+        "PRH-WIN-004": {
+          "alerts": 5,
+          "true_positives": 5,
+          "false_positives": 0,
+          "attacks_expected": 5,
+          "attacks_detected": 5,
+          "precision": 1.0,
+          "recall": 1.0
+        },
+        "PRH-WIN-005": {
+          "alerts": 0,
+          "true_positives": 0,
+          "false_positives": 0,
+          "attacks_expected": 0,
+          "attacks_detected": 0,
+          "precision": null,
+          "recall": null
+        },
+        "PRH-WIN-006": {
+          "alerts": 0,
+          "true_positives": 0,
+          "false_positives": 0,
+          "attacks_expected": 0,
+          "attacks_detected": 0,
+          "precision": null,
+          "recall": null
         }
       },
       "scenarios": {
@@ -685,6 +803,16 @@
           "attacks_detected": 5,
           "missed_by_rule": {
             "PRH-WEB-003": 5
+          },
+          "false_positives_by_rule": {}
+        },
+        "windows-signin": {
+          "runs": 5,
+          "attacks": 5,
+          "attacks_detected": 5,
+          "missed_by_rule": {
+            "PRH-WIN-001": 5,
+            "PRH-WIN-002": 5
           },
           "false_positives_by_rule": {}
         }
@@ -934,6 +1062,60 @@
           "attacks_detected": 5,
           "precision": 1.0,
           "recall": 1.0
+        },
+        "PRH-WIN-001": {
+          "alerts": 0,
+          "true_positives": 0,
+          "false_positives": 0,
+          "attacks_expected": 5,
+          "attacks_detected": 0,
+          "precision": null,
+          "recall": 0.0
+        },
+        "PRH-WIN-002": {
+          "alerts": 0,
+          "true_positives": 0,
+          "false_positives": 0,
+          "attacks_expected": 5,
+          "attacks_detected": 0,
+          "precision": null,
+          "recall": 0.0
+        },
+        "PRH-WIN-003": {
+          "alerts": 5,
+          "true_positives": 5,
+          "false_positives": 0,
+          "attacks_expected": 5,
+          "attacks_detected": 5,
+          "precision": 1.0,
+          "recall": 1.0
+        },
+        "PRH-WIN-004": {
+          "alerts": 5,
+          "true_positives": 5,
+          "false_positives": 0,
+          "attacks_expected": 5,
+          "attacks_detected": 5,
+          "precision": 1.0,
+          "recall": 1.0
+        },
+        "PRH-WIN-005": {
+          "alerts": 0,
+          "true_positives": 0,
+          "false_positives": 0,
+          "attacks_expected": 0,
+          "attacks_detected": 0,
+          "precision": null,
+          "recall": null
+        },
+        "PRH-WIN-006": {
+          "alerts": 0,
+          "true_positives": 0,
+          "false_positives": 0,
+          "attacks_expected": 0,
+          "attacks_detected": 0,
+          "precision": null,
+          "recall": null
         }
       },
       "scenarios": {
@@ -1021,6 +1203,16 @@
             "PRH-WEB-003": 5
           },
           "false_positives_by_rule": {}
+        },
+        "windows-signin": {
+          "runs": 5,
+          "attacks": 5,
+          "attacks_detected": 5,
+          "missed_by_rule": {
+            "PRH-WIN-001": 5,
+            "PRH-WIN-002": 5
+          },
+          "false_positives_by_rule": {}
         }
       }
     }
@@ -1033,20 +1225,20 @@
     "variants": {
       "default": {
         "without_suppressions": {
-          "alerts": 772,
-          "true_positives": 477,
+          "alerts": 807,
+          "true_positives": 512,
           "false_positives": 295,
-          "precision": 0.618,
-          "attacks": 40,
-          "attacks_detected": 40
+          "precision": 0.634,
+          "attacks": 45,
+          "attacks_detected": 45
         },
         "with_suppressions": {
-          "alerts": 767,
-          "true_positives": 477,
+          "alerts": 802,
+          "true_positives": 512,
           "false_positives": 290,
-          "precision": 0.622,
-          "attacks": 40,
-          "attacks_detected": 40
+          "precision": 0.638,
+          "attacks": 45,
+          "attacks_detected": 45
         },
         "rules": {
           "PRH-ADMIN-001": {
@@ -1062,20 +1254,20 @@
       },
       "heldout": {
         "without_suppressions": {
-          "alerts": 502,
-          "true_positives": 225,
+          "alerts": 512,
+          "true_positives": 235,
           "false_positives": 277,
-          "precision": 0.448,
-          "attacks": 40,
-          "attacks_detected": 40
+          "precision": 0.459,
+          "attacks": 45,
+          "attacks_detected": 45
         },
         "with_suppressions": {
-          "alerts": 497,
-          "true_positives": 225,
+          "alerts": 507,
+          "true_positives": 235,
           "false_positives": 272,
-          "precision": 0.453,
-          "attacks": 40,
-          "attacks_detected": 40
+          "precision": 0.464,
+          "attacks": 45,
+          "attacks_detected": 45
         },
         "rules": {
           "PRH-ADMIN-001": {
@@ -1091,20 +1283,20 @@
       },
       "heldout2": {
         "without_suppressions": {
-          "alerts": 546,
-          "true_positives": 272,
+          "alerts": 556,
+          "true_positives": 282,
           "false_positives": 274,
-          "precision": 0.498,
-          "attacks": 40,
-          "attacks_detected": 35
+          "precision": 0.507,
+          "attacks": 45,
+          "attacks_detected": 40
         },
         "with_suppressions": {
-          "alerts": 541,
-          "true_positives": 272,
+          "alerts": 551,
+          "true_positives": 282,
           "false_positives": 269,
-          "precision": 0.503,
-          "attacks": 40,
-          "attacks_detected": 35
+          "precision": 0.512,
+          "attacks": 45,
+          "attacks_detected": 40
         },
         "rules": {
           "PRH-ADMIN-001": {

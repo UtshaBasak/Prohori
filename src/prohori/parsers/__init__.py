@@ -17,8 +17,10 @@ from prohori.parsers.base import (
 )
 from prohori.parsers.detect import detect_format
 from prohori.parsers.generic_json import FieldMapping, GenericJsonParser, load_mapping
+from prohori.parsers.journald import JournaldParser
 from prohori.parsers.registry import available, get_parser, register
 from prohori.parsers.suricata_eve import SuricataEveParser
+from prohori.parsers.windows_security import WindowsSecurityParser
 from prohori.parsers.zeek_conn import ZeekConnParser
 
 __all__ = [
@@ -28,11 +30,13 @@ __all__ = [
     "AuthLogParser",
     "FieldMapping",
     "GenericJsonParser",
+    "JournaldParser",
     "LineParser",
     "ParseError",
     "ParseStats",
     "RawLine",
     "SuricataEveParser",
+    "WindowsSecurityParser",
     "ZeekConnParser",
     "available",
     "detect_format",

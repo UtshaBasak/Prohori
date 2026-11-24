@@ -47,6 +47,8 @@ def test_seed_one_matches_golden_results(rules: list[CompiledRule], tmp_path: Pa
         "PRH-NET-001",
         "PRH-NET-002",
         "PRH-NET-003",
+        "PRH-WIN-005",
+        "PRH-WIN-006",
     ]
 
 

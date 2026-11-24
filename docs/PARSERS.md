@@ -11,6 +11,8 @@ Parsers turn raw log lines into [common-schema events](SCHEMA.md). They live in
 | Generic JSON Lines | `generic_json` | Any JSON Lines, with a YAML field-mapping file | Available |
 | Suricata EVE | `suricata_eve` | `eve.json`: alert, http, dns, tls, ssh and flow records | Since 1.2 |
 | Zeek connections | `zeek_conn` | `conn.log` as tab-separated values with a `#fields` header, or Zeek JSON | Since 1.2 |
+| Windows Security events | `windows_security` | Winlogbeat, NXLog or PowerShell JSON, evtx_dump JSON, event XML; native `.evtx` with the `evtx` extra | Since 1.2 |
+| systemd journal | `journald` | `journalctl -o json` (sshd, sudo and PAM messages) | Since 1.2 |
 
 ## Command line
 
@@ -22,6 +24,9 @@ prohori parse samples/logs/payments.jsonl --parser generic_json \
     --mapping samples/mappings/payments.yaml
 prohori detect samples/logs/suricata-eve.json        # IDS alerts, web scanning seen on the wire
 prohori detect samples/logs/zeek-conn.log --lateness 15m  # port scan, large and long connections
+prohori detect samples/logs/windows-security.jsonl   # Windows password guessing, admin group, log cleared
+prohori detect Security.evtx                         # native .evtx (pip install "prohori[evtx]")
+journalctl -o json -u ssh --since today | prohori detect -
 ```
 
 | Option | Applies to | Meaning |
@@ -29,7 +34,7 @@ prohori detect samples/logs/zeek-conn.log --lateness 15m  # port scan, large and
 | `--parser`, `-p` | all | `auto` (default) or a parser name |
 | `--format`, `-f` | all | `table` (summary and the first `--limit` events) or `json` (events on standard output as JSON Lines, summary as JSON on standard error) |
 | `--year` | `auth_log` | Year of the first line (default: from the file date) |
-| `--timezone` | `auth_log` | IANA timezone for timestamps without an offset (default `UTC`) |
+| `--timezone` | `auth_log`, `windows_security` | IANA timezone for timestamps without an offset (default `UTC`) |
 | `--pattern` | `access_log` | Custom regular expression |
 | `--keep-query` | `access_log`, `suricata_eve` | Keep the query string in `http.path` |
 | `--mapping` | `generic_json` | YAML field-mapping file |
@@ -49,11 +54,15 @@ With `--parser auto`, up to 20 non-blank lines are classified and the most commo
 2. `zeek_conn`: a JSON object with `uid`, `conn_state` and the originator address (`id.orig_h`,
    or a nested `id` object); a Zeek header line (`#separator`, `#path conn`, `#fields ts ...`);
    or a tab-separated line that starts with epoch seconds and a connection uid (`C...`).
-3. `app_json`: a JSON object with a `time` string and an `event` object containing `action`.
-4. `generic_json`: any other JSON object. This needs a mapping file, so detection stops with a
+3. `windows_security`: a JSON object from Winlogbeat (`winlog`), NXLog (`EventID` with
+   `SourceName`, `ProviderName` or `Channel`), `Get-WinEvent` (`Id`, `TimeCreated`,
+   `ProviderName`) or evtx_dump (`Event.System`), or a line starting `<Event` or `<?xml`.
+4. `journald`: a JSON object with `__REALTIME_TIMESTAMP` and `MESSAGE`.
+5. `app_json`: a JSON object with a `time` string and an `event` object containing `action`.
+6. `generic_json`: any other JSON object. This needs a mapping file, so detection stops with a
    message asking for `--parser generic_json --mapping FILE`.
-5. `auth_log`: a syslog line (RFC 3164 or RFC 3339 timestamp, host, program).
-6. `access_log`: a combined or common log format line.
+7. `auth_log`: a syslog line (RFC 3164 or RFC 3339 timestamp, host, program).
+8. `access_log`: a combined or common log format line.
 
 Detection is a convenience. Use `--parser` in scripts.
 
@@ -70,6 +79,10 @@ Detection is a convenience. Use `--parser` in scripts.
   sanitises each column instead.
 - **Any encoding damage is survivable.** Input is decoded as UTF-8; invalid bytes become `U+FFFD`
   and the line is counted in `decode_errors`.
+- **UTF-16 files** (since 1.2): a file that starts with a UTF-16 byte-order mark, as Windows
+  PowerShell 5.1 writes with `>` or `Out-File`, is read as UTF-16 by `parse`, `detect`,
+  `incidents` and `triage` (not from standard input or by the pipeline). The reported SHA-256 and
+  size are the file's as stored.
 
 ### Statistics
 
@@ -378,6 +391,72 @@ Parses Zeek's connection log, `conn.log`. The layout follows the `Conn::Info` re
   ports, counts, flags and durations are counted as errors for their line. A `#fields` header
   with more than 64 columns, duplicate or invalid names, or without `ts`, `id.orig_h` and
   `id.resp_h` is an error, and data lines after it are errors until a valid header comes.
+
+## `windows_security`
+
+Parses Windows Security events exported from a computer or a log collector. Each line is
+recognised on its own, so one file may mix layouts:
+
+| Layout | How to get it | Recognised by |
+| ------ | ------------- | ------------- |
+| Winlogbeat or Elastic Agent JSON | the `winlog` input, written to a file or exported from Elasticsearch | `winlog.event_id`, `winlog.event_data` (`winlog.user_data` for 1102) |
+| NXLog JSON | `im_msvistalog` with `xm_json` (`to_json()`) | `EventID` and the event data as top-level keys; `EventTime` without an offset is read in `--timezone` |
+| PowerShell JSON | `Get-WinEvent -LogName Security \| ForEach-Object { $_ \| ConvertTo-Json -Compress }` (one event per line; the default `ConvertTo-Json` output of a whole array is not line-based) | `Id`, `ProviderName`, `TimeCreated` (`/Date(ms)/` from Windows PowerShell 5.1, ISO 8601 from PowerShell 7) and `Properties`, named by the event's documented template |
+| evtx_dump JSON | `evtx_dump -o jsonl` (the `evtx` project's tool) | `{"Event": {"System": ..., "EventData": ...}}` |
+| Event XML | `Get-WinEvent ... \| ForEach-Object { $_.ToXml() }` (one event per line), or Event Viewer's "Save as XML" (one event over several lines) | a line starting `<Event` |
+| Native `.evtx` | the file itself, with `pip install "prohori[evtx]"` | the `.evtx` file extension (`parse`, `detect`, `incidents` and `triage`) |
+
+| Event | `event.action` | Category | Notes |
+| ----- | -------------- | -------- | ----- |
+| 4624 | `windows.logon.success` | `authentication` | `user.name`/`user.id` the account signed in; `source.ip` the client; `extra.logon_type` and `extra.logon_type_name` (`network`, `remote_interactive`, ...), `extra.workstation`, `extra.auth_package` |
+| 4625 | `windows.logon.failure` | `authentication` | as 4624; `event.reason` from `Status`/`SubStatus`: `bad_password`, `unknown_user`, `locked`, `disabled`, `expired`, ... (`auth_failed` otherwise) |
+| 4634, 4647 | `windows.logoff` | `session` | 4647 (the user logged off) has `extra.user_initiated` |
+| 4672 | `windows.logon.special_privileges` | `authorization` | `extra.privileges` |
+| 4720, 4722, 4726 | `windows.account.created`, `.enabled`, `.deleted` | `account` | `user.name` the account; `extra.subject_user` who did it |
+| 4728, 4732, 4756 | `windows.group.member_added` | `account` | `user.name` who did it; `extra.group_name`, `extra.group_sid`, `extra.group_scope` (`global`, `local`, `universal`), `extra.member_name`, `extra.member_sid` |
+| 4740 | `windows.account.locked_out` | `authentication` | `user.name` the account; `extra.caller_computer` the computer the failures came from |
+| 1102 | `windows.log.cleared` | `admin` | `user.name` who cleared it (from `UserData`) |
+
+Other event ids, and the same ids from another provider, are counted as skipped. `host` is the
+computer name in lower case and `log_source` is `windows-security`; every event keeps
+`extra.event_id`, `extra.record_id` and `extra.channel`.
+
+- **One mapping.** Every layout first becomes a format-independent record (provider, event id,
+  time, computer and the event data by name), which `prohori.parsers.windows` maps to an
+  event. The live Windows readers of a later step reuse it.
+- **Templates.** Field names follow Microsoft's event documentation (Windows 10 and Server 2016
+  or later; 4624 version 2). Templates only add fields at the end, so older versions map too.
+  The PowerShell layout gives values by position only, so they are named by these templates.
+- **Empty values.** `-`, the null SID `S-1-0-0` and `%%1793` mean "none" and are left out.
+- **XML safety.** XML with a `DOCTYPE` or an entity declaration is refused before it is
+  parsed. An event spread over lines may be at most 65,536 characters; a line holding more than
+  one event is an error (write one event per line).
+- **`.evtx` files** are read record by record by the `evtx` package (MIT licence; wheels for
+  Windows, macOS and Linux; ADR-0045) and parsed like evtx_dump JSON. A damaged record is
+  counted as an error and the rest of the file is still read; the report's SHA-256 is that of
+  the `.evtx` file. The streaming pipeline reads text logs only: convert `.evtx` files first
+  (`evtx_dump -o jsonl`).
+- Names are kept as Windows logged them; Windows compares account names without regard to case,
+  so `Administrator` and `administrator` are one account to Windows but two values to a rule.
+
+## `journald`
+
+Parses the systemd journal exported as JSON, one entry per line (`journalctl -o json`, also
+with `-u ssh`, `--since`, `-f`). sshd, sudo and PAM messages go through the **same message
+parsers as `auth_log`**, so the same sshd message gives the same event whether it was read from
+`/var/log/auth.log` or from the journal (only the event id differs), and the same alerts: a
+test checks this on the samples.
+
+| Journal field | Use |
+| ------------- | --- |
+| `__REALTIME_TIMESTAMP` | the time, in microseconds since the Unix epoch (always UTC, so no `--year` or `--timezone` is needed) |
+| `SYSLOG_IDENTIFIER` (or `_COMM`) | the program: `sshd`, `sshd-session` (OpenSSH 9.8 and later), `sudo` |
+| `SYSLOG_PID` (or `_PID`) | the process id |
+| `_HOSTNAME` | `host` |
+| `MESSAGE` | the message; journalctl writes a message that is not valid UTF-8 as a list of byte values, which is decoded with replacement characters |
+
+Entries of other programs are counted as skipped. The Linux sensors of a later step read the
+journal live with the same mapping.
 
 ## Testing and fuzzing
 

@@ -1,0 +1,26 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+# Copyright (c) 2026 Utsha Basak
+id: PRH-WIN-004
+title: Account added to a Windows administrators group
+status: test
+severity: high
+description: >-
+  An account was added to a privileged group (events 4728, 4732, 4756): the local or built-in
+  Administrators group (S-1-5-32-544) or the domain's Domain Admins (-512), Schema Admins
+  (-518) or Enterprise Admins (-519). Attackers who reach an admin session add an account they
+  control, so every addition should be confirmed. Groups are matched by SID, so renamed or
+  translated groups are caught; the English names are matched too, for exports without SIDs.
+author: Prohori
+tags: [attack.persistence, attack.privilege_escalation, attack.t1098, attack.t1098.007]
+logsource: {category: account}
+detection:
+  addition:
+    event.action: windows.group.member_added
+  privileged:
+    - extra.group_sid: S-1-5-32-544
+    - extra.group_sid|endswith: ['-512', '-518', '-519']
+    - extra.group_name: [Administrators, Domain Admins, Schema Admins, Enterprise Admins]
+  condition: addition and privileged
+falsepositives:
+  - Planned onboarding of a new administrator (record it as a suppression with an expiry date)
+response: runbooks/windows-admin-group-addition.md

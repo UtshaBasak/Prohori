@@ -1,4 +1,4 @@
-                                            Rules (27)
+                                            Rules (33)
 +---------------+----------+--------------+---------------------------+---------------------------+
 | id            | severity | status       | title                     | ATT&CK                    |
 +---------------+----------+--------------+---------------------------+---------------------------+
@@ -82,4 +82,22 @@
 |               |          |              | rate                      |                           |
 | PRH-WEB-004   | medium   | stable       | Probes for sensitive      | attack.reconnaissance,    |
 |               |          |              | files and admin tools     | attack.t1595.003          |
+| PRH-WIN-001   | high     | test         | Windows sign-in failures  | attack.credential_access, |
+|               |          |              | from one source           | attack.t1110,             |
+|               |          |              |                           | attack.t1110.001          |
+| PRH-WIN-002   | high     | test         | Windows sign-in failures  | attack.credential_access, |
+|               |          |              | for many accounts from    | attack.t1110.003          |
+|               |          |              | one source                |                           |
+| PRH-WIN-003   | critical | test         | Windows sign-in after     | attack.credential_access, |
+|               |          |              | many failures from one    | attack.t1110,             |
+|               |          |              | source                    | attack.initial_access,    |
+|               |          |              |                           | attack.t1078              |
+| PRH-WIN-004   | high     | test         | Account added to a        | attack.persistence,       |
+|               |          |              | Windows administrators    | attack.privilege_escalati |
+|               |          |              | group                     | on, attack.t1098,         |
+|               |          |              |                           | attack.t1098.007          |
+| PRH-WIN-005   | high     | experimental | Windows Security log      | attack.defense_impairment |
+|               |          |              | cleared                   | , attack.t1685.005        |
+| PRH-WIN-006   | high     | experimental | Windows account lockouts  | attack.credential_access, |
+|               |          |              | across many accounts      | attack.t1110              |
 +---------------+----------+--------------+---------------------------+---------------------------+

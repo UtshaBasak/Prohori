@@ -1,5 +1,5 @@
 version = 1
-revision = 5
+revision = 3
 requires-python = ">=3.11"
 resolution-markers = [
     "python_full_version >= '3.15' and sys_platform == 'win32'",
@@ -1078,6 +1078,27 @@ wheels = [
 ]
 
 [[package]]
+name = "evtx"
+version = "0.15.0"
+source = { registry = "https://pypi.org/simple" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/f5/73/8c44dedc1c16da90f8c17709e2afe0d57b4287e47240598479dcda1206d3/evtx-0.15.0-cp310-abi3-macosx_10_12_x86_64.macosx_11_0_arm64.macosx_10_12_universal2.whl", hash = "sha256:95b6f0e9605fe15f40f8590db69e7de5919a7f05b26050e67c64b559c4f858a4", size = 1967539, upload-time = "2026-11-01T08:11:26.776Z" },
+    { url = "https://files.pythonhosted.org/packages/33/cb/8b42ff4c1afa74ae38aa47f822d2883a6814418f46f57311eff4b7002eca/evtx-0.15.0-cp310-abi3-macosx_11_0_arm64.whl", hash = "sha256:f6984eaaf9673d923d615624f28029823737a6bf1929f9b89b05481d7afab06d", size = 1015275, upload-time = "2026-11-01T08:11:28.427Z" },
+    { url = "https://files.pythonhosted.org/packages/d8/dc/f03e29b13b86c9e848b9a77402595f2ba6cff703247c25fff9ef946fdc3b/evtx-0.15.0-cp310-abi3-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:92f45fffa578dc50505449e2d85584fb556e786d11579fb15174bf528f660914", size = 970360, upload-time = "2026-11-01T08:11:29.605Z" },
+    { url = "https://files.pythonhosted.org/packages/d2/8c/b1ee8197e724ab4630c1e71550e9f4f9ff2db7d3ae93bfd164b65e218da2/evtx-0.15.0-cp310-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:d7878b3bdf3f8b0f35d97eaf91fdc6f1c929bacbab8894aec0e5deae9364a345", size = 1152328, upload-time = "2026-11-01T08:11:31.054Z" },
+    { url = "https://files.pythonhosted.org/packages/12/98/0b5f1bd3426157fe27fabea43804bdef6f42500fc194faf8957d2f3429b2/evtx-0.15.0-cp310-abi3-musllinux_1_2_aarch64.whl", hash = "sha256:67e5aac675445e8dc2196a5785188c52290ab3d5c5eb247e4c06b1e769634425", size = 968524, upload-time = "2026-11-01T08:11:32.212Z" },
+    { url = "https://files.pythonhosted.org/packages/86/b4/8b8db90ff2232eeaaa4d9efacd50f6afb10d02daad5a1fe534c8ed77f22d/evtx-0.15.0-cp310-abi3-musllinux_1_2_x86_64.whl", hash = "sha256:c43d8d081257297bad1804b66b80469ec716a94ac4c1e8cb8bcd2182542087c1", size = 1016767, upload-time = "2026-11-01T08:11:33.43Z" },
+    { url = "https://files.pythonhosted.org/packages/d8/ae/39eae06a06f5cf51fc235b3f4d2c343099ba5996f29a66ff62bc3eb25457/evtx-0.15.0-cp310-abi3-win_amd64.whl", hash = "sha256:c20a8c17bb0cc4ec77814c4af33210f32daf679619f1e898c6de8ee5e69b941d", size = 860375, upload-time = "2026-11-01T08:11:34.829Z" },
+    { url = "https://files.pythonhosted.org/packages/66/78/eaa89c019c42425a8e08fc64d62a387b1642aab913ff53b79d3d9d899ab6/evtx-0.15.0-cp314-cp314t-macosx_10_12_x86_64.macosx_11_0_arm64.macosx_10_12_universal2.whl", hash = "sha256:d321c6fe5b60e4df9810207bdd44d33c33cf29402d87b8dad868b95b4f8efc83", size = 1959800, upload-time = "2026-11-01T08:11:36.242Z" },
+    { url = "https://files.pythonhosted.org/packages/f9/23/19914b8fbd232c12916aa4f3f0b304bc5fb82ed489c86adc7264fd000723/evtx-0.15.0-cp314-cp314t-macosx_11_0_arm64.whl", hash = "sha256:20b47edcc2ea38f6205cd42a4982e60cac65ee931264a3011484056da56f0126", size = 1005526, upload-time = "2026-11-01T08:11:37.434Z" },
+    { url = "https://files.pythonhosted.org/packages/d5/ce/bd5e83d37efcc5c0da9c88668ccb4b7dee42d048a7d696d3631ee6ed968f/evtx-0.15.0-cp314-cp314t-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:35910f8adb0a89a5a67b2272f397561ff8757624b9ef46c46a80da2da4b3d556", size = 964384, upload-time = "2026-11-01T08:11:38.566Z" },
+    { url = "https://files.pythonhosted.org/packages/a8/85/1ec9b7ac63fa0fadbbb77d376a7b6219f93db8c45ba1f696a3b78eb6177e/evtx-0.15.0-cp314-cp314t-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:dc93dae0bcbd3764f0cfd62e5d4db33fb9cea5da429d64d965ad2f98cd8e3790", size = 1141564, upload-time = "2026-11-01T08:11:39.75Z" },
+    { url = "https://files.pythonhosted.org/packages/01/ee/f1ef7f3a0f220579d907512e226ea514d9deca87feb6ddc2ea4d61826b06/evtx-0.15.0-cp314-cp314t-musllinux_1_2_aarch64.whl", hash = "sha256:b842eb1591f2de63deda406ba41abe9733066921fb5a019e2baf8d4f5604f936", size = 962729, upload-time = "2026-11-01T08:11:41.088Z" },
+    { url = "https://files.pythonhosted.org/packages/82/31/084fe97c4721ff8ef726d6bbbe7cee4f466ca13425ff31e464530dd36759/evtx-0.15.0-cp314-cp314t-musllinux_1_2_x86_64.whl", hash = "sha256:9502eb026a3ec568a34b5f7688087f63046660388496a30e7286c8ce890b2df2", size = 1009904, upload-time = "2026-11-01T08:11:42.262Z" },
+    { url = "https://files.pythonhosted.org/packages/43/72/9f97ab1f62570d5ffd3644d5ec6d8a92b8e77999a28c3071d40a3ae0f0b8/evtx-0.15.0-cp314-cp314t-win_amd64.whl", hash = "sha256:f878826069cface29935be0b4f8456a3a4e5de25177bd48b99997be4c83e6df4", size = 850865, upload-time = "2026-11-01T08:11:43.46Z" },
+]
+
+[[package]]
 name = "filelock"
 version = "4.2.4"
 source = { registry = "https://pypi.org/simple" }
@@ -1323,8 +1344,8 @@ name = "httpcore2"
 version = "2.16.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "h11" },
-    { name = "truststore" },
+    { name = "h11", marker = "sys_platform != 'emscripten'" },
+    { name = "truststore", marker = "sys_platform != 'emscripten'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/c0/61/afa9d6b7452f9eca73f73d45324eb0bb52f098fd5e6049bf6b8263be9b4e/httpcore2-2.16.0.tar.gz", hash = "sha256:c72cd0413563b17e1cd8354677dff887466f8ec2551679759e93126534428643", size = 69886, upload-time = "2026-10-21T07:09:45.31Z" }
 wheels = [
@@ -2718,6 +2739,7 @@ dependencies = [
 all = [
     { name = "confluent-kafka" },
     { name = "duckdb" },
+    { name = "evtx" },
     { name = "geoip2" },
     { name = "google-genai" },
     { name = "joblib" },
@@ -2726,6 +2748,9 @@ all = [
     { name = "pyarrow" },
     { name = "scikit-learn" },
     { name = "skops" },
+]
+evtx = [
+    { name = "evtx" },
 ]
 geoip = [
     { name = "geoip2" },
@@ -2779,6 +2804,8 @@ requires-dist = [
     { name = "confluent-kafka", marker = "extra == 'pipeline'", specifier = ">=2.6" },
     { name = "duckdb", marker = "extra == 'all'", specifier = ">=1.1" },
     { name = "duckdb", marker = "extra == 'pipeline'", specifier = ">=1.1" },
+    { name = "evtx", marker = "extra == 'all'", specifier = ">=0.15,<0.16" },
+    { name = "evtx", marker = "extra == 'evtx'", specifier = ">=0.15,<0.16" },
     { name = "geoip2", marker = "extra == 'all'", specifier = ">=5.0" },
     { name = "geoip2", marker = "extra == 'geoip'", specifier = ">=5.0" },
     { name = "google-genai", marker = "extra == 'all'", specifier = ">=2.31" },
@@ -2804,7 +2831,7 @@ requires-dist = [
     { name = "typer", specifier = ">=0.15" },
     { name = "tzdata", specifier = ">=2024.1" },
 ]
-provides-extras = ["all", "geoip", "llm", "ml", "pipeline"]
+provides-extras = ["all", "evtx", "geoip", "llm", "ml", "pipeline"]
 
 [package.metadata.requires-dev]
 dbt = [
@@ -3907,7 +3934,7 @@ resolution-markers = [
     "python_full_version < '3.12' and sys_platform != 'emscripten' and sys_platform != 'win32'",
 ]
 dependencies = [
-    { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" } },
+    { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/7a/97/5a3609c4f8d58b039179648e62dd220f89864f56f7357f5d4f45c29eb2cc/scipy-1.17.1.tar.gz", hash = "sha256:95d8e012d8cb8816c226aef832200b1d45109ed4464303e997c5b13122b297c0", size = 30573822, upload-time = "2026-02-23T00:26:24.851Z" }
 wheels = [
@@ -3989,7 +4016,7 @@ resolution-markers = [
     "python_full_version >= '3.12' and python_full_version < '3.14' and sys_platform != 'emscripten' and sys_platform != 'win32'",
 ]
 dependencies = [
-    { name = "numpy", version = "2.5.4", source = { registry = "https://pypi.org/simple" } },
+    { name = "numpy", version = "2.5.4", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/7e/74/66de6258867beb2ef08f35f9f2ac017a52cacd5081714d239ff1a442d458/scipy-1.18.1.tar.gz", hash = "sha256:52c4b7422442aba924d03ad4019852b08a92e64ea187b933135687bfe2747307", size = 30781235, upload-time = "2026-08-21T23:28:50.599Z" }
 wheels = [

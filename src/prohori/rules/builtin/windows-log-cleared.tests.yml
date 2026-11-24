@@ -1,0 +1,29 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+# Copyright (c) 2026 Utsha Basak
+rule: PRH-WIN-005
+start: 2026-10-24T14:00:00Z
+defaults:
+  log_source: windows-security
+  event.category: admin
+  event.outcome: success
+  user.name: administrator
+  host: dc01.corp.example
+cases:
+  - name: a cleared Security log alerts
+    expect: {alerts: 1, entities: [{user.name: administrator, host: dc01.corp.example}]}
+    events:
+      - {event.action: windows.log.cleared}
+
+  - name: other admin events do not alert
+    expect: {alerts: 0}
+    events:
+      - {event.action: windows.group.member_added, event.category: account}
+      - {event.action: windows.account.created, event.category: account}
+
+  - name: Winlogbeat and XML records
+    expect: {alerts: 2, entities: [{user.name: administrator}]}
+    log:
+      parser: windows_security
+      lines:
+        - '{"@timestamp":"2026-10-24T14:00:00.000Z","winlog":{"channel":"Security","computer_name":"DC01.corp.example","event_id":"1102","provider_name":"Microsoft-Windows-Eventlog","record_id":"1","user_data":{"SubjectUserSid":"S-1-5-21-1-2-3-500","SubjectUserName":"administrator","SubjectDomainName":"CORP","SubjectLogonId":"0x9b3c10","xml_name":"LogFileCleared"}}}'
+        - '<Event xmlns="http://schemas.microsoft.com/win/2004/08/events/event"><System><Provider Name="Microsoft-Windows-Eventlog"/><EventID>1102</EventID><TimeCreated SystemTime="2026-10-24T14:01:00.0000000Z"/><Channel>Security</Channel><Computer>DC01.corp.example</Computer></System><UserData><LogFileCleared xmlns="http://manifests.microsoft.com/win/2004/08/windows/eventlog"><SubjectUserSid>S-1-5-21-1-2-3-500</SubjectUserSid><SubjectUserName>administrator</SubjectUserName><SubjectDomainName>CORP</SubjectDomainName><SubjectLogonId>0x9b3c10</SubjectLogonId></LogFileCleared></UserData></Event>'

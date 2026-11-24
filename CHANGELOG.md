@@ -22,6 +22,22 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   PRH-NET-003 long outbound connection (8 hours). Fixtures, runbooks and verified ATT&CK tags
   (T1046, T1595, T1048, T1071); the passthrough rules carry no technique of their own.
 - Hand-written samples: `samples/logs/suricata-eve.json`, `zeek-conn.log` and `zeek-conn.json`.
+- **Windows Security events.** A `windows_security` parser for Winlogbeat, NXLog and PowerShell
+  JSON, evtx_dump JSON and event XML (one event per line or over several lines): sign-ins
+  (4624, 4625 with the failure reason and logon type), logoffs, special privileges (4672),
+  account changes (4720, 4722, 4726), group membership (4728, 4732, 4756), lockouts (4740) and a
+  cleared log (1102). One format-independent mapping (`prohori.parsers.windows`) for every
+  layout. Native `.evtx` files with the new `evtx` extra (ADR-0045).
+- **systemd journal.** A `journald` parser for `journalctl -o json`; sshd, sudo and PAM messages
+  go through the same code as `auth_log`, so they give the same alerts.
+- **Six Windows rules:** PRH-WIN-001 (sign-in failures from one source), PRH-WIN-002 (many
+  accounts from one source), PRH-WIN-003 (a sign-in after failures), PRH-WIN-004 (an account
+  added to an administrators group, matched by SID), PRH-WIN-005 (Security log cleared,
+  experimental) and PRH-WIN-006 (lockouts across accounts, experimental); fixtures, runbooks
+  and ATT&CK (T1098.007, T1685.005 added).
+- **A ninth simulator scenario,** `windows-signin`, with default and held-out variants. The
+  held-out variants are missed by PRH-WIN-001 and PRH-WIN-002 and caught by PRH-WIN-003 and
+  PRH-WIN-004. The before-and-after comparison with the frozen baselines leaves it out.
 
 ### Changed
 

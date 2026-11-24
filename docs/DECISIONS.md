@@ -2203,3 +2203,60 @@ alerts each have their own technique, and both sensors write a connection's reco
 false positives; the passthrough rules inherit Suricata's own noise (one Prohori alert per
 Suricata alert). Until step 34b, rules written against the `extra` keys must be updated when the
 schema fields arrive.
+
+## ADR-0045: Windows Security events, the systemd journal and native .evtx files
+
+- **Date:** 2026-11-24
+- **Status:** Accepted
+
+**Context.** Step 34 makes Windows and modern Linux hosts first-class inputs. Windows events
+arrive in many layouts (Winlogbeat, NXLog, PowerShell, event XML, `.evtx`), and the live readers
+of step 46 will produce a fourth. Recent Linux distributions log sshd to the journal rather than
+`/var/log/auth.log`. The plan allowed native `.evtx` only behind an extra, and only if a
+maintained, permissively licensed wheel exists for all three operating systems.
+
+**Decision.**
+
+- **One mapping, many layouts.** Each layout builds a format-independent `WindowsRecord`
+  (provider, event id, time, computer, event data by name); `prohori.parsers.windows.to_event`
+  maps it. One `windows_security` parser recognises the layout per line, so mixed exports work.
+  PowerShell's `Properties` carry values by position, named by the event templates documented by
+  Microsoft (checked against the 4624, 4625, 4634, 4647, 4672, 4720, 4722, 4726, 4732, 4740 and
+  1102 pages; 4728 and 4756 use 4732's template).
+- **Actions of their own.** Windows sign-ins are `windows.logon.*`, not `auth.signin.*`, so the
+  web-app and SSH rules and their measured results do not change; six `PRH-WIN-*` rules use
+  them, with the same thresholds as the app and SSH sign-in rules.
+- **XML without a hardened library.** The standard library parser is used, and any XML with a
+  `DOCTYPE` or an entity declaration is refused before parsing, which removes entity expansion
+  and external entities. An event over several lines is buffered up to 64 KiB.
+- **`.evtx` behind the `evtx` extra.** The `evtx` package (0.15.0 of 2026-11-01, MIT, abi3 wheels
+  for Windows x64, macOS x64 and arm64, Linux x64 and arm64, monthly releases in 2026) meets the
+  condition; it is still classified "Alpha" by its authors, one more reason to keep it optional. It is read in `parse`, `detect`, `incidents` and `triage` by turning each record
+  into an evtx_dump JSON line; a damaged record is one counted error; the reported SHA-256 is the
+  file's. Checked by hand on the evtx project's public sample files (not committed), including
+  one with a damaged chunk; the tests use a fake module, so the extra is not a test dependency.
+- **The journal reuses `auth_log`.** `parse_auth_message` is the one place sshd, sudo and PAM
+  messages are read; `journald` passes the journal's fields to it, so the same message gives the
+  same event and the same alerts. A test checks the samples.
+- **A Windows scenario, scored like the others.** `windows-signin` (remote-desktop spraying and
+  guessing, a sign-in, an account added to Administrators) joins the simulator with default,
+  held-out and held-out 2 variants. Its background rates were set from what an office server
+  sees; after the first scoring of the **default** variant, two were found unrealistic (a typo
+  rate of three per person an hour and a phone failing twice a minute) and lowered to one typo
+  per person every two hours and one sync every 15 minutes. The held-out variants were scored
+  once, after that.
+- **Frozen studies stay frozen.** The 1.0 and step-28b baselines, the anomaly-detector study
+  (`ml.logeval`) and the LLM evaluation cases were made on the eight earlier scenarios. The
+  comparison table leaves the new scenario out (and says so), `logeval` and the case builder
+  keep their scenario list, so the recorded Gemini answers stay valid.
+
+- **Group changes are account events.** 4728, 4732 and 4756 are category `account` (Windows
+  audits them under Account Management); only 1102 is `admin`. As `admin`, every new account's
+  automatic addition to `Users` raised PRH-ADMIN-002 at night: on the evtx project's
+  `security.evtx`, 8 such alerts against 3 real administrator additions.
+- **UTF-16 files.** Windows PowerShell 5.1 writes UTF-16 with a byte-order mark by default, so
+  `parse`, `detect`, `incidents` and `triage` read a file that starts with one as UTF-16.
+
+**Consequences.** Nine scenarios, 33 rules. PRH-WIN-005 and PRH-WIN-006 are experimental (the
+scenario does not exercise them). PRH-ADMIN-002 also covers a cleared Windows log at night. The
+pipeline reads text logs only, so `.evtx` files are converted first there.

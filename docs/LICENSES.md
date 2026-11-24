@@ -139,6 +139,7 @@ from PyPI.
 | duckdb | `pipeline` extra | MIT |
 | psycopg, psycopg-binary | `pipeline` extra | LGPL 3.0 |
 | google-genai | `llm` extra | Apache 2.0 |
+| evtx | `evtx` extra | MIT |
 
 Their dependencies, installed with them, are under permissive licences (MIT, BSD, Apache 2.0,
 ISC, PSF) except **certifi** (MPL 2.0) and **psycopg** above. Both are used unmodified as

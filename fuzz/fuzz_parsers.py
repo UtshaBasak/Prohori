@@ -21,9 +21,11 @@ with atheris.instrument_imports():
         AuthLogParser,
         FieldMapping,
         GenericJsonParser,
+        JournaldParser,
         LineParser,
         ParseStats,
         SuricataEveParser,
+        WindowsSecurityParser,
         ZeekConnParser,
         read_lines,
     )
@@ -44,6 +46,8 @@ _PARSERS: list[LineParser] = [
     GenericJsonParser(mapping=_MAPPING),
     SuricataEveParser(),
     ZeekConnParser(),
+    WindowsSecurityParser(),
+    JournaldParser(),
 ]
 
 
