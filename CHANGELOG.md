@@ -195,8 +195,10 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
     fall to 0.05, 0.03 and 0 for the fixed thresholds (0, 0.35 and 0.93), because fewer
     customers share one address.
   - LLM evaluation: every simulated case was rebuilt and its reference rewritten; the offline
-    baselines were recorded again. 22 Gemini answers were recorded for the old incidents and are
-    marked stale, which moves Gemini's accepted and error counts until it is recorded again.
+    baselines were recorded again. Gemini (gemini-3.5-flash-lite) was then recorded again on
+    all 31 cases (36 requests over four free-tier days, none stale): every answer passed the
+    checks, none made a factual error, it named all 115 reference indicators, covered 91 of 93
+    points and followed none of the 8 injections.
   - Golden files and counts taken from simulated logs (pipeline replays, digests, labels) and
     the performance results follow the new logs.
 - A 24-hour rule makes the streaming incident hold time 24 h 35 min; following live logs now

@@ -600,9 +600,7 @@ errors, missing indicators and whether injected instructions were followed:
 
 | Model | Recorded | Answers accepted | With a factual error | Indicators named | Points covered |
 | ------- | ---------- | ------: | ------: | ------: | ------: |
-| Gemini (gemini-3.5-flash-lite) | 2026-11-02 | 8/30 | 22/30 | 70/113 | 84/90 |
-
-Gemini (gemini-3.5-flash-lite) answered 30 of the 31 cases; 22 of its answers were recorded for an older version of their incident and are replayed against today's, which can count as errors the original answer did not make. Recording again needs an API key.
+| Gemini (gemini-3.5-flash-lite) | 2026-11-21 | 31/31 | 0/31 | 115/115 | 91/93 |
 
 | System | Injections the answer followed | Followed and shown to the analyst |
 | -------- | ------: | ------: |
