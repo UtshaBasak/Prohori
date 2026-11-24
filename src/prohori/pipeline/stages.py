@@ -248,7 +248,7 @@ class ParserSettings:
             return get_parser(name, pattern=self.pattern, keep_query=self.keep_query)
         if name == "suricata_eve":
             return get_parser(name, keep_query=self.keep_query)
-        if name == "windows_security":
+        if name in {"windows_security", "sysmon"}:
             return get_parser(name, timezone=self.timezone)
         if name == "generic_json":
             if self.mapping is None:

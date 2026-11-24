@@ -11,7 +11,7 @@ uploads by staff do the same, so the destination and the host decide.
 ## Triage
 
 1. Identify the internal host and who uses it, and the destination address and port
-   (`extra.destination_ip`, `extra.destination_port`, `extra.app_protocol`).
+   (`destination.ip`, `destination.port`, `extra.app_protocol`).
 2. Look up the destination: the organisation's backup or cloud provider, a file-sharing service,
    or an unknown host.
 3. Check the time and duration (`extra.start_time`, `extra.duration`) against the host's usual

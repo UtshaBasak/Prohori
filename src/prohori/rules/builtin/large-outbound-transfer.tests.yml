@@ -8,7 +8,7 @@ defaults:
   event.action: network.flow
   event.outcome: success
   source.ip: 192.0.2.30
-  extra.destination_ip: 203.0.113.200
+  destination.ip: 203.0.113.200
   extra.transport: tcp
 cases:
   - name: an outbound connection alerts
@@ -31,13 +31,13 @@ cases:
   - name: without a direction, a private source to a public destination alerts
     expect: {alerts: 1, entities: [{source.ip: 10.20.0.5}]}
     events:
-      - {extra.bytes_out: 500000000, source.ip: 10.20.0.5, extra.destination_ip: 203.0.113.200}
+      - {extra.bytes_out: 500000000, source.ip: 10.20.0.5, destination.ip: 203.0.113.200}
 
   - name: without a direction, private to private does not alert
     expect: {alerts: 0}
     events:
-      - {extra.bytes_out: 500000000, source.ip: 10.20.0.5, extra.destination_ip: 192.168.1.20}
-      - {extra.bytes_out: 500000000, source.ip: 'fd00::5', extra.destination_ip: 'fd00::9'}
+      - {extra.bytes_out: 500000000, source.ip: 10.20.0.5, destination.ip: 192.168.1.20}
+      - {extra.bytes_out: 500000000, source.ip: 'fd00::5', destination.ip: 'fd00::9'}
 
   - name: without a direction, a public source does not alert
     expect: {alerts: 0}
@@ -47,7 +47,7 @@ cases:
   - name: a direction from the sensor wins over private addresses
     expect: {alerts: 0}
     events:
-      - {extra.bytes_out: 500000000, source.ip: 10.20.0.5, extra.destination_ip: 203.0.113.200, extra.direction: internal}
+      - {extra.bytes_out: 500000000, source.ip: 10.20.0.5, destination.ip: 203.0.113.200, extra.direction: internal}
 
   - name: other events with the same field do not alert (bytes)
     expect: {alerts: 0}

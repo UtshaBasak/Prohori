@@ -8,186 +8,186 @@ defaults:
   event.action: network.flow
   event.outcome: failure
   source.ip: 203.0.113.66
-  extra.destination_ip: 192.0.2.10
+  destination.ip: 192.0.2.10
   extra.transport: tcp
 cases:
   - name: unanswered connections to 25 distinct ports alert
     expect: {alerts: 1, entities: [{source.ip: 203.0.113.66}]}
     events:
-      - {extra.destination_port: 21, after: 1s}
-      - {extra.destination_port: 22, after: 1s}
-      - {extra.destination_port: 23, after: 1s}
-      - {extra.destination_port: 25, after: 1s}
-      - {extra.destination_port: 53, after: 1s}
-      - {extra.destination_port: 80, after: 1s}
-      - {extra.destination_port: 110, after: 1s}
-      - {extra.destination_port: 111, after: 1s}
-      - {extra.destination_port: 135, after: 1s}
-      - {extra.destination_port: 139, after: 1s}
-      - {extra.destination_port: 143, after: 1s}
-      - {extra.destination_port: 389, after: 1s}
-      - {extra.destination_port: 443, after: 1s}
-      - {extra.destination_port: 445, after: 1s}
-      - {extra.destination_port: 465, after: 1s}
-      - {extra.destination_port: 587, after: 1s}
-      - {extra.destination_port: 993, after: 1s}
-      - {extra.destination_port: 995, after: 1s}
-      - {extra.destination_port: 1433, after: 1s}
-      - {extra.destination_port: 1521, after: 1s}
-      - {extra.destination_port: 2049, after: 1s}
-      - {extra.destination_port: 3306, after: 1s}
-      - {extra.destination_port: 3389, after: 1s}
-      - {extra.destination_port: 5432, after: 1s}
-      - {extra.destination_port: 5900, after: 1s}
+      - {destination.port: 21, after: 1s}
+      - {destination.port: 22, after: 1s}
+      - {destination.port: 23, after: 1s}
+      - {destination.port: 25, after: 1s}
+      - {destination.port: 53, after: 1s}
+      - {destination.port: 80, after: 1s}
+      - {destination.port: 110, after: 1s}
+      - {destination.port: 111, after: 1s}
+      - {destination.port: 135, after: 1s}
+      - {destination.port: 139, after: 1s}
+      - {destination.port: 143, after: 1s}
+      - {destination.port: 389, after: 1s}
+      - {destination.port: 443, after: 1s}
+      - {destination.port: 445, after: 1s}
+      - {destination.port: 465, after: 1s}
+      - {destination.port: 587, after: 1s}
+      - {destination.port: 993, after: 1s}
+      - {destination.port: 995, after: 1s}
+      - {destination.port: 1433, after: 1s}
+      - {destination.port: 1521, after: 1s}
+      - {destination.port: 2049, after: 1s}
+      - {destination.port: 3306, after: 1s}
+      - {destination.port: 3389, after: 1s}
+      - {destination.port: 5432, after: 1s}
+      - {destination.port: 5900, after: 1s}
 
   - name: 24 distinct ports do not alert
     expect: {alerts: 0}
     events:
-      - {extra.destination_port: 21, after: 1s}
-      - {extra.destination_port: 22, after: 1s}
-      - {extra.destination_port: 23, after: 1s}
-      - {extra.destination_port: 25, after: 1s}
-      - {extra.destination_port: 53, after: 1s}
-      - {extra.destination_port: 80, after: 1s}
-      - {extra.destination_port: 110, after: 1s}
-      - {extra.destination_port: 111, after: 1s}
-      - {extra.destination_port: 135, after: 1s}
-      - {extra.destination_port: 139, after: 1s}
-      - {extra.destination_port: 143, after: 1s}
-      - {extra.destination_port: 389, after: 1s}
-      - {extra.destination_port: 443, after: 1s}
-      - {extra.destination_port: 445, after: 1s}
-      - {extra.destination_port: 465, after: 1s}
-      - {extra.destination_port: 587, after: 1s}
-      - {extra.destination_port: 993, after: 1s}
-      - {extra.destination_port: 995, after: 1s}
-      - {extra.destination_port: 1433, after: 1s}
-      - {extra.destination_port: 1521, after: 1s}
-      - {extra.destination_port: 2049, after: 1s}
-      - {extra.destination_port: 3306, after: 1s}
-      - {extra.destination_port: 3389, after: 1s}
-      - {extra.destination_port: 5432, after: 1s}
+      - {destination.port: 21, after: 1s}
+      - {destination.port: 22, after: 1s}
+      - {destination.port: 23, after: 1s}
+      - {destination.port: 25, after: 1s}
+      - {destination.port: 53, after: 1s}
+      - {destination.port: 80, after: 1s}
+      - {destination.port: 110, after: 1s}
+      - {destination.port: 111, after: 1s}
+      - {destination.port: 135, after: 1s}
+      - {destination.port: 139, after: 1s}
+      - {destination.port: 143, after: 1s}
+      - {destination.port: 389, after: 1s}
+      - {destination.port: 443, after: 1s}
+      - {destination.port: 445, after: 1s}
+      - {destination.port: 465, after: 1s}
+      - {destination.port: 587, after: 1s}
+      - {destination.port: 993, after: 1s}
+      - {destination.port: 995, after: 1s}
+      - {destination.port: 1433, after: 1s}
+      - {destination.port: 1521, after: 1s}
+      - {destination.port: 2049, after: 1s}
+      - {destination.port: 3306, after: 1s}
+      - {destination.port: 3389, after: 1s}
+      - {destination.port: 5432, after: 1s}
 
   - name: repeated connections to one port do not alert
     expect: {alerts: 0}
     events:
-      - {extra.destination_port: 22, repeat: 60}
+      - {destination.port: 22, repeat: 60}
 
   - name: established connections are not counted
     expect: {alerts: 0}
     events:
-      - {extra.destination_port: 21, after: 1s, event.outcome: success}
-      - {extra.destination_port: 22, after: 1s, event.outcome: success}
-      - {extra.destination_port: 23, after: 1s, event.outcome: success}
-      - {extra.destination_port: 25, after: 1s, event.outcome: success}
-      - {extra.destination_port: 53, after: 1s, event.outcome: success}
-      - {extra.destination_port: 80, after: 1s, event.outcome: success}
-      - {extra.destination_port: 110, after: 1s, event.outcome: success}
-      - {extra.destination_port: 111, after: 1s, event.outcome: success}
-      - {extra.destination_port: 135, after: 1s, event.outcome: success}
-      - {extra.destination_port: 139, after: 1s, event.outcome: success}
-      - {extra.destination_port: 143, after: 1s, event.outcome: success}
-      - {extra.destination_port: 389, after: 1s, event.outcome: success}
-      - {extra.destination_port: 443, after: 1s, event.outcome: success}
-      - {extra.destination_port: 445, after: 1s, event.outcome: success}
-      - {extra.destination_port: 465, after: 1s, event.outcome: success}
-      - {extra.destination_port: 587, after: 1s, event.outcome: success}
-      - {extra.destination_port: 993, after: 1s, event.outcome: success}
-      - {extra.destination_port: 995, after: 1s, event.outcome: success}
-      - {extra.destination_port: 1433, after: 1s, event.outcome: success}
-      - {extra.destination_port: 1521, after: 1s, event.outcome: success}
-      - {extra.destination_port: 2049, after: 1s, event.outcome: success}
-      - {extra.destination_port: 3306, after: 1s, event.outcome: success}
-      - {extra.destination_port: 3389, after: 1s, event.outcome: success}
-      - {extra.destination_port: 5432, after: 1s, event.outcome: success}
-      - {extra.destination_port: 5900, after: 1s, event.outcome: success}
+      - {destination.port: 21, after: 1s, event.outcome: success}
+      - {destination.port: 22, after: 1s, event.outcome: success}
+      - {destination.port: 23, after: 1s, event.outcome: success}
+      - {destination.port: 25, after: 1s, event.outcome: success}
+      - {destination.port: 53, after: 1s, event.outcome: success}
+      - {destination.port: 80, after: 1s, event.outcome: success}
+      - {destination.port: 110, after: 1s, event.outcome: success}
+      - {destination.port: 111, after: 1s, event.outcome: success}
+      - {destination.port: 135, after: 1s, event.outcome: success}
+      - {destination.port: 139, after: 1s, event.outcome: success}
+      - {destination.port: 143, after: 1s, event.outcome: success}
+      - {destination.port: 389, after: 1s, event.outcome: success}
+      - {destination.port: 443, after: 1s, event.outcome: success}
+      - {destination.port: 445, after: 1s, event.outcome: success}
+      - {destination.port: 465, after: 1s, event.outcome: success}
+      - {destination.port: 587, after: 1s, event.outcome: success}
+      - {destination.port: 993, after: 1s, event.outcome: success}
+      - {destination.port: 995, after: 1s, event.outcome: success}
+      - {destination.port: 1433, after: 1s, event.outcome: success}
+      - {destination.port: 1521, after: 1s, event.outcome: success}
+      - {destination.port: 2049, after: 1s, event.outcome: success}
+      - {destination.port: 3306, after: 1s, event.outcome: success}
+      - {destination.port: 3389, after: 1s, event.outcome: success}
+      - {destination.port: 5432, after: 1s, event.outcome: success}
+      - {destination.port: 5900, after: 1s, event.outcome: success}
 
   - name: connections with an unknown state are counted
     expect: {alerts: 1}
     events:
-      - {extra.destination_port: 21, after: 1s, event.outcome: unknown}
-      - {extra.destination_port: 22, after: 1s, event.outcome: unknown}
-      - {extra.destination_port: 23, after: 1s, event.outcome: unknown}
-      - {extra.destination_port: 25, after: 1s, event.outcome: unknown}
-      - {extra.destination_port: 53, after: 1s, event.outcome: unknown}
-      - {extra.destination_port: 80, after: 1s, event.outcome: unknown}
-      - {extra.destination_port: 110, after: 1s, event.outcome: unknown}
-      - {extra.destination_port: 111, after: 1s, event.outcome: unknown}
-      - {extra.destination_port: 135, after: 1s, event.outcome: unknown}
-      - {extra.destination_port: 139, after: 1s, event.outcome: unknown}
-      - {extra.destination_port: 143, after: 1s, event.outcome: unknown}
-      - {extra.destination_port: 389, after: 1s, event.outcome: unknown}
-      - {extra.destination_port: 443, after: 1s, event.outcome: unknown}
-      - {extra.destination_port: 445, after: 1s, event.outcome: unknown}
-      - {extra.destination_port: 465, after: 1s, event.outcome: unknown}
-      - {extra.destination_port: 587, after: 1s, event.outcome: unknown}
-      - {extra.destination_port: 993, after: 1s, event.outcome: unknown}
-      - {extra.destination_port: 995, after: 1s, event.outcome: unknown}
-      - {extra.destination_port: 1433, after: 1s, event.outcome: unknown}
-      - {extra.destination_port: 1521, after: 1s, event.outcome: unknown}
-      - {extra.destination_port: 2049, after: 1s, event.outcome: unknown}
-      - {extra.destination_port: 3306, after: 1s, event.outcome: unknown}
-      - {extra.destination_port: 3389, after: 1s, event.outcome: unknown}
-      - {extra.destination_port: 5432, after: 1s, event.outcome: unknown}
-      - {extra.destination_port: 5900, after: 1s, event.outcome: unknown}
+      - {destination.port: 21, after: 1s, event.outcome: unknown}
+      - {destination.port: 22, after: 1s, event.outcome: unknown}
+      - {destination.port: 23, after: 1s, event.outcome: unknown}
+      - {destination.port: 25, after: 1s, event.outcome: unknown}
+      - {destination.port: 53, after: 1s, event.outcome: unknown}
+      - {destination.port: 80, after: 1s, event.outcome: unknown}
+      - {destination.port: 110, after: 1s, event.outcome: unknown}
+      - {destination.port: 111, after: 1s, event.outcome: unknown}
+      - {destination.port: 135, after: 1s, event.outcome: unknown}
+      - {destination.port: 139, after: 1s, event.outcome: unknown}
+      - {destination.port: 143, after: 1s, event.outcome: unknown}
+      - {destination.port: 389, after: 1s, event.outcome: unknown}
+      - {destination.port: 443, after: 1s, event.outcome: unknown}
+      - {destination.port: 445, after: 1s, event.outcome: unknown}
+      - {destination.port: 465, after: 1s, event.outcome: unknown}
+      - {destination.port: 587, after: 1s, event.outcome: unknown}
+      - {destination.port: 993, after: 1s, event.outcome: unknown}
+      - {destination.port: 995, after: 1s, event.outcome: unknown}
+      - {destination.port: 1433, after: 1s, event.outcome: unknown}
+      - {destination.port: 1521, after: 1s, event.outcome: unknown}
+      - {destination.port: 2049, after: 1s, event.outcome: unknown}
+      - {destination.port: 3306, after: 1s, event.outcome: unknown}
+      - {destination.port: 3389, after: 1s, event.outcome: unknown}
+      - {destination.port: 5432, after: 1s, event.outcome: unknown}
+      - {destination.port: 5900, after: 1s, event.outcome: unknown}
 
   - name: UDP is not counted
     expect: {alerts: 0}
     events:
-      - {extra.destination_port: 21, after: 1s, extra.transport: udp}
-      - {extra.destination_port: 22, after: 1s, extra.transport: udp}
-      - {extra.destination_port: 23, after: 1s, extra.transport: udp}
-      - {extra.destination_port: 25, after: 1s, extra.transport: udp}
-      - {extra.destination_port: 53, after: 1s, extra.transport: udp}
-      - {extra.destination_port: 80, after: 1s, extra.transport: udp}
-      - {extra.destination_port: 110, after: 1s, extra.transport: udp}
-      - {extra.destination_port: 111, after: 1s, extra.transport: udp}
-      - {extra.destination_port: 135, after: 1s, extra.transport: udp}
-      - {extra.destination_port: 139, after: 1s, extra.transport: udp}
-      - {extra.destination_port: 143, after: 1s, extra.transport: udp}
-      - {extra.destination_port: 389, after: 1s, extra.transport: udp}
-      - {extra.destination_port: 443, after: 1s, extra.transport: udp}
-      - {extra.destination_port: 445, after: 1s, extra.transport: udp}
-      - {extra.destination_port: 465, after: 1s, extra.transport: udp}
-      - {extra.destination_port: 587, after: 1s, extra.transport: udp}
-      - {extra.destination_port: 993, after: 1s, extra.transport: udp}
-      - {extra.destination_port: 995, after: 1s, extra.transport: udp}
-      - {extra.destination_port: 1433, after: 1s, extra.transport: udp}
-      - {extra.destination_port: 1521, after: 1s, extra.transport: udp}
-      - {extra.destination_port: 2049, after: 1s, extra.transport: udp}
-      - {extra.destination_port: 3306, after: 1s, extra.transport: udp}
-      - {extra.destination_port: 3389, after: 1s, extra.transport: udp}
-      - {extra.destination_port: 5432, after: 1s, extra.transport: udp}
-      - {extra.destination_port: 5900, after: 1s, extra.transport: udp}
+      - {destination.port: 21, after: 1s, extra.transport: udp}
+      - {destination.port: 22, after: 1s, extra.transport: udp}
+      - {destination.port: 23, after: 1s, extra.transport: udp}
+      - {destination.port: 25, after: 1s, extra.transport: udp}
+      - {destination.port: 53, after: 1s, extra.transport: udp}
+      - {destination.port: 80, after: 1s, extra.transport: udp}
+      - {destination.port: 110, after: 1s, extra.transport: udp}
+      - {destination.port: 111, after: 1s, extra.transport: udp}
+      - {destination.port: 135, after: 1s, extra.transport: udp}
+      - {destination.port: 139, after: 1s, extra.transport: udp}
+      - {destination.port: 143, after: 1s, extra.transport: udp}
+      - {destination.port: 389, after: 1s, extra.transport: udp}
+      - {destination.port: 443, after: 1s, extra.transport: udp}
+      - {destination.port: 445, after: 1s, extra.transport: udp}
+      - {destination.port: 465, after: 1s, extra.transport: udp}
+      - {destination.port: 587, after: 1s, extra.transport: udp}
+      - {destination.port: 993, after: 1s, extra.transport: udp}
+      - {destination.port: 995, after: 1s, extra.transport: udp}
+      - {destination.port: 1433, after: 1s, extra.transport: udp}
+      - {destination.port: 1521, after: 1s, extra.transport: udp}
+      - {destination.port: 2049, after: 1s, extra.transport: udp}
+      - {destination.port: 3306, after: 1s, extra.transport: udp}
+      - {destination.port: 3389, after: 1s, extra.transport: udp}
+      - {destination.port: 5432, after: 1s, extra.transport: udp}
+      - {destination.port: 5900, after: 1s, extra.transport: udp}
 
   - name: ports spread over more than five minutes do not alert
     expect: {alerts: 0}
     events:
-      - {extra.destination_port: 21, after: 13s}
-      - {extra.destination_port: 22, after: 13s}
-      - {extra.destination_port: 23, after: 13s}
-      - {extra.destination_port: 25, after: 13s}
-      - {extra.destination_port: 53, after: 13s}
-      - {extra.destination_port: 80, after: 13s}
-      - {extra.destination_port: 110, after: 13s}
-      - {extra.destination_port: 111, after: 13s}
-      - {extra.destination_port: 135, after: 13s}
-      - {extra.destination_port: 139, after: 13s}
-      - {extra.destination_port: 143, after: 13s}
-      - {extra.destination_port: 389, after: 13s}
-      - {extra.destination_port: 443, after: 13s}
-      - {extra.destination_port: 445, after: 13s}
-      - {extra.destination_port: 465, after: 13s}
-      - {extra.destination_port: 587, after: 13s}
-      - {extra.destination_port: 993, after: 13s}
-      - {extra.destination_port: 995, after: 13s}
-      - {extra.destination_port: 1433, after: 13s}
-      - {extra.destination_port: 1521, after: 13s}
-      - {extra.destination_port: 2049, after: 13s}
-      - {extra.destination_port: 3306, after: 13s}
-      - {extra.destination_port: 3389, after: 13s}
-      - {extra.destination_port: 5432, after: 13s}
-      - {extra.destination_port: 5900, after: 13s}
+      - {destination.port: 21, after: 13s}
+      - {destination.port: 22, after: 13s}
+      - {destination.port: 23, after: 13s}
+      - {destination.port: 25, after: 13s}
+      - {destination.port: 53, after: 13s}
+      - {destination.port: 80, after: 13s}
+      - {destination.port: 110, after: 13s}
+      - {destination.port: 111, after: 13s}
+      - {destination.port: 135, after: 13s}
+      - {destination.port: 139, after: 13s}
+      - {destination.port: 143, after: 13s}
+      - {destination.port: 389, after: 13s}
+      - {destination.port: 443, after: 13s}
+      - {destination.port: 445, after: 13s}
+      - {destination.port: 465, after: 13s}
+      - {destination.port: 587, after: 13s}
+      - {destination.port: 993, after: 13s}
+      - {destination.port: 995, after: 13s}
+      - {destination.port: 1433, after: 13s}
+      - {destination.port: 1521, after: 13s}
+      - {destination.port: 2049, after: 13s}
+      - {destination.port: 3306, after: 13s}
+      - {destination.port: 3389, after: 13s}
+      - {destination.port: 5432, after: 13s}
+      - {destination.port: 5900, after: 13s}
 
   - name: a port scan in a Zeek conn.log
     expect: {alerts: 1, entities: [{source.ip: 203.0.113.66}]}

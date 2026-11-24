@@ -169,10 +169,14 @@ def _nested(flat: dict[str, Any], where: str) -> dict[str, Any]:
             msg = f"{where}: {key} is computed from other fields and cannot be set"
             raise ValueError(msg)
         head, _, tail = key.partition(".")
-        if tail:
-            document[head][tail] = value
-        else:
-            document[head] = value
+        if head == "extra":
+            document["extra"][tail] = value
+            continue
+        *groups, leaf = key.split(".")
+        node = document
+        for group in groups:  # "process.parent.name" -> document["process"]["parent"]["name"]
+            node = node.setdefault(group, {})
+        node[leaf] = value
     return document
 
 

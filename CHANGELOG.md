@@ -35,6 +35,20 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   added to an administrators group, matched by SID), PRH-WIN-005 (Security log cleared,
   experimental) and PRH-WIN-006 (lockouts across accounts, experimental); fixtures, runbooks
   and ATT&CK (T1098.007, T1685.005 added).
+- **Host activity in the schema:** optional `process.*` (with `process.parent.*`), `file.*`,
+  `registry.*`, `destination.*` and `dns.question` fields and the categories `process`, `file`,
+  `registry` and `dns`. Events without them serialise exactly as before. The network parsers and
+  rules use `destination.ip`/`destination.port` (and `destination.domain`, `dns.question`) for
+  what were `extra` keys earlier in this release.
+- **Sysmon.** Sysmon events in every Windows layout: process creation, network connections,
+  image loads, remote threads, process access, file creation and deletion, registry changes and
+  DNS queries (Sysmon 13 to 15). `windows_security` reads Sysmon and Security events together; a
+  `sysmon` parser reads Sysmon alone. Windows 4688 process creation is mapped too.
+- **Four host rules:** PRH-PROC-001 (encoded PowerShell), PRH-PROC-002 (an Office application or
+  browser starting a shell), PRH-PROC-003 (a new Windows service) and PRH-PROC-004 (lsass read by
+  an unusual process, or the SAM hive saved); defanged fixtures and runbooks.
+- **A tenth simulator scenario,** `windows-intrusion` (Sysmon and Security, defanged): every
+  default run caught by all four host rules; the held-out variant is caught by PRH-PROC-004 only.
 - **A ninth simulator scenario,** `windows-signin`, with default and held-out variants. The
   held-out variants are missed by PRH-WIN-001 and PRH-WIN-002 and caught by PRH-WIN-003 and
   PRH-WIN-004. The before-and-after comparison with the frozen baselines leaves it out.

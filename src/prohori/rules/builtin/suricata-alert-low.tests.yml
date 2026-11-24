@@ -7,7 +7,7 @@ defaults:
   event.category: network
   event.action: ids.alert
   source.ip: 198.51.100.23
-  extra.destination_ip: 192.0.2.10
+  destination.ip: 192.0.2.10
   extra.signature: PRH TEST Sample signature
 cases:
   - name: a low alert passes through

@@ -56,6 +56,14 @@
 |                     |                  |                            | noise=6                   |
 |                     |                  |                            | rate=60 / 8               |
 +---------------------+------------------+----------------------------+---------------------------+
+| windows-intrusion   | windows_security | A malicious document on a  | attack_at=90              |
+|                     |                  | Windows workstation runs a | duration=240              |
+|                     |                  | script, installs           | noise=2                   |
+|                     |                  | persistence, reads         |                           |
+|                     |                  | credentials from lsass and |                           |
+|                     |                  | signs in to a server       |                           |
+|                     |                  | (Sysmon and Security)      |                           |
++---------------------+------------------+----------------------------+---------------------------+
 | windows-signin      | windows_security | Remote-desktop password    | attack_at=60              |
 |                     |                  | spraying and guessing on a | attempts=40               |
 |                     |                  | Windows server, a sign-in, | duration=240              |

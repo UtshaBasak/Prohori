@@ -100,11 +100,11 @@ flowchart LR
 
 | Stage | Today |
 | ------- | ------- |
-| **Parse** | Linux `auth.log` (sshd, sudo, PAM), nginx/Apache access logs, application security events (JSON Lines), and since 1.2 Suricata `eve.json`, Zeek `conn.log`, Windows Security events (Winlogbeat, NXLog or PowerShell JSON, event XML, native `.evtx` with the `evtx` extra) and the systemd journal (`journalctl -o json`), and any JSON Lines layout through a YAML field mapping, into one typed event schema. Format detection, streaming with bounded memory, hostile input handled (oversized lines, bad encodings, control characters). Daylight-saving changes handled: the hour repeated when the clocks go back keeps moving forward instead of being dropped as late. |
-| **Detect** | 33 readable YAML rules (Sigma-inspired) with field modifiers, thresholds, distinct counts, ratios, sliding and tumbling windows and ordered sequences. Every rule ships with test fixtures and a runbook; regular expressions run on RE2, so no pattern can hang a run. With `--models`, anomaly detectors (robust z-score, Isolation Forest) also flag source IPs that behave unlike the rest of the log. SSH attacks are counted even when sshd logs host names instead of addresses (`UseDNS`), and a log with millions of alerts stays bounded in memory: the table shows the first 100, JSON streams every alert, and incidents keep a capped number. Known-benign activity is silenced with a reviewed **suppressions file** (reason, owner and expiry date per entry; allow-listed addresses): suppressed alerts are counted and listed, never dropped, and never hide another alert of an incident. |
+| **Parse** | Linux `auth.log` (sshd, sudo, PAM), nginx/Apache access logs, application security events (JSON Lines), and since 1.2 Suricata `eve.json`, Zeek `conn.log`, Windows Security and Sysmon events (Winlogbeat, NXLog or PowerShell JSON, event XML, native `.evtx` with the `evtx` extra) and the systemd journal (`journalctl -o json`), and any JSON Lines layout through a YAML field mapping, into one typed event schema. Format detection, streaming with bounded memory, hostile input handled (oversized lines, bad encodings, control characters). Daylight-saving changes handled: the hour repeated when the clocks go back keeps moving forward instead of being dropped as late. |
+| **Detect** | 37 readable YAML rules (Sigma-inspired) with field modifiers, thresholds, distinct counts, ratios, sliding and tumbling windows and ordered sequences. Every rule ships with test fixtures and a runbook; regular expressions run on RE2, so no pattern can hang a run. With `--models`, anomaly detectors (robust z-score, Isolation Forest) also flag source IPs that behave unlike the rest of the log. SSH attacks are counted even when sshd logs host names instead of addresses (`UseDNS`), and a log with millions of alerts stays bounded in memory: the table shows the first 100, JSON streams every alert, and incidents keep a capped number. Known-benign activity is silenced with a reviewed **suppressions file** (reason, owner and expiry date per entry; allow-listed addresses): suppressed alerts are counted and listed, never dropped, and never hide another alert of an incident. |
 | **Enrich** | IP geolocation, network owner and reputation from local GeoLite2 files, AbuseIPDB and VirusTotal, all optional. SQLite cache, daily budgets, rate limiting and bounded retries. Private and documentation addresses never leave the machine. |
 | **Incidents** | Related alerts (same IP, account, request or session within a time gap) become one incident with a points-based score you can read line by line, severity, confidence, MITRE ATT&CK v20.0 mapping, a timeline, recommended actions and stated limitations. Detects sign-ins from an IP or app new to the account. |
-| **Simulate** | Nine labelled attack scenarios (SSH brute force, password spraying, credential stuffing, token reuse, account takeover, web scanning, injection, admin misuse, Windows remote-desktop sign-ins) hidden in realistic background activity, byte-identical for a seed, documentation IP addresses only. Used to measure every rule's precision and recall. |
+| **Simulate** | Ten labelled attack scenarios (SSH brute force, password spraying, credential stuffing, token reuse, account takeover, web scanning, injection, admin misuse, Windows remote-desktop sign-ins, a Windows workstation intrusion seen by Sysmon) hidden in realistic background activity, byte-identical for a seed, documentation IP addresses only. Used to measure every rule's precision and recall. |
 | **Report** | Markdown, a self-contained HTML page, JSON or a CSV timeline, with an appendix of input and rule-file SHA-256 hashes. `--redact` replaces account names, ids and emails (and optionally IPs) with keyed pseudonyms, and refuses to write a report that would still leak one. |
 | **Stream** | The same parsers, rules and incident builder, continuously: lite mode in one process with DuckDB (no Docker), or a Docker stack with Redpanda, one container per stage and a PostgreSQL warehouse. Follow live logs through rotation or replay files, with at-least-once delivery, dead letters and each row stored once. |
 
@@ -143,7 +143,7 @@ Everything below runs offline on the synthetic samples in the repository (run fr
 ```bash
 uv run prohori triage samples/logs/account-takeover.jsonl -o triage/   # the whole pipeline
 uv run prohori parse samples/logs/auth.log                      # normalise a log
-uv run prohori detect samples/logs/auth.log                     # run the 33 rules
+uv run prohori detect samples/logs/auth.log                     # run the 37 rules
 uv run prohori enrich 203.0.113.7 --offline                     # look up an IP (demo data)
 uv run prohori incidents samples/logs/account-takeover.jsonl    # group alerts into incidents
 uv run prohori report samples/incidents/INC-ee7c8818fbb34989.json -f html -o report.html
@@ -198,7 +198,7 @@ To see it yourself: `uv run prohori incidents samples/logs/account-takeover.json
 | `prohori demo` | Simulate attacks, triage them and show the results; no configuration, offline | [CLI.md](docs/CLI.md#prohori-demo) |
 | `prohori triage FILE` | Log in, incidents and a report per incident out (`--format`, `--redact`, `--online`) | [CLI.md](docs/CLI.md#prohori-triage) |
 | `prohori parse FILE` | Parse and normalise a log; table or JSON Lines | [PARSERS.md](docs/PARSERS.md) |
-| `prohori detect FILE` | Run the 33 built-in rules (and `--rules DIR`, `--models` for the anomaly detectors, `--suppressions FILE` for reviewed exceptions); exit code 3 when alerts are found | [RULES.md](docs/RULES.md) |
+| `prohori detect FILE` | Run the 37 built-in rules (and `--rules DIR`, `--models` for the anomaly detectors, `--suppressions FILE` for reviewed exceptions); exit code 3 when alerts are found | [RULES.md](docs/RULES.md) |
 | `prohori rules list` / `validate` / `test` | Show, check and test detection rules; `validate --suppressions FILE` checks a suppressions file | [RULES.md](docs/RULES.md#suppressions-and-allow-lists) |
 | `prohori enrich IP...` | Geolocation and reputation; `--offline` never uses the network | [ENRICHMENT.md](docs/ENRICHMENT.md) |
 | `prohori incidents FILE` | Parse, detect and group alerts into scored incidents; offline enrichment unless `--online` | [INCIDENTS.md](docs/INCIDENTS.md) |
@@ -253,8 +253,14 @@ usage. The full reference is [docs/CLI.md](docs/CLI.md).
 | PRH-WIN-004 | Account added to a Windows administrators group | high | T1098, T1098.007 |
 | PRH-WIN-005 | Windows Security log cleared (experimental) | high | T1685.005 |
 | PRH-WIN-006 | Windows lockouts of 3+ accounts in 15 minutes (experimental) | high | T1110 |
+| PRH-PROC-001 | PowerShell started with an encoded command | high | T1059.001, T1027.010 |
+| PRH-PROC-002 | An Office application or browser started a shell or script host | high | T1204.002, T1059, T1566.001 |
+| PRH-PROC-003 | New Windows service (registry ImagePath or `sc.exe create`) | medium | T1543.003 |
+| PRH-PROC-004 | lsass memory read by an unusual process, or the SAM hive saved | critical | T1003, T1003.001 |
 
-The Windows rules (WIN, since 1.2) are measured on the simulator's `windows-signin` scenario,
+The host rules (PROC, since 1.2) use Sysmon and Windows 4688 process events and are measured on
+the simulator's `windows-intrusion` scenario. The Windows rules (WIN, since 1.2) are measured on
+the simulator's `windows-signin` scenario,
 except PRH-WIN-005 and PRH-WIN-006, which it does not exercise. The network rules (IDS and NET,
 since 1.2) are experimental: the simulator writes no network
 traffic, so their false positives are not measured yet. The passthrough rules keep the
@@ -287,7 +293,7 @@ every held-out run. The method and its limits are in the
 rules) and after, on address model 2:
 
 <!-- results:start -->
-Generated from `results/rules_eval.json`, simulator address model 2: the frozen baselines (1.0 rules (addresses 2): 15 rules; 1.1 rules, step 28b (addresses 2): 21 rules) against today's 33 rules, 5 seeds per variant. Attacks caught by at least one of their expected rules. Do not edit by hand.
+Generated from `results/rules_eval.json`, simulator address model 2: the frozen baselines (1.0 rules (addresses 2): 15 rules; 1.1 rules, step 28b (addresses 2): 21 rules) against today's 37 rules, 5 seeds per variant. Attacks caught by at least one of their expected rules. Do not edit by hand.
 
 | Scenario | Held-out: 1.0 rules (addresses 2) | Held-out: 1.1 rules, step 28b (addresses 2) | Held-out: now | Held-out 2: 1.0 rules (addresses 2) | Held-out 2: 1.1 rules, step 28b (addresses 2) | Held-out 2: now |
 | ---------- | -----: | -----: | -----: | -----: | -----: | -----: |
@@ -304,7 +310,7 @@ Generated from `results/rules_eval.json`, simulator address model 2: the frozen 
 
 Default variants: 40/40 attacks caught with 295 false-positive alerts (1.0 rules (addresses 2)); 40/40 attacks caught with 295 false-positive alerts (1.1 rules, step 28b (addresses 2)); 40/40 attacks caught with 295 false-positive alerts (now).
 
-Scenarios added after the baselines were frozen are left out of this comparison, so its totals stay comparable: `windows-signin` (see the per-scenario results in docs/SIMULATOR.md).
+Scenarios added after the baselines were frozen are left out of this comparison, so its totals stay comparable: `windows-intrusion`, `windows-signin` (see the per-scenario results in docs/SIMULATOR.md).
 
 For reference, the same comparison on address model 1 (frozen, not comparable with the table above: the simulator's background was different):
 
@@ -331,6 +337,7 @@ Expected rules that still miss (runs missed):
 - Held-out, `password-spraying`: PRH-AUTH-001 5/5
 - Held-out, `ssh-bruteforce`: PRH-AUTH-001 5/5, PRH-AUTH-005 5/5
 - Held-out, `web-scanning`: PRH-WEB-003 5/5
+- Held-out, `windows-intrusion`: PRH-PROC-001 5/5, PRH-PROC-002 5/5, PRH-PROC-003 5/5
 - Held-out, `windows-signin`: PRH-WIN-001 5/5, PRH-WIN-002 5/5
 - Held-out 2, `account-takeover`: PRH-ACCT-001 2/5, PRH-AUTH-001 5/5, PRH-AUTH-010 5/5
 - Held-out 2, `admin-misuse`: PRH-ADMIN-002 5/5
@@ -338,6 +345,7 @@ Expected rules that still miss (runs missed):
 - Held-out 2, `password-spraying`: PRH-AUTH-001 5/5, PRH-AUTH-002 5/5, PRH-AUTH-007 5/5
 - Held-out 2, `ssh-bruteforce`: PRH-AUTH-001 5/5
 - Held-out 2, `web-scanning`: PRH-WEB-003 5/5
+- Held-out 2, `windows-intrusion`: PRH-PROC-001 5/5, PRH-PROC-002 5/5, PRH-PROC-003 5/5
 - Held-out 2, `windows-signin`: PRH-WIN-001 5/5, PRH-WIN-002 5/5
 <!-- results:end -->
 
@@ -568,7 +576,7 @@ uv run dbt build --project-dir pipeline/dbt --profiles-dir pipeline/dbt    # --t
 
 `dbt build` runs 68 data-quality checks: keys, nulls, accepted values, ranges, duplicates,
 cross-table consistency and future timestamps. A separate freshness check covers the inputs. On
-the simulator's nine scenarios, the models' rule precision equals the simulator's own
+the simulator's ten scenarios, the models' rule precision equals the simulator's own
 evaluation alert for alert, which CI checks. Every attack was detected; the detection delay per
 scenario is in [docs/WAREHOUSE.md](docs/WAREHOUSE.md#results-on-the-simulator).
 
@@ -593,7 +601,7 @@ with five DAGs:
 
 | Job | When | What it does |
 | ----- | ------ | -------------- |
-| Backfill | By hand | Replays all nine simulated scenarios with their labels, then builds the marts |
+| Backfill | By hand | Replays all ten simulated scenarios with their labels, then builds the marts |
 | Data quality | Hourly | `dbt build` with its 68 checks, and a freshness check on the events |
 | Nightly evaluation | 02:00 UTC | Retrains the flow models; the run fails if recall drops below 0.62 |
 | Incident digest | 06:00 UTC | The last day's incidents, rules and dead letters, as Markdown and JSON |

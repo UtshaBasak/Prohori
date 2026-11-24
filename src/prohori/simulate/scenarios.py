@@ -39,6 +39,15 @@ from prohori.simulate.background import (
     web_background,
 )
 from prohori.simulate.model import Attack, Recorder
+from prohori.simulate.sysmon import (
+    DOCUMENTS,
+    EXPLORER,
+    OFFICE,
+    POWERSHELL,
+    WINDOWS,
+    encoded,
+    workstation_background,
+)
 from prohori.simulate.windows import COMMON_NAMES, STAFF, windows_background
 
 Params = Mapping[str, float]
@@ -563,6 +572,103 @@ def windows_signin(rec: Recorder, pool: AddressPool, p: Params, variant: str) ->
     log.added_to_administrators(rec.at(signed_in + 2.8), "administrator", "svc-update", attack)
 
 
+def windows_intrusion(rec: Recorder, pool: AddressPool, p: Params, variant: str) -> None:
+    log = workstation_background(rec, pool, _int(p, "duration"), p["noise"])
+    server = pool.take(HOSTILE)
+    attack = rec.attack(
+        Attack(
+            id="windows-intrusion-1",
+            kind="windows-intrusion",
+            description="A malicious document runs a script, which installs persistence, dumps "
+            "credentials and signs in to the file server",
+            expected_rules=("PRH-PROC-001", "PRH-PROC-002", "PRH-PROC-003", "PRH-PROC-004"),
+            sources=(),  # an intrusion on a host: no attacking address signs in
+            accounts=("amina", "it-admin"),
+        )
+    )
+    start = p["attack_at"]
+    at = rec.at
+    stage = encoded("Write-Output prohori-simulated-stage")
+    payload = "C:\\Users\\amina\\AppData\\Roaming\\UpdHelper\\updhelper.exe"
+    if variant == "default":
+        # A macro document from mail starts encoded PowerShell.
+        word = OFFICE + "WINWORD.EXE"
+        log.process(
+            at(start),
+            word,
+            f'"{word}" /n "{DOCUMENTS}invoice-4471.docm"',
+            OFFICE + "OUTLOOK.EXE",
+            attack=attack,
+        )
+        log.process(
+            at(start + 0.3),
+            POWERSHELL,
+            f"powershell.exe -nop -w hidden -enc {stage}",
+            word,
+            attack=attack,
+        )
+        script_image = POWERSHELL
+    else:
+        # A script from a zip file, started by Explorer, runs plain PowerShell: no Office parent,
+        # no encoded command.
+        wscript = WINDOWS + "wscript.exe"
+        log.process(
+            at(start), wscript, f'wscript.exe "{DOCUMENTS}invoice-4471.js"', EXPLORER, attack=attack
+        )
+        log.process(
+            at(start + 0.3),
+            POWERSHELL,
+            'powershell.exe -nop -w hidden -c "Write-Output prohori-simulated-stage"',
+            wscript,
+            attack=attack,
+        )
+        script_image = POWERSHELL
+    name = "updates.example.net"
+    log.dns(at(start + 0.4), script_image, name, attack)
+    log.network(at(start + 0.41), script_image, server, 443, name, attack)
+    log.file_created(at(start + 0.6), script_image, payload, attack)
+    if variant == "default":  # persistence as a service
+        log.process(
+            at(start + 1.0),
+            WINDOWS + "sc.exe",
+            f'sc.exe create UpdHelper binPath= "{payload}" start= auto',
+            script_image,
+            attack=attack,
+        )
+        log.registry_set(
+            at(start + 1.01),
+            WINDOWS + "services.exe",
+            "HKLM\\System\\CurrentControlSet\\Services\\UpdHelper\\ImagePath",
+            payload,
+            attack,
+        )
+    else:  # persistence as a Run key, which PRH-PROC-003 does not look at
+        log.registry_set(
+            at(start + 1.0),
+            script_image,
+            "HKU\\S-1-5-21-1004336348-1177238915-682003330-1106\\Software\\Microsoft"
+            "\\Windows\\CurrentVersion\\Run\\UpdHelper",
+            payload,
+            attack,
+        )
+    # Credentials from lsass: rundll32 with comsvcs (default) or the dropped tool (held-out).
+    if variant == "default":
+        log.process(
+            at(start + 3.0),
+            WINDOWS + "rundll32.exe",
+            "rundll32.exe C:\\Windows\\System32\\comsvcs.dll MiniDump 680 "
+            "C:\\Users\\Public\\m.dmp full",
+            script_image,
+            integrity="High",
+            attack=attack,
+        )
+        log.lsass_access(at(start + 3.01), WINDOWS + "rundll32.exe", "0x1fffff", attack)
+    else:
+        log.lsass_access(at(start + 3.0), payload, "0x1010", attack)
+    # The stolen administrator account signs in to the file server.
+    log.signin(at(start + 6.0), "it-admin", "192.0.2.41", attack)
+
+
 _APP = {"duration": 180, "users": 40, "noise": 3}
 _WEB = {"duration": 120, "noise": 6}
 
@@ -706,6 +812,19 @@ SCENARIOS: Final[dict[str, Scenario]] = {
             },
             {"default": "2026-10-24T03:00:00Z", "heldout": "2026-10-24T03:00:00Z"},
             windows_signin,
+        ),
+        Scenario(
+            "windows-intrusion",
+            "A malicious document on a Windows workstation runs a script, installs persistence, "
+            "reads credentials from lsass and signs in to a server (Sysmon and Security)",
+            "windows_security",
+            ".jsonl",
+            {
+                "default": {"duration": 240, "noise": 2, "attack_at": 90},
+                "heldout": {"duration": 240, "noise": 2, "attack_at": 90},
+            },
+            {"default": "2026-10-24T03:00:00Z", "heldout": "2026-10-24T03:00:00Z"},
+            windows_intrusion,
         ),
     )
 }

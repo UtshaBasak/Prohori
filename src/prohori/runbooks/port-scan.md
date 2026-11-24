@@ -12,7 +12,7 @@ before moving on.
 ## Triage
 
 1. Is the source inside or outside the network? An internal source scanning is far more serious.
-2. List the destination addresses and ports (`extra.destination_ip`, `extra.destination_port`):
+2. List the destination addresses and ports (`destination.ip`, `destination.port`):
    one host and many ports, or many hosts.
 3. Check whether any connection from the same source succeeded afterwards (Zeek `conn_state`
    `SF`), and whether other alerts name it (sign-in failures, web scanning, IDS alerts).

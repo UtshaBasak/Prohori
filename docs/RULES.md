@@ -17,7 +17,7 @@ Both commands accept files and directories (searched recursively for `*.yml` and
 
 > **Status.** Rules are loaded, validated, compiled and evaluated (stateless, `aggregate` and
 > `sequence`), tested against fixtures with `prohori rules test`, and run over log files with
-> `prohori detect`. Thirty-three built-in rules ship today.
+> `prohori detect`. Thirty-seven built-in rules ship today.
 
 ## Running rules: `prohori detect`
 
@@ -77,7 +77,7 @@ verified ATT&CK tags.
 | PRH-IDS-001 | high | Suricata alert, severity 1 | every `ids.alert` event with `event.severity: high` (experimental) |
 | PRH-IDS-002 | medium | Suricata alert, severity 2 | every `ids.alert` event with `event.severity: medium` (experimental) |
 | PRH-IDS-003 | low | Suricata alert, severity 3 or above | every `ids.alert` event with `event.severity: low` (experimental) |
-| PRH-NET-001 | medium | Port scan from one address | TCP connections that were not established to >= 25 distinct `extra.destination_port` per `source.ip` in 5 min (experimental) |
+| PRH-NET-001 | medium | Port scan from one address | TCP connections that were not established to >= 25 distinct `destination.port` per `source.ip` in 5 min (experimental) |
 | PRH-NET-002 | medium | Large outbound transfer | one outbound connection with `extra.bytes_out` >= 500 MB (experimental) |
 | PRH-NET-003 | low | Long outbound connection | one outbound connection with `extra.duration` >= 8 h (experimental) |
 | PRH-WIN-001 | high | Windows sign-in failures from one source | >= 10 `windows.logon.failure` (4625) per `source.ip` (or `source.host`, or `extra.workstation`) in 5 min |
@@ -86,6 +86,10 @@ verified ATT&CK tags.
 | PRH-WIN-004 | high | Account added to a Windows administrators group | every 4728/4732/4756 for Administrators (S-1-5-32-544), Domain, Schema or Enterprise Admins (-512, -518, -519) |
 | PRH-WIN-005 | high | Windows Security log cleared | every 1102 (experimental) |
 | PRH-WIN-006 | high | Windows account lockouts across many accounts | 4740 for >= 3 distinct `user.name` per `log_source` in 15 min (experimental) |
+| PRH-PROC-001 | high | PowerShell started with an encoded command | `process.created` of PowerShell with `-EncodedCommand` (or an abbreviation) and a Base64 argument |
+| PRH-PROC-002 | high | An Office application or browser started a shell | `process.created` of a shell or script host whose `process.parent.name` is Word, Excel, PowerPoint, Outlook, OneNote, Access, Publisher or a browser |
+| PRH-PROC-003 | medium | New Windows service | a service `ImagePath` written (Sysmon 13), or `sc.exe create` |
+| PRH-PROC-004 | critical | Credential store read by an unusual process | `lsass.exe` opened with memory-read rights by a process outside a short list of Windows ones, or `reg.exe save` of the SAM, SECURITY or SYSTEM hive |
 
 An "existing account" leaves out failures with `event.reason: unknown_user` (an SSH invalid user,
 an email the app does not know): there is nothing to take over, and scanners produce them all
@@ -109,7 +113,7 @@ derived again with the same rule, and the rules were scored once. The table comp
 rule sets on address model 2; the address-model-1 results stay below it for reference.
 
 <!-- rules-compare:start -->
-Generated from `results/rules_eval.json`, simulator address model 2: the frozen baselines (1.0 rules (addresses 2): 15 rules; 1.1 rules, step 28b (addresses 2): 21 rules) against today's 33 rules, 5 seeds per variant. Attacks caught by at least one of their expected rules. Do not edit by hand.
+Generated from `results/rules_eval.json`, simulator address model 2: the frozen baselines (1.0 rules (addresses 2): 15 rules; 1.1 rules, step 28b (addresses 2): 21 rules) against today's 37 rules, 5 seeds per variant. Attacks caught by at least one of their expected rules. Do not edit by hand.
 
 | Scenario | Held-out: 1.0 rules (addresses 2) | Held-out: 1.1 rules, step 28b (addresses 2) | Held-out: now | Held-out 2: 1.0 rules (addresses 2) | Held-out 2: 1.1 rules, step 28b (addresses 2) | Held-out 2: now |
 | ---------- | -----: | -----: | -----: | -----: | -----: | -----: |
@@ -126,7 +130,7 @@ Generated from `results/rules_eval.json`, simulator address model 2: the frozen 
 
 Default variants: 40/40 attacks caught with 295 false-positive alerts (1.0 rules (addresses 2)); 40/40 attacks caught with 295 false-positive alerts (1.1 rules, step 28b (addresses 2)); 40/40 attacks caught with 295 false-positive alerts (now).
 
-Scenarios added after the baselines were frozen are left out of this comparison, so its totals stay comparable: `windows-signin` (see the per-scenario results in docs/SIMULATOR.md).
+Scenarios added after the baselines were frozen are left out of this comparison, so its totals stay comparable: `windows-intrusion`, `windows-signin` (see the per-scenario results in docs/SIMULATOR.md).
 
 For reference, the same comparison on address model 1 (frozen, not comparable with the table above: the simulator's background was different):
 
@@ -170,6 +174,27 @@ Known limits, also stated in each rule's description:
 - **PRH-ADMIN-001** fires for every grant, planned or not.
 - **PRH-ADMIN-002** uses the shop's local time (`timezone: Asia/Dhaka`) and fixed night hours.
   Other sites should copy the rule and set their own `timezone` and hours.
+
+### Host rules (since 1.2)
+
+Four starter rules use the host-activity fields (`process.*`, `registry.*`) from Sysmon and from
+Windows 4688 process events ([PARSERS.md](PARSERS.md#sysmon-windows_security-and-sysmon)). They
+are scored on the simulator's `windows-intrusion` scenario, whose fixtures and logs are
+defanged: no command line runs anything, and the encoded commands decode to `Write-Output`.
+
+- **PRH-PROC-001** matches every abbreviation PowerShell accepts for `-EncodedCommand`
+  (`-e`, `-ec`, `-enc`, ... `-encodedcommand`, with `-` or `/`) followed by at least 16 Base64
+  characters. A script passed in plain text (`-c "..."`) or a renamed PowerShell copy is not
+  matched. Management agents that send encoded commands are its known false positive; the
+  simulator's background has one every two hours.
+- **PRH-PROC-002** needs the parent's name, which Sysmon event 1 and 4688 both give. A script
+  started by Explorer (a `.js` file double-clicked from a zip) has no Office parent and is missed.
+- **PRH-PROC-003** fires twice for one `sc.exe create` when Sysmon logs both the command and the
+  registry write. Installers creating services are its known false positive (one per simulated
+  day). Persistence through Run keys, scheduled tasks or WMI is not covered.
+- **PRH-PROC-004** leaves out `svchost`, `wininit`, `csrss`, `lsm`, `services`, `wmiprvse`,
+  `taskmgr`, `mrt`, `lsaiso` and `werfault` in `C:\Windows\System32` and Defender's `MsMpEng`;
+  query-only access (`0x1000`) is not counted. Other security products need a suppression.
 
 ### Windows rules (since 1.2)
 
@@ -266,6 +291,14 @@ uv run python scripts/verify_attack.py
 | T1071 | Application Layer Protocol | NET-003 |
 | T1098.007 | Account Manipulation: Additional Local or Domain Groups | WIN-004 |
 | T1685.005 | Disable or Modify Tools: Clear Windows Event Logs | WIN-005 |
+| T1059.001 | Command and Scripting Interpreter: PowerShell | PROC-001 |
+| T1027.010 | Obfuscated Files or Information: Command Obfuscation | PROC-001 |
+| T1204.002 | User Execution: Malicious File | PROC-002 |
+| T1059 | Command and Scripting Interpreter | PROC-002 |
+| T1566.001 | Phishing: Spearphishing Attachment | PROC-002 |
+| T1543.003 | Create or Modify System Process: Windows Service | PROC-003 |
+| T1003 | OS Credential Dumping | PROC-004 |
+| T1003.001 | OS Credential Dumping: LSASS Memory | PROC-004 |
 
 The Windows rules also use T1110 (WIN-001, WIN-003, WIN-006), T1110.001 (WIN-001), T1110.003
 (WIN-002), T1078 (WIN-003) and T1098 (WIN-004). ATT&CK v20 moved *Clear Windows Event Logs*

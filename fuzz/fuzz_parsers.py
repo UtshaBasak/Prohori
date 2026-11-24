@@ -25,6 +25,7 @@ with atheris.instrument_imports():
         LineParser,
         ParseStats,
         SuricataEveParser,
+        SysmonParser,
         WindowsSecurityParser,
         ZeekConnParser,
         read_lines,
@@ -48,6 +49,7 @@ _PARSERS: list[LineParser] = [
     ZeekConnParser(),
     WindowsSecurityParser(),
     JournaldParser(),
+    SysmonParser(),
 ]
 
 

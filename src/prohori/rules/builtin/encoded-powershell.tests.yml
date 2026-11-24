@@ -1,0 +1,54 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+# Copyright (c) 2026 Utsha Basak
+# Defanged: every command line is harmless (the encoded commands decode to Write-Output).
+rule: PRH-PROC-001
+start: 2026-10-24T09:00:00Z
+defaults:
+  log_source: sysmon
+  event.category: process
+  event.action: process.created
+  process.name: powershell.exe
+  host: ws01.corp.example
+cases:
+  - name: -EncodedCommand alerts
+    expect: {alerts: 1, entities: [{host: ws01.corp.example}]}
+    events:
+      - {process.command_line: 'powershell.exe -NoProfile -EncodedCommand VwByAGkAdABlAC0ATwB1AHQAcAB1AHQAIABwAHIAbwBoAG8AcgBpAC0AdABlAHMAdAA='}
+
+  - name: every abbreviation of the switch alerts
+    expect: {alerts: 6}
+    events:
+      - {process.command_line: 'powershell -enc VwByAGkAdABlAC0ATwB1AHQAcAB1AHQAIABwAHIAbwBoAG8AcgBpAC0AdABlAHMAdAA='}
+      - {process.command_line: 'powershell -e VwByAGkAdABlAC0ATwB1AHQAcAB1AHQAIABwAHIAbwBoAG8AcgBpAC0AdABlAHMAdAA='}
+      - {process.command_line: 'powershell -ec VwByAGkAdABlAC0ATwB1AHQAcAB1AHQAIABwAHIAbwBoAG8AcgBpAC0AdABlAHMAdAA='}
+      - {process.command_line: 'pwsh -EnCoDeDcOmMaNd VwByAGkAdABlAC0ATwB1AHQAcAB1AHQAIABwAHIAbwBoAG8AcgBpAC0AdABlAHMAdAA=', process.name: pwsh.exe}
+      - {process.command_line: 'powershell /enc VwByAGkAdABlAC0ATwB1AHQAcAB1AHQAIABwAHIAbwBoAG8AcgBpAC0AdABlAHMAdAA='}
+      - {process.command_line: 'powershell -w hidden -nop -encodedc VwByAGkAdABlAC0ATwB1AHQAcAB1AHQAIABwAHIAbwBoAG8AcgBpAC0AdABlAHMAdAA='}
+
+  - name: other switches and plain scripts do not alert
+    expect: {alerts: 0}
+    events:
+      - {process.command_line: 'powershell -ExecutionPolicy Bypass -File C:\Scripts\backup.ps1'}
+      - {process.command_line: 'powershell -ep bypass -c Get-Date'}
+      - {process.command_line: 'powershell -enc short'}
+      - {process.command_line: 'powershell -Command "Write-Output encoded"'}
+
+  - name: another program with the same switch does not alert
+    expect: {alerts: 0}
+    events:
+      - {process.name: tool.exe, process.command_line: 'tool.exe -enc VwByAGkAdABlAC0ATwB1AHQAcAB1AHQAIABwAHIAbwBoAG8AcgBpAC0AdABlAHMAdAA='}
+
+  - name: Sysmon process creation through the windows_security parser
+    expect: {alerts: 1, entities: [{host: ws01.corp.example}]}
+    log:
+      parser: windows_security
+      lines:
+        - '{"@timestamp":"2026-10-24T09:00:00.000Z","winlog":{"channel":"Microsoft-Windows-Sysmon/Operational","computer_name":"WS01.corp.example","event_id":"1","provider_name":"Microsoft-Windows-Sysmon","record_id":"1","event_data":{"RuleName":"-","UtcTime":"2026-10-24 09:00:00.000","ProcessGuid":"{11111111-2222-3333-4444-555555555555}","ProcessId":"4242","Image":"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe","CommandLine":"powershell.exe -nop -w hidden -enc VwByAGkAdABlAC0ATwB1AHQAcAB1AHQAIABwAHIAbwBoAG8AcgBpAC0AdABlAHMAdAA=","CurrentDirectory":"C:\\Users\\amina\\","User":"CORP\\amina","IntegrityLevel":"Medium","Hashes":"SHA1=0000000000000000000000000000000000000000,SHA256=abababababababababababababababababababababababababababababababab","ParentProcessGuid":"{11111111-2222-3333-4444-666666666666}","ParentProcessId":"4100","ParentImage":"C:\\Program Files\\Microsoft Office\\root\\Office16\\WINWORD.EXE","ParentCommandLine":""}}}'
+        - '{"@timestamp":"2026-10-24T09:00:05.000Z","winlog":{"channel":"Microsoft-Windows-Sysmon/Operational","computer_name":"WS01.corp.example","event_id":"1","provider_name":"Microsoft-Windows-Sysmon","record_id":"1","event_data":{"RuleName":"-","UtcTime":"2026-10-24 09:00:00.000","ProcessGuid":"{11111111-2222-3333-4444-555555555555}","ProcessId":"4242","Image":"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe","CommandLine":"powershell.exe -File C:\\Scripts\\backup.ps1","CurrentDirectory":"C:\\Users\\amina\\","User":"CORP\\amina","IntegrityLevel":"Medium","Hashes":"SHA1=0000000000000000000000000000000000000000,SHA256=abababababababababababababababababababababababababababababababab","ParentProcessGuid":"{11111111-2222-3333-4444-666666666666}","ParentProcessId":"4100","ParentImage":"C:\\Windows\\explorer.exe","ParentCommandLine":""}}}'
+
+  - name: Windows 4688 process creation with command-line auditing
+    expect: {alerts: 1}
+    log:
+      parser: windows_security
+      lines:
+        - '{"@timestamp":"2026-10-24T09:01:00.000Z","winlog":{"channel":"Security","computer_name":"WS01.corp.example","event_id":"4688","provider_name":"Microsoft-Windows-Security-Auditing","event_data":{"SubjectUserName":"amina","NewProcessId":"0x10a8","NewProcessName":"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe","TokenElevationType":"%%1938","ProcessId":"0x1004","CommandLine":"powershell.exe -enc VwByAGkAdABlAC0ATwB1AHQAcAB1AHQAIABwAHIAbwBoAG8AcgBpAC0AdABlAHMAdAA=","ParentProcessName":"C:\\Program Files\\Microsoft Office\\root\\Office16\\WINWORD.EXE","MandatoryLabel":"S-1-16-8192"}}}'

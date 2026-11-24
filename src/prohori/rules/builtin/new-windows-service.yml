@@ -1,0 +1,24 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+# Copyright (c) 2026 Utsha Basak
+id: PRH-PROC-003
+title: New Windows service
+status: test
+severity: medium
+description: >-
+  A Windows service was created: its ImagePath was written in the registry (Sysmon event 13), or
+  sc.exe was run with "create". Attackers install services to run their programs as SYSTEM at
+  every start; software installers do the same, so the program the service runs decides.
+author: Prohori
+tags: [attack.persistence, attack.privilege_escalation, attack.t1543.003]
+detection:
+  image_path:
+    event.action: registry.value_set
+    registry.path|re: '\\(currentcontrolset|controlset\d{3})\\services\\[^\\]+\\imagepath$'
+  sc_create:
+    event.action: process.created
+    process.name: sc.exe
+    process.command_line|re: '(^|\s)create\s'
+  condition: image_path or sc_create
+falsepositives:
+  - Software and driver installation and updates
+response: runbooks/new-windows-service.md

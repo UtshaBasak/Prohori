@@ -2,9 +2,17 @@
 # Copyright (c) 2026 Utsha Basak
 """The common event schema ("ECS-lite") that every parser produces."""
 
-from typing import Annotated, Self
+from typing import Annotated, Any, Self
 
-from pydantic import BaseModel, Field, IPvAnyAddress, field_validator, model_validator
+from pydantic import (
+    BaseModel,
+    Field,
+    IPvAnyAddress,
+    SerializerFunctionWrapHandler,
+    field_validator,
+    model_serializer,
+    model_validator,
+)
 
 from prohori.schema.ids import event_id
 from prohori.schema.types import (
@@ -78,6 +86,92 @@ class HttpInfo(BaseModel):
         return value.upper() if value is not None else None
 
 
+#: SHA-256 as 64 lower-case hex digits.
+SHA256_PATTERN = r"^[0-9a-f]{64}$"
+#: A host name as :data:`HOSTNAME_PATTERN`, length-limited.
+HostName = Annotated[str, Field(pattern=HOSTNAME_PATTERN, max_length=253)]
+
+
+class ParentProcessInfo(BaseModel):
+    """The process that started :class:`ProcessInfo` (`process.parent.*`)."""
+
+    model_config = MODEL_CONFIG
+
+    pid: Annotated[int, Field(ge=0)] | None = None
+    name: ShortText | None = None
+    executable: Text | None = None
+    command_line: Text | None = None
+
+
+class ProcessInfo(BaseModel):
+    """The process that did something (`process.*`, since 1.2). Command lines are untrusted."""
+
+    model_config = MODEL_CONFIG
+
+    pid: Annotated[int, Field(ge=0)] | None = None
+    name: ShortText | None = None
+    executable: Text | None = None
+    command_line: Text | None = None
+    #: SHA-256 of the executable.
+    hash: Annotated[str, Field(pattern=SHA256_PATTERN)] | None = None
+    #: Who signed the executable, as the source reports it.
+    signer: ShortText | None = None
+    #: Windows integrity level: ``low``, ``medium``, ``high`` or ``system``.
+    integrity_level: ShortText | None = None
+    parent: ParentProcessInfo | None = None
+
+
+class FileInfo(BaseModel):
+    """A file that was created, deleted or loaded (`file.*`, since 1.2)."""
+
+    model_config = MODEL_CONFIG
+
+    path: Text | None = None
+    name: ShortText | None = None
+    #: Lower case, without the dot (``exe``).
+    extension: ShortText | None = None
+    size: Annotated[int, Field(ge=0)] | None = None
+    #: Mark-of-the-web zone of a downloaded file (3 is the internet), when the source has it.
+    zone: Annotated[int, Field(ge=0, le=4)] | None = None
+
+
+class RegistryInfo(BaseModel):
+    """A Windows registry change (`registry.*`, since 1.2)."""
+
+    model_config = MODEL_CONFIG
+
+    #: The full key or value path, as the source writes it (``HKLM`` or ``\REGISTRY\MACHINE``).
+    path: Text | None = None
+    #: The value's name (the last part of ``path`` for a value).
+    value: ShortText | None = None
+    #: The data written, as the source logs it.
+    data: Text | None = None
+
+
+class DestinationInfo(BaseModel):
+    """Where a connection went (`destination.*`, since 1.2)."""
+
+    model_config = MODEL_CONFIG
+
+    ip: IPvAnyAddress | None = None
+    port: Annotated[int, Field(ge=0, le=65535)] | None = None
+    #: The destination's name (TLS SNI, HTTP host, a resolved host name); attacker-influenced.
+    domain: HostName | None = None
+
+
+class DnsInfo(BaseModel):
+    """A name lookup (`dns.*`, since 1.2)."""
+
+    model_config = MODEL_CONFIG
+
+    #: The name asked for, as logged (not normalised: lookups for odd names are the point).
+    question: ShortText | None = None
+
+
+#: Event fields added in 1.2, left out of the JSON when unset so older events are unchanged.
+OPTIONAL_GROUPS = ("process", "file", "registry", "destination", "dns")
+
+
 class Event(BaseModel):
     """One normalised log event. All timestamps are UTC.
 
@@ -97,8 +191,22 @@ class Event(BaseModel):
     client: ShortText | None = None
     host: ShortText | None = None
     request_id: ShortText | None = None
+    process: ProcessInfo | None = None
+    file: FileInfo | None = None
+    registry: RegistryInfo | None = None
+    destination: DestinationInfo | None = None
+    dns: DnsInfo | None = None
     raw: RawText
     extra: Annotated[dict[ShortText, BoundedScalar], Field(max_length=MAX_EXTRA_KEYS)] = {}
+
+    @model_serializer(mode="wrap")
+    def _omit_unset_groups(self, handler: SerializerFunctionWrapHandler) -> Any:  # noqa: ANN401 - whatever the handler returns
+        data = handler(self)
+        if isinstance(data, dict):
+            for name in OPTIONAL_GROUPS:
+                if data.get(name, ...) is None:
+                    del data[name]
+        return data
 
     @model_validator(mode="after")
     def _fill_id(self) -> Self:

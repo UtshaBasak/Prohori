@@ -23,6 +23,9 @@
   "web-scanning/default": "6b7c0833cf2e387e4df7dc5cdbeb0b31b907747b33ff04536c17fa8bf8f2cd78",
   "web-scanning/heldout": "d1d1291be28f6059361193d1b600c4240ba34c25bf6197289575fc522f296f32",
   "web-scanning/heldout2": "a7c4b6b8e99b0b50f374c514caf29fadf02ad7e988fb476e1d21e6b5fa451801",
+  "windows-intrusion/default": "5c769a593c079773cb98a99c41a7082a5c96da62fb252c0b363fc7820018f619",
+  "windows-intrusion/heldout": "59adf17c6fc74c0313061bc6ebdb22cc109d4285d5ec8543505f955d9e5a0c73",
+  "windows-intrusion/heldout2": "4a300172b667db1a50ce41eeaf5007efe1c210aacb8d1259b9a6208fcc58926a",
   "windows-signin/default": "9d67e903187a9bca241b9806261590668bdefad9d2675527bc229c790a251d49",
   "windows-signin/heldout": "48f96bd23bfae249d7393ad83ee9023d4499beef2adf7854180b6639144d9f30",
   "windows-signin/heldout2": "8cc41e8bac86bde2afaeb26c2df49f5542aff52d85e4fe056469a8c2e0d17a9f"

@@ -11,7 +11,8 @@ Parsers turn raw log lines into [common-schema events](SCHEMA.md). They live in
 | Generic JSON Lines | `generic_json` | Any JSON Lines, with a YAML field-mapping file | Available |
 | Suricata EVE | `suricata_eve` | `eve.json`: alert, http, dns, tls, ssh and flow records | Since 1.2 |
 | Zeek connections | `zeek_conn` | `conn.log` as tab-separated values with a `#fields` header, or Zeek JSON | Since 1.2 |
-| Windows Security events | `windows_security` | Winlogbeat, NXLog or PowerShell JSON, evtx_dump JSON, event XML; native `.evtx` with the `evtx` extra | Since 1.2 |
+| Windows Security events | `windows_security` | Winlogbeat, NXLog or PowerShell JSON, evtx_dump JSON, event XML; native `.evtx` with the `evtx` extra; Sysmon events too | Since 1.2 |
+| Sysmon | `sysmon` | The same layouts, Sysmon's channel only | Since 1.2 |
 | systemd journal | `journald` | `journalctl -o json` (sshd, sudo and PAM messages) | Since 1.2 |
 
 ## Command line
@@ -307,8 +308,8 @@ documentation, not copied from real traffic.
 | ------------ | -------------- | ---------------- | ------------ |
 | `alert` | `ids.alert` | `network` | `event.severity` from the signature's severity (below); the signature in `event.reason` and `extra.signature`, with `extra.signature_id`, `extra.signature_rev`, `extra.alert_gid`, `extra.alert_category`, `extra.alert_action` (`allowed` or `blocked`) and `extra.alert_severity`; from the signature metadata `extra.mitre_technique_id`, `extra.mitre_tactic_id` and `extra.signature_severity`. HTTP details when the record has them |
 | `http` | `web.request` | `web` | As `access_log`: `http.method`, `http.path` (query in `extra.query`), `http.status`, `http.bytes`, `user_agent`, `extra.http_host`, `extra.protocol`, `extra.referer`, `extra.content_type`. Outcome `failure` for status 400 and above |
-| `dns` | `network.dns` | `network` | `extra.dns_question` (as logged), `extra.dns_domain` (lower case, when it is a valid name), `extra.dns_type`, `extra.dns_rcode`, `extra.dns_message` (`query`, `answer`, ...) |
-| `tls` | `network.tls` | `network` | `extra.tls_sni`, `extra.tls_domain`, `extra.tls_version`, `extra.tls_subject`, `extra.tls_issuer`, `extra.ja3_hash`, `extra.ja3s_hash` |
+| `dns` | `network.dns` | `network` | `dns.question` (as logged), `extra.dns_type`, `extra.dns_rcode`, `extra.dns_message` (`query`, `answer`, ...) |
+| `tls` | `network.tls` | `network` | `destination.domain`, `extra.tls_sni`, `extra.tls_version`, `extra.tls_subject`, `extra.tls_issuer`, `extra.ja3_hash`, `extra.ja3s_hash` |
 | `ssh` | `network.ssh` | `network` | `extra.ssh_client_software`, `extra.ssh_server_software`, `extra.ssh_client_protocol`, `extra.ssh_server_protocol` |
 | `flow` | `network.flow` | `network` | The connection fields below, plus `extra.flow_state` and `extra.flow_reason` |
 
@@ -345,7 +346,7 @@ either sensor's output. The originator is `source.ip`.
 
 | Key | Meaning |
 | --- | ------- |
-| `extra.destination_ip`, `extra.destination_port` | The responder |
+| `destination.ip`, `destination.port` | The responder |
 | `extra.source_port` | The originator's port |
 | `extra.transport` | `tcp`, `udp`, `icmp`, ... (lower case) |
 | `extra.app_protocol` | The application protocol the sensor recognised (`http`, `dns`, `ssl` or `tls`, ...) |
@@ -356,8 +357,8 @@ either sensor's output. The originator is `source.ip`.
 | `extra.direction` | `outbound`, `inbound`, `internal` or `external` (Zeek only, from `local_orig` and `local_resp`) |
 | `extra.flow_id` (Suricata), `extra.uid` and `extra.community_id` (Zeek) | Ids that tie the records of one connection together |
 
-These are `extra` fields for now. A later 1.2 step adds `destination.*` schema fields and moves
-the built-in rules to them (ADR-0044).
+Suricata also sets `destination.domain` (the TLS SNI or the HTTP host, when it is a valid name)
+and `dns.question` (the name looked up); the rest are `extra` fields.
 
 ## `zeek_conn`
 
@@ -416,6 +417,7 @@ recognised on its own, so one file may mix layouts:
 | 4728, 4732, 4756 | `windows.group.member_added` | `account` | `user.name` who did it; `extra.group_name`, `extra.group_sid`, `extra.group_scope` (`global`, `local`, `universal`), `extra.member_name`, `extra.member_sid` |
 | 4740 | `windows.account.locked_out` | `authentication` | `user.name` the account; `extra.caller_computer` the computer the failures came from |
 | 1102 | `windows.log.cleared` | `admin` | `user.name` who cleared it (from `UserData`) |
+| 4688 | `process.created` | `process` | Since step 34b. `process.*` and `process.parent.*` as for Sysmon event 1 (the command line only when "Include command line in process creation events" is on); `process.integrity_level` from `MandatoryLabel`; `extra.elevation_type` (`full`, `elevated`, `limited`) |
 
 Other event ids, and the same ids from another provider, are counted as skipped. `host` is the
 computer name in lower case and `log_source` is `windows-security`; every event keeps
@@ -438,6 +440,46 @@ computer name in lower case and `log_source` is `windows-security`; every event 
   (`evtx_dump -o jsonl`).
 - Names are kept as Windows logged them; Windows compares account names without regard to case,
   so `Administrator` and `administrator` are one account to Windows but two values to a rule.
+
+## Sysmon (`windows_security` and `sysmon`)
+
+Sysmon events go through the same layouts as Windows Security events (Winlogbeat, NXLog,
+evtx_dump JSON, event XML, `.evtx`) and the same format-independent record. A record whose
+provider is `Microsoft-Windows-Sysmon` (or, without a provider, whose channel is
+`Microsoft-Windows-Sysmon/Operational`) is mapped by `prohori.parsers.sysmon` with `log_source`
+`sysmon`. `windows_security` reads both, so a Winlogbeat file holding both channels needs no
+choice; the `sysmon` parser reads Sysmon events only and skips the rest.
+
+The field names are Sysmon's own, as Sysmon 13 to 15 write them (schema 4.50 to 4.91). Older
+versions leave some fields out (`RuleName`, `User`, ...), which only leaves the matching event
+fields unset; checked against the public `sysmon.evtx` sample of the evtx project. Which events
+exist at all is up to the Sysmon configuration, so a missing event type is never an error.
+
+| Event | `event.action` | Category | Fields |
+| ----- | -------------- | -------- | ------ |
+| 1 | `process.created` | `process` | `process.pid`, `.name`, `.executable`, `.command_line`, `.hash` (the SHA-256 in `Hashes`), `.integrity_level`; `process.parent.*`; `extra.original_file_name`, `extra.current_directory`, `extra.hashes` |
+| 3 | `network.connection` | `network` | `process.*`, `source.ip`, `destination.ip`, `.port`, `.domain`, `extra.transport`, `extra.source_port` |
+| 7 | `process.image_loaded` | `process` | `process.*`, `file.path` (the DLL), `extra.signed`, `extra.signature` |
+| 8 | `process.remote_thread_created` | `process` | `process.*` (the source), `extra.target_image`, `extra.target_name`, `extra.start_module` |
+| 10 | `process.accessed` | `process` | `process.*` (the source), `extra.target_name`, `extra.granted_access`, `extra.call_trace` (first 1,024 characters) |
+| 11 | `file.created` | `file` | `process.*`, `file.path`, `.name`, `.extension` |
+| 12 | `registry.key_created`, `registry.key_deleted`, `registry.value_created`, `registry.value_deleted` | `registry` | `process.*`, `registry.path` |
+| 13 | `registry.value_set` | `registry` | `process.*`, `registry.path`, `.value` (the value's name), `.data` (`Details`) |
+| 14 | `registry.renamed` | `registry` | `process.*`, `registry.path`, `extra.new_name` |
+| 22 | `dns.query` | `dns` | `process.*`, `dns.question`, `extra.query_status`, `extra.query_results` |
+| 23, 26 | `file.deleted` | `file` | `process.*`, `file.*`, `extra.archived` (`true` for 23, `false` for 26) |
+
+Every event has `user.name` (from `User`, `DOMAIN\` removed into `extra.user_domain`), `host`
+(the computer, lower case), `extra.event_id`, `extra.record_id` and `extra.process_guid`. Other
+event ids are counted as skipped.
+
+- **Only process creation describes the process itself.** In the other events `Hashes` belongs
+  to a file or a loaded image, so `process.hash` is set from event 1 only.
+- **PowerShell's `Get-WinEvent ... | ConvertTo-Json`** gives a Sysmon event's values without their
+  names, and Sysmon's field order changes between versions, so such a line is counted as an error
+  that says to export with `ToXml()` instead. Security events keep their documented templates.
+- Registry paths are kept as logged: recent Sysmon versions write `HKLM\...`, older ones
+  `\REGISTRY\MACHINE\...`; the built-in rules match both.
 
 ## `journald`
 

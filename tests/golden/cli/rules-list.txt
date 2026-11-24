@@ -1,4 +1,4 @@
-                                            Rules (33)
+                                            Rules (37)
 +---------------+----------+--------------+---------------------------+---------------------------+
 | id            | severity | status       | title                     | ATT&CK                    |
 +---------------+----------+--------------+---------------------------+---------------------------+
@@ -65,6 +65,21 @@
 |               |          |              |                           | attack.t1048              |
 | PRH-NET-003   | low      | experimental | Long outbound connection  | attack.command_and_contro |
 |               |          |              |                           | l, attack.t1071           |
+| PRH-PROC-001  | high     | test         | PowerShell started with   | attack.execution,         |
+|               |          |              | an encoded command        | attack.t1059.001,         |
+|               |          |              |                           | attack.stealth,           |
+|               |          |              |                           | attack.t1027.010          |
+| PRH-PROC-002  | high     | test         | An Office application or  | attack.execution,         |
+|               |          |              | browser started a shell   | attack.t1204.002,         |
+|               |          |              |                           | attack.t1059,             |
+|               |          |              |                           | attack.initial_access,    |
+|               |          |              |                           | attack.t1566.001          |
+| PRH-PROC-003  | medium   | test         | New Windows service       | attack.persistence,       |
+|               |          |              |                           | attack.privilege_escalati |
+|               |          |              |                           | on, attack.t1543.003      |
+| PRH-PROC-004  | critical | test         | Credential store read by  | attack.credential_access, |
+|               |          |              | an unusual process        | attack.t1003,             |
+|               |          |              |                           | attack.t1003.001          |
 | PRH-SESS-001  | high     | stable       | Refresh-token reuse       | attack.credential_access, |
 |               |          |              | detected                  | attack.lateral_movement,  |
 |               |          |              |                           | attack.t1528,             |

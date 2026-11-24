@@ -93,15 +93,16 @@ def winlogbeat(
     record_id: int,
     computer: str = WINDOWS_COMPUTER,
     provider: str = SECURITY_PROVIDER,
+    channel: str = "Security",
 ) -> str:
-    """A Windows Security event as Winlogbeat writes it (one JSON line, ``windows_security``)."""
+    """A Windows event as Winlogbeat writes it (one JSON line, ``windows_security``)."""
     record = {
         "@timestamp": timestamp.strftime("%Y-%m-%dT%H:%M:%S.")
         + f"{timestamp.microsecond // 1000:03d}Z",
         "event": {"code": str(event_id), "provider": provider, "kind": "event"},
         "host": {"name": computer.lower()},
         "winlog": {
-            "channel": "Security",
+            "channel": channel,
             "computer_name": computer,
             "event_id": str(event_id),
             "provider_name": provider,

@@ -15,7 +15,7 @@ allowed or blocked the traffic (`extra.alert_action`) and any MITRE metadata the
 
 1. Read the signature and its category, and look the signature id up in the rule set's
    documentation to learn what it detects.
-2. Work out the direction: is the internal address (source or `extra.destination_ip`) the target
+2. Work out the direction: is the internal address (source or `destination.ip`) the target
    of an attack or the origin of suspicious traffic, such as a malware check-in?
 3. Check `extra.alert_action`: `blocked` means an IPS sensor already dropped the traffic.
 4. Look for other alerts on the same addresses and for flows with the same `extra.flow_id`

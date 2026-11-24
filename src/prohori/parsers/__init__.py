@@ -20,7 +20,7 @@ from prohori.parsers.generic_json import FieldMapping, GenericJsonParser, load_m
 from prohori.parsers.journald import JournaldParser
 from prohori.parsers.registry import available, get_parser, register
 from prohori.parsers.suricata_eve import SuricataEveParser
-from prohori.parsers.windows_security import WindowsSecurityParser
+from prohori.parsers.windows_security import SysmonParser, WindowsSecurityParser
 from prohori.parsers.zeek_conn import ZeekConnParser
 
 __all__ = [
@@ -36,6 +36,7 @@ __all__ = [
     "ParseStats",
     "RawLine",
     "SuricataEveParser",
+    "SysmonParser",
     "WindowsSecurityParser",
     "ZeekConnParser",
     "available",
