@@ -7,6 +7,28 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-11-24
+
+The first release under the PolyForm Strict License 1.0.0 (free for personal and other
+non-commercial use; 1.0.1 and earlier stay MIT). A hardening release: rules that hold up against
+slower and spread-out attackers, measured against a frozen baseline; reviewed suppressions;
+logins for the Docker stack; model files without pickle; and SBOMs with every release.
+
+### Highlights
+
+- **New licence**, PolyForm Strict 1.0.0 (ADR-0033); see *Changed* below and `LICENSE`.
+- **Evasion-resistant sign-in rules**: six rules that count per account, network and log catch
+  every held-out attack (40/40, 35/40 before), with no new false positive.
+- **Suppressions and allow-lists** with a reason, an owner and an expiry date per entry;
+  suppressed alerts are counted and listed, never dropped (ADR-0043).
+- **Logins for the Docker stack** (Grafana, Airflow, SASL/SCRAM on Kafka with per-user ACLs) and
+  **signed CycloneDX SBOMs** for the package and the image (ADR-0042). **Upgrade note** in
+  *Security*.
+- **Model files without pickle** (skops) and a time-block validation split (ADR-0040), plus a
+  pre-registered cross-dataset generalisation study (ADR-0041).
+- The LLM analyst's evaluation recorded again with Gemini on all 31 cases: no factual error,
+  every injection ignored.
+
 ### Added
 
 - **Evasion-resistant authentication rules.** Six rules count per account, per network and per
@@ -732,7 +754,8 @@ offline by default.
 - Contributor, security and code-of-conduct documents.
 - OpenSSF Scorecard workflow, README status badges and a project wiki.
 
-[Unreleased]: https://github.com/UtshaBasak/Prohori/compare/v1.0.1...HEAD
+[Unreleased]: https://github.com/UtshaBasak/Prohori/compare/v1.1.0...HEAD
+[1.1.0]: https://github.com/UtshaBasak/Prohori/compare/v1.0.1...v1.1.0
 [1.0.1]: https://github.com/UtshaBasak/Prohori/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/UtshaBasak/Prohori/compare/v0.3.0...v1.0.0
 [0.3.0]: https://github.com/UtshaBasak/Prohori/compare/v0.2.0...v0.3.0
