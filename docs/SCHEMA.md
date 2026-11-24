@@ -29,7 +29,7 @@ smaller and is not ECS-compatible.
 | `timestamp` | datetime (UTC) | Required |
 | `log_source` | str (1-64) | For example `sshd`, `nginx`, `app-security` |
 | `event.action` | str | Required. Dotted lower-case name matching `^[a-z0-9_]+(\.[a-z0-9_]+)*$`, max 128, for example `auth.signin.failure` |
-| `event.category` | enum | Required. `authentication`, `web`, `session`, `account`, `authorization`, `abuse`, `admin`, `network` |
+| `event.category` | enum | Required. `authentication`, `web`, `session`, `account`, `authorization`, `abuse`, `admin`, `network`; since 1.2 also `process`, `file`, `registry`, `dns` |
 | `event.outcome` | enum | `success`, `failure`, `unknown` (default) |
 | `event.severity` | enum, optional | Source-provided severity: `low`, `medium`, `high` |
 | `event.reason` | str, optional | For example `bad_password`, `unknown_user`, `locked` |
@@ -46,8 +46,15 @@ smaller and is not ECS-compatible.
 | `client` | str, optional | For example `web` or `android/10203` |
 | `host` | str, optional | |
 | `request_id` | str, optional | Correlation id when present |
+| `process.pid`, `.name`, `.executable`, `.command_line` | optional | Since 1.2. The process that acted (Sysmon, Windows 4688). Command lines are untrusted |
+| `process.hash`, `.signer`, `.integrity_level` | optional | Since 1.2. SHA-256 of the executable (64 lower-case hex digits), its signer, and the Windows integrity level (`low`, `medium`, `high`, `system`) |
+| `process.parent.pid`, `.name`, `.executable`, `.command_line` | optional | Since 1.2. The process that started it |
+| `file.path`, `.name`, `.extension`, `.size`, `.zone` | optional | Since 1.2. A file created, deleted or loaded; `extension` in lower case without the dot; `zone` the Mark-of-the-web zone (3 is the internet) |
+| `registry.path`, `.value`, `.data` | optional | Since 1.2. A Windows registry change: the key or value path as logged, the value's name and the data written |
+| `destination.ip`, `.port`, `.domain` | optional | Since 1.2. Where a connection went (network sensors, Sysmon event 3); `domain` is a valid lower-case host name |
+| `dns.question` | optional | Since 1.2. The name looked up, as logged |
 | `raw` | str | Required. The original line, truncated at 8,192 characters |
-| `extra` | map of str to scalar | Up to 64 source-specific safe fields; values are string, number, boolean or null. Network events (`suricata_eve`, `zeek_conn`, since 1.2) keep the connection here (`extra.destination_ip`, `extra.destination_port`, `extra.bytes_out`, `extra.duration`, ...; see [PARSERS.md](PARSERS.md#connection-fields-both-network-parsers)) |
+| `extra` | map of str to scalar | Up to 64 source-specific safe fields; values are string, number, boolean or null. Network events (`suricata_eve`, `zeek_conn`, since 1.2) keep the rest of the connection here (`extra.bytes_out`, `extra.duration`, ...; see [PARSERS.md](PARSERS.md#connection-fields-both-network-parsers)) |
 
 ### Length limits
 
@@ -151,6 +158,11 @@ is_valid_path("http.status")  # True
 `get_field` returns JSON scalars: enums as their string value, IP addresses as strings and
 timestamps in ISO-8601. Unknown paths raise `KeyError`. `FIELD_PATHS` lists every path except the
 open-ended `extra.<key>`.
+
+**Groups added in 1.2** (`process`, `file`, `registry`, `destination`, `dns`) are left out of
+the JSON when an event has none of them, so events of earlier formats serialise exactly as
+before. Their fields have dotted names like the others, three levels deep for the parent process
+(`process.parent.name`); an unset group reads as `None`.
 
 **Derived fields** (`DERIVED_PATHS`, since 1.1) are computed when read and never stored:
 `source.ip_prefix` is the network of `source.ip`, a /24 for IPv4 and a /48 for IPv6

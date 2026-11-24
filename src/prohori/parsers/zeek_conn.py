@@ -243,6 +243,10 @@ class ZeekConnParser(LineParser):
                     "outcome": OUTCOME_BY_STATE.get(state or "", "unknown"),
                 },
                 "source": {"ip": address(values.get("id.orig_h"), "id.orig_h")},
+                "destination": {
+                    "ip": extra.pop("destination_ip"),
+                    "port": extra.pop("destination_port"),
+                },
                 "raw": raw,
                 "extra": compact(extra),
             }

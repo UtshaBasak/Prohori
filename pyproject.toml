@@ -38,7 +38,7 @@ classifiers = [
     "Typing :: Typed",
 ]
 dependencies = [
-    "pydantic>=2.10",
+    "pydantic>=2.12",  # Field(exclude_if=...) for the optional event groups
     "pyyaml>=6.0",
     "rich>=13.0",
     "tzdata>=2024.1",  # IANA timezones everywhere, even without system zoneinfo

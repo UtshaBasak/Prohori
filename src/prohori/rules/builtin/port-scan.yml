@@ -21,7 +21,7 @@ detection:
   aggregate:
     group_by: [source.ip]
     window: 5m
-    distinct: {field: extra.destination_port, gte: 25}
+    distinct: {field: destination.port, gte: 25}
   condition: tcp_flow and not established and aggregate
 falsepositives:
   - The organisation's own vulnerability scanner or asset inventory (add a suppression for it)

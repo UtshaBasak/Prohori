@@ -11,6 +11,7 @@ from prohori.cli import app
 from prohori.rules import builtin_rules_dir, load_rules
 from prohori.schema import Incident
 from prohori.simulate import SCENARIOS, simulate, write
+from prohori.simulate.sysmon import COMPUTER
 from tests.unit.enrich.conftest import isolated_settings, no_network
 
 __all__ = ["isolated_settings", "no_network"]  # autouse: no network, no real cache or keys
@@ -23,6 +24,9 @@ STABLE = {
     for r in load_rules([builtin_rules_dir()])
     if r.rule and r.rule.meta.status == "stable"
 }
+
+#: The host the windows-intrusion scenario happens on, as events name it.
+HOST = COMPUTER.lower()
 
 
 @pytest.mark.parametrize("name", sorted(SCENARIOS))
@@ -53,7 +57,19 @@ def test_every_expected_rule_lands_in_an_incident_about_the_attacker(
     for attack in simulation.attacks:
         attackers = set(attack.sources)
         about_attacker = [i for i in incidents if attackers & set(i.entities.get("source.ip", ()))]
-        assert about_attacker, f"{name}: no incident involves {sorted(attackers)}"
+        if not attackers:  # an intrusion on a host (windows-intrusion): incidents about the host
+            about_attacker = [i for i in incidents if HOST in i.entities.get("host", ())]
+            # The whole chain lands in one incident, linked by the user (SYSTEM never links).
+            assert any(
+                set(attack.expected_rules) <= {a.detector_id for a in i.alerts}
+                for i in about_attacker
+            ), (name, [[a.detector_id for a in i.alerts] for i in about_attacker])
+            assert not any(
+                {a.detector_id for a in i.alerts} >= set(attack.expected_rules)
+                and len(i.alerts) > 4
+                for i in about_attacker
+            ), "the benign false positives joined the intrusion's incident"
+        assert about_attacker, f"{name}: no incident involves {sorted(attackers) or HOST}"
         fired = {a.detector_id for i in about_attacker for a in i.alerts}
         assert set(attack.expected_rules) & STABLE <= fired, (name, sorted(fired))
         # Each incident about the attacker has a report; the most severe is medium or above.

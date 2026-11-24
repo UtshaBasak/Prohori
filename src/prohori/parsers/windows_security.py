@@ -34,8 +34,10 @@ from prohori.parsers.network import parse_iso
 from prohori.parsers.registry import register
 from prohori.parsers.util import load_json_object
 from prohori.parsers.windows import (
-    SUPPORTED_EVENT_IDS,
+    SYSMON_EVENT_IDS,
     WindowsRecord,
+    is_supported,
+    is_sysmon,
     positional,
     scalar_text,
     to_event,
@@ -59,16 +61,24 @@ class WindowsSecurityParser(LineParser):
 
     Args:
         timezone: IANA timezone for times written without an offset (NXLog's default).
-        log_source: Value for ``log_source``.
+        log_source: Value for ``log_source`` of Security events.
+        sysmon_log_source: Value for ``log_source`` of Sysmon events.
     """
 
     name = "windows_security"
+    #: Map only Sysmon events (the ``sysmon`` parser).
+    only_sysmon = False
 
     def __init__(
-        self, *, timezone: str | tzinfo = "UTC", log_source: str = "windows-security"
+        self,
+        *,
+        timezone: str | tzinfo = "UTC",
+        log_source: str = "windows-security",
+        sysmon_log_source: str = "sysmon",
     ) -> None:
         self.timezone = _resolve_timezone(timezone)
         self.log_source = log_source
+        self.sysmon_log_source = sysmon_log_source
         self.reset()
 
     def reset(self) -> None:
@@ -83,7 +93,16 @@ class WindowsSecurityParser(LineParser):
         parsed = self._from_json(record)
         if parsed is None:
             return None
-        return to_event(parsed, raw=line, position=f"{source}:{number}", log_source=self.log_source)
+        return self._event(parsed, line, f"{source}:{number}")
+
+    def _event(self, record: WindowsRecord, raw: str, position: str) -> Event | None:
+        return to_event(
+            record,
+            raw=raw,
+            position=position,
+            log_source=self.log_source,
+            sysmon_log_source=self.sysmon_log_source,
+        )
 
     # ------------------------------------------------------------------ XML
 
@@ -108,7 +127,7 @@ class WindowsSecurityParser(LineParser):
         record = self._from_xml(text)
         if record is None:
             return None
-        return to_event(record, raw=text, position=f"{source}:{number}", log_source=self.log_source)
+        return self._event(record, text, f"{source}:{number}")
 
     def _from_xml(self, text: str) -> WindowsRecord | None:
         upper = text.upper()
@@ -181,6 +200,12 @@ class WindowsSecurityParser(LineParser):
             return self._from_evtx(event)
         if "Id" in record and "TimeCreated" in record:  # Get-WinEvent | ConvertTo-Json
             event_id = _event_id(record.get("Id"))
+            if event_id in SYSMON_EVENT_IDS and is_sysmon(
+                scalar_text(record.get("ProviderName")), scalar_text(record.get("LogName"))
+            ):
+                raise ParseError(
+                    "Sysmon event from Get-WinEvent JSON has no field names; export it with ToXml()"
+                )
             properties = record.get("Properties")
             values = [
                 p.get("Value") if isinstance(p, dict) else p
@@ -241,15 +266,18 @@ class WindowsSecurityParser(LineParser):
         number = _event_id(event_id)
         if number is None:
             raise ParseError("missing or invalid event id")
-        if number not in SUPPORTED_EVENT_IDS:
+        provider_text, channel_text = scalar_text(provider), scalar_text(channel)
+        if not is_supported(number, provider_text, channel_text):
+            return None
+        if self.only_sysmon and not is_sysmon(provider_text, channel_text):
             return None
         return WindowsRecord(
-            provider=scalar_text(provider),
+            provider=provider_text,
             event_id=number,
             timestamp=self._time(timestamp),
             computer=scalar_text(computer),
             record_id=_event_id(record_id, maximum=2**63 - 1),
-            channel=scalar_text(channel),
+            channel=channel_text,
             data=data,
         )
 
@@ -314,3 +342,15 @@ def _text_of(value: object) -> object:
 
 def _local(tag: str) -> str:
     return tag.rsplit("}", 1)[-1]
+
+
+@register
+class SysmonParser(WindowsSecurityParser):
+    """Parse exported Sysmon events only (the same layouts as ``windows_security``).
+
+    ``windows_security`` maps Sysmon events too, so a Winlogbeat file with both channels needs no
+    choice; this parser is for a file that should be read as Sysmon alone.
+    """
+
+    name = "sysmon"
+    only_sysmon = True

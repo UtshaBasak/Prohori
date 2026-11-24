@@ -36,9 +36,10 @@ def run(*args: str, stdin: bytes | None = None) -> tuple[int, str, str]:
         ("suricata-eve.json", "suricata_eve", 21),
         ("zeek-conn.log", "zeek_conn", 42),
         ("zeek-conn.json", "zeek_conn", 9),
-        ("windows-security.jsonl", "windows_security", 33),
-        ("windows-security.xml", "windows_security", 20),
+        ("windows-security.jsonl", "windows_security", 34),
+        ("windows-security.xml", "windows_security", 21),
         ("journald.json", "journald", 32),
+        ("windows-sysmon.jsonl", "windows_security", 21),
     ],
 )
 def test_auto_detect_table(file: str, parser: str, events: int) -> None:
@@ -203,6 +204,7 @@ def test_help_lists_parsers() -> None:
         "zeek_conn",
         "windows_security",
         "journald",
+        "sysmon",
     ):
         assert name in result.stdout
 
@@ -258,4 +260,4 @@ def test_utf16_file_from_windows_powershell(tmp_path: Path) -> None:
     code, out, _ = run(str(log))
     assert code == ExitCode.OK
     assert "windows_security" in out
-    assert re.search(r"\bevents\W+33\b", out)
+    assert re.search(r"\bevents\W+34\b", out)

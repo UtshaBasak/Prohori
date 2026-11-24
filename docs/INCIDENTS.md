@@ -47,6 +47,11 @@ incident. Entities are these fields:
   (or a host name logged instead of one) has linked alerts about more than 10 distinct accounts
   it is treated as shared: it links no further alerts, and the incidents it appears in say so in
   their limitations.
+- **Built-in Windows accounts never link** (since 1.2): `SYSTEM`, `LOCAL SERVICE`,
+  `NETWORK SERVICE`, `ANONYMOUS LOGON`, computer accounts (`NAME$`) and their SIDs. Unrelated
+  services run under them on every machine, so they would chain unrelated alerts on a host into
+  one incident. An alert whose only account is one of them (a service's registry entry written
+  by `services.exe`) stays in an incident of its own.
 - The result does not depend on the order of the alerts.
 
 ## Score

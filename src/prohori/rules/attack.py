@@ -48,6 +48,14 @@ TACTICS: dict[str, str] = {
 
 #: Technique tag -> technique. Only techniques that rules use are listed.
 TECHNIQUES: dict[str, Technique] = {
+    "attack.t1003": Technique("OS Credential Dumping", ("attack.credential_access",)),
+    "attack.t1003.001": Technique("LSASS Memory", ("attack.credential_access",)),
+    "attack.t1027.010": Technique("Command Obfuscation", ("attack.stealth",)),
+    "attack.t1046": Technique("Network Service Discovery", ("attack.discovery",)),
+    "attack.t1048": Technique("Exfiltration Over Alternative Protocol", ("attack.exfiltration",)),
+    "attack.t1059": Technique("Command and Scripting Interpreter", ("attack.execution",)),
+    "attack.t1059.001": Technique("PowerShell", ("attack.execution",)),
+    "attack.t1071": Technique("Application Layer Protocol", ("attack.command_and_control",)),
     "attack.t1078": Technique(
         "Valid Accounts",
         (
@@ -57,9 +65,6 @@ TECHNIQUES: dict[str, Technique] = {
             "attack.initial_access",
         ),
     ),
-    "attack.t1046": Technique("Network Service Discovery", ("attack.discovery",)),
-    "attack.t1048": Technique("Exfiltration Over Alternative Protocol", ("attack.exfiltration",)),
-    "attack.t1071": Technique("Application Layer Protocol", ("attack.command_and_control",)),
     "attack.t1098": Technique(
         "Account Manipulation", ("attack.persistence", "attack.privilege_escalation")
     ),
@@ -71,13 +76,18 @@ TECHNIQUES: dict[str, Technique] = {
     "attack.t1110.003": Technique("Password Spraying", ("attack.credential_access",)),
     "attack.t1110.004": Technique("Credential Stuffing", ("attack.credential_access",)),
     "attack.t1190": Technique("Exploit Public-Facing Application", ("attack.initial_access",)),
+    "attack.t1204.002": Technique("Malicious File", ("attack.execution",)),
     "attack.t1499.002": Technique("Service Exhaustion Flood", ("attack.impact",)),
     "attack.t1528": Technique("Steal Application Access Token", ("attack.credential_access",)),
+    "attack.t1543.003": Technique(
+        "Windows Service", ("attack.persistence", "attack.privilege_escalation")
+    ),
     "attack.t1550.001": Technique("Application Access Token", ("attack.lateral_movement",)),
     "attack.t1556.006": Technique(
         "Multi-Factor Authentication",
         ("attack.defense_impairment", "attack.persistence", "attack.credential_access"),
     ),
+    "attack.t1566.001": Technique("Spearphishing Attachment", ("attack.initial_access",)),
     "attack.t1595": Technique("Active Scanning", ("attack.reconnaissance",)),
     "attack.t1595.002": Technique("Vulnerability Scanning", ("attack.reconnaissance",)),
     "attack.t1595.003": Technique("Wordlist Scanning", ("attack.reconnaissance",)),

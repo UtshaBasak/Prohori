@@ -12,7 +12,10 @@ everything runs offline. All IP addresses come from documentation ranges (`192.0
   line and over several lines) hold hand-written Windows Security events: staff sign-ins,
   remote-desktop spraying and guessing, a sign-in that works, a new account added to
   Administrators, a cleared log and lockouts. `journald.json` is `auth.log` as the systemd journal
-  would export it (`journalctl -o json`), so both give the same alerts.
+  would export it (`journalctl -o json`), so both give the same alerts. `windows-sysmon.jsonl`
+  holds hand-written, defanged Sysmon events (Winlogbeat) of every mapped type: a working
+  morning, then a macro document, encoded PowerShell, a new service, lsass read through
+  `comsvcs.dll` and files deleted; the encoded command decodes to `Write-Output`.
 - `incidents/`: a sample incident (`prohori report samples/incidents/INC-*.json`).
 - `suppressions.yml`: an example suppressions file for the simulated shop (the planned admin
   role grant). Use it with `--suppressions` on `detect`, `incidents`, `triage` or the pipeline;

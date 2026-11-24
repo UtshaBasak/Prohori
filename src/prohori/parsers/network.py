@@ -2,12 +2,11 @@
 # Copyright (c) 2026 Utsha Basak
 """Helpers shared by the network sensor parsers (``suricata_eve`` and ``zeek_conn``).
 
-Both parsers describe a connection with the same ``extra`` keys, so one rule works on either
-sensor's output:
+Both parsers put the responder in ``destination.ip`` and ``destination.port`` (since step 34b;
+``extra.destination_ip`` and ``extra.destination_port`` before) and describe the rest of a
+connection with the same ``extra`` keys, so one rule works on either sensor's output:
 
 ======================  =====================================================================
-``destination_ip``      responder address (normalised text)
-``destination_port``    responder port (int)
 ``source_port``         originator port (int)
 ``transport``           ``tcp``, ``udp``, ``icmp``, ... (lower case)
 ``app_protocol``        application protocol the sensor recognised (``http``, ``dns``, ...)

@@ -92,7 +92,7 @@ def build_parser(
             return get_parser(name, pattern=pattern, keep_query=keep_query)
         if name == "suricata_eve":
             return get_parser(name, keep_query=keep_query)
-        if name == "windows_security":
+        if name in {"windows_security", "sysmon"}:
             return get_parser(name, timezone=timezone)
         if name == "generic_json":
             if mapping is None:
@@ -161,7 +161,7 @@ YearOption = Annotated[
 TimezoneOption = Annotated[
     str,
     typer.Option(
-        help="auth_log, windows_security: IANA timezone for timestamps without an offset."
+        help="auth_log, windows_security, sysmon: IANA timezone for timestamps without an offset."
     ),
 ]
 MappingOption = Annotated[Path | None, typer.Option(help="generic_json: YAML field-mapping file.")]

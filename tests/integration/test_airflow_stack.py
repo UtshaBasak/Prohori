@@ -136,12 +136,12 @@ def test_every_dag_runs_in_the_stack(monkeypatch: pytest.MonkeyPatch) -> None:
         _check_login()
         assert _json(_airflow("dags", "list-import-errors", "-o", "json")) == []
 
-        # Backfill all nine scenarios into the empty stack, then build the marts.
+        # Backfill all ten scenarios into the empty stack, then build the marts.
         states = _run("prohori_backfill", '{"start": "2026-10-20T06:00:00Z"}', timeout=2400)
         assert set(states.values()) == {"success"}
         dsn = stack.default_dsn()
         assert _rows(dsn, "raw.labels") == _rows(dsn, "raw.events") > 7000
-        assert _rows(dsn, "marts.attack_detection") == 9
+        assert _rows(dsn, "marts.attack_detection") == 10
 
         quality = _run("prohori_data_quality")
         assert quality == {"dbt_build": "success", "source_freshness": "success"}

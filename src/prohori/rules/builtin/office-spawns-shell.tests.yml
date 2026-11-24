@@ -1,0 +1,39 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+# Copyright (c) 2026 Utsha Basak
+# Defanged: every command line is harmless (the encoded commands decode to Write-Output).
+rule: PRH-PROC-002
+start: 2026-10-24T09:00:00Z
+defaults:
+  log_source: sysmon
+  event.category: process
+  event.action: process.created
+  host: ws01.corp.example
+cases:
+  - name: Word starting PowerShell alerts
+    expect: {alerts: 1, entities: [{host: ws01.corp.example}]}
+    events:
+      - {process.name: powershell.exe, process.parent.name: WINWORD.EXE}
+
+  - name: Excel, Outlook and a browser starting shells and script hosts alert
+    expect: {alerts: 4}
+    events:
+      - {process.name: cmd.exe, process.parent.name: excel.exe}
+      - {process.name: wscript.exe, process.parent.name: outlook.exe}
+      - {process.name: mshta.exe, process.parent.name: chrome.exe}
+      - {process.name: rundll32.exe, process.parent.name: msedge.exe}
+
+  - name: Office starting other programs, and Explorer starting a shell, do not alert
+    expect: {alerts: 0}
+    events:
+      - {process.name: splwow64.exe, process.parent.name: winword.exe}
+      - {process.name: msedge.exe, process.parent.name: outlook.exe}
+      - {process.name: powershell.exe, process.parent.name: explorer.exe}
+      - {process.name: cmd.exe}
+
+  - name: Sysmon event XML
+    expect: {alerts: 1}
+    log:
+      parser: windows_security
+      lines:
+        - '<Event xmlns="http://schemas.microsoft.com/win/2004/08/events/event"><System><Provider Name="Microsoft-Windows-Sysmon"/><EventID>1</EventID><TimeCreated SystemTime="2026-10-24T09:00:00.0000000Z"/><Channel>Microsoft-Windows-Sysmon/Operational</Channel><Computer>WS01.corp.example</Computer></System><EventData><Data Name="RuleName">-</Data><Data Name="UtcTime">2026-10-24 09:00:00.000</Data><Data Name="ProcessGuid">{11111111-2222-3333-4444-555555555555}</Data><Data Name="ProcessId">4242</Data><Data Name="Image">C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe</Data><Data Name="CommandLine">powershell.exe -enc VwByAGkAdABlAC0ATwB1AHQAcAB1AHQAIABwAHIAbwBoAG8AcgBpAC0AdABlAHMAdAA=</Data><Data Name="CurrentDirectory">C:\Users\amina\</Data><Data Name="User">CORP\amina</Data><Data Name="IntegrityLevel">Medium</Data><Data Name="Hashes">SHA1=0000000000000000000000000000000000000000,SHA256=abababababababababababababababababababababababababababababababab</Data><Data Name="ParentProcessGuid">{11111111-2222-3333-4444-666666666666}</Data><Data Name="ParentProcessId">4100</Data><Data Name="ParentImage">C:\Program Files\Microsoft Office\root\Office16\WINWORD.EXE</Data><Data Name="ParentCommandLine"></Data></EventData></Event>'
+        - '<Event xmlns="http://schemas.microsoft.com/win/2004/08/events/event"><System><Provider Name="Microsoft-Windows-Sysmon"/><EventID>1</EventID><TimeCreated SystemTime="2026-10-24T09:00:03.0000000Z"/><Channel>Microsoft-Windows-Sysmon/Operational</Channel><Computer>WS01.corp.example</Computer></System><EventData><Data Name="RuleName">-</Data><Data Name="UtcTime">2026-10-24 09:00:00.000</Data><Data Name="ProcessGuid">{11111111-2222-3333-4444-555555555555}</Data><Data Name="ProcessId">4242</Data><Data Name="Image">C:\Windows\System32\cmd.exe</Data><Data Name="CommandLine">cmd.exe /c dir</Data><Data Name="CurrentDirectory">C:\Users\amina\</Data><Data Name="User">CORP\amina</Data><Data Name="IntegrityLevel">Medium</Data><Data Name="Hashes">SHA1=0000000000000000000000000000000000000000,SHA256=abababababababababababababababababababababababababababababababab</Data><Data Name="ParentProcessGuid">{11111111-2222-3333-4444-666666666666}</Data><Data Name="ParentProcessId">4100</Data><Data Name="ParentImage">C:\Windows\explorer.exe</Data><Data Name="ParentCommandLine"></Data></EventData></Event>'

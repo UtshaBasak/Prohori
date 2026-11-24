@@ -1,0 +1,38 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+# Copyright (c) 2026 Utsha Basak
+# Defanged: every command line is harmless (the encoded commands decode to Write-Output).
+rule: PRH-PROC-003
+start: 2026-10-24T09:00:00Z
+defaults:
+  log_source: sysmon
+  host: ws01.corp.example
+cases:
+  - name: a service ImagePath written alerts
+    expect: {alerts: 1, entities: [{host: ws01.corp.example}]}
+    events:
+      - {event.action: registry.value_set, event.category: registry, registry.path: 'HKLM\System\CurrentControlSet\Services\UpdateHelper\ImagePath'}
+
+  - name: the raw registry path form of older Sysmon versions alerts
+    expect: {alerts: 1}
+    events:
+      - {event.action: registry.value_set, event.category: registry, registry.path: '\REGISTRY\MACHINE\SYSTEM\ControlSet001\Services\UpdateHelper\ImagePath'}
+
+  - name: sc.exe create alerts
+    expect: {alerts: 1}
+    events:
+      - {event.action: process.created, event.category: process, process.name: sc.exe, process.command_line: 'sc.exe create UpdateHelper binPath= C:\Users\Public\updatehelper.exe start= auto'}
+
+  - name: other service values and sc.exe queries do not alert
+    expect: {alerts: 0}
+    events:
+      - {event.action: registry.value_set, event.category: registry, registry.path: 'HKLM\System\CurrentControlSet\Services\UpdateHelper\Start'}
+      - {event.action: registry.value_set, event.category: registry, registry.path: 'HKLM\Software\Vendor\Services\Tool\ImagePath'}
+      - {event.action: process.created, event.category: process, process.name: sc.exe, process.command_line: 'sc.exe query UpdateHelper'}
+
+  - name: Sysmon registry events through the windows_security parser
+    expect: {alerts: 1}
+    log:
+      parser: windows_security
+      lines:
+        - '{"@timestamp":"2026-10-24T09:00:00.000Z","winlog":{"channel":"Microsoft-Windows-Sysmon/Operational","computer_name":"WS01.corp.example","event_id":"13","provider_name":"Microsoft-Windows-Sysmon","record_id":"1","event_data":{"RuleName":"-","EventType":"SetValue","UtcTime":"2026-10-24 09:00:00.000","ProcessGuid":"{11111111-2222-3333-4444-777777777777}","ProcessId":"720","Image":"C:\\Windows\\system32\\services.exe","TargetObject":"HKLM\\System\\CurrentControlSet\\Services\\UpdateHelper\\Start","Details":"DWORD (0x00000002)","User":"NT AUTHORITY\\SYSTEM"}}}'
+        - '{"@timestamp":"2026-10-24T09:00:01.000Z","winlog":{"channel":"Microsoft-Windows-Sysmon/Operational","computer_name":"WS01.corp.example","event_id":"13","provider_name":"Microsoft-Windows-Sysmon","record_id":"1","event_data":{"RuleName":"-","EventType":"SetValue","UtcTime":"2026-10-24 09:00:00.000","ProcessGuid":"{11111111-2222-3333-4444-777777777777}","ProcessId":"720","Image":"C:\\Windows\\system32\\services.exe","TargetObject":"HKLM\\System\\CurrentControlSet\\Services\\UpdateHelper\\ImagePath","Details":"C:\\Users\\Public\\updatehelper.exe","User":"NT AUTHORITY\\SYSTEM"}}}'

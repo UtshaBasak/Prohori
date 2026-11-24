@@ -212,7 +212,7 @@ class TestMapping:
         assert event.user.name == "administrator"
 
     def test_unmapped_ids_and_other_providers_are_skipped(self) -> None:
-        events, stats = parse(beat(4688), beat(4625, provider_name="Some-Other-Provider"))
+        events, stats = parse(beat(4689), beat(4625, provider_name="Some-Other-Provider"))
         assert (events, stats.skipped) == ([], 2)
 
     def test_mapping_is_independent_of_the_format(self) -> None:
@@ -236,6 +236,7 @@ class TestMapping:
             4756,
             4740,
             1102,
+            4688,
         }
         assert (
             positional(4625, ["S-1-0-0", "-", "-", "0x0", "S-1-0-0", "bob"])["TargetUserName"]
@@ -375,7 +376,7 @@ class TestFormats:
         assert reason in stats.error_examples[0].reason
 
     def test_sample_files(self) -> None:
-        for name, count in (("windows-security.jsonl", 33), ("windows-security.xml", 20)):
+        for name, count in (("windows-security.jsonl", 34), ("windows-security.xml", 21)):
             stats = ParseStats()
             events = list(WindowsSecurityParser().parse_file(SAMPLES / name, stats=stats))
             assert (stats.errors, len(events)) == (0, count), name

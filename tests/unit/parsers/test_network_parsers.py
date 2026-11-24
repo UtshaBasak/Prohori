@@ -22,7 +22,7 @@ from prohori.parsers import (
     read_lines,
 )
 from prohori.parsers.zeek_conn import DEFAULT_FIELDS, MAX_FIELDS
-from prohori.schema import Event
+from prohori.schema import Event, get_field
 
 ROOT = Path(__file__).resolve().parents[3]
 SAMPLES = ROOT / "samples" / "logs"
@@ -126,8 +126,8 @@ class TestSuricataEve:
         assert event.event.severity == "high"
         assert event.event.reason == "PRH TEST Web shell upload"
         assert str(event.source.ip) == "198.51.100.23"
-        assert event.extra["destination_ip"] == "192.0.2.10"
-        assert event.extra["destination_port"] == 80
+        assert get_field(event, "destination.ip") == "192.0.2.10"
+        assert get_field(event, "destination.port") == 80
         assert event.extra["source_port"] == 41020
         assert event.extra["transport"] == "tcp"
         assert event.extra["signature_id"] == 9000001
@@ -207,9 +207,11 @@ class TestSuricataEve:
         )
         (first, second), _ = parse_eve(v2, v3)
         assert first.event.action == "network.dns"
-        assert (first.extra["dns_question"], first.extra["dns_type"]) == ("Updates.Example", "A")
-        assert first.extra["dns_domain"] == "updates.example"
-        assert (second.extra["dns_question"], second.extra["dns_rcode"]) == (
+        assert (get_field(first, "dns.question"), first.extra["dns_type"]) == (
+            "Updates.Example",
+            "A",
+        )
+        assert (get_field(second, "dns.question"), second.extra["dns_rcode"]) == (
             "missing.example",
             "NXDOMAIN",
         )
@@ -227,7 +229,7 @@ class TestSuricataEve:
             },
         )
         (first, second), _ = parse_eve(tls, ssh)
-        assert first.extra["tls_domain"] == "updates.example"
+        assert get_field(first, "destination.domain") == "updates.example"
         assert first.extra["ja3_hash"] == "abc"
         assert second.event.action == "network.ssh"
         assert second.extra["ssh_client_software"] == "libssh_0.9.6"
@@ -309,7 +311,7 @@ class TestSuricataEve:
     def test_ipv6_and_mapped_addresses(self) -> None:
         (event,), _ = parse_eve(eve(src_ip="::ffff:198.51.100.23", dest_ip="2001:db8::10"))
         assert str(event.source.ip) == "198.51.100.23"
-        assert event.extra["destination_ip"] == "2001:db8::10"
+        assert get_field(event, "destination.ip") == "2001:db8::10"
 
     def test_sample_file(self) -> None:
         stats = ParseStats()
@@ -374,8 +376,8 @@ class TestZeekConn:
         assert event.extra["start_time"] == "2026-10-24T14:00:00.250000Z"
         assert event.extra["duration"] == 1.5
         assert event.extra["direction"] == "outbound"
-        assert event.extra["destination_ip"] == "198.51.100.80"
-        assert event.extra["destination_port"] == 443
+        assert get_field(event, "destination.ip") == "198.51.100.80"
+        assert get_field(event, "destination.port") == 443
         assert (event.extra["bytes_out"], event.extra["bytes_in"]) == (812, 5300)
         assert event.extra["uid"] == "CprhTest000000001"
         assert "\t" not in event.raw
@@ -388,7 +390,7 @@ class TestZeekConn:
         ]
         (event,), stats = parse_zeek(*lines)
         assert stats.errors == 0
-        assert event.extra["destination_port"] == 22
+        assert get_field(event, "destination.port") == 22
         assert event.extra["community_id"] == "1:abc="
         assert event.event.outcome == "unknown"
         assert "duration" not in event.extra
@@ -481,7 +483,7 @@ class TestZeekConn:
         ]
         (event,), stats = parse_zeek(*lines)
         assert stats.errors == 0
-        assert event.extra["destination_port"] == 80
+        assert get_field(event, "destination.port") == 80
 
     @pytest.mark.parametrize(
         ("values", "reason"),
@@ -528,7 +530,7 @@ class TestZeekConn:
         assert stats.errors == 0
         assert first.timestamp == datetime(2026, 10, 24, 14, 0, 2, 250000, tzinfo=UTC)
         assert (first.event.outcome, first.extra["direction"]) == ("failure", "outbound")
-        assert second.extra["destination_ip"] == "2001:db8::1"
+        assert get_field(second, "destination.ip") == "2001:db8::1"
         assert second.extra["transport"] == "udp"
 
     def test_json_from_other_logs_is_skipped(self) -> None:

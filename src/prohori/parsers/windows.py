@@ -31,6 +31,14 @@ from dataclasses import dataclass, field
 from datetime import datetime
 
 from prohori.parsers.base import ParseError, sanitize
+from prohori.parsers.sysmon import (
+    SYSMON_EVENT_IDS as SYSMON_EVENT_IDS,
+)
+from prohori.parsers.sysmon import (
+    SYSMON_PROVIDER,
+    base_name,
+    sysmon_fields,
+)
 from prohori.parsers.util import normalise_host, normalise_ip
 from prohori.schema import Event, event_id
 
@@ -130,6 +138,23 @@ TEMPLATES: Mapping[int, tuple[str, ...]] = {
     4756: _GROUP_MEMBER,
     4740: _TARGET_ACCOUNT,
     1102: ("SubjectUserSid", "SubjectUserName", "SubjectDomainName", "SubjectLogonId"),
+    4688: (
+        "SubjectUserSid",
+        "SubjectUserName",
+        "SubjectDomainName",
+        "SubjectLogonId",
+        "NewProcessId",
+        "NewProcessName",
+        "TokenElevationType",
+        "ProcessId",
+        "CommandLine",
+        "TargetUserSid",
+        "TargetUserName",
+        "TargetDomainName",
+        "TargetLogonId",
+        "ParentProcessName",
+        "MandatoryLabel",
+    ),
 }
 
 LOGON_TYPES: Mapping[int, str] = {
@@ -183,6 +208,7 @@ _ACTIONS: Mapping[int, tuple[str, str, str]] = {
     4756: ("windows.group.member_added", "account", "success"),
     4740: ("windows.account.locked_out", "authentication", "failure"),
     1102: ("windows.log.cleared", "admin", "success"),
+    4688: ("process.created", "process", "success"),
 }
 
 #: Event ids :func:`to_event` maps (others are skipped).
@@ -252,10 +278,31 @@ def _reason(data: Mapping[str, str]) -> str:
     return "auth_failed"
 
 
+def is_sysmon(provider: str | None, channel: str | None) -> bool:
+    """Whether a record comes from Sysmon (by provider, or by channel when there is none)."""
+    if provider is not None:
+        return provider == SYSMON_PROVIDER
+    return channel is not None and channel.startswith(SYSMON_PROVIDER)
+
+
+def is_supported(event_id: int, provider: str | None, channel: str | None) -> bool:
+    """Whether :func:`to_event` maps this event id from this source."""
+    if is_sysmon(provider, channel):
+        return event_id in SYSMON_EVENT_IDS
+    return event_id in SUPPORTED_EVENT_IDS
+
+
 def to_event(
-    record: WindowsRecord, *, raw: str, position: str, log_source: str = "windows-security"
+    record: WindowsRecord,
+    *,
+    raw: str,
+    position: str,
+    log_source: str = "windows-security",
+    sysmon_log_source: str = "sysmon",
 ) -> Event | None:
     """Map one record to an event; ``None`` for an event id or provider that is not mapped."""
+    if is_sysmon(record.provider, record.channel):
+        return _sysmon_event(record, raw=raw, position=position, log_source=sysmon_log_source)
     mapping = _ACTIONS.get(record.event_id)
     if mapping is None:
         return None
@@ -320,6 +367,8 @@ def to_event(
                 "member_sid": _value(data, "MemberSid"),
             }
         )
+    elif record.event_id == 4688:
+        return _process_created(record, data, extra, raw, position, log_source)
     else:  # 4672, 1102: the subject did it
         user_name, user_sid = _value(data, "SubjectUserName"), _value(data, "SubjectUserSid")
         extra["subject_domain"] = _value(data, "SubjectDomainName")
@@ -346,5 +395,103 @@ def to_event(
             "host": computer.lower() if computer else None,
             "raw": raw,
             "extra": {key: value for key, value in extra.items() if value is not None},
+        }
+    )
+
+
+#: 4688 ``MandatoryLabel`` -> integrity level.
+_LABELS = {
+    "S-1-16-4096": "low",
+    "S-1-16-8192": "medium",
+    "S-1-16-8448": "medium",
+    "S-1-16-12288": "high",
+    "S-1-16-16384": "system",
+}
+#: 4688 ``TokenElevationType``.
+_ELEVATION = {"%%1936": "full", "%%1937": "elevated", "%%1938": "limited"}
+
+
+def _process_created(
+    record: WindowsRecord,
+    data: Mapping[str, str],
+    extra: dict[str, object],
+    raw: str,
+    position: str,
+    log_source: str,
+) -> Event:
+    """4688 (a new process), with the same ``process.*`` fields as Sysmon event 1."""
+    image, parent = _value(data, "NewProcessName"), _value(data, "ParentProcessName")
+    label = _value(data, "MandatoryLabel")
+    extra.update(
+        {
+            "subject_domain": _value(data, "SubjectDomainName"),
+            "elevation_type": _ELEVATION.get(_value(data, "TokenElevationType") or ""),
+            "target_user": _value(data, "TargetUserName"),
+        }
+    )
+    return _build(
+        record,
+        raw=raw,
+        position=position,
+        log_source=log_source,
+        event={"action": "process.created", "category": "process", "outcome": "success"},
+        user={"name": _value(data, "SubjectUserName"), "id": _value(data, "SubjectUserSid")},
+        extra=extra,
+        process={
+            "pid": _int(data, "NewProcessId"),
+            "name": base_name(image),
+            "executable": image,
+            "command_line": _value(data, "CommandLine"),
+            "integrity_level": _LABELS.get(label or ""),
+            "parent": {
+                "pid": _int(data, "ProcessId"),
+                "name": base_name(parent),
+                "executable": parent,
+            },
+        },
+    )
+
+
+def _sysmon_event(record: WindowsRecord, *, raw: str, position: str, log_source: str) -> Event:
+    data = dict(list(record.data.items())[:MAX_FIELDS])
+    fields = sysmon_fields(record.event_id, data)
+    source_ip = normalise_ip(fields.pop("source_ip", None))
+    extra = {
+        "event_id": record.event_id,
+        "record_id": record.record_id,
+        "channel": record.channel,
+        **fields.pop("extra"),
+    }
+    return _build(
+        record,
+        raw=raw,
+        position=position,
+        log_source=log_source,
+        user={"name": fields.pop("user_name")},
+        source={"ip": source_ip},
+        extra=extra,
+        **fields,
+    )
+
+
+def _build(
+    record: WindowsRecord,
+    *,
+    raw: str,
+    position: str,
+    log_source: str,
+    extra: dict[str, object],
+    **fields: object,
+) -> Event:
+    computer = _value({"c": record.computer or ""}, "c")
+    return Event.model_validate(
+        {
+            "id": event_id(log_source, record.timestamp, raw, position),
+            "timestamp": record.timestamp,
+            "log_source": log_source,
+            "host": computer.lower() if computer else None,
+            "raw": raw,
+            "extra": {key: value for key, value in extra.items() if value is not None},
+            **fields,
         }
     )

@@ -33,6 +33,11 @@ class EventCategory(StrEnum):
     ABUSE = "abuse"
     ADMIN = "admin"
     NETWORK = "network"
+    #: Host activity (since 1.2): processes, files, the Windows registry, name lookups.
+    PROCESS = "process"
+    FILE = "file"
+    REGISTRY = "registry"
+    DNS = "dns"
 
 
 class Outcome(StrEnum):

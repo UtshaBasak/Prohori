@@ -8,29 +8,37 @@ documentation. This module is the single mapping between the two.
 
 from enum import Enum
 from ipaddress import IPv4Address, IPv6Address, ip_network
+from typing import get_args
 
 from pydantic import BaseModel
 
 from prohori.schema.event import Event
 from prohori.schema.types import JsonScalar
 
-_NESTED = ("event", "source", "user", "http")
+
+def _model(annotation: object) -> type[BaseModel] | None:
+    """The model class of a field annotated ``Model`` or ``Model | None``."""
+    if isinstance(annotation, type) and issubclass(annotation, BaseModel):
+        return annotation
+    for arg in get_args(annotation):
+        if isinstance(arg, type) and issubclass(arg, BaseModel):
+            return arg
+    return None
+
+
+def _paths(model: type[BaseModel], prefix: str) -> list[str]:
+    paths: list[str] = []
+    for name, info in model.model_fields.items():
+        nested = _model(info.annotation)
+        if nested is not None:
+            paths.extend(_paths(nested, f"{prefix}{name}."))
+        else:
+            paths.append(f"{prefix}{name}")
+    return paths
 
 
 def _collect_paths() -> tuple[str, ...]:
-    paths: list[str] = []
-    for name, info in Event.model_fields.items():
-        if name == "extra":
-            continue
-        if name in _NESTED:
-            nested = info.annotation
-            if not (isinstance(nested, type) and issubclass(nested, BaseModel)):
-                msg = f"Event.{name} must be a nested model"
-                raise TypeError(msg)
-            paths.extend(f"{name}.{sub}" for sub in nested.model_fields)
-        else:
-            paths.append(name)
-    return tuple(paths)
+    return tuple(p for p in _paths(Event, "") if not p.startswith("extra"))
 
 
 #: Every dotted field path an event exposes, excluding ``extra.*`` (which is open-ended).
@@ -74,9 +82,11 @@ def get_field(event: Event, path: str) -> JsonScalar:
     head, _, tail = path.partition(".")
     if head == "extra":
         return event.extra.get(tail)
-    value: object = getattr(event, head)
-    if tail:
-        value = getattr(value, tail)
+    value: object = event
+    for part in path.split("."):
+        value = getattr(value, part)
+        if value is None:  # an unset group such as ``process`` (or ``process.parent``)
+            return None
     return _to_scalar(value)
 
 

@@ -2260,3 +2260,59 @@ maintained, permissively licensed wheel exists for all three operating systems.
 **Consequences.** Nine scenarios, 33 rules. PRH-WIN-005 and PRH-WIN-006 are experimental (the
 scenario does not exercise them). PRH-ADMIN-002 also covers a cleared Windows log at night. The
 pipeline reads text logs only, so `.evtx` files are converted first there.
+
+## ADR-0046: Host-activity fields, Sysmon and the first host rules
+
+- **Date:** 2026-11-24
+- **Status:** Accepted
+
+**Context.** Step 34b adds the schema fields for host activity, a Sysmon parser and starter
+rules on processes, ahead of the live endpoint agent. ADR-0044 kept the network parsers'
+destination in `extra` until these fields existed and promised to move it before 1.2.0.
+
+**Decision.**
+
+- **Optional groups, left out when unset.** `process` (with `process.parent`), `file`,
+  `registry`, `destination` and `dns` are `None` by default, and the event's serialiser drops
+  them when they are, as `Alert.suppression` does (ADR-0043). Every earlier event and golden file
+  is byte-identical. ECS names are kept, so the parent process is three levels deep
+  (`process.parent.name`); field paths are now collected and read recursively, and an unset group
+  reads as `None`. `registry.data` (the data written) is added to the plan's `path` and `value`.
+- **`destination.*` replaces the `extra` keys of step 33** in `suricata_eve` and `zeek_conn`
+  (`destination.domain` from TLS SNI or the HTTP host; `dns.question`), and PRH-NET-001 to 003
+  use them. Neither shipped in a release with the `extra` names.
+- **Sysmon through the Windows record.** Sysmon events use the same layouts and the same
+  `WindowsRecord` as Security events; the mapping dispatches on the provider (or the channel).
+  `windows_security` reads both, because collectors put both channels in one file and format
+  detection votes per line (a per-line `sysmon` vote would make a mixed file lose half its
+  events); a `sysmon` parser reads Sysmon alone. Field names are Sysmon 13 to 15's, checked
+  against the public `sysmon.evtx` of the evtx project. Positional `Get-WinEvent` JSON is refused
+  for Sysmon with a hint to use `ToXml()`, because Sysmon's field order changes between versions
+  and a wrong guess would mislabel values silently.
+- **4688 is mapped** to the same `process.created` fields (template checked on Microsoft Learn).
+- **Four starter rules, defanged.** PRH-PROC-001 to 004 cover encoded PowerShell, an Office
+  application or browser starting a shell, a new service, and lsass or SAM credential access;
+  their fixtures and the simulator never contain a command that does anything. Step 48 extends
+  them.
+- **A host scenario.** `windows-intrusion` (Sysmon and Security on one workstation) has no
+  attacking address, so its attack lists no sources; tests that look for incidents about an
+  attacker use the host instead. Its background has two known false positives on purpose (a
+  configuration agent's encoded PowerShell, an updater's service). After the first scoring of the
+  **default** variant the agent ran 3 % of the time (about 15 encoded commands per run), more
+  than such agents do; it was set to every two hours before the held-out variants were scored
+  once. The new scenario stays out of the frozen comparison, the anomaly study and the LLM cases.
+
+- **Left out by `Field(exclude_if=...)`**, not a model serialiser: a wrap serialiser on `Event`
+  made serialising 96,000 events 51 % slower (0.84 s against 0.56 s); the field option costs
+  about 6 % (0.59 s), next to 4.1 s to parse the same lines. Pydantic 2.12 is now the minimum.
+- **Built-in Windows accounts never link incidents.** Scoring `windows-intrusion` showed alerts
+  under `SYSTEM` (the attacker's service, the agent's encoded command, the updater's service)
+  chaining the intrusion with the background false positives in three of five seeds. `SYSTEM`,
+  `LOCAL SERVICE`, `NETWORK SERVICE`, `ANONYMOUS LOGON`, computer accounts and their SIDs no
+  longer link, like a shared address; the intrusion now lands in one incident (four alerts) and
+  the service's registry write, made by `services.exe` as `SYSTEM`, in one of its own. Linking on
+  the host was rejected: it would put every false positive on the host in the same incident.
+
+**Consequences.** Ten scenarios, 37 rules. PRH-PROC-001 and PRH-PROC-003 have measured false
+positives (precision 0.33 and 0.67 on the default variant). The held-out intrusion (a script from
+a zip, a Run key, a dropped tool) is caught only by PRH-PROC-004, which the results report.

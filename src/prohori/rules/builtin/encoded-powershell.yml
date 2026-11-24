@@ -1,0 +1,23 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+# Copyright (c) 2026 Utsha Basak
+id: PRH-PROC-001
+title: PowerShell started with an encoded command
+status: test
+severity: high
+description: >-
+  PowerShell was started with -EncodedCommand (or any of its abbreviations, such as -enc or -e)
+  and a Base64 argument. Encoding hides the script from a quick look at the command line, which
+  is why malware and attack tools use it. Some administration tools and installers do too.
+author: Prohori
+tags: [attack.execution, attack.t1059.001, attack.stealth, attack.t1027.010]
+logsource: {category: process}
+detection:
+  powershell:
+    event.action: process.created
+    process.name: [powershell.exe, pwsh.exe, powershell_ise.exe]
+  encoded:
+    process.command_line|re: '(^|\s)[-/]e(c|n|nc|nco|ncod|ncode|ncoded|ncodedc|ncodedco|ncodedcom|ncodedcomm|ncodedcomma|ncodedcomman|ncodedcommand)?\s+[a-z0-9+/]{16,}={0,2}(\s|$)'
+  condition: powershell and encoded
+falsepositives:
+  - Management and deployment tools (configuration management agents, some installers)
+response: runbooks/encoded-powershell.md

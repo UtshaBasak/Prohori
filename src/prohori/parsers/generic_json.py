@@ -152,11 +152,11 @@ class GenericJsonParser(LineParser):
             translation = self.mapping.values.get(target)
             if translation is not None and value is not None:
                 value = translation.get(str(value), value)
-            head, _, tail = target.partition(".")
-            if tail:
-                nested[head][tail] = value
-            else:
-                nested[head] = value
+            *groups, leaf = target.split(".")
+            node = nested
+            for group in groups:  # "process.parent.pid" -> nested["process"]["parent"]["pid"]
+                node = node.setdefault(group, {})
+            node[leaf] = value
         extra: dict[str, object] = {}
         ip_value = nested["source"].get("ip")
         if ip_value is not None:
@@ -184,7 +184,17 @@ class GenericJsonParser(LineParser):
         )
 
 
-_NUMERIC = frozenset({"http.status", "http.bytes"})
+_NUMERIC = frozenset(
+    {
+        "http.status",
+        "http.bytes",
+        "process.pid",
+        "process.parent.pid",
+        "file.size",
+        "file.zone",
+        "destination.port",
+    }
+)
 
 
 def _zone(name: str) -> tzinfo:

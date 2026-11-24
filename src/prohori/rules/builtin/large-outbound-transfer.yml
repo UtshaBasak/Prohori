@@ -24,7 +24,7 @@ detection:
   private_source:
     source.ip|cidr: [10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16, fc00::/7]
   private_destination:
-    extra.destination_ip|cidr: [10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16, fc00::/7]
+    destination.ip|cidr: [10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16, fc00::/7]
   condition: >-
     flow and large and (outbound or
     (private_source and not private_destination and not direction_known))

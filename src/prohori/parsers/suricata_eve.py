@@ -68,6 +68,10 @@ def _section(record: dict[str, Any], key: str) -> dict[str, Any]:
     return value
 
 
+def _str(value: object) -> str | None:
+    return value if isinstance(value, str) else None
+
+
 def _joined(value: object) -> str | None:
     if isinstance(value, list):
         items = [as_text(item) for item in value[:16] if not isinstance(item, dict | list)]
@@ -130,6 +134,13 @@ class SuricataEveParser(LineParser):
                 status = http.get("status")
                 if status is not None:
                     fields["outcome"] = "failure" if status >= 400 else "success"
+        domain = extra.pop("tls_domain", None) or normalise_host(_str(extra.get("http_host")))
+        destination = {
+            "ip": extra.pop("destination_ip"),
+            "port": extra.pop("destination_port"),
+            "domain": domain,
+        }
+        question = extra.pop("dns_question", None)
         return Event.model_validate(
             {
                 "id": event_id(self.log_source, timestamp, line, f"{source}:{number}"),
@@ -140,6 +151,8 @@ class SuricataEveParser(LineParser):
                 "http": http,
                 "user_agent": user_agent,
                 "host": as_text(record.get("host")),
+                "destination": destination,
+                "dns": {"question": question} if question is not None else None,
                 "raw": line,
                 "extra": compact(extra),
             }
@@ -206,7 +219,6 @@ class SuricataEveParser(LineParser):
         extra.update(
             {
                 "dns_question": question,
-                "dns_domain": normalise_host(question),
                 "dns_type": as_text(kind),
                 "dns_rcode": as_text(section.get("rcode")),
                 "dns_message": as_text(section.get("type")),
