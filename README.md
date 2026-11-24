@@ -45,7 +45,7 @@ reports, with honest machine-learning evaluation and a streaming data pipeline.*
 security-operations toolkit in Python that runs on a single laptop with free tools only, offline
 by default. It is free for personal and other non-commercial use ([License](#license)).
 
-> **Status: v1.0.1, stable.** One command goes from a log file to scored incidents and
+> **Status: v1.1.0, stable.** One command goes from a log file to scored incidents and
 > shareable reports, and a labelled attack simulator measures the rules. Machine learning
 > (anomaly detectors over your own logs, flow models evaluated with leakage controls), a
 > streaming pipeline with warehouse models, dashboards and scheduled jobs, and an opt-in LLM
@@ -721,7 +721,7 @@ Prohori is honest about what it does not do:
 | v0.3.0 | Pipeline: streaming core and lite mode, Redpanda and PostgreSQL in Docker, dbt models and data-quality checks, Grafana dashboards, Airflow jobs; Docker image on GitHub Packages | Released |
 | v1.0.0 | Optional LLM analyst: providers, redaction, `explain` and `ask`, retrieval, prompt-injection defences, answer validation and an evaluation; threat model, performance notes, completed licence notes, macOS in CI | Released |
 | v1.0.1 | Fixes from a full review: stricter redaction and answer checks, parser and output-path robustness, safer stack shutdown and Airflow parameters, signed provenance for release files | Released |
-| v1.1.0 | Done so far: new licence (PolyForm Strict), deterministic stream rebuilds, evasion-resistant per-account sign-in rules with a before-and-after score, warehouse and broker hardening, safer model files, a cross-dataset generalisation study, logins for the stack, SBOMs, suppressions and allow-lists. Next: the release | In progress |
+| v1.1.0 | Hardening: new licence (PolyForm Strict), deterministic stream rebuilds, evasion-resistant per-account sign-in rules with a before-and-after score, warehouse and broker hardening, safer model files, a cross-dataset generalisation study, logins for the stack, SBOMs, suppressions and allow-lists | Released |
 | v1.2.0 | More log sources: Suricata, Zeek, Windows Security events, Sysmon, the systemd journal, AWS CloudTrail; a Sigma rule importer | Planned |
 | v1.3.0 to v1.7.0 | A real-time defender for your own PC: a Windows security checkup, behaviour-based detection with reversible containment, ransomware, network, spyware, boot and device defenses, a guard for AI coding agents and MCP tools, supply-chain and phishing checks, attack drills, Linux | Planned |
 | v1.8.0, v2.0.0 | A desktop security assistant, web UI, package-manager installs, VS Code and browser extensions, a documentation website and a GitHub Action | Planned |

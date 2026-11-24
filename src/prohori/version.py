@@ -2,7 +2,7 @@
 # Copyright (c) 2026 Utsha Basak
 """Single source of truth for the package version."""
 
-__version__ = "1.0.1"
+__version__ = "1.1.0"
 
 #: SPDX identifier of Prohori's own licence (versions up to 1.0.1 were MIT).
 __license__ = "LicenseRef-PolyForm-Strict-1.0.0"
