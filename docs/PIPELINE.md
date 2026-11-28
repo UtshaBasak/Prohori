@@ -65,7 +65,7 @@ flowchart LR
 
 | Stage | Reads | Writes | What it does |
 | ------- | ------- | -------- | -------------- |
-| Producer | log files | `raw-logs` | `replay` reads a whole file; `tail` follows a growing file through rotation. Each line keeps its line number. |
+| Producer | log files | `raw-logs` | `replay` reads a whole file, converted like the batch commands do (gzip, UTF-16, `.evtx`, CloudTrail files record by record); `tail` follows a growing text file through rotation. Each line (or record) keeps its number. |
 | `normalise` | `raw-logs` | `events` | Parses each line with one parser per source, so parser state such as the year of `auth.log` timestamps carries across lines. |
 | `detect` | `events` | `alerts` | Drops events it has seen before, then runs the rule engine (same rules, same reorder buffer as `prohori detect`). |
 | `incidents` | `alerts`, `events` | `incidents` | Remembers the events, holds alerts until their group can no longer grow, then builds incidents with the same builder as `prohori incidents`. |

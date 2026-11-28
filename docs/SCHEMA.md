@@ -29,7 +29,7 @@ smaller and is not ECS-compatible.
 | `timestamp` | datetime (UTC) | Required |
 | `log_source` | str (1-64) | For example `sshd`, `nginx`, `app-security` |
 | `event.action` | str | Required. Dotted lower-case name matching `^[a-z0-9_]+(\.[a-z0-9_]+)*$`, max 128, for example `auth.signin.failure` |
-| `event.category` | enum | Required. `authentication`, `web`, `session`, `account`, `authorization`, `abuse`, `admin`, `network`; since 1.2 also `process`, `file`, `registry`, `dns` |
+| `event.category` | enum | Required. `authentication`, `web`, `session`, `account`, `authorization`, `abuse`, `admin`, `network`; since 1.2 also `process`, `file`, `registry`, `dns`, `cloud` (a cloud control-plane call that is not a sign-in or an identity change) |
 | `event.outcome` | enum | `success`, `failure`, `unknown` (default) |
 | `event.severity` | enum, optional | Source-provided severity: `low`, `medium`, `high` |
 | `event.reason` | str, optional | For example `bad_password`, `unknown_user`, `locked` |
@@ -53,6 +53,7 @@ smaller and is not ECS-compatible.
 | `registry.path`, `.value`, `.data` | optional | Since 1.2. A Windows registry change: the key or value path as logged, the value's name and the data written |
 | `destination.ip`, `.port`, `.domain` | optional | Since 1.2. Where a connection went (network sensors, Sysmon event 3); `domain` is a valid lower-case host name |
 | `dns.question` | optional | Since 1.2. The name looked up, as logged |
+| `cloud.provider`, `.account_id`, `.region`, `.service` | optional | Since 1.2. Where a cloud API call was made: the provider in lower case (`aws`), the account, the region and the service as the provider names it (`iam.amazonaws.com`); see [PARSERS.md](PARSERS.md#cloudtrail) |
 | `raw` | str | Required. The original line, truncated at 8,192 characters |
 | `extra` | map of str to scalar | Up to 64 source-specific safe fields; values are string, number, boolean or null. Network events (`suricata_eve`, `zeek_conn`, since 1.2) keep the rest of the connection here (`extra.bytes_out`, `extra.duration`, ...; see [PARSERS.md](PARSERS.md#connection-fields-both-network-parsers)) |
 
@@ -159,7 +160,7 @@ is_valid_path("http.status")  # True
 timestamps in ISO-8601. Unknown paths raise `KeyError`. `FIELD_PATHS` lists every path except the
 open-ended `extra.<key>`.
 
-**Groups added in 1.2** (`process`, `file`, `registry`, `destination`, `dns`) are left out of
+**Groups added in 1.2** (`process`, `file`, `registry`, `destination`, `dns`, `cloud`) are left out of
 the JSON when an event has none of them, so events of earlier formats serialise exactly as
 before. Their fields have dotted names like the others, three levels deep for the parent process
 (`process.parent.name`); an unset group reads as `None`.

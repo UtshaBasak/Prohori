@@ -46,12 +46,19 @@ Code `3` lets scripts and CI pipelines react to findings; add `--exit-zero` to g
 
 | Option | Meaning |
 | -------- | --------- |
-| `--parser`, `-p` | `auto` (default: detect the format), `auth_log`, `access_log`, `app_json`, `generic_json`, `suricata_eve`, `zeek_conn`, `windows_security`, `sysmon`, `journald` |
+| `--parser`, `-p` | `auto` (default: detect the format), `auth_log`, `access_log`, `app_json`, `generic_json`, `suricata_eve`, `zeek_conn`, `windows_security`, `sysmon`, `journald`, `cloudtrail` |
 | `--year` | `auth_log`: year of the first line (syslog lines have none; default: from the file date) |
 | `--timezone` | `auth_log`, `windows_security`, `sysmon`: IANA timezone for timestamps without an offset (default `UTC`) |
 | `--mapping FILE` | `generic_json`: YAML field mapping |
 | `--pattern REGEX` | `access_log`: custom line pattern |
 | `--keep-query` | `access_log`, `suricata_eve`: keep the query string in `http.path` |
+
+Gzip-compressed input is decompressed as it is read (recognised by its content, not its name),
+and AWS CloudTrail files (`{"Records": [...]}` from S3, `{"Events": [...]}` from
+`aws cloudtrail lookup-events`) are read record by record, also from standard input (not by
+`pipeline tail`, which follows text logs); corrupt
+compressed data stops the command with exit code 2 (see
+[PARSERS.md](PARSERS.md#compressed-and-cloudtrail-files)).
 
 `detect`, `incidents` and `triage` also accept `--rules PATH` (repeatable; your rules run with
 the built-in ones), `--no-builtin`, `--lateness 5m` (how far out of order events may arrive),
@@ -107,7 +114,7 @@ See [PARSERS.md](PARSERS.md).
 
 ## `prohori detect`
 
-Runs the 37 built-in rules (plus `--rules`) and prints the alerts and a summary.
+Runs the 45 built-in rules (plus `--rules`) and prints the alerts and a summary.
 The table shows the earliest 100 alerts and counts the rest by severity (`--limit N`, `0` for
 all), so a late critical alert is never hidden silently; `-f json`
 writes every alert as soon as it is raised. See [RULES.md](RULES.md).

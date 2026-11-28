@@ -40,6 +40,7 @@ def run(*args: str, stdin: bytes | None = None) -> tuple[int, str, str]:
         ("windows-security.xml", "windows_security", 21),
         ("journald.json", "journald", 32),
         ("windows-sysmon.jsonl", "windows_security", 21),
+        ("aws-cloudtrail.json", "cloudtrail", 20),
     ],
 )
 def test_auto_detect_table(file: str, parser: str, events: int) -> None:
@@ -205,12 +206,13 @@ def test_help_lists_parsers() -> None:
         "windows_security",
         "journald",
         "sysmon",
+        "cloudtrail",
     ):
         assert name in result.stdout
 
 
 def test_evtx_needs_the_extra(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr("prohori.cli.parse.evtx_available", lambda: False)
+    monkeypatch.setattr("prohori.parsers.inputs.evtx_available", lambda: False)
     log = tmp_path / "Security.evtx"
     log.write_bytes(b"ElfFile\x00")
     code, _, err = run(str(log))
@@ -261,3 +263,28 @@ def test_utf16_file_from_windows_powershell(tmp_path: Path) -> None:
     assert code == ExitCode.OK
     assert "windows_security" in out
     assert re.search(r"\bevents\W+34\b", out)
+
+
+def test_compressed_trail_file_and_stdin(tmp_path: Path) -> None:
+    import gzip
+
+    data = gzip.compress((SAMPLES / "aws-cloudtrail.json").read_bytes())
+    log = tmp_path / "111122223333_CloudTrail_us-east-1_20261024T1400Z_x.json.gz"
+    log.write_bytes(data)
+    code, out, err = run(str(log), "--format", "json")
+    assert code == ExitCode.OK
+    assert len(out.splitlines()) == 20
+    assert json.loads(err)["parser"] == "cloudtrail"
+    code, out, _ = run("-", "--format", "json", stdin=data)
+    assert code == ExitCode.OK
+    assert len(out.splitlines()) == 20
+
+
+def test_corrupt_gzip_is_a_usage_error(tmp_path: Path) -> None:
+    import gzip
+
+    log = tmp_path / "auth.log.gz"
+    log.write_bytes(gzip.compress((SAMPLES / "auth.log").read_bytes())[:-12])
+    code, _, err = run(str(log))
+    assert code == ExitCode.USAGE
+    assert "gzip" in err

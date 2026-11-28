@@ -1,0 +1,26 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+# Copyright (c) 2026 Utsha Basak
+id: PRH-AWS-008
+title: AWS security group opened to the whole internet
+status: experimental
+severity: high
+description: >-
+  A security group rule was added that lets every address in (0.0.0.0/0 or ::/0) on ports other
+  than 80 and 443 (AuthorizeSecurityGroupIngress): remote administration, a database or every
+  port exposed. Attackers do this to reach machines directly. Opening only the web ports is left
+  out.
+author: Prohori
+tags: [attack.defense_impairment, attack.t1686, attack.t1686.001]
+logsource: {log_source: aws-cloudtrail}
+detection:
+  opened:
+    event.action: aws.ec2.authorize_security_group_ingress
+    event.outcome: success
+    extra.world_ports|exists: true
+  web_only:
+    extra.world_ports|re: '^(80|443)(,(80|443))*$'
+  condition: opened and not web_only
+falsepositives:
+  - A short-lived test opening SSH or RDP to everyone (still worth closing)
+  - A public service on another port, such as a mail or game server
+response: runbooks/aws-security-group-open.md

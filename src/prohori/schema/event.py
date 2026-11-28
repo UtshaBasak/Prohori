@@ -160,8 +160,22 @@ class DnsInfo(BaseModel):
     question: ShortText | None = None
 
 
+class CloudInfo(BaseModel):
+    """Where a cloud API call was made (`cloud.*`, since 1.2)."""
+
+    model_config = MODEL_CONFIG
+
+    #: The cloud provider, in lower case (``aws``).
+    provider: ShortText | None = None
+    #: The account the call was made in (AWS: the 12-digit account id).
+    account_id: ShortText | None = None
+    region: ShortText | None = None
+    #: The service whose API was called, as the provider names it (``iam.amazonaws.com``).
+    service: ShortText | None = None
+
+
 #: Event fields added in 1.2, left out of the JSON when unset so older events are unchanged.
-OPTIONAL_GROUPS = ("process", "file", "registry", "destination", "dns")
+OPTIONAL_GROUPS = ("process", "file", "registry", "destination", "dns", "cloud")
 
 
 def _unset(value: object) -> bool:
@@ -193,6 +207,7 @@ class Event(BaseModel):
     registry: Annotated[RegistryInfo | None, Field(exclude_if=_unset)] = None
     destination: Annotated[DestinationInfo | None, Field(exclude_if=_unset)] = None
     dns: Annotated[DnsInfo | None, Field(exclude_if=_unset)] = None
+    cloud: Annotated[CloudInfo | None, Field(exclude_if=_unset)] = None
     raw: RawText
     extra: Annotated[dict[ShortText, BoundedScalar], Field(max_length=MAX_EXTRA_KEYS)] = {}
 

@@ -47,6 +47,28 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - **Four host rules:** PRH-PROC-001 (encoded PowerShell), PRH-PROC-002 (an Office application or
   browser starting a shell), PRH-PROC-003 (a new Windows service) and PRH-PROC-004 (lsass read by
   an unusual process, or the SAM hive saved); defanged fixtures and runbooks.
+- **AWS CloudTrail.** A `cloudtrail` parser for trail files as CloudTrail writes them to S3
+  (`{"Records": [...]}`, usually gzip-compressed and on one long line), Event history from
+  `aws cloudtrail lookup-events`, CloudWatch Logs and EventBridge: the caller (IAM user, root,
+  role session, service), address or calling service, user agent, event source and name, error
+  code (every denial code as `access_denied`), region and account. A new optional `cloud` group
+  (`cloud.provider`, `.account_id`, `.region`, `.service`) and a `cloud` category; the parser
+  works out the values rules compare (`extra.for_other_user`, `extra.world_ports`). Records are
+  read one by one with bounded memory, and records longer than a line are shortened, keeping
+  what the rules read (ADR-0047).
+- **Compressed logs.** Every log command (and `pipeline replay`) reads gzip-compressed files and
+  standard input as they are, recognised by content; reports hash the compressed file.
+- **Eight AWS rules** (experimental): PRH-AWS-001 console sign-in failures from one address,
+  PRH-AWS-002 a sign-in after failures, PRH-AWS-003 root user use, PRH-AWS-004 MFA removed,
+  PRH-AWS-005 an access key for another user, PRH-AWS-006 CloudTrail logging stopped or a trail
+  deleted, PRH-AWS-007 many different calls denied for one identity (enumeration) and
+  PRH-AWS-008 a security group opened to the internet; fixtures, runbooks and ATT&CK v20 cloud
+  techniques (T1078.004, T1098.001, T1580, T1087.004, T1685.002, T1686.001).
+- Hand-written sample: `samples/logs/aws-cloudtrail.json`.
+- **An eleventh simulator scenario,** `aws-intrusion` (CloudTrail): every default run caught by
+  all seven expected rules; the held-out variants (slow guessing from several addresses, slow
+  enumeration, the internet opened as two halves, management events left out of the trail) are
+  still caught, by PRH-AWS-002 (first held-out only), PRH-AWS-004 and PRH-AWS-005.
 - **A tenth simulator scenario,** `windows-intrusion` (Sysmon and Security, defanged): every
   default run caught by all four host rules; the held-out variant is caught by PRH-PROC-004 only.
 - **A ninth simulator scenario,** `windows-signin`, with default and held-out variants. The
@@ -55,6 +77,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- `pipeline replay` reads files the way the batch commands do: UTF-16, `.evtx`, gzip and
+  CloudTrail files are converted as they are read (`pipeline tail` still follows text logs).
 - The pinned ATT&CK v20.0 bundle URL names the commit its SHA-256 was taken from: MITRE changed
   the collection's creation time in the file on `master` on 2026-11-05 (no tactic or technique
   changed), so the `master` URL no longer matched the hash.

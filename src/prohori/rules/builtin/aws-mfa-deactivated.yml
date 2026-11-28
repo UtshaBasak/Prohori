@@ -1,0 +1,22 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+# Copyright (c) 2026 Utsha Basak
+id: PRH-AWS-004
+title: MFA removed from an AWS IAM user
+status: experimental
+severity: high
+description: >-
+  An IAM user's MFA device was deactivated (DeactivateMFADevice) or a virtual MFA device was
+  deleted (DeleteVirtualMFADevice). Without MFA a stolen password is enough to sign in; an
+  attacker removes it to keep access or to take over another user.
+author: Prohori
+tags: [attack.persistence, attack.credential_access, attack.t1556.006]
+logsource: {category: account}
+detection:
+  removed:
+    event.action: [aws.iam.deactivate_mfa_device, aws.iam.delete_virtual_mfa_device]
+    event.outcome: success
+  condition: removed
+falsepositives:
+  - A user replacing a lost or new phone (a new device is enabled soon after)
+  - An administrator resetting MFA for a user who lost their device
+response: runbooks/aws-mfa-deactivated.md

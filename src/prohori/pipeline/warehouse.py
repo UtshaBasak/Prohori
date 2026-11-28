@@ -19,6 +19,7 @@ from pathlib import Path
 from typing import Any
 
 from prohori.parsers import ParseError, ParseStats, RawLine, read_lines
+from prohori.parsers.inputs import open_log
 from prohori.pipeline.producers import DETECT_LINES, choose_parser
 from prohori.pipeline.sink import DuckDBSink, Sink
 from prohori.pipeline.stages import ParserSettings
@@ -59,7 +60,7 @@ def _event_ids(log: Path, parser: str, settings: ParserSettings) -> Iterator[tup
     ids the pipeline stored.
     """
     read_at = datetime.fromtimestamp(log.stat().st_mtime, tz=UTC)
-    with log.open("rb") as stream:
+    with open_log(log) as stream:
         lines: Iterator[RawLine] = read_lines(stream)
         head = list(islice(lines, DETECT_LINES))
         name = choose_parser(head, parser, has_mapping=settings.mapping is not None)

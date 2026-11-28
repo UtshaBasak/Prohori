@@ -38,6 +38,8 @@ class EventCategory(StrEnum):
     FILE = "file"
     REGISTRY = "registry"
     DNS = "dns"
+    #: A cloud control-plane API call that is not a sign-in or an identity change (since 1.2).
+    CLOUD = "cloud"
 
 
 class Outcome(StrEnum):

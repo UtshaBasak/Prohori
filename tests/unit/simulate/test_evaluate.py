@@ -36,11 +36,13 @@ def test_seed_one_matches_golden_results(rules: list[CompiledRule], tmp_path: Pa
         GOLDEN.write_text(json.dumps(results, indent=2) + "\n", encoding="utf-8", newline="\n")
     assert results == json.loads(GOLDEN.read_text(encoding="utf-8"))
     assert results["parse_errors"] == 0
-    # The simulator writes no network sensor logs, so the network rules are not evaluated.
+    # The simulator writes no network sensor logs, so the network rules are not evaluated; nor is
+    # root use in AWS (the aws-intrusion attacker never has the root password).
     assert results["not_evaluated"] == [
         "PRH-ABUSE-001",
         "PRH-AUTH-004",
         "PRH-AUTHZ-001",
+        "PRH-AWS-003",
         "PRH-IDS-001",
         "PRH-IDS-002",
         "PRH-IDS-003",

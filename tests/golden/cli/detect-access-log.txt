@@ -22,6 +22,6 @@
 | parser       | access_log |
 | events       |         14 |
 | parse errors |          0 |
-| rules        |         37 |
+| rules        |         45 |
 | alerts       |          2 |
 +--------------+------------+

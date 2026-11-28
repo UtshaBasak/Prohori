@@ -14,6 +14,7 @@ Parsers turn raw log lines into [common-schema events](SCHEMA.md). They live in
 | Windows Security events | `windows_security` | Winlogbeat, NXLog or PowerShell JSON, evtx_dump JSON, event XML; native `.evtx` with the `evtx` extra; Sysmon events too | Since 1.2 |
 | Sysmon | `sysmon` | The same layouts, Sysmon's channel only | Since 1.2 |
 | systemd journal | `journald` | `journalctl -o json` (sshd, sudo and PAM messages) | Since 1.2 |
+| AWS CloudTrail | `cloudtrail` | Trail files as CloudTrail writes them to S3 (`{"Records": [...]}`, gzip), Event history (`aws cloudtrail lookup-events`), CloudWatch Logs or EventBridge JSON Lines | Since 1.2 |
 
 ## Command line
 
@@ -28,6 +29,9 @@ prohori detect samples/logs/zeek-conn.log --lateness 15m  # port scan, large and
 prohori detect samples/logs/windows-security.jsonl   # Windows password guessing, admin group, log cleared
 prohori detect Security.evtx                         # native .evtx (pip install "prohori[evtx]")
 journalctl -o json -u ssh --since today | prohori detect -
+prohori detect samples/logs/aws-cloudtrail.json       # a CloudTrail trail file (S3 layout)
+prohori detect 111122223333_CloudTrail_ap-southeast-1_20261024T0300Z_x.json.gz  # gzip as stored
+aws cloudtrail lookup-events --max-results 500 | prohori detect -  # the last 90 days, free
 ```
 
 | Option | Applies to | Meaning |
@@ -58,12 +62,17 @@ With `--parser auto`, up to 20 non-blank lines are classified and the most commo
 3. `windows_security`: a JSON object from Winlogbeat (`winlog`), NXLog (`EventID` with
    `SourceName`, `ProviderName` or `Channel`), `Get-WinEvent` (`Id`, `TimeCreated`,
    `ProviderName`) or evtx_dump (`Event.System`), or a line starting `<Event` or `<?xml`.
-4. `journald`: a JSON object with `__REALTIME_TIMESTAMP` and `MESSAGE`.
-5. `app_json`: a JSON object with a `time` string and an `event` object containing `action`.
-6. `generic_json`: any other JSON object. This needs a mapping file, so detection stops with a
+4. `cloudtrail`: a JSON object with `eventTime`, `eventSource`, `eventName` and `eventVersion`
+   or `userIdentity`; an Event history item (`CloudTrailEvent`); or an EventBridge event whose
+   `detail-type` ends in "via CloudTrail". A CloudTrail file in the `{"Records": [...]}` or
+   `{"Events": [...]}` layout is recognised when it is opened (see
+   [Compressed and CloudTrail files](#compressed-and-cloudtrail-files)).
+5. `journald`: a JSON object with `__REALTIME_TIMESTAMP` and `MESSAGE`.
+6. `app_json`: a JSON object with a `time` string and an `event` object containing `action`.
+7. `generic_json`: any other JSON object. This needs a mapping file, so detection stops with a
    message asking for `--parser generic_json --mapping FILE`.
-7. `auth_log`: a syslog line (RFC 3164 or RFC 3339 timestamp, host, program).
-8. `access_log`: a combined or common log format line.
+8. `auth_log`: a syslog line (RFC 3164 or RFC 3339 timestamp, host, program).
+9. `access_log`: a combined or common log format line.
 
 Detection is a convenience. Use `--parser` in scripts.
 
@@ -82,8 +91,12 @@ Detection is a convenience. Use `--parser` in scripts.
   and the line is counted in `decode_errors`.
 - **UTF-16 files** (since 1.2): a file that starts with a UTF-16 byte-order mark, as Windows
   PowerShell 5.1 writes with `>` or `Out-File`, is read as UTF-16 by `parse`, `detect`,
-  `incidents` and `triage` (not from standard input or by the pipeline). The reported SHA-256 and
-  size are the file's as stored.
+  `incidents`, `triage` and `pipeline replay` (not from standard input or by `pipeline tail`).
+  The reported SHA-256 and size are the file's as stored.
+- **Compressed files** (since 1.2): a gzip file (recognised by its first two bytes, not its
+  name) is decompressed as it is read, by the same commands and from standard input. Corrupt or
+  truncated compressed data stops the command with exit code 2. The reported SHA-256 and size
+  are those of the compressed file.
 
 ### Statistics
 
@@ -436,8 +449,8 @@ computer name in lower case and `log_source` is `windows-security`; every event 
 - **`.evtx` files** are read record by record by the `evtx` package (MIT licence; wheels for
   Windows, macOS and Linux; ADR-0045) and parsed like evtx_dump JSON. A damaged record is
   counted as an error and the rest of the file is still read; the report's SHA-256 is that of
-  the `.evtx` file. The streaming pipeline reads text logs only: convert `.evtx` files first
-  (`evtx_dump -o jsonl`).
+  the `.evtx` file. `pipeline replay` reads `.evtx` files the same way; `pipeline tail` follows
+  text logs only.
 - Names are kept as Windows logged them; Windows compares account names without regard to case,
   so `Administrator` and `administrator` are one account to Windows but two values to a rule.
 
@@ -480,6 +493,87 @@ event ids are counted as skipped.
   that says to export with `ToXml()` instead. Security events keep their documented templates.
 - Registry paths are kept as logged: recent Sysmon versions write `HKLM\...`, older ones
   `\REGISTRY\MACHINE\...`; the built-in rules match both.
+
+## `cloudtrail`
+
+Parses AWS CloudTrail records: every call to an AWS API in an account, and console sign-ins.
+Each line is recognised on its own, so one file may mix layouts:
+
+| Layout | How to get it | Recognised by |
+| ------ | ------------- | ------------- |
+| Trail file | the `.json.gz` files a trail writes to S3 (`aws s3 cp --recursive`), compressed or not | `{"Records": [...]}`, read record by record |
+| Event history | `aws cloudtrail lookup-events` (the last 90 days of management events; free, no trail needed) | `{"Events": [...]}`; the record is the JSON text in `CloudTrailEvent` |
+| JSON Lines | CloudWatch Logs (a trail sent to a log group), Athena or `jq -c '.Records[]'` | `eventTime`, `eventSource`, `eventName` |
+| EventBridge | a rule on "AWS API Call via CloudTrail" written to a file | `detail-type` ending in "via CloudTrail"; the record in `detail` |
+
+| CloudTrail field | Event field |
+| ---------------- | ----------- |
+| `eventTime` | `timestamp` |
+| `eventSource`, `eventName` | `event.action`: `aws.<service>.<name in snake case>` (`aws.signin.console_login`, `aws.iam.create_access_key`, `aws.ec2.authorize_security_group_ingress`); `cloud.service` the source as written (`iam.amazonaws.com`); `extra.event_name` the name as written (`CreateAccessKey`) |
+| `errorCode`, `errorMessage` | `event.outcome` failure; `event.reason` is `access_denied` for every denial code (`AccessDenied`, `AccessDeniedException`, `UnauthorizedOperation`, `Client.UnauthorizedOperation`, `AuthorizationError`, `AuthorizationErrorException`) and the code otherwise; `extra.error_code` and `extra.error_message` as written |
+| `responseElements.ConsoleLogin` | the outcome of a console sign-in (`Success` or `Failure`); a failure's reason is its message (`Failed authentication`) |
+| `userIdentity` | see below |
+| `sourceIPAddress` | `source.ip`; a service name (`lambda.amazonaws.com`, `AWS Internal`) goes to `extra.source_service`, never to `source.host`, so service calls do not link incidents |
+| `userAgent` | `user_agent` |
+| `awsRegion`, `recipientAccountId` | `cloud.region`, `cloud.account_id` (`cloud.provider` is `aws`) |
+| `requestID`, `eventID` | `request_id`, `extra.event_id` |
+| `eventType`, `readOnly` | `extra.event_type`, `extra.read_only` |
+| `additionalEventData.MFAUsed` | `extra.mfa_used` (console sign-ins) |
+
+| `userIdentity.type` | `user.name` | Notes |
+| ------------------- | ----------- | ----- |
+| `IAMUser` | `userName` | CloudTrail writes `HIDDEN_DUE_TO_SECURITY_REASONS` for a failed sign-in with a name that does not exist: `user.name` is then empty and `extra.user_hidden` true |
+| `Root` | `root` | |
+| `AssumedRole` | role and session, from the ARN (`ci-deploy/gh-actions-9101`) | `extra.session_issuer` the role |
+| `FederatedUser` | the name, from the ARN | |
+| `IdentityCenterUser` | `userName`, or the user id it acted for | |
+| `AWSService`, `AWSAccount` | none | `extra.invoked_by` the service |
+
+`user.id` is the ARN (or the principal id when there is none). Every event keeps
+`extra.identity_type`, and `extra.access_key_id` with `extra.access_key_type`: `long_term` for
+`AKIA...` keys, `temporary` for `ASIA...` (console sessions and roles). `extra.mfa_authenticated`
+says whether the session signed in with MFA.
+
+Categories: console sign-ins (`signin`) and STS calls that hand out credentials (`AssumeRole`,
+`GetSessionToken`, ...) are `authentication`; IAM calls that change identities, keys, MFA or
+permissions (`Create...`, `Delete...`, `Attach...`, `Deactivate...`, ...) are `account`;
+everything else is `cloud`. No AWS event is `admin`, so the admin rules (PRH-ADMIN-001 and 002,
+written for the web app) never see them.
+
+Values a rule would have to compare across fields are worked out by the parser:
+
+- `extra.target_user`: the user an IAM call names (`requestParameters.userName`), and
+  `extra.for_other_user`: whether that is not the caller (always true when the caller is root or
+  a role).
+- `extra.ingress_cidrs`: the address ranges a security-group change allows (ranges open to
+  everyone first), and `extra.world_ports`: the ports it opens to `0.0.0.0/0` or `::/0` (`22`,
+  `8000-8080`, `all`, or the protocol such as `icmp`), from both request forms
+  (`ipPermissions` and the older single `cidrIp`); `extra.security_group` the group.
+- `extra.trail`: the trail a CloudTrail call names.
+
+Insights events (`AwsCloudTrailInsight`) and EventBridge events from other services are counted
+as skipped.
+
+### Compressed and CloudTrail files
+
+Trail files are usually one line many megabytes long, and `lookup-events` prints one JSON
+document over many lines; neither can be read line by line. When a file (or standard input)
+starts with `{"Records": [` or `{"Events": [`, or its first line looks like a CloudTrail record,
+the reader scans the bytes for the end of each record (counting brackets outside strings, 64 KiB
+at a time) and passes each record on as one line of compact JSON. Records are numbered from 1 in
+place of line numbers. Memory stays bounded:
+
+- At most 4 MiB of one record is held; a longer record is skipped and counted as an error.
+- A record longer than a line may be (16,384 characters) is shortened instead of refused: its
+  response, additional data and resource lists go first (keeping the sign-in result and
+  `MFAUsed`), then the request parameters the mapping does not read (security-group rules are
+  kept, those open to everyone first, at most 32 rules of 8 ranges), then the end of every string
+  over 1,024 characters. The event has `extra.trimmed` true; `raw` is the shortened record.
+- Invalid JSON, a list element that is not an object, or a file that ends inside a record is an
+  error; the rest of the file is still read.
+
+`parse`, `detect`, `incidents`, `triage` and `pipeline replay` read these files; `pipeline tail`
+follows CloudTrail JSON Lines (CloudWatch Logs exports) line by line.
 
 ## `journald`
 

@@ -34,6 +34,9 @@ RUNS = [(name, variant) for name in sorted(SCENARIOS) for variant in VARIANTS]
 
 _IPV4 = re.compile(r"(?<![\w.])(?:\d{1,3}\.){3}\d{1,3}(?![\w.])")
 _IPV6 = re.compile(r"(?<![\w:])[0-9a-fA-F]{1,4}(?::[0-9a-fA-F]{0,4}){2,7}(?![\w:])")
+#: Address ranges that cover the whole internet (security-group rules in aws-intrusion): they
+#: name no host, so they are not addresses a simulation may not write.
+_EVERYONE = re.compile(r"(?<![\w.])(?:0\.0\.0\.0/[01]|128\.0\.0\.0/1)(?![\w.])")
 
 
 @pytest.mark.parametrize(("name", "variant"), RUNS)
@@ -64,7 +67,7 @@ def test_output_matches_golden_hashes() -> None:
 def test_every_address_is_a_documentation_address(name: str, variant: str) -> None:
     for seed in (1, 2):
         simulation = simulate(name, seed=seed, variant=variant)
-        text = simulation.log_text()
+        text = _EVERYONE.sub("", simulation.log_text())
         found = set(_IPV4.findall(text))
         for candidate in _IPV6.findall(text):
             try:

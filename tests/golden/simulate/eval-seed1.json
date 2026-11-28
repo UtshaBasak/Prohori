@@ -7,6 +7,7 @@
   "scenarios": [
     "account-takeover",
     "admin-misuse",
+    "aws-intrusion",
     "credential-stuffing",
     "injection",
     "password-spraying",
@@ -22,6 +23,7 @@
     "PRH-ABUSE-001",
     "PRH-AUTH-004",
     "PRH-AUTHZ-001",
+    "PRH-AWS-003",
     "PRH-IDS-001",
     "PRH-IDS-002",
     "PRH-IDS-003",
@@ -168,6 +170,78 @@
           "attacks_detected": 0,
           "precision": null,
           "recall": null
+        },
+        "PRH-AWS-001": {
+          "alerts": 1,
+          "true_positives": 1,
+          "false_positives": 0,
+          "attacks_expected": 1,
+          "attacks_detected": 1,
+          "precision": 1.0,
+          "recall": 1.0
+        },
+        "PRH-AWS-002": {
+          "alerts": 1,
+          "true_positives": 1,
+          "false_positives": 0,
+          "attacks_expected": 1,
+          "attacks_detected": 1,
+          "precision": 1.0,
+          "recall": 1.0
+        },
+        "PRH-AWS-003": {
+          "alerts": 0,
+          "true_positives": 0,
+          "false_positives": 0,
+          "attacks_expected": 0,
+          "attacks_detected": 0,
+          "precision": null,
+          "recall": null
+        },
+        "PRH-AWS-004": {
+          "alerts": 2,
+          "true_positives": 1,
+          "false_positives": 1,
+          "attacks_expected": 1,
+          "attacks_detected": 1,
+          "precision": 0.5,
+          "recall": 1.0
+        },
+        "PRH-AWS-005": {
+          "alerts": 2,
+          "true_positives": 1,
+          "false_positives": 1,
+          "attacks_expected": 1,
+          "attacks_detected": 1,
+          "precision": 0.5,
+          "recall": 1.0
+        },
+        "PRH-AWS-006": {
+          "alerts": 1,
+          "true_positives": 1,
+          "false_positives": 0,
+          "attacks_expected": 1,
+          "attacks_detected": 1,
+          "precision": 1.0,
+          "recall": 1.0
+        },
+        "PRH-AWS-007": {
+          "alerts": 1,
+          "true_positives": 1,
+          "false_positives": 0,
+          "attacks_expected": 1,
+          "attacks_detected": 1,
+          "precision": 1.0,
+          "recall": 1.0
+        },
+        "PRH-AWS-008": {
+          "alerts": 1,
+          "true_positives": 1,
+          "false_positives": 0,
+          "attacks_expected": 1,
+          "attacks_detected": 1,
+          "precision": 1.0,
+          "recall": 1.0
         },
         "PRH-IDS-001": {
           "alerts": 0,
@@ -390,6 +464,16 @@
             "PRH-ADMIN-001": 1
           }
         },
+        "aws-intrusion": {
+          "runs": 1,
+          "attacks": 1,
+          "attacks_detected": 1,
+          "missed_by_rule": {},
+          "false_positives_by_rule": {
+            "PRH-AWS-004": 1,
+            "PRH-AWS-005": 1
+          }
+        },
         "credential-stuffing": {
           "runs": 1,
           "attacks": 1,
@@ -599,6 +683,78 @@
           "attacks_detected": 0,
           "precision": null,
           "recall": null
+        },
+        "PRH-AWS-001": {
+          "alerts": 0,
+          "true_positives": 0,
+          "false_positives": 0,
+          "attacks_expected": 1,
+          "attacks_detected": 0,
+          "precision": null,
+          "recall": 0.0
+        },
+        "PRH-AWS-002": {
+          "alerts": 1,
+          "true_positives": 1,
+          "false_positives": 0,
+          "attacks_expected": 1,
+          "attacks_detected": 1,
+          "precision": 1.0,
+          "recall": 1.0
+        },
+        "PRH-AWS-003": {
+          "alerts": 0,
+          "true_positives": 0,
+          "false_positives": 0,
+          "attacks_expected": 0,
+          "attacks_detected": 0,
+          "precision": null,
+          "recall": null
+        },
+        "PRH-AWS-004": {
+          "alerts": 2,
+          "true_positives": 1,
+          "false_positives": 1,
+          "attacks_expected": 1,
+          "attacks_detected": 1,
+          "precision": 0.5,
+          "recall": 1.0
+        },
+        "PRH-AWS-005": {
+          "alerts": 2,
+          "true_positives": 1,
+          "false_positives": 1,
+          "attacks_expected": 1,
+          "attacks_detected": 1,
+          "precision": 0.5,
+          "recall": 1.0
+        },
+        "PRH-AWS-006": {
+          "alerts": 0,
+          "true_positives": 0,
+          "false_positives": 0,
+          "attacks_expected": 1,
+          "attacks_detected": 0,
+          "precision": null,
+          "recall": 0.0
+        },
+        "PRH-AWS-007": {
+          "alerts": 0,
+          "true_positives": 0,
+          "false_positives": 0,
+          "attacks_expected": 1,
+          "attacks_detected": 0,
+          "precision": null,
+          "recall": 0.0
+        },
+        "PRH-AWS-008": {
+          "alerts": 0,
+          "true_positives": 0,
+          "false_positives": 0,
+          "attacks_expected": 1,
+          "attacks_detected": 0,
+          "precision": null,
+          "recall": 0.0
         },
         "PRH-IDS-001": {
           "alerts": 0,
@@ -824,6 +980,21 @@
             "PRH-ADMIN-001": 1
           }
         },
+        "aws-intrusion": {
+          "runs": 1,
+          "attacks": 1,
+          "attacks_detected": 1,
+          "missed_by_rule": {
+            "PRH-AWS-001": 1,
+            "PRH-AWS-006": 1,
+            "PRH-AWS-007": 1,
+            "PRH-AWS-008": 1
+          },
+          "false_positives_by_rule": {
+            "PRH-AWS-004": 1,
+            "PRH-AWS-005": 1
+          }
+        },
         "credential-stuffing": {
           "runs": 1,
           "attacks": 1,
@@ -1045,6 +1216,78 @@
           "attacks_detected": 0,
           "precision": null,
           "recall": null
+        },
+        "PRH-AWS-001": {
+          "alerts": 0,
+          "true_positives": 0,
+          "false_positives": 0,
+          "attacks_expected": 1,
+          "attacks_detected": 0,
+          "precision": null,
+          "recall": 0.0
+        },
+        "PRH-AWS-002": {
+          "alerts": 0,
+          "true_positives": 0,
+          "false_positives": 0,
+          "attacks_expected": 1,
+          "attacks_detected": 0,
+          "precision": null,
+          "recall": 0.0
+        },
+        "PRH-AWS-003": {
+          "alerts": 0,
+          "true_positives": 0,
+          "false_positives": 0,
+          "attacks_expected": 0,
+          "attacks_detected": 0,
+          "precision": null,
+          "recall": null
+        },
+        "PRH-AWS-004": {
+          "alerts": 2,
+          "true_positives": 1,
+          "false_positives": 1,
+          "attacks_expected": 1,
+          "attacks_detected": 1,
+          "precision": 0.5,
+          "recall": 1.0
+        },
+        "PRH-AWS-005": {
+          "alerts": 2,
+          "true_positives": 1,
+          "false_positives": 1,
+          "attacks_expected": 1,
+          "attacks_detected": 1,
+          "precision": 0.5,
+          "recall": 1.0
+        },
+        "PRH-AWS-006": {
+          "alerts": 0,
+          "true_positives": 0,
+          "false_positives": 0,
+          "attacks_expected": 1,
+          "attacks_detected": 0,
+          "precision": null,
+          "recall": 0.0
+        },
+        "PRH-AWS-007": {
+          "alerts": 0,
+          "true_positives": 0,
+          "false_positives": 0,
+          "attacks_expected": 1,
+          "attacks_detected": 0,
+          "precision": null,
+          "recall": 0.0
+        },
+        "PRH-AWS-008": {
+          "alerts": 0,
+          "true_positives": 0,
+          "false_positives": 0,
+          "attacks_expected": 1,
+          "attacks_detected": 0,
+          "precision": null,
+          "recall": 0.0
         },
         "PRH-IDS-001": {
           "alerts": 0,
@@ -1270,6 +1513,22 @@
             "PRH-ADMIN-001": 1
           }
         },
+        "aws-intrusion": {
+          "runs": 1,
+          "attacks": 1,
+          "attacks_detected": 1,
+          "missed_by_rule": {
+            "PRH-AWS-001": 1,
+            "PRH-AWS-002": 1,
+            "PRH-AWS-006": 1,
+            "PRH-AWS-007": 1,
+            "PRH-AWS-008": 1
+          },
+          "false_positives_by_rule": {
+            "PRH-AWS-004": 1,
+            "PRH-AWS-005": 1
+          }
+        },
         "credential-stuffing": {
           "runs": 1,
           "attacks": 1,
@@ -1365,20 +1624,20 @@
     "variants": {
       "default": {
         "without_suppressions": {
-          "alerts": 172,
-          "true_positives": 110,
-          "false_positives": 62,
-          "precision": 0.64,
-          "attacks": 10,
-          "attacks_detected": 10
+          "alerts": 181,
+          "true_positives": 117,
+          "false_positives": 64,
+          "precision": 0.646,
+          "attacks": 11,
+          "attacks_detected": 11
         },
         "with_suppressions": {
-          "alerts": 171,
-          "true_positives": 110,
-          "false_positives": 61,
-          "precision": 0.643,
-          "attacks": 10,
-          "attacks_detected": 10
+          "alerts": 180,
+          "true_positives": 117,
+          "false_positives": 63,
+          "precision": 0.65,
+          "attacks": 11,
+          "attacks_detected": 11
         },
         "rules": {
           "PRH-ADMIN-001": {
@@ -1394,20 +1653,20 @@
       },
       "heldout": {
         "without_suppressions": {
-          "alerts": 108,
-          "true_positives": 48,
-          "false_positives": 60,
-          "precision": 0.444,
-          "attacks": 10,
-          "attacks_detected": 10
+          "alerts": 113,
+          "true_positives": 51,
+          "false_positives": 62,
+          "precision": 0.451,
+          "attacks": 11,
+          "attacks_detected": 11
         },
         "with_suppressions": {
-          "alerts": 107,
-          "true_positives": 48,
-          "false_positives": 59,
-          "precision": 0.449,
-          "attacks": 10,
-          "attacks_detected": 10
+          "alerts": 112,
+          "true_positives": 51,
+          "false_positives": 61,
+          "precision": 0.455,
+          "attacks": 11,
+          "attacks_detected": 11
         },
         "rules": {
           "PRH-ADMIN-001": {
@@ -1423,20 +1682,20 @@
       },
       "heldout2": {
         "without_suppressions": {
-          "alerts": 107,
-          "true_positives": 56,
-          "false_positives": 51,
+          "alerts": 111,
+          "true_positives": 58,
+          "false_positives": 53,
           "precision": 0.523,
-          "attacks": 10,
-          "attacks_detected": 9
+          "attacks": 11,
+          "attacks_detected": 10
         },
         "with_suppressions": {
-          "alerts": 106,
-          "true_positives": 56,
-          "false_positives": 50,
-          "precision": 0.528,
-          "attacks": 10,
-          "attacks_detected": 9
+          "alerts": 110,
+          "true_positives": 58,
+          "false_positives": 52,
+          "precision": 0.527,
+          "attacks": 11,
+          "attacks_detected": 10
         },
         "rules": {
           "PRH-ADMIN-001": {

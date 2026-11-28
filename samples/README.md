@@ -16,6 +16,11 @@ everything runs offline. All IP addresses come from documentation ranges (`192.0
   holds hand-written, defanged Sysmon events (Winlogbeat) of every mapped type: a working
   morning, then a macro document, encoded PowerShell, a new service, lsass read through
   `comsvcs.dll` and files deleted; the encoded command decodes to `Write-Output`.
+  `aws-cloudtrail.json` is a hand-written CloudTrail trail file in the layout CloudTrail writes
+  to S3 (`{"Records": [...]}` on one line, here not compressed): console sign-ins, a CI role and
+  an AWS service at work, then password guessing, a sign-in, a key for another user, denied
+  calls, MFA removed, SSH opened to everyone, logging stopped, and a root sign-in. The account
+  is AWS's documentation example `111122223333` and the key ids are shortened.
 - `incidents/`: a sample incident (`prohori report samples/incidents/INC-*.json`).
 - `suppressions.yml`: an example suppressions file for the simulated shop (the planned admin
   role grant). Use it with `--suppressions` on `detect`, `incidents`, `triage` or the pipeline;

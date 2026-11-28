@@ -65,8 +65,21 @@ TECHNIQUES: dict[str, Technique] = {
             "attack.initial_access",
         ),
     ),
+    "attack.t1078.004": Technique(
+        "Cloud Accounts",
+        (
+            "attack.stealth",
+            "attack.persistence",
+            "attack.privilege_escalation",
+            "attack.initial_access",
+        ),
+    ),
+    "attack.t1087.004": Technique("Cloud Account", ("attack.discovery",)),
     "attack.t1098": Technique(
         "Account Manipulation", ("attack.persistence", "attack.privilege_escalation")
+    ),
+    "attack.t1098.001": Technique(
+        "Additional Cloud Credentials", ("attack.persistence", "attack.privilege_escalation")
     ),
     "attack.t1098.007": Technique(
         "Additional Local or Domain Groups", ("attack.persistence", "attack.privilege_escalation")
@@ -88,10 +101,15 @@ TECHNIQUES: dict[str, Technique] = {
         ("attack.defense_impairment", "attack.persistence", "attack.credential_access"),
     ),
     "attack.t1566.001": Technique("Spearphishing Attachment", ("attack.initial_access",)),
+    "attack.t1580": Technique("Cloud Infrastructure Discovery", ("attack.discovery",)),
     "attack.t1595": Technique("Active Scanning", ("attack.reconnaissance",)),
     "attack.t1595.002": Technique("Vulnerability Scanning", ("attack.reconnaissance",)),
     "attack.t1595.003": Technique("Wordlist Scanning", ("attack.reconnaissance",)),
+    "attack.t1685": Technique("Disable or Modify Tools", ("attack.defense_impairment",)),
+    "attack.t1685.002": Technique("Disable or Modify Cloud Log", ("attack.defense_impairment",)),
     "attack.t1685.005": Technique("Clear Windows Event Logs", ("attack.defense_impairment",)),
+    "attack.t1686": Technique("Disable or Modify System Firewall", ("attack.defense_impairment",)),
+    "attack.t1686.001": Technique("Cloud Firewall", ("attack.defense_impairment",)),
 }
 
 

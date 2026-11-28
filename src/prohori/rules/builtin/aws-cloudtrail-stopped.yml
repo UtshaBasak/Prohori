@@ -1,0 +1,20 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+# Copyright (c) 2026 Utsha Basak
+id: PRH-AWS-006
+title: CloudTrail logging stopped or a trail deleted
+status: experimental
+severity: high
+description: >-
+  Someone stopped a trail's logging (StopLogging) or deleted a trail (DeleteTrail), successfully
+  or not. Attackers do this so that what they do next is not recorded. A failed attempt is
+  reported too: it shows the intent.
+author: Prohori
+tags: [attack.defense_impairment, attack.t1685, attack.t1685.002]
+logsource: {log_source: aws-cloudtrail}
+detection:
+  stopped:
+    event.action: [aws.cloudtrail.stop_logging, aws.cloudtrail.delete_trail]
+  condition: stopped
+falsepositives:
+  - Planned removal of an old trail, or a test account being cleaned up
+response: runbooks/aws-cloudtrail-stopped.md

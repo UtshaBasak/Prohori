@@ -1,0 +1,23 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+# Copyright (c) 2026 Utsha Basak
+id: PRH-AWS-005
+title: AWS access key created for another user
+status: experimental
+severity: high
+description: >-
+  An access key was created for an IAM user other than the caller (CreateAccessKey naming
+  another user). Attackers who reach an account with IAM rights create keys for other users so
+  they keep access when the first account is cleaned up. A user creating their own key is left
+  out.
+author: Prohori
+tags: [attack.persistence, attack.privilege_escalation, attack.t1098, attack.t1098.001]
+logsource: {category: account}
+detection:
+  created:
+    event.action: aws.iam.create_access_key
+    event.outcome: success
+    extra.for_other_user: true
+  condition: created
+falsepositives:
+  - An administrator setting up a new service user or rotating a service user's key
+response: runbooks/aws-access-key-other-user.md

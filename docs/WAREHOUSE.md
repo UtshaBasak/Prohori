@@ -141,11 +141,11 @@ when the labels of a log are loaded but the log was never replayed.
 ## Results on the simulator
 
 `scripts/build_lite_warehouse.py` builds a warehouse from every scenario's default variant
-(seed 1), with the example suppressions (`samples/suppressions.yml`): 9,737 events, 172 alerts
-(one of them suppressed: the planned admin grant) and 76 incidents. CI builds the models on that
+(seed 1), with the example suppressions (`samples/suppressions.yml`): 10,451 events, 181 alerts
+(one of them suppressed: the planned admin grant) and 79 incidents. CI builds the models on that
 warehouse and checks that `rule_precision` equals the simulator's own rule evaluation for the
 same runs with the same suppressions, alert for alert. The models gave (rules of 1.2 in
-progress; the Windows scenarios were added in steps 34 and 34b):
+progress; the Windows scenarios were added in steps 34 and 34b, the AWS one in step 35):
 
 | Rule | Alerts | True positives | Precision | Suppressed |
 | ------ | -------: | ---------------: | ----------: | ---------: |
@@ -156,11 +156,14 @@ progress; the Windows scenarios were added in steps 34 and 34b):
 | PRH-PROC-001 | 3 | 1 | 0.33 | 0 |
 | PRH-PROC-002, PROC-004 | 2 | 2 | 1.00 | 0 |
 | PRH-PROC-003 | 3 | 2 | 0.67 | 0 |
+| PRH-AWS-001, AWS-002, AWS-006 to AWS-008 | 5 | 5 | 1.00 | 0 |
+| PRH-AWS-004, AWS-005 | 4 | 2 | 0.50 | 0 |
 
 | Scenario | Detected | Time to detect |
 | ---------- | ---------- | ---------------: |
 | account-takeover | yes | 27 s |
 | admin-misuse | yes | 229 s |
+| aws-intrusion | yes | 24 s |
 | credential-stuffing | yes | 20 s |
 | injection | yes | 19 s |
 | password-spraying | yes | 61 s |

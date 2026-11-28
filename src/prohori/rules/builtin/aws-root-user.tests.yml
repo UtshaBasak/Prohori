@@ -1,0 +1,52 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+# Copyright (c) 2026 Utsha Basak
+rule: PRH-AWS-003
+start: 2026-10-24T14:00:00Z
+defaults:
+  log_source: aws-cloudtrail
+  event.category: authentication
+  event.action: aws.signin.console_login
+  event.outcome: success
+  source.ip: 192.0.2.10
+  user.name: root
+  user.id: arn:aws:iam::111122223333:root
+  extra.identity_type: Root
+cases:
+  - name: a root console sign-in alerts
+    expect: {alerts: 1, entities: [{user.name: root}]}
+    events:
+      - {}
+
+  - name: a failed root sign-in does not alert (PRH-AWS-001 counts failures)
+    expect: {alerts: 0}
+    events:
+      - {event.outcome: failure}
+
+  - name: an IAM user's sign-in does not alert
+    expect: {alerts: 0}
+    events:
+      - {user.name: it-admin, extra.identity_type: IAMUser}
+
+  - name: a call with a root access key alerts
+    expect: {alerts: 1}
+    events:
+      - {event.action: aws.s3.list_buckets, event.category: cloud, extra.access_key_type: long_term}
+
+  - name: calls in a root console session do not alert again
+    expect: {alerts: 0}
+    events:
+      - {event.action: aws.s3.list_buckets, event.category: cloud, extra.access_key_type: temporary}
+
+  - name: calls an AWS service makes for root do not alert
+    expect: {alerts: 0}
+    events:
+      - {event.action: aws.kms.decrypt, event.category: cloud, extra.access_key_type: long_term, extra.invoked_by: s3.amazonaws.com}
+
+  - name: CloudTrail records
+    expect: {alerts: 2, entities: [{user.name: root}]}
+    log:
+      parser: cloudtrail
+      lines:
+        - '{"eventVersion":"1.11","userIdentity":{"type":"Root","principalId":"111122223333","arn":"arn:aws:iam::111122223333:root","accountId":"111122223333"},"eventTime":"2026-10-24T14:00:00Z","eventSource":"signin.amazonaws.com","eventName":"ConsoleLogin","awsRegion":"us-east-1","sourceIPAddress":"192.0.2.10","userAgent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36","requestParameters":null,"responseElements":{"ConsoleLogin":"Success"},"additionalEventData":{"LoginTo":"https://console.aws.amazon.com/console/home","MobileVersion":"No","MFAUsed":"Yes"},"requestID":"7f6c3a1e-0000-4000-8000-000000000001","eventID":"0b9f2c4d-0000-4000-8000-000000000001","readOnly":false,"eventType":"AwsConsoleSignIn","managementEvent":true,"recipientAccountId":"111122223333","eventCategory":"Management"}'
+        - '{"eventVersion":"1.11","userIdentity":{"type":"Root","principalId":"111122223333","arn":"arn:aws:iam::111122223333:root","accountId":"111122223333","accessKeyId":"ASIAEXAMPLEROOT1"},"eventTime":"2026-10-24T14:01:00Z","eventSource":"s3.amazonaws.com","eventName":"ListBuckets","awsRegion":"us-east-1","sourceIPAddress":"192.0.2.10","userAgent":"aws-cli/2.17.50 md/awscrt#0.21.2 ua/2.0 os/linux#6.8.0 md/arch#x86_64 lang/python#3.12.6","requestParameters":null,"responseElements":null,"requestID":"7f6c3a1e-0000-4000-8000-000000000002","eventID":"0b9f2c4d-0000-4000-8000-000000000002","readOnly":true,"eventType":"AwsApiCall","managementEvent":true,"recipientAccountId":"111122223333","eventCategory":"Management"}'
+        - '{"eventVersion":"1.11","userIdentity":{"type":"Root","principalId":"111122223333","arn":"arn:aws:iam::111122223333:root","accountId":"111122223333","accessKeyId":"AKIAEXAMPLEROOT1"},"eventTime":"2026-10-24T14:02:00Z","eventSource":"s3.amazonaws.com","eventName":"ListBuckets","awsRegion":"us-east-1","sourceIPAddress":"198.51.100.20","userAgent":"aws-cli/2.17.50 md/awscrt#0.21.2 ua/2.0 os/linux#6.8.0 md/arch#x86_64 lang/python#3.12.6","requestParameters":null,"responseElements":null,"requestID":"7f6c3a1e-0000-4000-8000-000000000003","eventID":"0b9f2c4d-0000-4000-8000-000000000003","readOnly":true,"eventType":"AwsApiCall","managementEvent":true,"recipientAccountId":"111122223333","eventCategory":"Management"}'

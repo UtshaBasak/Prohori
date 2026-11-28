@@ -77,6 +77,27 @@ class TestReplay:
             replay(generic, transport)
         assert choose_parser([], "auth_log", has_mapping=False) == "auth_log"
 
+    def test_compressed_trail_file_one_record_per_message(self, tmp_path: Path) -> None:
+        import gzip
+
+        sample = Path(__file__).resolve().parents[3] / "samples" / "logs" / "aws-cloudtrail.json"
+        log = tmp_path / "trail.json.gz"
+        log.write_bytes(gzip.compress(sample.read_bytes()))
+        transport = MemoryTransport()
+        assert replay(log, transport) == 20
+        lines = _lines(transport)
+        assert {m.parser for m in lines} == {"cloudtrail"}
+        assert [m.line for m in lines] == list(range(1, 21))
+        assert json.loads(lines[0].text)["eventSource"] == "signin.amazonaws.com"
+
+    def test_corrupt_gzip(self, tmp_path: Path) -> None:
+        import gzip
+
+        log = tmp_path / "app.jsonl.gz"
+        log.write_bytes(gzip.compress(("\n".join(APP_LINE % n for n in range(500))).encode())[:-9])
+        with pytest.raises(ProducerError, match="gzip"):
+            replay(log, MemoryTransport())
+
 
 class TestTailer:
     def test_follows_a_growing_file_and_waits_for_complete_lines(self, tmp_path: Path) -> None:

@@ -19,6 +19,7 @@ with atheris.instrument_imports():
         AccessLogParser,
         AppJsonParser,
         AuthLogParser,
+        CloudTrailParser,
         FieldMapping,
         GenericJsonParser,
         JournaldParser,
@@ -50,6 +51,7 @@ _PARSERS: list[LineParser] = [
     WindowsSecurityParser(),
     JournaldParser(),
     SysmonParser(),
+    CloudTrailParser(),
 ]
 
 
