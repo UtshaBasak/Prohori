@@ -131,15 +131,17 @@ class JsonRecordLines(ConvertedInput):
         return b""
 
     def _next_line(self) -> bytes:
-        while not self._done:
-            start = self._skip_separators()
-            if start is None:
-                return self._finish()
-            element, error = self._element(start)
-            if error is None and element is None:
-                return self._finish()
-            return self._convert(element) if error is None else _error(error)
-        return b""
+        if self._done:
+            return b""
+        start = self._skip_separators()
+        if start is None:
+            return self._finish()
+        element, error = self._element(start)
+        if error is not None:
+            return _error(error)
+        if element is None:
+            return self._finish()
+        return self._convert(element)
 
     def _skip_separators(self) -> int | None:
         """Index of the next element's first byte, or ``None`` at the end of the records."""
@@ -226,8 +228,8 @@ class JsonRecordLines(ConvertedInput):
         del self._buffer[: newline + 1]
         return None, "not a JSON object"
 
-    def _convert(self, element: bytes | None) -> bytes:
-        text = (element or b"").decode("utf-8", errors="replace")
+    def _convert(self, element: bytes) -> bytes:
+        text = element.decode("utf-8", errors="replace")
         try:
             record = json.loads(text)
         except RecursionError:
