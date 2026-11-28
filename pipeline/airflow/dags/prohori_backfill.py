@@ -3,7 +3,7 @@
 """Backfill: simulate every scenario one day apart, replay them, then build the marts.
 
 Run it by hand on an empty stack (Trigger DAG). Each scenario is simulated with the run's seed,
-starting ``start`` plus one day per scenario (default: ten days ago), replayed through the
+starting ``start`` plus one day per scenario (default: eleven days ago), replayed through the
 broker, and its labels are loaded so the marts can measure precision and time to detect. Older
 logs replayed after newer ones arrive late (see "One timeline" in docs/PIPELINE.md), so use it
 on a stack without newer events.
@@ -16,6 +16,7 @@ from prohori_common import DBT, DEFAULT_ARGS, PYTHON, START, TAGS, WAIT_FOR_QUIE
 SCENARIOS = (
     "account-takeover",
     "admin-misuse",
+    "aws-intrusion",
     "credential-stuffing",
     "injection",
     "password-spraying",
@@ -33,7 +34,7 @@ REPLAY = """set -euo pipefail
 when=$({python} -c '
 import sys
 from datetime import UTC, datetime, timedelta
-start = sys.argv[1] or (datetime.now(UTC) - timedelta(days=10)).strftime("%Y-%m-%dT06:00:00Z")
+start = sys.argv[1] or (datetime.now(UTC) - timedelta(days=11)).strftime("%Y-%m-%dT06:00:00Z")
 moment = datetime.fromisoformat(start.replace("Z", "+00:00")) + timedelta(days=int(sys.argv[2]))
 print(moment.strftime("%Y-%m-%dT%H:%M:%SZ"))
 ' "$START" {day})

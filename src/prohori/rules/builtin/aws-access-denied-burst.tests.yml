@@ -1,0 +1,79 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+# Copyright (c) 2026 Utsha Basak
+rule: PRH-AWS-007
+start: 2026-10-24T14:00:00Z
+defaults:
+  log_source: aws-cloudtrail
+  event.category: cloud
+  event.outcome: failure
+  event.reason: access_denied
+  source.ip: 203.0.113.50
+  user.name: svc-reports
+  user.id: arn:aws:iam::111122223333:user/svc-reports
+  cloud.provider: aws
+cases:
+  - name: eight different denied calls alert
+    expect: {alerts: 1, entities: [{user.id: arn:aws:iam::111122223333:user/svc-reports}]}
+    events:
+      - {event.action: aws.x.call_0, extra.event_name: Call0, after: 5s}
+      - {event.action: aws.x.call_1, extra.event_name: Call1, after: 5s}
+      - {event.action: aws.x.call_2, extra.event_name: Call2, after: 5s}
+      - {event.action: aws.x.call_3, extra.event_name: Call3, after: 5s}
+      - {event.action: aws.x.call_4, extra.event_name: Call4, after: 5s}
+      - {event.action: aws.x.call_5, extra.event_name: Call5, after: 5s}
+      - {event.action: aws.x.call_6, extra.event_name: Call6, after: 5s}
+      - {event.action: aws.x.call_7, extra.event_name: Call7, after: 5s}
+
+  - name: seven different denied calls do not alert
+    expect: {alerts: 0}
+    events:
+      - {event.action: aws.x.call_0, extra.event_name: Call0, after: 5s}
+      - {event.action: aws.x.call_1, extra.event_name: Call1, after: 5s}
+      - {event.action: aws.x.call_2, extra.event_name: Call2, after: 5s}
+      - {event.action: aws.x.call_3, extra.event_name: Call3, after: 5s}
+      - {event.action: aws.x.call_4, extra.event_name: Call4, after: 5s}
+      - {event.action: aws.x.call_5, extra.event_name: Call5, after: 5s}
+      - {event.action: aws.x.call_6, extra.event_name: Call6, after: 5s}
+
+  - name: one call denied over and over does not alert
+    expect: {alerts: 0}
+    events:
+      - {event.action: aws.s3.get_object, extra.event_name: GetObject, repeat: 30, every: 10s}
+
+  - name: eight denied calls over more than ten minutes do not alert
+    expect: {alerts: 0}
+    events:
+      - {event.action: aws.x.call_0, extra.event_name: Call0, after: 2m}
+      - {event.action: aws.x.call_1, extra.event_name: Call1, after: 2m}
+      - {event.action: aws.x.call_2, extra.event_name: Call2, after: 2m}
+      - {event.action: aws.x.call_3, extra.event_name: Call3, after: 2m}
+      - {event.action: aws.x.call_4, extra.event_name: Call4, after: 2m}
+      - {event.action: aws.x.call_5, extra.event_name: Call5, after: 2m}
+      - {event.action: aws.x.call_6, extra.event_name: Call6, after: 2m}
+      - {event.action: aws.x.call_7, extra.event_name: Call7, after: 2m}
+
+  - name: calls that were allowed do not count
+    expect: {alerts: 0}
+    events:
+      - {event.action: aws.x.call_0, extra.event_name: Call0, after: 5s}
+      - {event.action: aws.x.call_1, extra.event_name: Call1, after: 5s}
+      - {event.action: aws.x.call_2, extra.event_name: Call2, after: 5s}
+      - {event.action: aws.x.call_3, extra.event_name: Call3, after: 5s}
+      - {event.action: aws.x.call_4, extra.event_name: Call4, after: 5s}
+      - {event.action: aws.x.call_5, extra.event_name: Call5, after: 5s}
+      - {event.action: aws.x.call_6, extra.event_name: Call6, after: 5s}
+      - {event.action: aws.x.call_7, extra.event_name: Call7, event.outcome: success, event.reason: null}
+
+  - name: CloudTrail records with different denial codes
+    expect: {alerts: 1, entities: [{user.id: arn:aws:iam::111122223333:user/svc-reports}]}
+    log:
+      parser: cloudtrail
+      lines:
+        - '{"eventVersion":"1.11","userIdentity":{"type":"IAMUser","principalId":"AIDAEXAMPLEUSER11","arn":"arn:aws:iam::111122223333:user/svc-reports","accountId":"111122223333","accessKeyId":"AKIAEXAMPLEKEY77","userName":"svc-reports","sessionContext":{"sessionIssuer":{},"webIdFederationData":{},"attributes":{"creationDate":"2026-10-24T13:55:00Z","mfaAuthenticated":"false"}}},"eventTime":"2026-10-24T14:00:00Z","eventSource":"iam.amazonaws.com","eventName":"ListUsers","awsRegion":"us-east-1","sourceIPAddress":"203.0.113.50","userAgent":"aws-cli/2.17.50 md/awscrt#0.21.2 ua/2.0 os/linux#6.8.0 md/arch#x86_64 lang/python#3.12.6","errorCode":"AccessDenied","errorMessage":"User is not authorized to perform: ListUsers","requestParameters":null,"responseElements":null,"requestID":"7f6c3a1e-0000-4000-8000-000000000001","eventID":"0b9f2c4d-0000-4000-8000-000000000001","readOnly":true,"eventType":"AwsApiCall","managementEvent":true,"recipientAccountId":"111122223333","eventCategory":"Management"}'
+        - '{"eventVersion":"1.11","userIdentity":{"type":"IAMUser","principalId":"AIDAEXAMPLEUSER11","arn":"arn:aws:iam::111122223333:user/svc-reports","accountId":"111122223333","accessKeyId":"AKIAEXAMPLEKEY77","userName":"svc-reports","sessionContext":{"sessionIssuer":{},"webIdFederationData":{},"attributes":{"creationDate":"2026-10-24T13:55:00Z","mfaAuthenticated":"false"}}},"eventTime":"2026-10-24T14:00:05Z","eventSource":"iam.amazonaws.com","eventName":"ListRoles","awsRegion":"us-east-1","sourceIPAddress":"203.0.113.50","userAgent":"aws-cli/2.17.50 md/awscrt#0.21.2 ua/2.0 os/linux#6.8.0 md/arch#x86_64 lang/python#3.12.6","errorCode":"AccessDenied","errorMessage":"User is not authorized to perform: ListRoles","requestParameters":null,"responseElements":null,"requestID":"7f6c3a1e-0000-4000-8000-000000000002","eventID":"0b9f2c4d-0000-4000-8000-000000000002","readOnly":true,"eventType":"AwsApiCall","managementEvent":true,"recipientAccountId":"111122223333","eventCategory":"Management"}'
+        - '{"eventVersion":"1.11","userIdentity":{"type":"IAMUser","principalId":"AIDAEXAMPLEUSER11","arn":"arn:aws:iam::111122223333:user/svc-reports","accountId":"111122223333","accessKeyId":"AKIAEXAMPLEKEY77","userName":"svc-reports","sessionContext":{"sessionIssuer":{},"webIdFederationData":{},"attributes":{"creationDate":"2026-10-24T13:55:00Z","mfaAuthenticated":"false"}}},"eventTime":"2026-10-24T14:00:10Z","eventSource":"iam.amazonaws.com","eventName":"GetAccountAuthorizationDetails","awsRegion":"us-east-1","sourceIPAddress":"203.0.113.50","userAgent":"aws-cli/2.17.50 md/awscrt#0.21.2 ua/2.0 os/linux#6.8.0 md/arch#x86_64 lang/python#3.12.6","errorCode":"AccessDenied","errorMessage":"User is not authorized to perform: GetAccountAuthorizationDetails","requestParameters":null,"responseElements":null,"requestID":"7f6c3a1e-0000-4000-8000-000000000003","eventID":"0b9f2c4d-0000-4000-8000-000000000003","readOnly":true,"eventType":"AwsApiCall","managementEvent":true,"recipientAccountId":"111122223333","eventCategory":"Management"}'
+        - '{"eventVersion":"1.11","userIdentity":{"type":"IAMUser","principalId":"AIDAEXAMPLEUSER11","arn":"arn:aws:iam::111122223333:user/svc-reports","accountId":"111122223333","accessKeyId":"AKIAEXAMPLEKEY77","userName":"svc-reports","sessionContext":{"sessionIssuer":{},"webIdFederationData":{},"attributes":{"creationDate":"2026-10-24T13:55:00Z","mfaAuthenticated":"false"}}},"eventTime":"2026-10-24T14:00:15Z","eventSource":"s3.amazonaws.com","eventName":"ListBuckets","awsRegion":"us-east-1","sourceIPAddress":"203.0.113.50","userAgent":"aws-cli/2.17.50 md/awscrt#0.21.2 ua/2.0 os/linux#6.8.0 md/arch#x86_64 lang/python#3.12.6","errorCode":"AccessDenied","errorMessage":"User is not authorized to perform: ListBuckets","requestParameters":null,"responseElements":null,"requestID":"7f6c3a1e-0000-4000-8000-000000000004","eventID":"0b9f2c4d-0000-4000-8000-000000000004","readOnly":true,"eventType":"AwsApiCall","managementEvent":true,"recipientAccountId":"111122223333","eventCategory":"Management"}'
+        - '{"eventVersion":"1.11","userIdentity":{"type":"IAMUser","principalId":"AIDAEXAMPLEUSER11","arn":"arn:aws:iam::111122223333:user/svc-reports","accountId":"111122223333","accessKeyId":"AKIAEXAMPLEKEY77","userName":"svc-reports","sessionContext":{"sessionIssuer":{},"webIdFederationData":{},"attributes":{"creationDate":"2026-10-24T13:55:00Z","mfaAuthenticated":"false"}}},"eventTime":"2026-10-24T14:00:20Z","eventSource":"ec2.amazonaws.com","eventName":"DescribeInstances","awsRegion":"us-east-1","sourceIPAddress":"203.0.113.50","userAgent":"aws-cli/2.17.50 md/awscrt#0.21.2 ua/2.0 os/linux#6.8.0 md/arch#x86_64 lang/python#3.12.6","errorCode":"Client.UnauthorizedOperation","errorMessage":"You are not authorized to perform this operation.","requestParameters":null,"responseElements":null,"requestID":"7f6c3a1e-0000-4000-8000-000000000005","eventID":"0b9f2c4d-0000-4000-8000-000000000005","readOnly":true,"eventType":"AwsApiCall","managementEvent":true,"recipientAccountId":"111122223333","eventCategory":"Management"}'
+        - '{"eventVersion":"1.11","userIdentity":{"type":"IAMUser","principalId":"AIDAEXAMPLEUSER11","arn":"arn:aws:iam::111122223333:user/svc-reports","accountId":"111122223333","accessKeyId":"AKIAEXAMPLEKEY77","userName":"svc-reports","sessionContext":{"sessionIssuer":{},"webIdFederationData":{},"attributes":{"creationDate":"2026-10-24T13:55:00Z","mfaAuthenticated":"false"}}},"eventTime":"2026-10-24T14:00:25Z","eventSource":"secretsmanager.amazonaws.com","eventName":"ListSecrets","awsRegion":"us-east-1","sourceIPAddress":"203.0.113.50","userAgent":"aws-cli/2.17.50 md/awscrt#0.21.2 ua/2.0 os/linux#6.8.0 md/arch#x86_64 lang/python#3.12.6","errorCode":"AccessDenied","errorMessage":"User is not authorized to perform: secretsmanager:ListSecrets","requestParameters":null,"responseElements":null,"requestID":"7f6c3a1e-0000-4000-8000-000000000006","eventID":"0b9f2c4d-0000-4000-8000-000000000006","readOnly":true,"eventType":"AwsApiCall","managementEvent":true,"recipientAccountId":"111122223333","eventCategory":"Management"}'
+        - '{"eventVersion":"1.11","userIdentity":{"type":"IAMUser","principalId":"AIDAEXAMPLEUSER11","arn":"arn:aws:iam::111122223333:user/svc-reports","accountId":"111122223333","accessKeyId":"AKIAEXAMPLEKEY77","userName":"svc-reports","sessionContext":{"sessionIssuer":{},"webIdFederationData":{},"attributes":{"creationDate":"2026-10-24T13:55:00Z","mfaAuthenticated":"false"}}},"eventTime":"2026-10-24T14:00:30Z","eventSource":"lambda.amazonaws.com","eventName":"ListFunctions20150331","awsRegion":"us-east-1","sourceIPAddress":"203.0.113.50","userAgent":"aws-cli/2.17.50 md/awscrt#0.21.2 ua/2.0 os/linux#6.8.0 md/arch#x86_64 lang/python#3.12.6","errorCode":"AccessDenied","errorMessage":"User is not authorized to perform: lambda:ListFunctions","requestParameters":null,"responseElements":null,"requestID":"7f6c3a1e-0000-4000-8000-000000000007","eventID":"0b9f2c4d-0000-4000-8000-000000000007","readOnly":true,"eventType":"AwsApiCall","managementEvent":true,"recipientAccountId":"111122223333","eventCategory":"Management"}'
+        - '{"eventVersion":"1.11","userIdentity":{"type":"IAMUser","principalId":"AIDAEXAMPLEUSER11","arn":"arn:aws:iam::111122223333:user/svc-reports","accountId":"111122223333","accessKeyId":"AKIAEXAMPLEKEY77","userName":"svc-reports","sessionContext":{"sessionIssuer":{},"webIdFederationData":{},"attributes":{"creationDate":"2026-10-24T13:55:00Z","mfaAuthenticated":"false"}}},"eventTime":"2026-10-24T14:00:35Z","eventSource":"kms.amazonaws.com","eventName":"ListKeys","awsRegion":"us-east-1","sourceIPAddress":"203.0.113.50","userAgent":"aws-cli/2.17.50 md/awscrt#0.21.2 ua/2.0 os/linux#6.8.0 md/arch#x86_64 lang/python#3.12.6","errorCode":"AccessDenied","errorMessage":"User is not authorized to perform: kms:ListKeys","requestParameters":null,"responseElements":null,"requestID":"7f6c3a1e-0000-4000-8000-000000000008","eventID":"0b9f2c4d-0000-4000-8000-000000000008","readOnly":true,"eventType":"AwsApiCall","managementEvent":true,"recipientAccountId":"111122223333","eventCategory":"Management"}'

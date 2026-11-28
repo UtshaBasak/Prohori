@@ -2316,3 +2316,71 @@ destination in `extra` until these fields existed and promised to move it before
 **Consequences.** Ten scenarios, 37 rules. PRH-PROC-001 and PRH-PROC-003 have measured false
 positives (precision 0.33 and 0.67 on the default variant). The held-out intrusion (a script from
 a zip, a Run key, a dropped tool) is caught only by PRH-PROC-004, which the results report.
+
+## ADR-0047: AWS CloudTrail, compressed input and the first cloud rules
+
+- **Date:** 2026-11-28
+- **Status:** Accepted
+
+**Context.** Step 35 adds cloud audit logs, starting with AWS CloudTrail, and rules for common
+account abuse. CloudTrail is read from places that are not line-based: trail files in S3 are one
+JSON document (`{"Records": [...]}`), gzip-compressed and often one line of several megabytes;
+`aws cloudtrail lookup-events` prints `{"Events": [...]}` over many lines. Every parser reads
+lines of at most 16,384 characters.
+
+**Decision.**
+
+- **Files are converted below the line reader.** `prohori.parsers.inputs.open_log` recognises
+  gzip by its first two bytes and CloudTrail files by their opening (or a first line that looks
+  like a CloudTrail record), and returns lines, as `.evtx` and UTF-16 files already did. A small
+  scanner finds the end of each record by counting brackets outside strings, a chunk at a time,
+  with at most 4 MiB of one record held; no new dependency (a streaming JSON library would be
+  one). The batch commands and `pipeline replay` use the same opener, so replayed ids match the
+  labels the warehouse loads; `pipeline tail` still follows text lines. Reports hash the file as
+  stored.
+- **Records over a line's length are shortened, not refused.** Otherwise an attacker could hide
+  a security-group change by padding its request past 16,384 characters. The response,
+  additional data and resources go first, then request parameters the mapping does not read;
+  security-group rules open to everyone are kept first. The event says so (`extra.trimmed`).
+- **One mapping, ECS-like names.** `event.action` is `aws.<service>.<name in snake case>`,
+  because `event.action` must be lower-case dotted; the name as written stays in
+  `extra.event_name`. A new optional `cloud` group (provider, account, region, service, left out
+  when unset like the 1.2 host groups) and a `cloud` category for calls that are neither
+  sign-ins (`authentication`) nor identity changes (`account`). **No AWS event is `admin`**:
+  PRH-ADMIN-002 fires on any admin event at night, which would turn every CI deployment into an
+  alert. Every denial code is `event.reason: access_denied`. A `sourceIPAddress` that is a
+  service name goes to `extra.source_service`, not `source.host`, so service calls never link
+  incidents. CloudTrail writes `HIDDEN_DUE_TO_SECURITY_REASONS` for a failed sign-in with an
+  unknown name; it becomes an empty `user.name`, so sign-in rules count per address.
+- **Cross-field values in the parser.** Rules match one field at a time, so the parser records
+  `extra.for_other_user` (an IAM call naming a user other than the caller) and
+  `extra.world_ports` (ports opened to `0.0.0.0/0` or `::/0`) for the rules to match.
+- **Eight experimental rules, thresholds fixed before scoring.** Console failures 5 in 10
+  minutes per address (AWS-001); 3 failures then a success within 30 minutes (AWS-002); root
+  console sign-ins and root long-term keys, not every call of a root session (AWS-003); MFA
+  deactivated or deleted (AWS-004); a key for another user (AWS-005); `StopLogging` or
+  `DeleteTrail`, failed attempts included (AWS-006); 8 distinct denied event names per identity
+  in 10 minutes (AWS-007); a security group opened to everyone on ports other than only 80 and
+  443 (AWS-008). The values and the known false positives (key rotation, a replaced phone, a
+  public web port, a denied reporting job) were set with the scenario's background, before the
+  first evaluation; one default run (seed 1) was looked at to check the scenario worked, and
+  nothing was changed after it.
+- **ATT&CK v20 cloud techniques, checked against the pinned bundle.** v20 revoked *Disable or
+  Modify Cloud Logs* (T1562.008) and *Disable or Modify Cloud Firewall* (T1562.007); the rules
+  use their replacements T1685.002 and T1686.001 (with T1685 and T1686), plus T1078.004,
+  T1098.001, T1580 and T1087.004.
+- **A scenario, `aws-intrusion`,** as JSON Lines (CloudWatch Logs or EventBridge delivery), so
+  replay and the warehouse need no change. Its access key ids are 16 characters, shorter than
+  real ones, so secret scanners do not flag the logs or fixtures. Held-out variants change the
+  attacker's way, not the rules: slow guessing from several addresses, slow enumeration, the
+  internet opened as two halves, and management events left out with `PutEventSelectors`
+  instead of `StopLogging`.
+- **Azure Activity logs and Google Cloud audit logs are follow-ups,** recorded in the plan.
+
+**Consequences.** Eleven scenarios, 45 rules. On the default variant every expected rule fires
+in every seed; PRH-AWS-004 and PRH-AWS-005 have a measured precision of 0.5 (their known false
+positives). The held-out variants miss PRH-AWS-001, 006, 007 and 008 (and 002 in held-out 2),
+and are still caught by PRH-AWS-004 and 005. PRH-AWS-003 is not scored: the attacker never has
+the root password. The enumeration alert groups by identity, and the stolen key's user also has
+a benign reporting job, so that alert does not link to the rest of the intrusion's incident.
+`pipeline replay` now reads `.evtx`, UTF-16 and compressed files too.

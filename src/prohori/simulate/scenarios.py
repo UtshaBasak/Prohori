@@ -38,6 +38,17 @@ from prohori.simulate.background import (
     user_fields,
     web_background,
 )
+from prohori.simulate.cloudtrail import (
+    ADMIN,
+    ENUMERATION,
+    HIDDEN,
+    REPORTS,
+    SDK,
+    TRAIL,
+    account_background,
+    iam_user,
+    ingress,
+)
 from prohori.simulate.model import Attack, Recorder
 from prohori.simulate.sysmon import (
     DOCUMENTS,
@@ -670,6 +681,179 @@ def windows_intrusion(rec: Recorder, pool: AddressPool, p: Params, variant: str)
     log.signin(at(start + 6.0), "it-admin", "192.0.2.41", attack)
 
 
+# --------------------------------------------------------------------------- AWS
+
+
+def aws_intrusion(rec: Recorder, pool: AddressPool, p: Params, variant: str) -> None:
+    log = account_background(rec, pool, _int(p, "duration"), p["noise"])
+    sources = _sources(pool, HOSTILE, _int(p, "sources"), variant)
+    attack = rec.attack(
+        Attack(
+            id="aws-intrusion-1",
+            kind="aws-intrusion",
+            description="Console password guessing, then a new key for another user, enumeration "
+            "with it, MFA removed from a third user, SSH opened to everyone and logging stopped",
+            expected_rules=(
+                "PRH-AWS-001",
+                "PRH-AWS-002",
+                "PRH-AWS-004",
+                "PRH-AWS-005",
+                "PRH-AWS-006",
+                "PRH-AWS-007",
+                "PRH-AWS-008",
+            ),
+            sources=tuple(sources),
+            accounts=(ADMIN, REPORTS, "amina"),
+        )
+    )
+    rng = rec.rng
+    browser = BROWSERS[2]
+    gap = 1 / (p["rate"] * len(sources))  # each source sends `rate` attempts per minute
+    attempts = _int(p, "attempts")
+    for n in range(attempts):
+        minute = p["attack_at"] + n * gap + rng.uniform(0, gap / 4)
+        # Names that do not exist first (CloudTrail hides them), then the administrator.
+        identity = HIDDEN if n < 3 else iam_user(ADMIN)
+        log.console_login(
+            rec.at(minute),
+            identity,
+            sources[n % len(sources)],
+            browser,
+            ok=False,
+            mfa=False,
+            attack=attack,
+        )
+    # The guess that works comes from the source that sent the last failure; no MFA.
+    ip = sources[(attempts - 1) % len(sources)]
+    start = p["attack_at"] + attempts * gap + 0.5
+    at = rec.at
+    log.console_login(at(start), iam_user(ADMIN), ip, browser, ok=True, mfa=False, attack=attack)
+    console = iam_user(ADMIN, console=True, mfa=False)
+    for step, call in enumerate(("ListUsers", "GetUser", "ListAccessKeys")):
+        log.call(
+            at(start + 1 + step * 0.2),
+            "iam.amazonaws.com",
+            call,
+            console,
+            ip=ip,
+            agent=browser,
+            attack=attack,
+        )
+    # A key for the reporting user, which nobody watches.
+    log.call(
+        at(start + 3),
+        "iam.amazonaws.com",
+        "CreateAccessKey",
+        console,
+        ip=ip,
+        agent=browser,
+        request={"userName": REPORTS},
+        response={
+            "accessKey": {
+                "accessKeyId": "AKIA" + "5B2E7C1D9F04",
+                "status": "Active",
+                "userName": REPORTS,
+            }
+        },
+        attack=attack,
+    )
+    # What may the new key do? One service after another, from a script (most calls denied).
+    stolen = iam_user(REPORTS)
+    stolen["accessKeyId"] = "AKIA" + "5B2E7C1D9F04"
+    spacing = 0.15 if variant == "default" else 2.0  # held-out: one call every two minutes
+    enumeration_start = start + 5
+    log.call(
+        at(enumeration_start),
+        "sts.amazonaws.com",
+        "GetCallerIdentity",
+        stolen,
+        ip=ip,
+        agent=SDK,
+        attack=attack,
+    )
+    for step, (source, call) in enumerate(ENUMERATION):
+        log.call(
+            at(enumeration_start + (step + 1) * spacing),
+            source,
+            call,
+            stolen,
+            ip=ip,
+            agent=SDK,
+            denied=True,
+            attack=attack,
+        )
+    after = enumeration_start + (len(ENUMERATION) + 1) * spacing + 1
+    # MFA removed from a developer, and her console password reset.
+    serial = "arn:aws:iam::111122223333:mfa/amina-phone"
+    log.call(
+        at(after),
+        "iam.amazonaws.com",
+        "DeactivateMFADevice",
+        console,
+        ip=ip,
+        agent=browser,
+        request={"userName": "amina", "serialNumber": serial},
+        attack=attack,
+    )
+    log.call(
+        at(after + 0.5),
+        "iam.amazonaws.com",
+        "UpdateLoginProfile",
+        console,
+        ip=ip,
+        agent=browser,
+        request={"userName": "amina", "passwordResetRequired": False},
+        attack=attack,
+    )
+    # SSH on the database servers opened to everyone (held-out: as two halves of the internet).
+    world = ["0.0.0.0/0"] if variant == "default" else ["0.0.0.0/1", "128.0.0.0/1"]
+    log.call(
+        at(after + 2),
+        "ec2.amazonaws.com",
+        "AuthorizeSecurityGroupIngress",
+        console,
+        ip=ip,
+        agent=browser,
+        request=ingress("sg-0d5e2f3a4b6c78901", [("tcp", 22, world, [])]),
+        response={"_return": True},
+        attack=attack,
+    )
+    # Logging stopped (held-out: management events left out of the trail instead).
+    trail = f"arn:aws:cloudtrail:ap-southeast-1:111122223333:trail/{TRAIL}"
+    if variant == "default":
+        log.call(
+            at(after + 4),
+            "cloudtrail.amazonaws.com",
+            "StopLogging",
+            console,
+            ip=ip,
+            agent=browser,
+            request={"name": trail},
+            attack=attack,
+        )
+    else:
+        log.call(
+            at(after + 4),
+            "cloudtrail.amazonaws.com",
+            "PutEventSelectors",
+            console,
+            ip=ip,
+            agent=browser,
+            request={
+                "trailName": trail,
+                "eventSelectors": [
+                    {
+                        "readWriteType": "All",
+                        "includeManagementEvents": False,
+                        "dataResources": [],
+                        "excludeManagementEventSources": [],
+                    }
+                ],
+            },
+            attack=attack,
+        )
+
+
 _APP = {"duration": 180, "users": 40, "noise": 3}
 _WEB = {"duration": 120, "noise": 6}
 
@@ -826,6 +1010,33 @@ SCENARIOS: Final[dict[str, Scenario]] = {
             },
             {"default": "2026-10-24T03:00:00Z", "heldout": "2026-10-24T03:00:00Z"},
             windows_intrusion,
+        ),
+        Scenario(
+            "aws-intrusion",
+            "AWS console password guessing and a sign-in without MFA, then a key for another "
+            "user, enumeration, MFA removed, SSH opened to everyone and logging stopped",
+            "cloudtrail",
+            ".jsonl",
+            {
+                "default": {
+                    "duration": 240,
+                    "noise": 2,
+                    "attack_at": 90,
+                    "rate": 10,
+                    "attempts": 8,
+                    "sources": 1,
+                },
+                "heldout": {
+                    "duration": 240,
+                    "noise": 2,
+                    "attack_at": 90,
+                    "rate": 0.4,
+                    "attempts": 8,
+                    "sources": 2,
+                },
+            },
+            {"default": "2026-10-24T03:00:00Z", "heldout": "2026-10-24T03:00:00Z"},
+            aws_intrusion,
         ),
     )
 }

@@ -15,6 +15,7 @@ from prohori.parsers.base import (
     read_lines,
     sanitize,
 )
+from prohori.parsers.cloudtrail import CloudTrailParser
 from prohori.parsers.detect import detect_format
 from prohori.parsers.generic_json import FieldMapping, GenericJsonParser, load_mapping
 from prohori.parsers.journald import JournaldParser
@@ -28,6 +29,7 @@ __all__ = [
     "AccessLogParser",
     "AppJsonParser",
     "AuthLogParser",
+    "CloudTrailParser",
     "FieldMapping",
     "GenericJsonParser",
     "JournaldParser",

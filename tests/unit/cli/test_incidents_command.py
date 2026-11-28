@@ -185,6 +185,21 @@ def test_provenance_from_stdin_and_without_enrichment() -> None:
     assert incident.provenance.inputs[0].sha256 == hashlib.sha256(data).hexdigest()
 
 
+def test_provenance_names_a_compressed_trail_file_as_stored(tmp_path: Path) -> None:
+    import gzip
+
+    data = gzip.compress((SAMPLES / "aws-cloudtrail.json").read_bytes())
+    log = tmp_path / "trail.json.gz"
+    log.write_bytes(data)
+    for args, given in (([str(log)], None), (["-"], data)):
+        result = runner.invoke(app, ["incidents", *args, "-f", "json", "--no-enrich"], input=given)
+        incident = Incident.model_validate_json(result.stdout.splitlines()[0])
+        assert incident.provenance is not None
+        (source,) = incident.provenance.inputs
+        assert (source.sha256, source.bytes) == (hashlib.sha256(data).hexdigest(), len(data))
+        assert (source.parser, source.events) == ("cloudtrail", 20)
+
+
 def test_sample_incident_file_is_current() -> None:
     """samples/incidents/ is the report sample; it must match what the builder produces now."""
     (path,) = (ROOT / "samples" / "incidents").glob("INC-*.json")

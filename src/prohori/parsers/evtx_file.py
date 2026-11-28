@@ -16,6 +16,8 @@ from collections.abc import Iterator
 from pathlib import Path
 from typing import Any
 
+from prohori.parsers.base import ConvertedInput
+
 EXTRA_HINT = "reading .evtx files needs the evtx extra: pip install 'prohori[evtx]'"
 
 
@@ -28,7 +30,7 @@ def evtx_available() -> bool:
     return True
 
 
-class EvtxLines:
+class EvtxLines(ConvertedInput):
     """A binary stream with ``readline`` over an ``.evtx`` file's records as JSON lines.
 
     ``hexdigest()`` and ``bytes`` describe the ``.evtx`` file itself, not the JSON lines, so a
@@ -46,6 +48,9 @@ class EvtxLines:
         self.bytes = path.stat().st_size
         self._records: Iterator[bytes] = _lines(PyEvtxParser(str(path)))
         self._pending = b""
+
+    def stored_size(self) -> int:
+        return self.bytes
 
     def hexdigest(self) -> str:
         return self._digest

@@ -1,4 +1,4 @@
-                                            Rules (37)
+                                            Rules (45)
 +---------------+----------+--------------+---------------------------+---------------------------+
 | id            | severity | status       | title                     | ATT&CK                    |
 +---------------+----------+--------------+---------------------------+---------------------------+
@@ -51,6 +51,33 @@
 |               |          |              |                           | attack.t1078              |
 | PRH-AUTHZ-001 | medium   | stable       | Authorisation denials     | attack.reconnaissance,    |
 |               |          |              | across many resources     | attack.t1595.003          |
+| PRH-AWS-001   | high     | experimental | AWS console sign-in       | attack.credential_access, |
+|               |          |              | failures from one address | attack.t1110,             |
+|               |          |              |                           | attack.t1110.001          |
+| PRH-AWS-002   | critical | experimental | AWS console sign-in after | attack.credential_access, |
+|               |          |              | many failures from one    | attack.t1110,             |
+|               |          |              | address                   | attack.initial_access,    |
+|               |          |              |                           | attack.t1078.004          |
+| PRH-AWS-003   | high     | experimental | AWS root user signed in   | attack.initial_access,    |
+|               |          |              | or used an access key     | attack.persistence,       |
+|               |          |              |                           | attack.t1078,             |
+|               |          |              |                           | attack.t1078.004          |
+| PRH-AWS-004   | high     | experimental | MFA removed from an AWS   | attack.persistence,       |
+|               |          |              | IAM user                  | attack.credential_access, |
+|               |          |              |                           | attack.t1556.006          |
+| PRH-AWS-005   | high     | experimental | AWS access key created    | attack.persistence,       |
+|               |          |              | for another user          | attack.privilege_escalati |
+|               |          |              |                           | on, attack.t1098,         |
+|               |          |              |                           | attack.t1098.001          |
+| PRH-AWS-006   | high     | experimental | CloudTrail logging        | attack.defense_impairment |
+|               |          |              | stopped or a trail        | , attack.t1685,           |
+|               |          |              | deleted                   | attack.t1685.002          |
+| PRH-AWS-007   | medium   | experimental | Many different AWS calls  | attack.discovery,         |
+|               |          |              | denied for one identity   | attack.t1580,             |
+|               |          |              |                           | attack.t1087.004          |
+| PRH-AWS-008   | high     | experimental | AWS security group opened | attack.defense_impairment |
+|               |          |              | to the whole internet     | , attack.t1686,           |
+|               |          |              |                           | attack.t1686.001          |
 | PRH-IDS-001   | high     | experimental | Suricata alert, severity  |                           |
 |               |          |              | 1                         |                           |
 | PRH-IDS-002   | medium   | experimental | Suricata alert, severity  |                           |

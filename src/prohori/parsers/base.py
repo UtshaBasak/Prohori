@@ -248,7 +248,27 @@ def _short_reason(exc: ValueError | OverflowError) -> str:
 UTF16_BOMS = (b"\xff\xfe", b"\xfe\xff")
 
 
-class Utf16Lines:
+class ConvertedInput:
+    """A line source that converts its input (a UTF-16, ``.evtx``, gzip or CloudTrail file).
+
+    ``stored_size()`` and ``hexdigest()`` describe the input as stored, not the lines made from
+    it, so a report names what was read. They are complete once every line has been read.
+    """
+
+    def stored_size(self) -> int:
+        """Size in bytes of the input as stored."""
+        raise NotImplementedError
+
+    def hexdigest(self) -> str:
+        """SHA-256 of the input as stored."""
+        raise NotImplementedError
+
+    def readline(self, size: int = -1, /) -> bytes:
+        """The next converted line (at most ``size`` bytes), ``b""`` at the end."""
+        raise NotImplementedError
+
+
+class Utf16Lines(ConvertedInput):
     """A binary line source that reads a UTF-16 file (with a byte-order mark) as UTF-8 lines.
 
     ``readline(size)`` reads at most ``size`` characters, so :func:`read_lines` still bounds
@@ -263,6 +283,9 @@ class Utf16Lines:
         self._digest = digest.hexdigest()
         self.bytes = path.stat().st_size
         self._text = path.open("r", encoding="utf-16", errors="replace", newline="")
+
+    def stored_size(self) -> int:
+        return self.bytes
 
     def hexdigest(self) -> str:
         return self._digest

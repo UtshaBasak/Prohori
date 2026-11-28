@@ -23,7 +23,7 @@ uv run prohori pipeline down                  # stops Airflow too
 
 | DAG | When | What it does |
 | ----- | ------ | -------------- |
-| `prohori_backfill` | By hand | Simulates the ten scenarios one day apart, replays them through the broker, loads their labels, waits until the pipeline has stored everything and builds the dbt marts |
+| `prohori_backfill` | By hand | Simulates the eleven scenarios one day apart, replays them through the broker, loads their labels, waits until the pipeline has stored everything and builds the dbt marts |
 | `prohori_data_quality` | Hourly | `dbt build` (the marts behind the Detection quality dashboard, with the 68 checks), then `dbt source freshness` on the events |
 | `prohori_nightly_evaluation` | 02:00 UTC | Retrains the cleaned UNSW-NB15 flow models with one seed, loads the results into the warehouse and **fails if recall dropped** below `min_recall` |
 | `prohori_incident_digest` | 06:00 UTC | Writes a digest of the last 24 hours (incidents by severity, the top incidents, alerts per rule, dead letters) as Markdown and JSON |
@@ -67,7 +67,7 @@ looked up, which covers every simulated address.
 
 Open <http://127.0.0.1:18080>, pick a DAG and choose *Trigger*. For the backfill you can set the
 first scenario's start, as a UTC time in exactly this form: `2026-10-26T06:00:00Z` (leave it empty
-for ten days ago), and the seed. From a terminal:
+for eleven days ago), and the seed. From a terminal:
 
 ```bash
 docker compose -p prohori -f pipeline/docker-compose.yml --profile orchestration exec airflow \

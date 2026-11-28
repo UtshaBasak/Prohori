@@ -13,11 +13,16 @@ and ties go to the earlier entry in this list:
    ``SourceName``, ``ProviderName`` or ``Channel``), ``Get-WinEvent`` (``Id``, ``TimeCreated``,
    ``ProviderName``) or evtx_dump (``Event.System``), or a line starting ``<Event`` (also
    ``<Events>``) or ``<?xml``.
-4. ``journald``: a JSON object with ``__REALTIME_TIMESTAMP`` and ``MESSAGE``.
-5. ``app_json``: a JSON object with a ``time`` string and an ``event`` object with an ``action``.
-6. ``generic_json``: any other JSON object (needs a mapping file, so it is reported, not used).
-7. ``auth_log``: a syslog line (RFC 3164 or RFC 3339 timestamp, host, program).
-8. ``access_log``: a combined or common log format line.
+4. ``cloudtrail``: a JSON object with ``eventTime``, ``eventSource``, ``eventName`` and
+   ``eventVersion`` or ``userIdentity``; an Event history item (``CloudTrailEvent``); or an
+   EventBridge event whose ``detail-type`` ends in "via CloudTrail". (CloudTrail files in the
+   ``{"Records": [...]}`` layout are recognised when the file is opened; see
+   :mod:`prohori.parsers.inputs`.)
+5. ``journald``: a JSON object with ``__REALTIME_TIMESTAMP`` and ``MESSAGE``.
+6. ``app_json``: a JSON object with a ``time`` string and an ``event`` object with an ``action``.
+7. ``generic_json``: any other JSON object (needs a mapping file, so it is reported, not used).
+8. ``auth_log``: a syslog line (RFC 3164 or RFC 3339 timestamp, host, program).
+9. ``access_log``: a combined or common log format line.
 
 Detection is a convenience; pass ``--parser`` when it matters.
 """
@@ -42,6 +47,7 @@ _ORDER = (
     "suricata_eve",
     "zeek_conn",
     "windows_security",
+    "cloudtrail",
     "journald",
     "app_json",
     "generic_json",
@@ -74,6 +80,8 @@ def classify_line(line: str) -> str | None:
             return "zeek_conn"
         if _is_windows(record):
             return "windows_security"
+        if _is_cloudtrail(record):
+            return "cloudtrail"
         if "__REALTIME_TIMESTAMP" in record and "MESSAGE" in record:
             return "journald"
         event = record.get("event")
@@ -121,3 +129,14 @@ def _is_windows(record: dict[str, object]) -> bool:
     if {"Id", "TimeCreated", "ProviderName"} <= record.keys():
         return True
     return "EventID" in record and bool({"SourceName", "ProviderName", "Channel"} & record.keys())
+
+
+def _is_cloudtrail(record: dict[str, object]) -> bool:
+    if {"eventTime", "eventSource", "eventName"} <= record.keys() and (
+        "eventVersion" in record or "userIdentity" in record
+    ):
+        return True
+    if isinstance(record.get("CloudTrailEvent"), str) or "cloudtrail_error" in record:
+        return True
+    detail_type = record.get("detail-type")
+    return isinstance(detail_type, str) and detail_type.endswith(" via CloudTrail")

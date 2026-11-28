@@ -1,0 +1,25 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+# Copyright (c) 2026 Utsha Basak
+id: PRH-AWS-007
+title: Many different AWS calls denied for one identity
+status: experimental
+severity: medium
+description: >-
+  At least 8 different AWS API calls (by event name) denied for one identity within 10 minutes:
+  someone with new credentials finding out what they are allowed to do, by hand or with an
+  enumeration tool. A misconfigured program repeats the same few calls, which count once each.
+author: Prohori
+tags: [attack.discovery, attack.t1580, attack.t1087.004]
+logsource: {log_source: aws-cloudtrail}
+detection:
+  denied:
+    event.reason: access_denied
+  aggregate:
+    group_by: [user.id]
+    window: 10m
+    distinct: {field: extra.event_name, gte: 8}
+  condition: denied and aggregate
+falsepositives:
+  - A person exploring the console with a role that allows little (each page makes several calls)
+  - A new deployment tool run with too narrow a policy
+response: runbooks/aws-access-denied-burst.md

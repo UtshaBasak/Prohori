@@ -1,0 +1,26 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+# Copyright (c) 2026 Utsha Basak
+id: PRH-AWS-001
+title: AWS console sign-in failures from one address
+status: experimental
+severity: high
+description: >-
+  At least 5 failed AWS console sign-ins (ConsoleLogin) from one address within 10 minutes:
+  password guessing against IAM users or the root user. CloudTrail hides user names that do not
+  exist, so the failures are counted per address, not per account.
+author: Prohori
+tags: [attack.credential_access, attack.t1110, attack.t1110.001]
+logsource: {category: authentication}
+detection:
+  failure:
+    event.action: aws.signin.console_login
+    event.outcome: failure
+  aggregate:
+    group_by: [source.ip]
+    window: 10m
+    count_gte: 5
+  condition: failure and aggregate
+falsepositives:
+  - A user who forgot a changed password and tries several old ones
+  - Several people signing in through one office or VPN address on a bad morning
+response: runbooks/aws-console-brute-force.md

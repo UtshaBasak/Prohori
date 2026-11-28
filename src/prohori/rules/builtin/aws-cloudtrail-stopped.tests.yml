@@ -1,0 +1,41 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+# Copyright (c) 2026 Utsha Basak
+rule: PRH-AWS-006
+start: 2026-10-24T14:00:00Z
+defaults:
+  log_source: aws-cloudtrail
+  event.category: cloud
+  event.action: aws.cloudtrail.stop_logging
+  event.outcome: success
+  source.ip: 203.0.113.50
+  user.name: it-admin
+  extra.trail: management-events
+cases:
+  - name: stopped logging alerts
+    expect: {alerts: 1, entities: [{user.name: it-admin}]}
+    events:
+      - {}
+
+  - name: a deleted trail alerts
+    expect: {alerts: 1}
+    events:
+      - {event.action: aws.cloudtrail.delete_trail}
+
+  - name: a denied attempt alerts too
+    expect: {alerts: 1}
+    events:
+      - {event.outcome: failure, event.reason: access_denied}
+
+  - name: starting logging and reading trails do not alert
+    expect: {alerts: 0}
+    events:
+      - {event.action: aws.cloudtrail.start_logging}
+      - {event.action: aws.cloudtrail.describe_trails}
+
+  - name: CloudTrail records
+    expect: {alerts: 1, entities: [{user.name: it-admin}]}
+    log:
+      parser: cloudtrail
+      lines:
+        - '{"eventVersion":"1.11","userIdentity":{"type":"IAMUser","principalId":"AIDAEXAMPLEUSER8","arn":"arn:aws:iam::111122223333:user/it-admin","accountId":"111122223333","accessKeyId":"ASIAEXAMPLEKEY01","userName":"it-admin","sessionContext":{"sessionIssuer":{},"webIdFederationData":{},"attributes":{"creationDate":"2026-10-24T13:55:00Z","mfaAuthenticated":"false"}}},"eventTime":"2026-10-24T14:00:00Z","eventSource":"cloudtrail.amazonaws.com","eventName":"DescribeTrails","awsRegion":"us-east-1","sourceIPAddress":"203.0.113.50","userAgent":"aws-cli/2.17.50 md/awscrt#0.21.2 ua/2.0 os/linux#6.8.0 md/arch#x86_64 lang/python#3.12.6","requestParameters":{"trailNameList":[],"includeShadowTrails":true},"responseElements":null,"requestID":"7f6c3a1e-0000-4000-8000-000000000001","eventID":"0b9f2c4d-0000-4000-8000-000000000001","readOnly":true,"eventType":"AwsApiCall","managementEvent":true,"recipientAccountId":"111122223333","eventCategory":"Management"}'
+        - '{"eventVersion":"1.11","userIdentity":{"type":"IAMUser","principalId":"AIDAEXAMPLEUSER8","arn":"arn:aws:iam::111122223333:user/it-admin","accountId":"111122223333","accessKeyId":"ASIAEXAMPLEKEY01","userName":"it-admin","sessionContext":{"sessionIssuer":{},"webIdFederationData":{},"attributes":{"creationDate":"2026-10-24T13:55:00Z","mfaAuthenticated":"false"}}},"eventTime":"2026-10-24T14:01:00Z","eventSource":"cloudtrail.amazonaws.com","eventName":"StopLogging","awsRegion":"us-east-1","sourceIPAddress":"203.0.113.50","userAgent":"aws-cli/2.17.50 md/awscrt#0.21.2 ua/2.0 os/linux#6.8.0 md/arch#x86_64 lang/python#3.12.6","requestParameters":{"name":"arn:aws:cloudtrail:us-east-1:111122223333:trail/management-events"},"responseElements":null,"requestID":"7f6c3a1e-0000-4000-8000-000000000002","eventID":"0b9f2c4d-0000-4000-8000-000000000002","readOnly":false,"eventType":"AwsApiCall","managementEvent":true,"recipientAccountId":"111122223333","eventCategory":"Management"}'

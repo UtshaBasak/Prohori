@@ -1,0 +1,38 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+# Copyright (c) 2026 Utsha Basak
+rule: PRH-AWS-005
+start: 2026-10-24T14:00:00Z
+defaults:
+  log_source: aws-cloudtrail
+  event.category: account
+  event.action: aws.iam.create_access_key
+  event.outcome: success
+  source.ip: 203.0.113.50
+  user.name: it-admin
+  extra.identity_type: IAMUser
+  extra.target_user: svc-reports
+  extra.for_other_user: true
+cases:
+  - name: a key for another user alerts
+    expect: {alerts: 1, entities: [{user.name: it-admin}]}
+    events:
+      - {}
+
+  - name: a user's own key does not alert
+    expect: {alerts: 0}
+    events:
+      - {extra.target_user: it-admin, extra.for_other_user: false}
+
+  - name: a denied attempt does not alert
+    expect: {alerts: 0}
+    events:
+      - {event.outcome: failure, event.reason: access_denied}
+
+  - name: CloudTrail records
+    expect: {alerts: 1, entities: [{user.name: it-admin}]}
+    log:
+      parser: cloudtrail
+      lines:
+        - '{"eventVersion":"1.11","userIdentity":{"type":"IAMUser","principalId":"AIDAEXAMPLEUSER8","arn":"arn:aws:iam::111122223333:user/it-admin","accountId":"111122223333","accessKeyId":"ASIAEXAMPLEKEY01","userName":"it-admin","sessionContext":{"sessionIssuer":{},"webIdFederationData":{},"attributes":{"creationDate":"2026-10-24T13:55:00Z","mfaAuthenticated":"false"}}},"eventTime":"2026-10-24T14:00:00Z","eventSource":"iam.amazonaws.com","eventName":"CreateAccessKey","awsRegion":"us-east-1","sourceIPAddress":"203.0.113.50","userAgent":"aws-cli/2.17.50 md/awscrt#0.21.2 ua/2.0 os/linux#6.8.0 md/arch#x86_64 lang/python#3.12.6","requestParameters":{"userName":"svc-reports"},"responseElements":{"accessKey":{"accessKeyId":"AKIAEXAMPLEKEY77","status":"Active","userName":"svc-reports","createDate":"Oct 24, 2026 2:00:00 PM"}},"requestID":"7f6c3a1e-0000-4000-8000-000000000001","eventID":"0b9f2c4d-0000-4000-8000-000000000001","readOnly":false,"eventType":"AwsApiCall","managementEvent":true,"recipientAccountId":"111122223333","eventCategory":"Management"}'
+        - '{"eventVersion":"1.11","userIdentity":{"type":"IAMUser","principalId":"AIDAEXAMPLEUSER5","arn":"arn:aws:iam::111122223333:user/rafiq","accountId":"111122223333","accessKeyId":"ASIAEXAMPLEKEY01","userName":"rafiq","sessionContext":{"sessionIssuer":{},"webIdFederationData":{},"attributes":{"creationDate":"2026-10-24T13:55:00Z","mfaAuthenticated":"false"}}},"eventTime":"2026-10-24T14:01:00Z","eventSource":"iam.amazonaws.com","eventName":"CreateAccessKey","awsRegion":"us-east-1","sourceIPAddress":"192.0.2.44","userAgent":"aws-cli/2.17.50 md/awscrt#0.21.2 ua/2.0 os/linux#6.8.0 md/arch#x86_64 lang/python#3.12.6","requestParameters":null,"responseElements":{"accessKey":{"accessKeyId":"AKIAEXAMPLEKEY78","status":"Active","userName":"rafiq","createDate":"Oct 24, 2026 2:01:00 PM"}},"requestID":"7f6c3a1e-0000-4000-8000-000000000002","eventID":"0b9f2c4d-0000-4000-8000-000000000002","readOnly":false,"eventType":"AwsApiCall","managementEvent":true,"recipientAccountId":"111122223333","eventCategory":"Management"}'
+        - '{"eventVersion":"1.11","userIdentity":{"type":"IAMUser","principalId":"AIDAEXAMPLEUSER5","arn":"arn:aws:iam::111122223333:user/rafiq","accountId":"111122223333","accessKeyId":"ASIAEXAMPLEKEY01","userName":"rafiq","sessionContext":{"sessionIssuer":{},"webIdFederationData":{},"attributes":{"creationDate":"2026-10-24T13:55:00Z","mfaAuthenticated":"false"}}},"eventTime":"2026-10-24T14:02:00Z","eventSource":"iam.amazonaws.com","eventName":"CreateAccessKey","awsRegion":"us-east-1","sourceIPAddress":"192.0.2.44","userAgent":"aws-cli/2.17.50 md/awscrt#0.21.2 ua/2.0 os/linux#6.8.0 md/arch#x86_64 lang/python#3.12.6","requestParameters":{"userName":"rafiq"},"responseElements":{"accessKey":{"accessKeyId":"AKIAEXAMPLEKEY79","status":"Active","userName":"rafiq","createDate":"Oct 24, 2026 2:02:00 PM"}},"requestID":"7f6c3a1e-0000-4000-8000-000000000003","eventID":"0b9f2c4d-0000-4000-8000-000000000003","readOnly":false,"eventType":"AwsApiCall","managementEvent":true,"recipientAccountId":"111122223333","eventCategory":"Management"}'

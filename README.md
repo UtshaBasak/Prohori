@@ -91,8 +91,8 @@ sends nothing over the network. Sample reports: [Markdown](docs/examples/account
 
 ```mermaid
 flowchart LR
-    A[Log files<br>auth.log, nginx, app JSON] --> B[parse<br>common event schema]
-    B --> C[detect<br>21 YAML rules<br>+ anomaly detectors]
+    A[Log files<br>auth.log, nginx, app JSON,<br>Windows, network, CloudTrail] --> B[parse<br>common event schema]
+    B --> C[detect<br>45 YAML rules<br>+ anomaly detectors]
     C --> D[incidents<br>group, score, ATT&CK]
     E[enrich<br>GeoLite2, AbuseIPDB, VirusTotal] --> D
     D --> F[report<br>Markdown, HTML, JSON, CSV]
@@ -100,11 +100,11 @@ flowchart LR
 
 | Stage | Today |
 | ------- | ------- |
-| **Parse** | Linux `auth.log` (sshd, sudo, PAM), nginx/Apache access logs, application security events (JSON Lines), and since 1.2 Suricata `eve.json`, Zeek `conn.log`, Windows Security and Sysmon events (Winlogbeat, NXLog or PowerShell JSON, event XML, native `.evtx` with the `evtx` extra) and the systemd journal (`journalctl -o json`), and any JSON Lines layout through a YAML field mapping, into one typed event schema. Format detection, streaming with bounded memory, hostile input handled (oversized lines, bad encodings, control characters). Daylight-saving changes handled: the hour repeated when the clocks go back keeps moving forward instead of being dropped as late. |
-| **Detect** | 37 readable YAML rules (Sigma-inspired) with field modifiers, thresholds, distinct counts, ratios, sliding and tumbling windows and ordered sequences. Every rule ships with test fixtures and a runbook; regular expressions run on RE2, so no pattern can hang a run. With `--models`, anomaly detectors (robust z-score, Isolation Forest) also flag source IPs that behave unlike the rest of the log. SSH attacks are counted even when sshd logs host names instead of addresses (`UseDNS`), and a log with millions of alerts stays bounded in memory: the table shows the first 100, JSON streams every alert, and incidents keep a capped number. Known-benign activity is silenced with a reviewed **suppressions file** (reason, owner and expiry date per entry; allow-listed addresses): suppressed alerts are counted and listed, never dropped, and never hide another alert of an incident. |
+| **Parse** | Linux `auth.log` (sshd, sudo, PAM), nginx/Apache access logs, application security events (JSON Lines), and since 1.2 Suricata `eve.json`, Zeek `conn.log`, Windows Security and Sysmon events (Winlogbeat, NXLog or PowerShell JSON, event XML, native `.evtx` with the `evtx` extra), the systemd journal (`journalctl -o json`) and AWS CloudTrail (trail files as CloudTrail writes them to S3, Event history from `aws cloudtrail lookup-events`, CloudWatch Logs or EventBridge), and any JSON Lines layout through a YAML field mapping, into one typed event schema. Gzip-compressed files are read as they are. Format detection, streaming with bounded memory, hostile input handled (oversized lines, bad encodings, control characters). Daylight-saving changes handled: the hour repeated when the clocks go back keeps moving forward instead of being dropped as late. |
+| **Detect** | 45 readable YAML rules (Sigma-inspired) with field modifiers, thresholds, distinct counts, ratios, sliding and tumbling windows and ordered sequences. Every rule ships with test fixtures and a runbook; regular expressions run on RE2, so no pattern can hang a run. With `--models`, anomaly detectors (robust z-score, Isolation Forest) also flag source IPs that behave unlike the rest of the log. SSH attacks are counted even when sshd logs host names instead of addresses (`UseDNS`), and a log with millions of alerts stays bounded in memory: the table shows the first 100, JSON streams every alert, and incidents keep a capped number. Known-benign activity is silenced with a reviewed **suppressions file** (reason, owner and expiry date per entry; allow-listed addresses): suppressed alerts are counted and listed, never dropped, and never hide another alert of an incident. |
 | **Enrich** | IP geolocation, network owner and reputation from local GeoLite2 files, AbuseIPDB and VirusTotal, all optional. SQLite cache, daily budgets, rate limiting and bounded retries. Private and documentation addresses never leave the machine. |
 | **Incidents** | Related alerts (same IP, account, request or session within a time gap) become one incident with a points-based score you can read line by line, severity, confidence, MITRE ATT&CK v20.0 mapping, a timeline, recommended actions and stated limitations. Detects sign-ins from an IP or app new to the account. |
-| **Simulate** | Ten labelled attack scenarios (SSH brute force, password spraying, credential stuffing, token reuse, account takeover, web scanning, injection, admin misuse, Windows remote-desktop sign-ins, a Windows workstation intrusion seen by Sysmon) hidden in realistic background activity, byte-identical for a seed, documentation IP addresses only. Used to measure every rule's precision and recall. |
+| **Simulate** | Eleven labelled attack scenarios (SSH brute force, password spraying, credential stuffing, token reuse, account takeover, web scanning, injection, admin misuse, Windows remote-desktop sign-ins, a Windows workstation intrusion seen by Sysmon, an AWS account intrusion seen by CloudTrail) hidden in realistic background activity, byte-identical for a seed, documentation IP addresses only. Used to measure every rule's precision and recall. |
 | **Report** | Markdown, a self-contained HTML page, JSON or a CSV timeline, with an appendix of input and rule-file SHA-256 hashes. `--redact` replaces account names, ids and emails (and optionally IPs) with keyed pseudonyms, and refuses to write a report that would still leak one. |
 | **Stream** | The same parsers, rules and incident builder, continuously: lite mode in one process with DuckDB (no Docker), or a Docker stack with Redpanda, one container per stage and a PostgreSQL warehouse. Follow live logs through rotation or replay files, with at-least-once delivery, dead letters and each row stored once. |
 
@@ -143,7 +143,7 @@ Everything below runs offline on the synthetic samples in the repository (run fr
 ```bash
 uv run prohori triage samples/logs/account-takeover.jsonl -o triage/   # the whole pipeline
 uv run prohori parse samples/logs/auth.log                      # normalise a log
-uv run prohori detect samples/logs/auth.log                     # run the 37 rules
+uv run prohori detect samples/logs/auth.log                     # run the 45 rules
 uv run prohori enrich 203.0.113.7 --offline                     # look up an IP (demo data)
 uv run prohori incidents samples/logs/account-takeover.jsonl    # group alerts into incidents
 uv run prohori report samples/incidents/INC-ee7c8818fbb34989.json -f html -o report.html
@@ -198,7 +198,7 @@ To see it yourself: `uv run prohori incidents samples/logs/account-takeover.json
 | `prohori demo` | Simulate attacks, triage them and show the results; no configuration, offline | [CLI.md](docs/CLI.md#prohori-demo) |
 | `prohori triage FILE` | Log in, incidents and a report per incident out (`--format`, `--redact`, `--online`) | [CLI.md](docs/CLI.md#prohori-triage) |
 | `prohori parse FILE` | Parse and normalise a log; table or JSON Lines | [PARSERS.md](docs/PARSERS.md) |
-| `prohori detect FILE` | Run the 37 built-in rules (and `--rules DIR`, `--models` for the anomaly detectors, `--suppressions FILE` for reviewed exceptions); exit code 3 when alerts are found | [RULES.md](docs/RULES.md) |
+| `prohori detect FILE` | Run the 45 built-in rules (and `--rules DIR`, `--models` for the anomaly detectors, `--suppressions FILE` for reviewed exceptions); exit code 3 when alerts are found | [RULES.md](docs/RULES.md) |
 | `prohori rules list` / `validate` / `test` | Show, check and test detection rules; `validate --suppressions FILE` checks a suppressions file | [RULES.md](docs/RULES.md#suppressions-and-allow-lists) |
 | `prohori enrich IP...` | Geolocation and reputation; `--offline` never uses the network | [ENRICHMENT.md](docs/ENRICHMENT.md) |
 | `prohori incidents FILE` | Parse, detect and group alerts into scored incidents; offline enrichment unless `--online` | [INCIDENTS.md](docs/INCIDENTS.md) |
@@ -257,9 +257,19 @@ usage. The full reference is [docs/CLI.md](docs/CLI.md).
 | PRH-PROC-002 | An Office application or browser started a shell or script host | high | T1204.002, T1059, T1566.001 |
 | PRH-PROC-003 | New Windows service (registry ImagePath or `sc.exe create`) | medium | T1543.003 |
 | PRH-PROC-004 | lsass memory read by an unusual process, or the SAM hive saved | critical | T1003, T1003.001 |
+| PRH-AWS-001 | AWS console sign-in failures from one address (5 in 10 minutes) | high | T1110, T1110.001 |
+| PRH-AWS-002 | AWS console sign-in after 3+ failures from the same address | critical | T1110, T1078.004 |
+| PRH-AWS-003 | AWS root user signed in or used an access key | high | T1078, T1078.004 |
+| PRH-AWS-004 | MFA removed from an AWS IAM user | high | T1556.006 |
+| PRH-AWS-005 | AWS access key created for another user | high | T1098, T1098.001 |
+| PRH-AWS-006 | CloudTrail logging stopped or a trail deleted | high | T1685, T1685.002 |
+| PRH-AWS-007 | 8+ different AWS calls denied for one identity in 10 minutes | medium | T1580, T1087.004 |
+| PRH-AWS-008 | AWS security group opened to the whole internet (not only ports 80 and 443) | high | T1686, T1686.001 |
 
 The host rules (PROC, since 1.2) use Sysmon and Windows 4688 process events and are measured on
-the simulator's `windows-intrusion` scenario. The Windows rules (WIN, since 1.2) are measured on
+the simulator's `windows-intrusion` scenario. The AWS rules (AWS, since 1.2, experimental) read
+CloudTrail and are measured on the `aws-intrusion` scenario, except PRH-AWS-003 (root use),
+which it does not exercise. The Windows rules (WIN, since 1.2) are measured on
 the simulator's `windows-signin` scenario,
 except PRH-WIN-005 and PRH-WIN-006, which it does not exercise. The network rules (IDS and NET,
 since 1.2) are experimental: the simulator writes no network
@@ -293,7 +303,7 @@ every held-out run. The method and its limits are in the
 rules) and after, on address model 2:
 
 <!-- results:start -->
-Generated from `results/rules_eval.json`, simulator address model 2: the frozen baselines (1.0 rules (addresses 2): 15 rules; 1.1 rules, step 28b (addresses 2): 21 rules) against today's 37 rules, 5 seeds per variant. Attacks caught by at least one of their expected rules. Do not edit by hand.
+Generated from `results/rules_eval.json`, simulator address model 2: the frozen baselines (1.0 rules (addresses 2): 15 rules; 1.1 rules, step 28b (addresses 2): 21 rules) against today's 45 rules, 5 seeds per variant. Attacks caught by at least one of their expected rules. Do not edit by hand.
 
 | Scenario | Held-out: 1.0 rules (addresses 2) | Held-out: 1.1 rules, step 28b (addresses 2) | Held-out: now | Held-out 2: 1.0 rules (addresses 2) | Held-out 2: 1.1 rules, step 28b (addresses 2) | Held-out 2: now |
 | ---------- | -----: | -----: | -----: | -----: | -----: | -----: |
@@ -310,7 +320,7 @@ Generated from `results/rules_eval.json`, simulator address model 2: the frozen 
 
 Default variants: 40/40 attacks caught with 295 false-positive alerts (1.0 rules (addresses 2)); 40/40 attacks caught with 295 false-positive alerts (1.1 rules, step 28b (addresses 2)); 40/40 attacks caught with 295 false-positive alerts (now).
 
-Scenarios added after the baselines were frozen are left out of this comparison, so its totals stay comparable: `windows-intrusion`, `windows-signin` (see the per-scenario results in docs/SIMULATOR.md).
+Scenarios added after the baselines were frozen are left out of this comparison, so its totals stay comparable: `aws-intrusion`, `windows-intrusion`, `windows-signin` (see the per-scenario results in docs/SIMULATOR.md).
 
 For reference, the same comparison on address model 1 (frozen, not comparable with the table above: the simulator's background was different):
 
@@ -333,6 +343,7 @@ Expected rules that still miss (runs missed):
 
 - Held-out, `account-takeover`: PRH-ACCT-001 2/5, PRH-AUTH-001 5/5, PRH-AUTH-010 5/5
 - Held-out, `admin-misuse`: PRH-ADMIN-002 5/5
+- Held-out, `aws-intrusion`: PRH-AWS-001 5/5, PRH-AWS-006 5/5, PRH-AWS-007 5/5, PRH-AWS-008 5/5
 - Held-out, `credential-stuffing`: PRH-AUTH-001 5/5, PRH-AUTH-002 5/5, PRH-AUTH-003 5/5
 - Held-out, `password-spraying`: PRH-AUTH-001 5/5
 - Held-out, `ssh-bruteforce`: PRH-AUTH-001 5/5, PRH-AUTH-005 5/5
@@ -341,6 +352,7 @@ Expected rules that still miss (runs missed):
 - Held-out, `windows-signin`: PRH-WIN-001 5/5, PRH-WIN-002 5/5
 - Held-out 2, `account-takeover`: PRH-ACCT-001 2/5, PRH-AUTH-001 5/5, PRH-AUTH-010 5/5
 - Held-out 2, `admin-misuse`: PRH-ADMIN-002 5/5
+- Held-out 2, `aws-intrusion`: PRH-AWS-001 5/5, PRH-AWS-002 5/5, PRH-AWS-006 5/5, PRH-AWS-007 5/5, PRH-AWS-008 5/5
 - Held-out 2, `credential-stuffing`: PRH-AUTH-001 5/5, PRH-AUTH-002 5/5, PRH-AUTH-003 5/5
 - Held-out 2, `password-spraying`: PRH-AUTH-001 5/5, PRH-AUTH-002 5/5, PRH-AUTH-007 5/5
 - Held-out 2, `ssh-bruteforce`: PRH-AUTH-001 5/5
@@ -740,8 +752,10 @@ Prohori is honest about what it does not do:
   logs before relying on them.
 - **Enrichment free tiers** are small and non-commercial, and reputation data is evidence, not
   proof.
-- **Supported formats** are `auth.log`, nginx/Apache access logs and JSON Lines (built-in app
-  layout or a field mapping). Windows event logs and cloud audit logs are not supported yet.
+- **Supported formats** are `auth.log`, nginx/Apache access logs, JSON Lines (built-in app
+  layout or a field mapping), Suricata, Zeek `conn.log`, Windows Security and Sysmon events, the
+  systemd journal and AWS CloudTrail. Azure Activity and Google Cloud audit logs are not
+  supported yet, and the AWS rules read management events only (not S3 or Lambda data events).
 
 ## Roadmap
 
@@ -753,7 +767,7 @@ Prohori is honest about what it does not do:
 | v1.0.0 | Optional LLM analyst: providers, redaction, `explain` and `ask`, retrieval, prompt-injection defences, answer validation and an evaluation; threat model, performance notes, completed licence notes, macOS in CI | Released |
 | v1.0.1 | Fixes from a full review: stricter redaction and answer checks, parser and output-path robustness, safer stack shutdown and Airflow parameters, signed provenance for release files | Released |
 | v1.1.0 | Hardening: new licence (PolyForm Strict), deterministic stream rebuilds, evasion-resistant per-account sign-in rules with a before-and-after score, warehouse and broker hardening, safer model files, a cross-dataset generalisation study, logins for the stack, SBOMs, suppressions and allow-lists | Released |
-| v1.2.0 | More log sources: Suricata, Zeek, Windows Security events, Sysmon, the systemd journal, AWS CloudTrail; a Sigma rule importer. Done so far: Suricata `eve.json` and Zeek `conn.log` with six network rules | In progress |
+| v1.2.0 | More log sources: Suricata, Zeek, Windows Security events, Sysmon, the systemd journal, AWS CloudTrail; a Sigma rule importer. Done so far: Suricata `eve.json` and Zeek `conn.log` with six network rules; Windows Security, Sysmon and the journal with ten Windows and host rules; AWS CloudTrail with eight cloud rules | In progress |
 | v1.3.0 to v1.7.0 | A real-time defender for your own PC: a Windows security checkup, behaviour-based detection with reversible containment, ransomware, network, spyware, boot and device defenses, a guard for AI coding agents and MCP tools, supply-chain and phishing checks, attack drills, Linux | Planned |
 | v1.8.0, v2.0.0 | A desktop security assistant, web UI, package-manager installs, VS Code and browser extensions, a documentation website and a GitHub Action | Planned |
 

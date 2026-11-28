@@ -184,7 +184,7 @@ def test_version_shows_attack_and_rules() -> None:
     assert result.exit_code == 0
     assert result.stdout.startswith(f"prohori {__version__}\n")
     assert "ATT&CK Enterprise v20.0" in result.stdout
-    assert re.search(r"built-in rules: 37 \(rule set [0-9a-f]{12}\)", result.stdout)
+    assert re.search(r"built-in rules: 45 \(rule set [0-9a-f]{12}\)", result.stdout)
     assert "Licence: PolyForm Strict 1.0.0" in result.stdout
     assert "Copyright (c) 2026 Utsha Basak" in result.stdout
     short = runner.invoke(app, ["--version"])

@@ -17,7 +17,7 @@ Both commands accept files and directories (searched recursively for `*.yml` and
 
 > **Status.** Rules are loaded, validated, compiled and evaluated (stateless, `aggregate` and
 > `sequence`), tested against fixtures with `prohori rules test`, and run over log files with
-> `prohori detect`. Thirty-seven built-in rules ship today.
+> `prohori detect`. Forty-five built-in rules ship today.
 
 ## Running rules: `prohori detect`
 
@@ -90,6 +90,14 @@ verified ATT&CK tags.
 | PRH-PROC-002 | high | An Office application or browser started a shell | `process.created` of a shell or script host whose `process.parent.name` is Word, Excel, PowerPoint, Outlook, OneNote, Access, Publisher or a browser |
 | PRH-PROC-003 | medium | New Windows service | a service `ImagePath` written (Sysmon 13), or `sc.exe create` |
 | PRH-PROC-004 | critical | Credential store read by an unusual process | `lsass.exe` opened with memory-read rights by a process outside a short list of Windows ones, or `reg.exe save` of the SAM, SECURITY or SYSTEM hive |
+| PRH-AWS-001 | high | AWS console sign-in failures from one address | >= 5 failed `aws.signin.console_login` per `source.ip` in 10 min (experimental) |
+| PRH-AWS-002 | critical | AWS console sign-in after many failures from one address | >= 3 failed console sign-ins, then a successful one, from the same `source.ip` within 30 min (experimental) |
+| PRH-AWS-003 | high | AWS root user signed in or used an access key | `extra.identity_type: Root` with a successful console sign-in or a long-term access key, not invoked by an AWS service (experimental) |
+| PRH-AWS-004 | high | MFA removed from an AWS IAM user | `aws.iam.deactivate_mfa_device` or `aws.iam.delete_virtual_mfa_device`, successful (experimental) |
+| PRH-AWS-005 | high | AWS access key created for another user | successful `aws.iam.create_access_key` with `extra.for_other_user` (experimental) |
+| PRH-AWS-006 | high | CloudTrail logging stopped or a trail deleted | `aws.cloudtrail.stop_logging` or `aws.cloudtrail.delete_trail`, successful or not (experimental) |
+| PRH-AWS-007 | medium | Many different AWS calls denied for one identity | `event.reason: access_denied` for >= 8 distinct `extra.event_name` per `user.id` in 10 min (experimental) |
+| PRH-AWS-008 | high | AWS security group opened to the whole internet | successful `aws.ec2.authorize_security_group_ingress` with `extra.world_ports` other than only 80 and 443 (experimental) |
 
 An "existing account" leaves out failures with `event.reason: unknown_user` (an SSH invalid user,
 an email the app does not know): there is nothing to take over, and scanners produce them all
@@ -113,7 +121,7 @@ derived again with the same rule, and the rules were scored once. The table comp
 rule sets on address model 2; the address-model-1 results stay below it for reference.
 
 <!-- rules-compare:start -->
-Generated from `results/rules_eval.json`, simulator address model 2: the frozen baselines (1.0 rules (addresses 2): 15 rules; 1.1 rules, step 28b (addresses 2): 21 rules) against today's 37 rules, 5 seeds per variant. Attacks caught by at least one of their expected rules. Do not edit by hand.
+Generated from `results/rules_eval.json`, simulator address model 2: the frozen baselines (1.0 rules (addresses 2): 15 rules; 1.1 rules, step 28b (addresses 2): 21 rules) against today's 45 rules, 5 seeds per variant. Attacks caught by at least one of their expected rules. Do not edit by hand.
 
 | Scenario | Held-out: 1.0 rules (addresses 2) | Held-out: 1.1 rules, step 28b (addresses 2) | Held-out: now | Held-out 2: 1.0 rules (addresses 2) | Held-out 2: 1.1 rules, step 28b (addresses 2) | Held-out 2: now |
 | ---------- | -----: | -----: | -----: | -----: | -----: | -----: |
@@ -130,7 +138,7 @@ Generated from `results/rules_eval.json`, simulator address model 2: the frozen 
 
 Default variants: 40/40 attacks caught with 295 false-positive alerts (1.0 rules (addresses 2)); 40/40 attacks caught with 295 false-positive alerts (1.1 rules, step 28b (addresses 2)); 40/40 attacks caught with 295 false-positive alerts (now).
 
-Scenarios added after the baselines were frozen are left out of this comparison, so its totals stay comparable: `windows-intrusion`, `windows-signin` (see the per-scenario results in docs/SIMULATOR.md).
+Scenarios added after the baselines were frozen are left out of this comparison, so its totals stay comparable: `aws-intrusion`, `windows-intrusion`, `windows-signin` (see the per-scenario results in docs/SIMULATOR.md).
 
 For reference, the same comparison on address model 1 (frozen, not comparable with the table above: the simulator's background was different):
 
@@ -195,6 +203,32 @@ defanged: no command line runs anything, and the encoded commands decode to `Wri
 - **PRH-PROC-004** leaves out `svchost`, `wininit`, `csrss`, `lsm`, `services`, `wmiprvse`,
   `taskmgr`, `mrt`, `lsaiso` and `werfault` in `C:\Windows\System32` and Defender's `MsMpEng`;
   query-only access (`0x1000`) is not counted. Other security products need a suppression.
+
+### AWS rules (since 1.2)
+
+Eight rules read AWS CloudTrail ([PARSERS.md](PARSERS.md#cloudtrail)). They are experimental:
+they are scored on the simulator's `aws-intrusion` scenario only, and their thresholds were set
+before it was first scored (ADR-0047). They need management events, which every trail and the
+free Event history record; data events (S3 objects, Lambda invocations) are not used.
+
+- **PRH-AWS-001** and **PRH-AWS-002** count per address, because CloudTrail hides user names
+  that do not exist. Guessing spread over several addresses, or slower than 5 in 10 minutes from
+  one, is missed by PRH-AWS-001 (the held-out variants); PRH-AWS-002 still needs 3 failures from
+  the address that then signs in.
+- **PRH-AWS-003** fires on root console sign-ins and on calls made with a root access key, not on
+  every call of a root console session (those use temporary keys), so one sign-in is one alert.
+  The simulated attacker never has the root password, so it is not scored.
+- **PRH-AWS-004** and **PRH-AWS-005** have known false positives that the simulator's background
+  keeps on purpose: a developer replacing a phone, and the administrator rotating a service
+  user's key. Their precision on the simulator is 50 %.
+- **PRH-AWS-006** sees `StopLogging` and `DeleteTrail`. Leaving management events out with
+  `PutEventSelectors`, or deleting the log bucket, is not covered (the held-out variant does the
+  former and is missed).
+- **PRH-AWS-007** counts distinct event names, so a misconfigured program denied the same call
+  every few minutes does not add up. Enumeration slower than 8 calls in 10 minutes is missed.
+- **PRH-AWS-008** reads `AuthorizeSecurityGroupIngress` only (not `ModifySecurityGroupRules`), and
+  only `0.0.0.0/0` and `::/0`: the internet split into halves (`0.0.0.0/1` and `128.0.0.0/1`), as
+  the held-out variant does, is missed.
 
 ### Windows rules (since 1.2)
 
@@ -280,7 +314,7 @@ uv run python scripts/verify_attack.py
 | T1528 | Steal Application Access Token | SESS-001 |
 | T1550.001 | Application Access Token | SESS-001 |
 | T1098 | Account Manipulation | ACCT-001, ADMIN-001 |
-| T1556.006 | Modify Authentication Process: Multi-Factor Authentication | ACCT-001 |
+| T1556.006 | Modify Authentication Process: Multi-Factor Authentication | ACCT-001, AWS-004 |
 | T1595.003 | Active Scanning: Wordlist Scanning | AUTHZ-001 (closest fit for probing many resources), WEB-001, WEB-004 |
 | T1595.002 | Active Scanning: Vulnerability Scanning | WEB-003 |
 | T1190 | Exploit Public-Facing Application | WEB-002 |
@@ -299,10 +333,20 @@ uv run python scripts/verify_attack.py
 | T1543.003 | Create or Modify System Process: Windows Service | PROC-003 |
 | T1003 | OS Credential Dumping | PROC-004 |
 | T1003.001 | OS Credential Dumping: LSASS Memory | PROC-004 |
+| T1078.004 | Valid Accounts: Cloud Accounts | AWS-002, AWS-003 |
+| T1098.001 | Account Manipulation: Additional Cloud Credentials | AWS-005 |
+| T1685, T1685.002 | Disable or Modify Tools: Disable or Modify Cloud Log | AWS-006 |
+| T1580 | Cloud Infrastructure Discovery | AWS-007 |
+| T1087.004 | Account Discovery: Cloud Account | AWS-007 |
+| T1686, T1686.001 | Disable or Modify System Firewall: Cloud Firewall | AWS-008 |
 
 The Windows rules also use T1110 (WIN-001, WIN-003, WIN-006), T1110.001 (WIN-001), T1110.003
 (WIN-002), T1078 (WIN-003) and T1098 (WIN-004). ATT&CK v20 moved *Clear Windows Event Logs*
-from T1070.001 (Indicator Removal, now revoked) to T1685.005 under Defense Impairment.
+from T1070.001 (Indicator Removal, now revoked) to T1685.005 under Defense Impairment. In the
+same way the cloud techniques for logs and firewalls moved: *Disable or Modify Cloud Logs*
+(T1562.008) and *Disable or Modify Cloud Firewall* (T1562.007) are revoked in v20, replaced by
+T1685.002 and T1686.001. The AWS rules also use T1110 and T1110.001 (AWS-001, AWS-002), T1078
+(AWS-003) and T1098 (AWS-005).
 
 PRH-IDS-001 to PRH-IDS-003 are the only built-in rules without ATT&CK tags (see above); the test
 of the tags lists them by id.

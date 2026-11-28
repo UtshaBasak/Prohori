@@ -1,0 +1,52 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+# Copyright (c) 2026 Utsha Basak
+rule: PRH-AWS-001
+start: 2026-10-24T14:00:00Z
+defaults:
+  log_source: aws-cloudtrail
+  event.category: authentication
+  event.action: aws.signin.console_login
+  event.outcome: failure
+  event.reason: Failed authentication
+  source.ip: 203.0.113.50
+  user.name: it-admin
+  cloud.provider: aws
+  cloud.service: signin.amazonaws.com
+cases:
+  - name: five failures from one address alert
+    expect: {alerts: 1, entities: [{source.ip: 203.0.113.50}]}
+    events:
+      - {repeat: 5, every: 20s}
+
+  - name: four failures do not alert
+    expect: {alerts: 0}
+    events:
+      - {repeat: 4, every: 20s}
+
+  - name: five failures over more than ten minutes do not alert
+    expect: {alerts: 0}
+    events:
+      - {repeat: 5, every: 3m}
+
+  - name: failures from different addresses are counted apart
+    expect: {alerts: 0}
+    events:
+      - {repeat: 3, every: 20s}
+      - {repeat: 3, every: 20s, source.ip: 198.51.100.7}
+
+  - name: successful sign-ins do not count
+    expect: {alerts: 0}
+    events:
+      - {repeat: 4, every: 20s}
+      - {event.outcome: success, event.reason: null}
+
+  - name: CloudTrail records, user names hidden or not
+    expect: {alerts: 1, entities: [{source.ip: 203.0.113.50}]}
+    log:
+      parser: cloudtrail
+      lines:
+        - '{"eventVersion":"1.11","userIdentity":{"type":"IAMUser","accountId":"111122223333","userName":"HIDDEN_DUE_TO_SECURITY_REASONS"},"eventTime":"2026-10-24T14:00:00Z","eventSource":"signin.amazonaws.com","eventName":"ConsoleLogin","awsRegion":"us-east-1","sourceIPAddress":"203.0.113.50","userAgent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36","errorMessage":"Failed authentication","requestParameters":null,"responseElements":{"ConsoleLogin":"Failure"},"additionalEventData":{"LoginTo":"https://console.aws.amazon.com/console/home","MobileVersion":"No","MFAUsed":"No"},"requestID":"7f6c3a1e-0000-4000-8000-000000000001","eventID":"0b9f2c4d-0000-4000-8000-000000000001","readOnly":false,"eventType":"AwsConsoleSignIn","managementEvent":true,"recipientAccountId":"111122223333","eventCategory":"Management"}'
+        - '{"eventVersion":"1.11","userIdentity":{"type":"IAMUser","accountId":"111122223333","userName":"HIDDEN_DUE_TO_SECURITY_REASONS"},"eventTime":"2026-10-24T14:00:20Z","eventSource":"signin.amazonaws.com","eventName":"ConsoleLogin","awsRegion":"us-east-1","sourceIPAddress":"203.0.113.50","userAgent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36","errorMessage":"Failed authentication","requestParameters":null,"responseElements":{"ConsoleLogin":"Failure"},"additionalEventData":{"LoginTo":"https://console.aws.amazon.com/console/home","MobileVersion":"No","MFAUsed":"No"},"requestID":"7f6c3a1e-0000-4000-8000-000000000002","eventID":"0b9f2c4d-0000-4000-8000-000000000002","readOnly":false,"eventType":"AwsConsoleSignIn","managementEvent":true,"recipientAccountId":"111122223333","eventCategory":"Management"}'
+        - '{"eventVersion":"1.11","userIdentity":{"type":"IAMUser","principalId":"AIDAEXAMPLEUSER8","arn":"arn:aws:iam::111122223333:user/it-admin","accountId":"111122223333","userName":"it-admin"},"eventTime":"2026-10-24T14:00:40Z","eventSource":"signin.amazonaws.com","eventName":"ConsoleLogin","awsRegion":"us-east-1","sourceIPAddress":"203.0.113.50","userAgent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36","errorMessage":"Failed authentication","requestParameters":null,"responseElements":{"ConsoleLogin":"Failure"},"additionalEventData":{"LoginTo":"https://console.aws.amazon.com/console/home","MobileVersion":"No","MFAUsed":"No"},"requestID":"7f6c3a1e-0000-4000-8000-000000000003","eventID":"0b9f2c4d-0000-4000-8000-000000000003","readOnly":false,"eventType":"AwsConsoleSignIn","managementEvent":true,"recipientAccountId":"111122223333","eventCategory":"Management"}'
+        - '{"eventVersion":"1.11","userIdentity":{"type":"IAMUser","principalId":"AIDAEXAMPLEUSER8","arn":"arn:aws:iam::111122223333:user/it-admin","accountId":"111122223333","userName":"it-admin"},"eventTime":"2026-10-24T14:01:00Z","eventSource":"signin.amazonaws.com","eventName":"ConsoleLogin","awsRegion":"us-east-1","sourceIPAddress":"203.0.113.50","userAgent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36","errorMessage":"Failed authentication","requestParameters":null,"responseElements":{"ConsoleLogin":"Failure"},"additionalEventData":{"LoginTo":"https://console.aws.amazon.com/console/home","MobileVersion":"No","MFAUsed":"No"},"requestID":"7f6c3a1e-0000-4000-8000-000000000004","eventID":"0b9f2c4d-0000-4000-8000-000000000004","readOnly":false,"eventType":"AwsConsoleSignIn","managementEvent":true,"recipientAccountId":"111122223333","eventCategory":"Management"}'
+        - '{"eventVersion":"1.11","userIdentity":{"type":"IAMUser","principalId":"AIDAEXAMPLEUSER8","arn":"arn:aws:iam::111122223333:user/it-admin","accountId":"111122223333","userName":"it-admin"},"eventTime":"2026-10-24T14:01:20Z","eventSource":"signin.amazonaws.com","eventName":"ConsoleLogin","awsRegion":"us-east-1","sourceIPAddress":"203.0.113.50","userAgent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36","errorMessage":"Failed authentication","requestParameters":null,"responseElements":{"ConsoleLogin":"Failure"},"additionalEventData":{"LoginTo":"https://console.aws.amazon.com/console/home","MobileVersion":"No","MFAUsed":"No"},"requestID":"7f6c3a1e-0000-4000-8000-000000000005","eventID":"0b9f2c4d-0000-4000-8000-000000000005","readOnly":false,"eventType":"AwsConsoleSignIn","managementEvent":true,"recipientAccountId":"111122223333","eventCategory":"Management"}'

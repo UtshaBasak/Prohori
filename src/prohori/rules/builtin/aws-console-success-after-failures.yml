@@ -1,0 +1,30 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+# Copyright (c) 2026 Utsha Basak
+id: PRH-AWS-002
+title: AWS console sign-in after many failures from one address
+status: experimental
+severity: critical
+description: >-
+  At least 3 failed AWS console sign-ins and then a successful one from the same address within
+  30 minutes: the guessing may have worked. Check whether the sign-in used MFA
+  (extra.mfa_used).
+author: Prohori
+tags: [attack.credential_access, attack.t1110, attack.initial_access, attack.t1078.004]
+logsource: {category: authentication}
+detection:
+  failure:
+    event.action: aws.signin.console_login
+    event.outcome: failure
+  success:
+    event.action: aws.signin.console_login
+    event.outcome: success
+  sequence:
+    by: [source.ip]
+    within: 30m
+    steps:
+      - {selection: failure, count_gte: 3}
+      - {selection: success}
+  condition: sequence
+falsepositives:
+  - A user who mistyped a password several times and then got it right
+response: runbooks/aws-console-brute-force.md

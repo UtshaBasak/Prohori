@@ -1,0 +1,29 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+# Copyright (c) 2026 Utsha Basak
+id: PRH-AWS-003
+title: AWS root user signed in or used an access key
+status: experimental
+severity: high
+description: >-
+  The AWS account's root user signed in to the console, or made a call with a long-term access
+  key. The root user can do anything in the account and is meant for a few account tasks only;
+  root access keys should not exist at all. Calls an AWS service made for the root user are left
+  out.
+author: Prohori
+tags: [attack.initial_access, attack.persistence, attack.t1078, attack.t1078.004]
+logsource: {log_source: aws-cloudtrail}
+detection:
+  root:
+    extra.identity_type: Root
+  signin:
+    event.action: aws.signin.console_login
+    event.outcome: success
+  access_key:
+    extra.access_key_type: long_term
+  service:
+    extra.invoked_by|exists: true
+  condition: root and (signin or access_key) and not service
+falsepositives:
+  - The account owner doing one of the tasks only root can do (billing, closing the account,
+    changing the support plan)
+response: runbooks/aws-root-user.md

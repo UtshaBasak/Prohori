@@ -83,7 +83,7 @@ def test_dag_settings(dagbag: Any, dag_id: str) -> None:
 
 def test_pipeline_shapes(dagbag: Any) -> None:
     backfill = dagbag.dags["prohori_backfill"]
-    assert len(backfill.tasks) == 12  # ten scenarios, the wait and the dbt build
+    assert len(backfill.tasks) == 13  # eleven scenarios, the wait and the dbt build
     assert backfill.get_task("build_marts").upstream_task_ids == {"wait_for_the_pipeline"}
     nightly = dagbag.dags["prohori_nightly_evaluation"]
     assert nightly.get_task("train").skip_on_exit_code == [99]

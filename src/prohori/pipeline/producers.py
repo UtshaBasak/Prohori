@@ -25,6 +25,7 @@ from pathlib import Path
 from typing import BinaryIO
 
 from prohori.parsers import RawLine, available, detect_format, read_lines
+from prohori.parsers.inputs import InputError, open_log
 from prohori.pipeline.messages import RawLog, Topic
 from prohori.pipeline.transport import Transport, write_atomic
 
@@ -87,13 +88,16 @@ def replay(
         raise ProducerError(msg)
     read_at = datetime.fromtimestamp(path.stat().st_mtime, tz=UTC)
     count = 0
-    with path.open("rb") as stream:
-        lines: Iterator[RawLine] = read_lines(stream)
-        head = list(islice(lines, DETECT_LINES))
-        name = choose_parser(head, parser, has_mapping=has_mapping)
-        for raw in chain(head, lines):
-            _message(transport, path.name, raw, name, read_at)
-            count += 1
+    try:
+        with open_log(path) as stream:
+            lines: Iterator[RawLine] = read_lines(stream)
+            head = list(islice(lines, DETECT_LINES))
+            name = choose_parser(head, parser, has_mapping=has_mapping)
+            for raw in chain(head, lines):
+                _message(transport, path.name, raw, name, read_at)
+                count += 1
+    except InputError as exc:
+        raise ProducerError(f"{path.name}: {exc}") from None
     transport.flush()
     return count
 

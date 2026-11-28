@@ -29,8 +29,8 @@ from prohori.parsers import (
     get_parser,
     read_lines,
 )
-from prohori.parsers.base import LineSource, Utf16Lines, is_utf16
-from prohori.parsers.evtx_file import EXTRA_HINT, EvtxLines, evtx_available
+from prohori.parsers.base import ConvertedInput, LineSource
+from prohori.parsers.inputs import InputError, convert, open_log
 from prohori.schema import Event
 
 #: Raw lines buffered for format detection before parsing starts.
@@ -46,32 +46,24 @@ class OutputFormat(StrEnum):
 
 @contextlib.contextmanager
 def open_input(path: str) -> Iterator[tuple[LineSource, str, datetime | None]]:
-    """Open ``path`` (or standard input for ``-``) as a binary stream.
+    """Open ``path`` (or standard input for ``-``) as lines.
 
-    Yields the stream, a display name and the file's modification time (``None`` for stdin). A
-    Windows ``.evtx`` file is read record by record as JSON lines (needs the ``evtx`` extra).
+    Yields the line source, a display name and the file's modification time (``None`` for stdin).
+    Compressed, UTF-16, ``.evtx`` and CloudTrail files are converted as they are read
+    (:func:`prohori.parsers.inputs.open_log`).
     """
-    if path == "-":
-        yield sys.stdin.buffer, "<stdin>", None
-        return
-    file = Path(path)
-    if not file.is_file():
-        raise typer.BadParameter(f"file not found: {path}", param_hint="FILE")
-    mtime = datetime.fromtimestamp(file.stat().st_mtime, tz=UTC)
-    if file.suffix.lower() == ".evtx":
-        if not evtx_available():
-            raise typer.BadParameter(EXTRA_HINT, param_hint="FILE")
-        yield EvtxLines(file), file.name, mtime
-        return
-    if is_utf16(file):  # Windows PowerShell 5.1 writes UTF-16 by default
-        text = Utf16Lines(file)
-        try:
-            yield text, file.name, mtime
-        finally:
-            text.close()
-        return
-    with file.open("rb") as stream:
-        yield stream, file.name, mtime
+    try:
+        if path == "-":
+            yield convert(sys.stdin.buffer, partial=True), "<stdin>", None
+            return
+        file = Path(path)
+        if not file.is_file():
+            raise typer.BadParameter(f"file not found: {path}", param_hint="FILE")
+        mtime = datetime.fromtimestamp(file.stat().st_mtime, tz=UTC)
+        with open_log(file) as stream:
+            yield stream, file.name, mtime
+    except InputError as exc:  # also while the lines are read: corrupt gzip data
+        raise typer.BadParameter(str(exc), param_hint="FILE") from None
 
 
 def build_parser(
@@ -119,17 +111,18 @@ class HashingReader:
 
     @property
     def bytes(self) -> int:
-        """Bytes read so far; for a converted file (``.evtx``, UTF-16), the file's size."""
-        if isinstance(self._stream, EvtxLines | Utf16Lines):
-            return self._stream.bytes
+        """Bytes read so far; for a converted input (``.evtx``, UTF-16, gzip, CloudTrail), of the
+        input as stored."""
+        if isinstance(self._stream, ConvertedInput):
+            return self._stream.stored_size()
         return self._read
 
     def hexdigest(self) -> str:
         """SHA-256 of what has been read so far (the whole input once parsing has finished).
 
-        For a converted file (``.evtx``, UTF-16), the SHA-256 of the file as stored.
+        For a converted input (``.evtx``, UTF-16, gzip, CloudTrail), of the input as stored.
         """
-        if isinstance(self._stream, EvtxLines | Utf16Lines):
+        if isinstance(self._stream, ConvertedInput):
             return self._stream.hexdigest()
         return self._hash.hexdigest()
 
